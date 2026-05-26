@@ -1,0 +1,144 @@
+/* ======================================================================
+   Perfect Cleaners — Design Tokens
+   Mirrors design-system/colors_and_type.css for the Next.js web app.
+   Fonts are loaded via next/font/google in layout.tsx; CSS variables
+   are wired here so component code uses the same --pc-* names.
+   ====================================================================== */
+
+:root {
+  /* Surfaces */
+  --pc-ink:          #0E0D0B;
+  --pc-ink-raised:   #141412;
+  --pc-card:         #1C1B19;
+  --pc-card-hi:      #232220;
+  --pc-line:         rgba(255,255,255,0.08);
+  --pc-line-strong:  rgba(255,255,255,0.14);
+  --pc-line-faint:   rgba(255,255,255,0.04);
+
+  /* Foreground */
+  --pc-fg:   #FFFFFF;
+  --pc-fg-2: #AAAAAA;
+  --pc-fg-3: #666660;
+  --pc-fg-4: #3A3A36;
+
+  /* Brand accents */
+  --pc-sage:     #4A5E44;
+  --pc-sage-hi:  #5B6F52;
+  --pc-sage-lo:  #3A4D36;
+  --pc-sage-ink: #E8EDE3;
+  --pc-warm:     #F0EDE8;
+  --pc-warm-2:   #E4DFD6;
+  --pc-gold:     #C9A961;
+
+  /* Semantic */
+  --pc-success: #6FAE6A;
+  --pc-warning: #D9A441;
+  --pc-danger:  #C9554E;
+  --pc-info:    #6A8EAE;
+
+  /* Booking status */
+  --pc-status-assigned:   #6A8EAE;
+  --pc-status-enroute:    #D9A441;
+  --pc-status-inprogress: #5B6F52;
+  --pc-status-done:       #6FAE6A;
+
+  /* Fonts — mapped from next/font CSS vars to design system names */
+  --pc-serif: var(--font-serif), "PP Editorial New", Georgia, serif;
+  --pc-sans:  var(--font-sans),  "Satoshi", -apple-system, sans-serif;
+  --pc-mono:  var(--font-mono),  "IBM Plex Mono", ui-monospace, monospace;
+
+  /* Type scale */
+  --pc-text-xs:   11px;
+  --pc-text-sm:   13px;
+  --pc-text-base: 15px;
+  --pc-text-lg:   18px;
+  --pc-text-xl:   22px;
+  --pc-text-2xl:  28px;
+  --pc-text-3xl:  38px;
+  --pc-text-hero: 52px;
+  --pc-text-mega: 88px;
+
+  /* Letter spacing */
+  --pc-track-tight:  -0.02em;
+  --pc-track-snug:   -0.01em;
+  --pc-track-normal:  0;
+  --pc-track-wide:    0.06em;
+  --pc-track-mono:    0.08em;
+
+  /* Line height */
+  --pc-lh-tight: 1.05;
+  --pc-lh-snug:  1.15;
+  --pc-lh-body:  1.45;
+  --pc-lh-loose: 1.6;
+
+  /* Spacing */
+  --pc-space-1:  4px;
+  --pc-space-2:  8px;
+  --pc-space-3:  12px;
+  --pc-space-4:  16px;
+  --pc-space-5:  20px;
+  --pc-space-6:  24px;
+  --pc-space-8:  32px;
+  --pc-space-10: 40px;
+  --pc-space-12: 48px;
+  --pc-space-16: 64px;
+  --pc-space-20: 80px;
+  --pc-space-24: 96px;
+
+  /* Radii */
+  --pc-radius-xs:   4px;
+  --pc-radius-sm:   8px;
+  --pc-radius-md:   14px;
+  --pc-radius-lg:   20px;
+  --pc-radius-xl:   28px;
+  --pc-radius-pill: 999px;
+
+  /* Elevation */
+  --pc-shadow-card:      0 1px 0 rgba(255,255,255,0.04) inset, 0 0 0 1px rgba(255,255,255,0.06);
+  --pc-shadow-raised:    0 1px 0 rgba(255,255,255,0.06) inset, 0 0 0 1px rgba(255,255,255,0.10), 0 12px 40px -12px rgba(0,0,0,0.6);
+  --pc-shadow-pop:       0 24px 60px -20px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.08);
+  --pc-shadow-glow-sage: 0 0 0 1px rgba(91,111,82,0.4), 0 0 40px rgba(91,111,82,0.18);
+
+  /* Motion */
+  --pc-ease:     cubic-bezier(0.22, 1, 0.36, 1);
+  --pc-ease-in:  cubic-bezier(0.4, 0, 1, 1);
+  --pc-dur-fast: 140ms;
+  --pc-dur-base: 240ms;
+  --pc-dur-slow: 480ms;
+
+  /* Layout */
+  --pc-screen-pad:    20px;
+  --pc-screen-pad-lg: 32px;
+  --pc-tap-min:       44px;
+  --pc-maxw-content:  1280px;
+}
+
+/* ====================================================================
+   Reset + base
+   ==================================================================== */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html {
+  height: 100%;
+  color-scheme: dark;
+}
+
+body {
+  min-height: 100%;
+  background: var(--pc-ink);
+  color: var(--pc-fg);
+  font-family: var(--pc-sans);
+  font-size: var(--pc-text-base);
+  line-height: var(--pc-lh-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+a { color: inherit; text-decoration: none; }
+button { cursor: pointer; }

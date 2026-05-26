@@ -1,0 +1,6 @@
+.primary {
+  transition: transform var(--pc-dur-base) var(--pc-ease);
+}
+.primary:active {
+  transform: scale(0.97);
+}

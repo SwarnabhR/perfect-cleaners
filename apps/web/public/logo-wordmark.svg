@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 200" fill="none">
+  <g stroke="#FFFFFF" stroke-width="3" stroke-linecap="round">
+    <line x1="246" y1="14" x2="246" y2="86"></line>
+    <path d="M246 22 H276 a12 12 0 0 1 12 12 v0 a12 12 0 0 1 -12 12 H246"></path>
+    <path d="M246 46 H272 a10 10 0 0 1 10 10 v0 a10 10 0 0 1 -10 10 H246"></path>
+    <line x1="246" y1="74" x2="266" y2="74"></line>
+  </g>
+  <text x="260" y="124" text-anchor="middle" font-family="&#39;Instrument Serif&#39;, &#39;EB Garamond&#39;, Georgia, serif" font-size="28" letter-spacing="6" fill="#FFFFFF">PERFECT CLEANERS</text>
+  <g stroke="#C9A961" stroke-width="1">
+    <line x1="124" y1="146" x2="184" y2="146"></line>
+    <line x1="336" y1="146" x2="396" y2="146"></line>
+  </g>
+  <text x="260" y="152" text-anchor="middle" font-family="&#39;Inter Tight&#39;, &#39;Inter&#39;, sans-serif" font-size="10" letter-spacing="3.5" fill="#C9A961">PREMIUM CAR WASH &amp; DETAILING</text>
+  <text x="260" y="180" text-anchor="middle" font-family="&#39;Inter Tight&#39;, &#39;Inter&#39;, sans-serif" font-size="10" letter-spacing="4" fill="#AAAAAA">DELHI, INDIA</text>
+</svg>
