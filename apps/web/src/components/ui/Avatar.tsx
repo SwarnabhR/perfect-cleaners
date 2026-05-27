@@ -7,15 +7,22 @@ interface AvatarProps {
 export default function Avatar({ name, size = 32, bg = 'var(--pc-sage)' }: AvatarProps) {
   const initials = name.split(' ').map(s => s[0]).slice(0, 2).join('').toUpperCase();
   return (
-    <div style={{
-      width: size, height: size,
-      borderRadius: 'var(--pc-radius-pill)',
-      background: bg,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontFamily: 'var(--pc-sans)', fontWeight: 600,
-      fontSize: size * 0.38,
-      color: 'var(--pc-sage-ink)', flexShrink: 0,
-    }}>
+    <div
+      role="img"
+      aria-label={name}
+      style={{
+        width: size, height: size,
+        borderRadius: 'var(--pc-radius-pill)',
+        background: bg,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: 'var(--pc-sans)', fontWeight: 600,
+        // Intentional token bypass: avatar font scales proportionally
+        // with the size prop. rem-based tokens would not scale correctly
+        // here since size itself is a prop-driven px value.
+        fontSize: size * 0.38,
+        color: 'var(--pc-sage-ink)', flexShrink: 0,
+      }}
+    >
       {initials}
     </div>
   );

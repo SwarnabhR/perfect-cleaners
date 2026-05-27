@@ -7,6 +7,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 export function PrimaryButton({ children, full, style, className, ...props }: ButtonProps) {
   return (
     <button
+      type="button"
       className={`${styles.primary} ${className ?? ''}`}
       style={{
         background: 'var(--pc-warm)',
@@ -32,6 +33,7 @@ export function PrimaryButton({ children, full, style, className, ...props }: Bu
 export function GhostButton({ children, full, style, className, ...props }: ButtonProps) {
   return (
     <button
+      type="button"
       className={`${styles.ghost} ${className ?? ''}`}
       style={{
         background: 'transparent',

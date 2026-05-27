@@ -5,9 +5,11 @@ interface EyebrowProps {
   className?: string;
 }
 
+// Rendered as <span> so Eyebrow is valid in both block and inline contexts.
+// Callers that need block layout should pass style={{ display: 'block' }}.
 export default function Eyebrow({ children, color, style, className }: EyebrowProps) {
   return (
-    <div
+    <span
       className={className}
       style={{
         fontFamily: 'var(--pc-mono)',
@@ -19,6 +21,6 @@ export default function Eyebrow({ children, color, style, className }: EyebrowPr
       }}
     >
       {children}
-    </div>
+    </span>
   );
 }
