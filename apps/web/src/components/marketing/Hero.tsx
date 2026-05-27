@@ -1,12 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { PrimaryButton, GhostButton } from '@/components/ui/Button';
-import Card from '@/components/ui/Card';
-import Eyebrow from '@/components/ui/Eyebrow';
-import Icon from '@/components/ui/Icon';
-import CarImage from '@/components/ui/CarImage';
 import Image from 'next/image';
+import { PrimaryButton, GhostButton } from '@/components/ui/Button';
 
 export default function Hero() {
   return (
@@ -22,83 +18,190 @@ export default function Hero() {
     >
       {/* Left: headline + CTAs */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-6)', paddingTop: 'var(--pc-space-6)' }}>
+        {/* Eyebrow */}
         <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 8, alignSelf: 'flex-start',
+          border: '1px solid var(--pc-line)', borderRadius: 999,
+          padding: '5px 12px 5px 5px',
+        }}>
+          <span style={{
+            width: 6, height: 6, borderRadius: '50%',
+            background: 'var(--pc-sage-hi)', display: 'block', flexShrink: 0,
+          }} />
+          <span style={{
+            fontFamily: 'var(--pc-mono)', fontSize: 10,
+            color: 'var(--pc-fg-3)', letterSpacing: 'var(--pc-track-mono)',
+          }}>
+            DELHI NCR · GHAZIABAD
+          </span>
+        </div>
+
+        {/* Headline */}
+        <h1 style={{
           fontFamily: 'var(--pc-serif)',
           fontSize: 'var(--pc-text-hero)',
           lineHeight: 'var(--pc-lh-tight)',
           color: 'var(--pc-fg)',
           letterSpacing: 'var(--pc-track-tight)',
+          margin: 0,
         }}>
-          Bringing Your Car&apos;s<br />Shine Back to Life
-        </div>
-        <div style={{
+          The detail<br />standard<br />for Delhi NCR.
+        </h1>
+
+        {/* Sub */}
+        <p style={{
           fontFamily: 'var(--pc-sans)',
           fontSize: 'var(--pc-text-base)',
           color: 'var(--pc-fg-2)',
           lineHeight: 'var(--pc-lh-loose)',
-          maxWidth: 440,
+          maxWidth: 400,
+          margin: 0,
         }}>
-          Professional detailing, advanced technology, and showroom-quality results — at your home, office, or our centre in Ghaziabad.
-        </div>
+          Certified specialists, professional-grade products. At your driveway
+          or our centre in Ghaziabad — booked in under 2 minutes.
+        </p>
+
+        {/* CTAs */}
         <div style={{ display: 'flex', gap: 'var(--pc-space-2)', flexWrap: 'wrap' }}>
           <Link href="/book">
             <PrimaryButton style={{ padding: 'var(--pc-space-4) var(--pc-space-6)' }}>Book Now</PrimaryButton>
           </Link>
-          <Link href="/contact">
-            <GhostButton style={{ padding: 'var(--pc-space-4) var(--pc-space-6)' }}>Contact Us</GhostButton>
+          <Link href="/services">
+            <GhostButton style={{ padding: 'var(--pc-space-4) var(--pc-space-6)' }}>View Services</GhostButton>
           </Link>
         </div>
+
+        {/* Trust strip */}
+        <div style={{
+          display: 'flex', gap: 'var(--pc-space-6)', paddingTop: 'var(--pc-space-2)',
+          borderTop: '1px solid var(--pc-line)',
+        }}>
+          {[
+            ['1,500+', 'Cars detailed'],
+            ['4.9 / 5', 'Service rating'],
+            ['Since 2021', 'In business'],
+          ].map(([num, label]) => (
+            <div key={label}>
+              <div style={{
+                fontFamily: 'var(--pc-serif)', fontSize: 18,
+                color: 'var(--pc-fg)', letterSpacing: 'var(--pc-track-tight)', lineHeight: 1,
+              }}>{num}</div>
+              <div style={{
+                fontFamily: 'var(--pc-sans)', fontSize: 11,
+                color: 'var(--pc-fg-3)', marginTop: 3,
+              }}>{label}</div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Right: image tiles */}
+      {/* Right: photo tiles */}
       <div className="pc-hero-right">
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--pc-space-2)', height: 250 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--pc-space-2)', height: 260 }}>
           <div style={{ position: 'relative', borderRadius: 'var(--pc-radius-md)', overflow: 'hidden', border: '1px solid var(--pc-line)' }}>
-            <Image src="/hero-professional-detailer.png" alt="Professional detailer at work" fill style={{ objectFit: 'cover' }} />
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 40%, rgba(14,13,11,0.80) 100%)' }} />
-            <div style={{ position: 'absolute', bottom: 'var(--pc-space-3)', left: 'var(--pc-space-3)', fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg)', fontWeight: 500 }}>
-              Professional<br />Detailers
-            </div>
+            <Image src="/hero-professional-detailer.png" alt="Professional detailer foam-gunning a car" fill style={{ objectFit: 'cover' }} />
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 45%, rgba(14,13,11,0.85) 100%)' }} />
+            <div style={{
+              position: 'absolute', bottom: 12, left: 14,
+              fontFamily: 'var(--pc-mono)', fontSize: 9,
+              color: 'rgba(255,255,255,0.6)', letterSpacing: 'var(--pc-track-mono)',
+            }}>CERTIFIED DETAILERS</div>
           </div>
           <div style={{ position: 'relative', borderRadius: 'var(--pc-radius-md)', overflow: 'hidden', border: '1px solid var(--pc-line)' }}>
-            <Image src="/hero-booking-app.png" alt="Book anywhere, anytime" fill style={{ objectFit: 'cover' }} />
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 40%, rgba(14,13,11,0.80) 100%)' }} />
-            <div style={{ position: 'absolute', bottom: 'var(--pc-space-3)', left: 'var(--pc-space-3)', fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg)', fontWeight: 500 }}>
-              Booking<br />anywhere, anytime
-            </div>
+            <Image src="/hero-booking-app.png" alt="Book a wash from your phone" fill style={{ objectFit: 'cover' }} />
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 45%, rgba(14,13,11,0.85) 100%)' }} />
+            <div style={{
+              position: 'absolute', bottom: 12, left: 14,
+              fontFamily: 'var(--pc-mono)', fontSize: 9,
+              color: 'rgba(255,255,255,0.6)', letterSpacing: 'var(--pc-track-mono)',
+            }}>BOOK IN 2 MINUTES</div>
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--pc-space-2)', marginTop: 'var(--pc-space-2)' }}>
-          <Card style={{ padding: 'var(--pc-space-3)', minHeight: 70, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <Eyebrow>[01]</Eyebrow>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-              <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg)', maxWidth: 110 }}>
-                Mobile Service<br />Available
-              </div>
-              <Icon name="phone" size={14} color="var(--pc-fg-3)" />
+        {/* Process strip */}
+        <div style={{
+          display: 'grid', gridTemplateColumns: '1fr 1fr',
+          gap: 'var(--pc-space-2)', marginTop: 'var(--pc-space-2)',
+        }}>
+          <div style={{
+            background: 'var(--pc-card)', border: '1px solid var(--pc-line)',
+            borderRadius: 'var(--pc-radius-md)', padding: 'var(--pc-space-4)',
+            display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: 80,
+          }}>
+            <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, color: 'var(--pc-fg-4)', letterSpacing: 'var(--pc-track-mono)' }}>
+              PROCESS
             </div>
-          </Card>
-          <Card style={{ padding: 'var(--pc-space-3)', minHeight: 70, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <Eyebrow>[02]</Eyebrow>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-              <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg)', maxWidth: 130 }}>
-                Trusted by 1,500+<br />Car Owners
-              </div>
-              <Icon name="users" size={14} color="var(--pc-fg-3)" />
+            <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg)', lineHeight: 1.35 }}>
+              60-point<br />inspection checklist
             </div>
-          </Card>
+          </div>
+          <div style={{
+            background: 'var(--pc-card)', border: '1px solid var(--pc-line)',
+            borderRadius: 'var(--pc-radius-md)', padding: 'var(--pc-space-4)',
+            display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: 80,
+          }}>
+            <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, color: 'var(--pc-fg-4)', letterSpacing: 'var(--pc-track-mono)' }}>
+              COVERAGE
+            </div>
+            <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg)', lineHeight: 1.35 }}>
+              Delhi, Noida,<br />Gurgaon &amp; beyond
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Wide bento — full width */}
+      {/* Full-width image bento */}
       <div
         className="pc-hero-bento"
-        style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '1fr 0.8fr 1.6fr', gap: 'var(--pc-space-2)', marginTop: 'var(--pc-space-5)' }}
+        style={{
+          gridColumn: '1 / -1',
+          display: 'grid',
+          gridTemplateColumns: '1fr 0.8fr 1.6fr',
+          gap: 'var(--pc-space-2)',
+          marginTop: 'var(--pc-space-5)',
+        }}
       >
-        <CarImage tone="light" label="ATTENTION TO DETAIL" style={{ minHeight: 220 }} />
-        <CarImage tone="dark" style={{ minHeight: 220 }} />
-        <CarImage tone="sage" style={{ minHeight: 220 }} />
+        {/* Tile 1 */}
+        <div style={{ position: 'relative', borderRadius: 'var(--pc-radius-md)', overflow: 'hidden', minHeight: 220, border: '1px solid var(--pc-line)' }}>
+          <Image src="/service-exterior-a.png" alt="Exterior foam wash" fill style={{ objectFit: 'cover' }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 40%, rgba(14,13,11,0.88) 100%)' }} />
+          <div style={{ position: 'absolute', bottom: 16, left: 16 }}>
+            <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: 'var(--pc-track-mono)', marginBottom: 5 }}>
+              EXTERIOR WASH
+            </div>
+            <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)', fontWeight: 500 }}>
+              Foam cannon to finish
+            </div>
+          </div>
+        </div>
+
+        {/* Tile 2 */}
+        <div style={{ position: 'relative', borderRadius: 'var(--pc-radius-md)', overflow: 'hidden', minHeight: 220, border: '1px solid var(--pc-line)' }}>
+          <Image src="/service-coating-a.png" alt="Ceramic coating application" fill style={{ objectFit: 'cover' }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 40%, rgba(14,13,11,0.88) 100%)' }} />
+          <div style={{ position: 'absolute', bottom: 16, left: 16 }}>
+            <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: 'var(--pc-track-mono)', marginBottom: 5 }}>
+              CERAMIC COATING
+            </div>
+            <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)', fontWeight: 500 }}>
+              3-year protection
+            </div>
+          </div>
+        </div>
+
+        {/* Tile 3 — wide, with stat overlay */}
+        <div style={{ position: 'relative', borderRadius: 'var(--pc-radius-md)', overflow: 'hidden', minHeight: 220, border: '1px solid var(--pc-line)' }}>
+          <Image src="/service-interior-a.png" alt="Interior detailing" fill style={{ objectFit: 'cover' }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(105deg, rgba(14,13,11,0.82) 0%, rgba(14,13,11,0.3) 60%, rgba(14,13,11,0) 100%)' }} />
+          <div style={{ position: 'absolute', bottom: 20, left: 20 }}>
+            <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: 'var(--pc-track-mono)', marginBottom: 6 }}>
+              INTERIOR DETAIL
+            </div>
+            <div style={{ fontFamily: 'var(--pc-serif)', fontSize: 28, color: 'var(--pc-fg)', letterSpacing: 'var(--pc-track-tight)', lineHeight: 1.05 }}>
+              Every surface.<br />Nothing rushed.
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
