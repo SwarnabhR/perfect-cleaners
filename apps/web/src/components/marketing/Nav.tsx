@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Avatar from '@/components/ui/Avatar';
@@ -27,6 +27,16 @@ const GLASS_MENU = 'rgba(14,13,11,0.97)';
 export default function Nav() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // Close mobile drawer on Escape key
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setMenuOpen(false);
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [menuOpen]);
 
   return (
     <>
@@ -126,6 +136,7 @@ export default function Nav() {
             onClick={() => setMenuOpen(o => !o)}
             aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
             aria-expanded={menuOpen}
+            aria-controls="mobile-nav-drawer"
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               width: 40, height: 40,
@@ -144,8 +155,10 @@ export default function Nav() {
       {/* Mobile drawer */}
       {menuOpen && (
         <div
+          id="mobile-nav-drawer"
           role="dialog"
           aria-label="Navigation menu"
+          aria-modal="true"
           style={{
             position: 'fixed', inset: 0, zIndex: 49,
             background: GLASS_MENU,

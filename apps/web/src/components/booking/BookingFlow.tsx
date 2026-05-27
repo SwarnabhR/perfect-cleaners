@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Card from '@/components/ui/Card';
 import { PrimaryButton, GhostButton } from '@/components/ui/Button';
@@ -275,6 +276,8 @@ function FieldError({ msg }: { msg?: string }) {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function BookingFlow() {
+  const router = useRouter();
+
   const [dates]               = useState<DateOption[]>(buildUpcomingDates);
   const [selDate, setSelDate] = useState<DateOption>(() => buildUpcomingDates()[0]);
   const [selTime, setSelTime] = useState(TIMES[0]);
@@ -282,6 +285,7 @@ export default function BookingFlow() {
   const [showCalendar, setShowCalendar] = useState(false);
   const [calYear,  setCalYear]  = useState(() => new Date().getFullYear());
   const [calMonth, setCalMonth] = useState(() => new Date().getMonth());
+  const calendarRef = useRef<HTMLDivElement>(null);
 
   const [service, setService] = useState(SERVICES[0]);
 
@@ -300,6 +304,18 @@ export default function BookingFlow() {
   const [submitError,  setSubmitError]  = useState('');
 
   const total = service.price + PLATFORM_FEE;
+
+  // ─── Outside-click dismiss for calendar popover ───────────────────────────
+  useEffect(() => {
+    if (!showCalendar) return;
+    function handleOutsideClick(e: MouseEvent) {
+      if (calendarRef.current && !calendarRef.current.contains(e.target as Node)) {
+        setShowCalendar(false);
+      }
+    }
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [showCalendar]);
 
   function prevCalMonth() {
     if (calMonth === 0) { setCalMonth(11); setCalYear(y => y - 1); }
@@ -454,10 +470,16 @@ export default function BookingFlow() {
         </Card>
 
         <div style={{ display: 'flex', gap: 'var(--pc-space-3)', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <PrimaryButton onClick={() => window.location.reload()} style={{ padding: 'var(--pc-space-4) var(--pc-space-8)' }}>
+          <PrimaryButton
+            onClick={() => router.refresh()}
+            style={{ padding: 'var(--pc-space-4) var(--pc-space-8)' }}
+          >
             Book Another →
           </PrimaryButton>
-          <GhostButton onClick={() => window.location.href = '/'} style={{ padding: 'var(--pc-space-4) var(--pc-space-8)' }}>
+          <GhostButton
+            onClick={() => router.push('/')}
+            style={{ padding: 'var(--pc-space-4) var(--pc-space-8)' }}
+          >
             Back to Home
           </GhostButton>
         </div>
@@ -534,7 +556,7 @@ export default function BookingFlow() {
         <section>
           <StepLabel n="02">Select Date & Time</StepLabel>
 
-          <div style={{ position: 'relative', marginBottom: 'var(--pc-space-4)' }}>
+          <div ref={calendarRef} style={{ position: 'relative', marginBottom: 'var(--pc-space-4)' }}>
             <div style={{ display: 'flex', gap: 'var(--pc-space-2)', flexWrap: 'wrap' }}>
 
               {/* Quick-pick date pills */}
@@ -590,6 +612,8 @@ export default function BookingFlow() {
               <button
                 type="button"
                 onClick={() => setShowCalendar(v => !v)}
+                aria-label="Open date picker"
+                aria-expanded={showCalendar}
                 style={{
                   padding: 'var(--pc-space-2) var(--pc-space-4)',
                   borderRadius: 'var(--pc-radius-sm)',
@@ -711,6 +735,7 @@ export default function BookingFlow() {
               <select
                 value={city}
                 onChange={e => setCity(e.target.value)}
+                aria-label="Select city"
                 className={`${styles.input} ${styles.select}`}
                 style={{ flex: 1 }}
               >
@@ -743,6 +768,7 @@ export default function BookingFlow() {
               <select
                 value={brand}
                 onChange={e => setBrand(e.target.value)}
+                aria-label="Select vehicle brand"
                 className={`${styles.input} ${styles.select}`}
                 style={{ flex: 1 }}
               >
@@ -803,7 +829,7 @@ export default function BookingFlow() {
 
       {/* ── Right: sticky summary ── */}
       <div style={{ flex: '0 0 300px', minWidth: 260 }}>
-        <div style={{ position: 'sticky', top: 'var(--pc-space-24)' }}>
+        <div style={{ position: 'sticky', top: 'var(--pc-space-16)' }}>
           <Card style={{ padding: 'var(--pc-space-6)' }}>
             <Eyebrow style={{ marginBottom: 'var(--pc-space-5)', display: 'block' }}>
               Booking Summary
@@ -885,7 +911,7 @@ export default function BookingFlow() {
               textAlign: 'center',
               lineHeight: 'var(--pc-lh-snug)',
             }}>
-              Payment collected on arrival · Free cancellation up to 2 hrs before slot
+              Payment collected on arrival · Free cancellation up to 2 hours before.
             </p>
           </Card>
         </div>
