@@ -201,6 +201,29 @@ button { cursor: pointer; }
 }
 
 /* ====================================================================
+   Nav responsive — separate from generic mobile utilities.
+   768px is correct for hero/card layout shifts; the nav needs 1024px
+   to prevent the centred links overlapping the right-side actions on
+   tablet-width windows, and to hide the hamburger on laptops.
+   ==================================================================== */
+
+/* Hamburger: hidden by default via CSS — do NOT put display:flex in
+   the inline style or it will override this rule on desktop. */
+.pc-nav-hamburger {
+  display: none !important;
+}
+
+/* Desktop nav items: flex by default */
+.pc-nav-desktop {
+  display: flex;
+}
+
+@media (max-width: 1024px) {
+  .pc-nav-desktop   { display: none !important; }
+  .pc-nav-hamburger { display: flex !important; }
+}
+
+/* ====================================================================
    Nav hover — scoped to new editorial nav links
    ==================================================================== */
 
@@ -361,6 +384,23 @@ html {
   .pc-contact-main {
     padding: var(--pc-space-12) var(--pc-screen-pad-lg) !important;
   }
+}
+
+/* ====================================================================
+   About page
+   ==================================================================== */
+
+@media (max-width: 768px) {
+  .pc-about-grid   { grid-template-columns: 1fr !important; }
+  .pc-about-values { grid-template-columns: 1fr !important; }
+}
+
+/* ====================================================================
+   Gallery page
+   ==================================================================== */
+
+@media (max-width: 640px) {
+  .pc-gallery-grid { grid-template-columns: 1fr !important; }
 }
 
 /* ====================================================================

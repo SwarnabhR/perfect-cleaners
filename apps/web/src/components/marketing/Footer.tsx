@@ -1,5 +1,3 @@
-'use client';
-
 import Link from 'next/link';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';

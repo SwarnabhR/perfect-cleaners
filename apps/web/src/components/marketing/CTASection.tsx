@@ -19,6 +19,7 @@ export default function CTASection() {
         alt=""
         aria-hidden="true"
         fill
+        sizes="100vw"
         style={{ objectFit: 'cover' }}
       />
       {/* Left-side gradient */}

@@ -1,5 +1,3 @@
-'use client';
-
 import Link from 'next/link';
 import Image from 'next/image';
 import { PrimaryButton, GhostButton } from '@/components/ui/Button';
@@ -105,6 +103,7 @@ export default function PremiumSection() {
               src={svc.img}
               alt={svc.alt}
               fill
+              sizes="(max-width: 480px) 100vw, (max-width: 768px) calc(50vw - 24px), calc(33vw - 16px)"
               style={{ objectFit: 'cover' }}
             />
             {/* Gradient overlay */}

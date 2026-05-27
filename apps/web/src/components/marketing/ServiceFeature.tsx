@@ -41,11 +41,11 @@ export default function ServiceFeature({ num, name, price, title, body }: Servic
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-2)', minHeight: 148 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--pc-space-2)' }}>
             <div style={{ height: 140, borderRadius: 'var(--pc-radius-sm)', overflow: 'hidden', border: '1px solid var(--pc-line)', position: 'relative' }}>
-              {imgA && <Image src={imgA} alt={name} fill style={{ objectFit: 'cover' }} />}
+              {imgA && <Image src={imgA} alt={name} fill sizes="(max-width: 768px) 50vw, 18vw" style={{ objectFit: 'cover' }} />}
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 50%, rgba(14,13,11,0.55) 100%)' }} />
             </div>
             <div style={{ height: 140, borderRadius: 'var(--pc-radius-sm)', overflow: 'hidden', border: '1px solid var(--pc-line)', position: 'relative' }}>
-              {imgB && <Image src={imgB} alt={name} fill style={{ objectFit: 'cover' }} />}
+              {imgB && <Image src={imgB} alt={name} fill sizes="(max-width: 768px) 50vw, 18vw" style={{ objectFit: 'cover' }} />}
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 50%, rgba(14,13,11,0.55) 100%)' }} />
             </div>
           </div>
@@ -53,7 +53,7 @@ export default function ServiceFeature({ num, name, price, title, body }: Servic
 
         {/* Portrait image */}
         <div className="pc-sf-portrait" style={{ height: 280, borderRadius: 'var(--pc-radius-sm)', overflow: 'hidden', border: '1px solid var(--pc-line)', position: 'relative' }}>
-          {imgA && <Image src={imgA} alt={name} fill style={{ objectFit: 'cover', objectPosition: 'center top' }} />}
+          {imgA && <Image src={imgA} alt={name} fill sizes="(max-width: 768px) 100vw, 30vw" style={{ objectFit: 'cover', objectPosition: 'center top' }} />}
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 60%, rgba(14,13,11,0.5) 100%)' }} />
         </div>
 

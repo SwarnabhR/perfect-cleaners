@@ -1,5 +1,3 @@
-'use client';
-
 import Link from 'next/link';
 import Image from 'next/image';
 import { PrimaryButton, GhostButton } from '@/components/ui/Button';
@@ -75,6 +73,7 @@ export default function Hero() {
         <div style={{
           display: 'flex', gap: 'var(--pc-space-6)', paddingTop: 'var(--pc-space-2)',
           borderTop: '1px solid var(--pc-line)',
+          flexWrap: 'wrap',
         }}>
           {[
             ['1,500+', 'Cars detailed'],
@@ -95,11 +94,19 @@ export default function Hero() {
         </div>
       </div>
 
-      {/* Right: photo tiles */}
+      {/* Right: photo tiles — desktop only (hidden on mobile via .pc-hero-right CSS) */}
       <div className="pc-hero-right">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--pc-space-2)', height: 260 }}>
           <div style={{ position: 'relative', borderRadius: 'var(--pc-radius-md)', overflow: 'hidden', border: '1px solid var(--pc-line)' }}>
-            <Image src="/hero-professional-detailer.png" alt="Professional detailer foam-gunning a car" fill style={{ objectFit: 'cover' }} />
+            {/* priority: above-the-fold on desktop; sizes: hidden on ≤768px */}
+            <Image
+              src="/hero-professional-detailer.png"
+              alt="Professional detailer foam-gunning a car"
+              fill
+              priority
+              sizes="(max-width: 768px) 1px, 26vw"
+              style={{ objectFit: 'cover' }}
+            />
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 45%, rgba(14,13,11,0.85) 100%)' }} />
             <div style={{
               position: 'absolute', bottom: 12, left: 14,
@@ -108,7 +115,14 @@ export default function Hero() {
             }}>CERTIFIED DETAILERS</div>
           </div>
           <div style={{ position: 'relative', borderRadius: 'var(--pc-radius-md)', overflow: 'hidden', border: '1px solid var(--pc-line)' }}>
-            <Image src="/hero-booking-app.png" alt="Book a wash from your phone" fill style={{ objectFit: 'cover' }} />
+            <Image
+              src="/hero-booking-app.png"
+              alt="Book a wash from your phone"
+              fill
+              priority
+              sizes="(max-width: 768px) 1px, 26vw"
+              style={{ objectFit: 'cover' }}
+            />
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 45%, rgba(14,13,11,0.85) 100%)' }} />
             <div style={{
               position: 'absolute', bottom: 12, left: 14,
@@ -163,7 +177,13 @@ export default function Hero() {
       >
         {/* Tile 1 */}
         <div style={{ position: 'relative', borderRadius: 'var(--pc-radius-md)', overflow: 'hidden', minHeight: 220, border: '1px solid var(--pc-line)' }}>
-          <Image src="/service-exterior-a.png" alt="Exterior foam wash" fill style={{ objectFit: 'cover' }} />
+          <Image
+            src="/service-exterior-a.png"
+            alt="Exterior foam wash"
+            fill
+            sizes="(max-width: 480px) 100vw, (max-width: 768px) 50vw, 27vw"
+            style={{ objectFit: 'cover' }}
+          />
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 40%, rgba(14,13,11,0.88) 100%)' }} />
           <div style={{ position: 'absolute', bottom: 16, left: 16 }}>
             <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: 'var(--pc-track-mono)', marginBottom: 5 }}>
@@ -177,7 +197,13 @@ export default function Hero() {
 
         {/* Tile 2 */}
         <div style={{ position: 'relative', borderRadius: 'var(--pc-radius-md)', overflow: 'hidden', minHeight: 220, border: '1px solid var(--pc-line)' }}>
-          <Image src="/service-coating-a.png" alt="Ceramic coating application" fill style={{ objectFit: 'cover' }} />
+          <Image
+            src="/service-coating-a.png"
+            alt="Ceramic coating application"
+            fill
+            sizes="(max-width: 480px) 100vw, (max-width: 768px) 50vw, 22vw"
+            style={{ objectFit: 'cover' }}
+          />
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 40%, rgba(14,13,11,0.88) 100%)' }} />
           <div style={{ position: 'absolute', bottom: 16, left: 16 }}>
             <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: 'var(--pc-track-mono)', marginBottom: 5 }}>
@@ -191,7 +217,13 @@ export default function Hero() {
 
         {/* Tile 3 — wide, with stat overlay */}
         <div style={{ position: 'relative', borderRadius: 'var(--pc-radius-md)', overflow: 'hidden', minHeight: 220, border: '1px solid var(--pc-line)' }}>
-          <Image src="/service-interior-a.png" alt="Interior detailing" fill style={{ objectFit: 'cover' }} />
+          <Image
+            src="/service-interior-a.png"
+            alt="Interior detailing"
+            fill
+            sizes="(max-width: 480px) 100vw, (max-width: 768px) 50vw, 44vw"
+            style={{ objectFit: 'cover' }}
+          />
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(105deg, rgba(14,13,11,0.82) 0%, rgba(14,13,11,0.3) 60%, rgba(14,13,11,0) 100%)' }} />
           <div style={{ position: 'absolute', bottom: 20, left: 20 }}>
             <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: 'var(--pc-track-mono)', marginBottom: 6 }}>

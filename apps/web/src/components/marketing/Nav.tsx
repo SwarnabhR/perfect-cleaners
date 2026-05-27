@@ -99,7 +99,7 @@ export default function Nav() {
 
         {/* ── Centre links — desktop only ──────────────────────────────── */}
         <div
-          className="pc-hide-mobile"
+          className="pc-nav-desktop"
           style={{
             position: 'absolute',
             left: '50%',
@@ -160,7 +160,7 @@ export default function Nav() {
           {/* Book Now — desktop */}
           <Link
             href="/book"
-            className="pc-hide-mobile"
+            className="pc-nav-desktop"
             style={{
               fontFamily: 'var(--pc-mono)',
               fontSize: 10,
@@ -181,7 +181,7 @@ export default function Nav() {
           <Link
             href="/account"
             aria-label="Account"
-            className="pc-hide-mobile"
+            className="pc-nav-desktop"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -199,14 +199,15 @@ export default function Nav() {
 
           {/* Hamburger — mobile */}
           <button
-            className="pc-mobile-menu"
+            className="pc-nav-hamburger"
             type="button"
             onClick={() => setMenuOpen(o => !o)}
             aria-label={menuOpen ? 'Close navigation' : 'Open navigation'}
             aria-expanded={menuOpen}
             aria-controls="mobile-nav-drawer"
             style={{
-              display: 'flex',
+              /* No display here — .pc-nav-hamburger CSS controls visibility.
+                 Inline display would override the 'display:none' on desktop. */
               alignItems: 'center',
               justifyContent: 'center',
               width: 44,
@@ -217,7 +218,6 @@ export default function Nav() {
               color: 'var(--pc-fg-2)',
               flexShrink: 0,
               padding: 0,
-              /* -4px negative margin absorbs the extra 8px without pushing other items */
               marginRight: -4,
             }}
           >
