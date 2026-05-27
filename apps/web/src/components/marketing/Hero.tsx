@@ -55,7 +55,7 @@ export default function Hero() {
           margin: 0,
         }}>
           Certified specialists, professional-grade products. At your driveway
-          or our centre in Ghaziabad — booked in under 2 minutes.
+          or our centre in Noida — booked in under 2 minutes.
         </p>
 
         {/*
