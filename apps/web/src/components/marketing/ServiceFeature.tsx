@@ -1,5 +1,6 @@
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
+import Image from 'next/image';
 
 // Map service number to the pair of real photos
 const SERVICE_IMAGES: Record<string, [string, string]> = {
@@ -37,16 +38,14 @@ export default function ServiceFeature({ num, name, price, title, body }: Servic
             {/* Photo A — small tile */}
             <div style={{ height: 140, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--pc-line)', position: 'relative' }}>
               {imgA && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={imgA} alt={name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                <Image src={imgA} alt={name} fill style={{ objectFit: 'cover' }} />
               )}
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 50%, rgba(14,13,11,0.55) 100%)' }} />
             </div>
             {/* Photo B — small tile */}
             <div style={{ height: 140, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--pc-line)', position: 'relative' }}>
               {imgB && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={imgB} alt={name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                <Image src={imgB} alt={name} fill style={{ objectFit: 'cover' }} />
               )}
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 50%, rgba(14,13,11,0.55) 100%)' }} />
             </div>
@@ -55,8 +54,7 @@ export default function ServiceFeature({ num, name, price, title, body }: Servic
         {/* Large tall photo — same image as A, different crop via objectPosition */}
         <div style={{ height: 280, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--pc-line)', position: 'relative' }}>
           {imgA && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={imgA} alt={name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top' }} />
+            <Image src={imgA} alt={name} fill style={{ objectFit: 'cover', objectPosition: 'center top' }} />
           )}
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 60%, rgba(14,13,11,0.5) 100%)' }} />
         </div>

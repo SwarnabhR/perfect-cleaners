@@ -3,6 +3,7 @@ import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
 import CarImage from '@/components/ui/CarImage';
+import Image from 'next/image';
 
 export default function Hero() {
   return (
@@ -28,16 +29,14 @@ export default function Hero() {
       <div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, height: 250 }}>
           <div style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', border: '1px solid var(--pc-line)' }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/hero-professional-detailer.png" alt="Professional detailer" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+            <Image src="/hero-professional-detailer.png" alt="Professional detailer" fill style={{ objectFit: 'cover' }} />
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 40%, rgba(14,13,11,0.80) 100%)' }} />
             <div style={{ position: 'absolute', bottom: 12, left: 12, fontFamily: 'var(--pc-sans)', fontSize: 12, color: '#fff', fontWeight: 500 }}>
               Professional<br />Detailers
             </div>
           </div>
           <div style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', border: '1px solid var(--pc-line)' }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/hero-booking-app.png" alt="Book anywhere, anytime" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+            <Image src="/hero-booking-app.png" alt="Book anywhere, anytime" fill style={{ objectFit: 'cover' }} />
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 40%, rgba(14,13,11,0.80) 100%)' }} />
             <div style={{ position: 'absolute', bottom: 12, left: 12, fontFamily: 'var(--pc-sans)', fontSize: 12, color: '#fff', fontWeight: 500 }}>
               Booking<br />anywhere, anytime

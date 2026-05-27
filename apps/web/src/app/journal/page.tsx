@@ -5,6 +5,13 @@ import CTASection from '@/components/marketing/CTASection';
 import Card from '@/components/ui/Card';
 import Link from 'next/link';
 import Icon from '@/components/ui/Icon';
+import Image from 'next/image';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Journal | Perfect Cleaners',
+  description: 'Expert advice, industry truths, and guides on maintaining your vehicle.',
+};
 
 const POSTS = [
   { id: 1, title: 'Why Ceramic Coating is an Investment, Not an Expense', date: 'May 20, 2026', category: 'Education', readTime: '5 min', img: '/journal-coating.png' },
@@ -26,9 +33,8 @@ export default function JournalPage() {
           {POSTS.map(post => (
             <Link key={post.id} href="#" style={{ textDecoration: 'none' }}>
               <Card style={{ padding: 32, display: 'flex', gap: 32, alignItems: 'center', transition: 'transform 0.2s', cursor: 'pointer' }}>
-                <div style={{ width: 160, height: 160, background: 'var(--pc-card-hi)', borderRadius: 12, flexShrink: 0, overflow: 'hidden', border: '1px solid var(--pc-line)' }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={post.img} alt={post.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <div style={{ width: 160, height: 160, background: 'var(--pc-card-hi)', borderRadius: 12, flexShrink: 0, overflow: 'hidden', border: '1px solid var(--pc-line)', position: 'relative' }}>
+                  <Image src={post.img} alt={post.title} fill style={{ objectFit: 'cover' }} />
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12 }}>

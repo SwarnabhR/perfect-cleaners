@@ -2,6 +2,13 @@ import Nav from '@/components/marketing/Nav';
 import Footer from '@/components/marketing/Footer';
 import SectionHeader from '@/components/marketing/SectionHeader';
 import CTASection from '@/components/marketing/CTASection';
+import Image from 'next/image';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Gallery | Perfect Cleaners',
+  description: 'Browse our portfolio of paint corrections, ceramic coatings, and extreme interior rehabilitations.',
+};
 
 const GALLERY_ITEMS = [
   { img: '/gallery-sports-car.png', title: 'Porsche 911 GT3', category: 'Multi-Stage Correction' },
@@ -26,8 +33,7 @@ export default function GalleryPage() {
           {GALLERY_ITEMS.map((item, i) => (
             <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', background: 'var(--pc-card-hi)', borderRadius: 16, overflow: 'hidden', border: '1px solid var(--pc-line)' }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={item.img} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <Image src={item.img} alt={item.title} fill style={{ objectFit: 'cover' }} />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 8px' }}>
                 <h3 style={{ fontFamily: 'var(--pc-sans)', fontSize: 18, color: 'var(--pc-fg)', fontWeight: 500 }}>{item.title}</h3>

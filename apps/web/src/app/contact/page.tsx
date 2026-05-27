@@ -3,6 +3,13 @@ import Footer from '@/components/marketing/Footer';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Card from '@/components/ui/Card';
 import Icon from '@/components/ui/Icon';
+import Image from 'next/image';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Contact Us | Perfect Cleaners',
+  description: 'Get in touch for questions, custom quotes, or partnerships.',
+};
 
 export default function ContactPage() {
   return (
@@ -63,8 +70,7 @@ export default function ContactPage() {
           {/* Right: Form */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 24 }}>
             <div style={{ position: 'relative', width: '100%', height: 160, borderRadius: 12, overflow: 'hidden', border: '1px solid var(--pc-line)' }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/gallery-interior.png" alt="Contact Us" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+              <Image src="/contact-hero.png" alt="Contact Us" fill style={{ objectFit: 'cover' }} />
             </div>
             <Card style={{ padding: 40 }}>
               <h2 style={{ fontFamily: 'var(--pc-serif)', fontSize: 32, color: 'var(--pc-fg)', marginBottom: 24 }}>Send a Message</h2>

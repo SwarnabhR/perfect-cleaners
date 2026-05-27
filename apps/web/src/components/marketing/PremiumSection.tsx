@@ -1,3 +1,5 @@
+import Image from 'next/image';
+
 const ITEMS = [
   'Full Vacuuming (carpet, seats, trunk)',
   'Deep cleaning of upholstery or leather',
@@ -48,14 +50,12 @@ export default function PremiumSection() {
             minHeight: 140, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
             overflow: 'hidden', position: 'relative',
           }}>
-            {/* Background photo thumbnail at low opacity */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <Image
               src={TILE_IMAGES[i]}
               alt=""
               aria-hidden="true"
+              fill
               style={{
-                position: 'absolute', inset: 0, width: '100%', height: '100%',
                 objectFit: 'cover', opacity: 0.15, mixBlendMode: 'luminosity',
               }}
             />

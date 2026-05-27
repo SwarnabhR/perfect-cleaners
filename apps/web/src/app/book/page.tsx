@@ -3,6 +3,13 @@ import Footer from '@/components/marketing/Footer';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Card from '@/components/ui/Card';
 import Icon from '@/components/ui/Icon';
+import Image from 'next/image';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Book a Service | Perfect Cleaners',
+  description: 'Schedule your premium car wash and detailing service online.',
+};
 
 export default function BookPage() {
   return (
@@ -18,8 +25,7 @@ export default function BookPage() {
             </h1>
             
             <div style={{ position: 'relative', width: '100%', height: 200, borderRadius: 12, overflow: 'hidden', marginBottom: 40, border: '1px solid var(--pc-line)' }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/hero-booking-app.png" alt="Booking app preview" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+              <Image src="/booking-preview.png" alt="Booking app preview" fill style={{ objectFit: 'cover' }} />
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>

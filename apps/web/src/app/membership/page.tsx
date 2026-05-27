@@ -6,6 +6,12 @@ import Card from '@/components/ui/Card';
 import Icon from '@/components/ui/Icon';
 import Link from 'next/link';
 import Eyebrow from '@/components/ui/Eyebrow';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Membership | Perfect Cleaners',
+  description: 'Join our exclusive maintenance club for regular, discounted details.',
+};
 
 export default function MembershipPage() {
   return (

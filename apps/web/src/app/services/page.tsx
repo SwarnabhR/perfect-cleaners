@@ -4,6 +4,12 @@ import SectionHeader from '@/components/marketing/SectionHeader';
 import ServiceFeature from '@/components/marketing/ServiceFeature';
 import PremiumSection from '@/components/marketing/PremiumSection';
 import CTASection from '@/components/marketing/CTASection';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Services | Perfect Cleaners',
+  description: 'Premium car wash, interior detailing, and ceramic coating services.',
+};
 
 export default function ServicesPage() {
   return (

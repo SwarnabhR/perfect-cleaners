@@ -3,6 +3,13 @@ import Footer from '@/components/marketing/Footer';
 import CTASection from '@/components/marketing/CTASection';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Card from '@/components/ui/Card';
+import Image from 'next/image';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'About Us | Perfect Cleaners',
+  description: 'Learn about our story and obsessive attention to detail at Perfect Cleaners.',
+};
 
 export default function AboutPage() {
   return (
@@ -23,8 +30,7 @@ export default function AboutPage() {
 
         <div style={{ maxWidth: 1000, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 64, marginBottom: 120 }}>
           <div style={{ position: 'relative', height: 400, background: 'var(--pc-card)', borderRadius: 16, overflow: 'hidden', border: '1px solid var(--pc-line)' }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/hero-professional-detailer.png" alt="Detailer at work" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+            <Image src="/about-story.png" alt="Detailer at work" fill style={{ objectFit: 'cover' }} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <h2 style={{ fontFamily: 'var(--pc-serif)', fontSize: 40, color: 'var(--pc-fg)', marginBottom: 24 }}>The Perfect Cleaners Standard</h2>
