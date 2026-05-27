@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { PrimaryButton, GhostButton } from '@/components/ui/Button';
 import Eyebrow from '@/components/ui/Eyebrow';
 import CarImage from '@/components/ui/CarImage';
@@ -5,8 +6,12 @@ import CarImage from '@/components/ui/CarImage';
 export default function CTASection() {
   return (
     <div style={{
-      margin: 'var(--pc-space-20) var(--pc-screen-pad-lg) 0', position: 'relative', borderRadius: 24, overflow: 'hidden',
-      minHeight: 280, border: '1px solid var(--pc-line)',
+      margin: 'var(--pc-space-20) var(--pc-screen-pad-lg) 0',
+      position: 'relative',
+      borderRadius: 'var(--pc-radius-xl)',
+      overflow: 'hidden',
+      minHeight: 280,
+      border: '1px solid var(--pc-line)',
     }}>
       <CarImage tone="dark" style={{ position: 'absolute', inset: 0, borderRadius: 0, border: 'none' }} />
       <div style={{
@@ -15,18 +20,30 @@ export default function CTASection() {
       }} />
       <div
         className="pc-cta-inner"
-        style={{ position: 'relative', padding: '48px 40px', maxWidth: 600, display: 'flex', flexDirection: 'column', gap: 18 }}
+        style={{
+          position: 'relative',
+          padding: 'var(--pc-space-12) var(--pc-space-10)',
+          maxWidth: 600,
+          display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-5)',
+        }}
       >
         <Eyebrow>[BOOK NOW]</Eyebrow>
         <div style={{
-          fontFamily: 'var(--pc-serif)', fontSize: 'var(--pc-text-3xl)', lineHeight: 1.05,
-          color: '#fff', letterSpacing: '-0.02em',
+          fontFamily: 'var(--pc-serif)',
+          fontSize: 'var(--pc-text-3xl)',
+          lineHeight: 'var(--pc-lh-tight)',
+          color: 'var(--pc-fg)',
+          letterSpacing: 'var(--pc-track-tight)',
         }}>
-          Book Your Premium Car Wash Today
+          Book Your Premium<br />Car Wash Today
         </div>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <PrimaryButton style={{ padding: '14px 26px' }}>Book Now</PrimaryButton>
-          <GhostButton style={{ padding: '13px 24px' }}>Contact Us</GhostButton>
+        <div style={{ display: 'flex', gap: 'var(--pc-space-2)', flexWrap: 'wrap' }}>
+          <Link href="/book">
+            <PrimaryButton style={{ padding: 'var(--pc-space-4) var(--pc-space-6)' }}>Book Now</PrimaryButton>
+          </Link>
+          <Link href="/contact">
+            <GhostButton style={{ padding: 'var(--pc-space-4) var(--pc-space-6)' }}>Contact Us</GhostButton>
+          </Link>
         </div>
       </div>
     </div>

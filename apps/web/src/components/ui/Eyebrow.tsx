@@ -7,12 +7,12 @@ interface EyebrowProps {
 
 export default function Eyebrow({ children, color, style, className }: EyebrowProps) {
   return (
-    <div 
+    <div
       className={className}
       style={{
         fontFamily: 'var(--pc-mono)',
-        fontSize: 11,
-        letterSpacing: '0.08em',
+        fontSize: 'var(--pc-text-xs)',
+        letterSpacing: 'var(--pc-track-mono)',
         textTransform: 'uppercase',
         color: color ?? 'var(--pc-fg-3)',
         ...style,

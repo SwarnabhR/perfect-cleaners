@@ -1,7 +1,32 @@
+import Link from 'next/link';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
 
-const SOCIAL_ICONS = ['camera', 'phone', 'shield', 'star'] as const;
+const SOCIAL_LINKS = [
+  { icon: 'camera',  href: 'https://instagram.com', label: 'Instagram' },
+  { icon: 'phone',   href: 'tel:+919876543210',     label: 'Call us' },
+  { icon: 'shield',  href: '/about',                label: 'About' },
+  { icon: 'star',    href: '/membership',           label: 'Membership' },
+] as const;
+
+const QUICK_LINKS = [
+  { label: 'Services',              href: '/services'   },
+  { label: 'Exterior Wash',         href: '/services'   },
+  { label: 'Interior Detailing',    href: '/services'   },
+  { label: 'Painting & Coating',    href: '/services'   },
+];
+
+const OFFICIAL_LINES = [
+  { label: 'Ghaziabad, Delhi NCR',  href: undefined },
+  { label: '+91 98765 43210',       href: 'tel:+919876543210' },
+  { label: '09:00 – 21:00 IST',     href: undefined },
+];
+
+const BOOKING_LINKS = [
+  { label: 'Book a Service',  href: '/book'       },
+  { label: 'Our Gallery',     href: '/gallery'    },
+  { label: 'Special Promo',   href: '/membership' },
+];
 
 export default function Footer() {
   return (
@@ -9,61 +34,149 @@ export default function Footer() {
       className="pc-footer-grid"
       style={{
         padding: 'var(--pc-space-20) var(--pc-screen-pad-lg) var(--pc-space-10)',
-        display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 1fr', gap: 40,
-        borderTop: '1px solid var(--pc-line)', marginTop: 'var(--pc-space-20)',
+        display: 'grid',
+        gridTemplateColumns: '1.6fr 1fr 1fr 1fr',
+        gap: 'var(--pc-space-10)',
+        borderTop: '1px solid var(--pc-line)',
+        marginTop: 'var(--pc-space-20)',
       }}
     >
       {/* Brand */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-5)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pc-space-2)' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-pc-monogram.svg" width={28} height={32} alt="Perfect Cleaners mark" />
-          <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-sm)', color: '#fff', letterSpacing: '0.08em' }}>
+          <span style={{
+            fontFamily: 'var(--pc-mono)',
+            fontSize: 'var(--pc-text-sm)',
+            color: 'var(--pc-fg)',
+            letterSpacing: 'var(--pc-track-mono)',
+          }}>
             perfect<span style={{ color: 'var(--pc-fg-3)' }}>.cleaners</span>
           </span>
         </div>
+
         <Eyebrow>EMAIL →</Eyebrow>
-        <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xl)', color: '#fff' }}>hello@perfectcleaners.in</div>
+        <a
+          href="mailto:hello@perfectcleaners.in"
+          style={{
+            fontFamily: 'var(--pc-sans)',
+            fontSize: 'var(--pc-text-xl)',
+            color: 'var(--pc-fg)',
+            transition: 'color var(--pc-dur-fast) var(--pc-ease)',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.color = 'var(--pc-fg-2)')}
+          onMouseLeave={e => (e.currentTarget.style.color = 'var(--pc-fg)')}
+        >
+          hello@perfectcleaners.in
+        </a>
+
         <Eyebrow>SOCIAL MEDIA</Eyebrow>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {SOCIAL_ICONS.map(icon => (
-            <div key={icon} style={{
-              width: 36, height: 36, borderRadius: 999,
-              background: 'var(--pc-card)', border: '1px solid var(--pc-line)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
+        <div style={{ display: 'flex', gap: 'var(--pc-space-2)' }}>
+          {SOCIAL_LINKS.map(({ icon, href, label }) => (
+            <a
+              key={icon}
+              href={href}
+              aria-label={label}
+              target={href.startsWith('http') ? '_blank' : undefined}
+              rel={href.startsWith('http') ? 'noopener noreferrer' : undefined}
+              style={{
+                width: 'var(--pc-tap-min)',
+                height: 'var(--pc-tap-min)',
+                borderRadius: 'var(--pc-radius-pill)',
+                background: 'var(--pc-card)',
+                border: '1px solid var(--pc-line)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background var(--pc-dur-fast) var(--pc-ease), border-color var(--pc-dur-fast) var(--pc-ease)',
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLAnchorElement).style.background = 'var(--pc-card-hi)';
+                (e.currentTarget as HTMLAnchorElement).style.borderColor = 'var(--pc-line-strong)';
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLAnchorElement).style.background = 'var(--pc-card)';
+                (e.currentTarget as HTMLAnchorElement).style.borderColor = 'var(--pc-line)';
+              }}
+            >
               <Icon name={icon} size={14} color="var(--pc-fg-2)" />
-            </div>
+            </a>
           ))}
         </div>
       </div>
 
       {/* Quick links */}
       <div>
-        <Eyebrow>QUICK LINK</Eyebrow>
-        <div style={{ marginTop: 'var(--pc-space-4)', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {['Service', 'Exterior Wash', 'Interior Wash', 'Painting & Coating'].map(l => (
-            <div key={l} style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg-2)' }}>{l}</div>
+        <Eyebrow>QUICK LINKS</Eyebrow>
+        <div style={{ marginTop: 'var(--pc-space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-3)' }}>
+          {QUICK_LINKS.map(({ label, href }) => (
+            <Link
+              key={label}
+              href={href}
+              style={{
+                fontFamily: 'var(--pc-sans)',
+                fontSize: 'var(--pc-text-sm)',
+                color: 'var(--pc-fg-2)',
+                transition: 'color var(--pc-dur-fast) var(--pc-ease)',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.color = 'var(--pc-fg)')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'var(--pc-fg-2)')}
+            >
+              {label}
+            </Link>
           ))}
         </div>
       </div>
 
-      {/* Contact */}
+      {/* Official */}
       <div>
         <Eyebrow>OFFICIAL</Eyebrow>
-        <div style={{ marginTop: 'var(--pc-space-4)', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {['Ghaziabad, Delhi NCR', '+91 98765 43210', '09:00 – 21:00 IST'].map(l => (
-            <div key={l} style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg-2)' }}>{l}</div>
-          ))}
+        <div style={{ marginTop: 'var(--pc-space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-3)' }}>
+          {OFFICIAL_LINES.map(({ label, href }) =>
+            href ? (
+              <a
+                key={label}
+                href={href}
+                style={{
+                  fontFamily: 'var(--pc-sans)',
+                  fontSize: 'var(--pc-text-sm)',
+                  color: 'var(--pc-fg-2)',
+                  transition: 'color var(--pc-dur-fast) var(--pc-ease)',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'var(--pc-fg)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'var(--pc-fg-2)')}
+              >
+                {label}
+              </a>
+            ) : (
+              <div key={label} style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg-2)' }}>
+                {label}
+              </div>
+            )
+          )}
         </div>
       </div>
 
       {/* Booking */}
       <div>
         <Eyebrow>BOOKING</Eyebrow>
-        <div style={{ marginTop: 'var(--pc-space-4)', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {['See Schedule', 'Our Holiday', 'Special Promo'].map(l => (
-            <div key={l} style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg-2)' }}>{l}</div>
+        <div style={{ marginTop: 'var(--pc-space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-3)' }}>
+          {BOOKING_LINKS.map(({ label, href }) => (
+            <Link
+              key={label}
+              href={href}
+              style={{
+                fontFamily: 'var(--pc-sans)',
+                fontSize: 'var(--pc-text-sm)',
+                color: 'var(--pc-fg-2)',
+                transition: 'color var(--pc-dur-fast) var(--pc-ease)',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.color = 'var(--pc-fg)')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'var(--pc-fg-2)')}
+            >
+              {label}
+            </Link>
           ))}
         </div>
       </div>
