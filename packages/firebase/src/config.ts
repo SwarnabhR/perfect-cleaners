@@ -1,4 +1,5 @@
 import { initializeApp, getApps } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
 
 // Next.js exposes NEXT_PUBLIC_*, Expo exposes EXPO_PUBLIC_*
 // This lets the shared package work in both without any app-level wiring.
@@ -22,3 +23,5 @@ const firebaseConfig = {
 
 export const firebaseApp =
   getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+
+export const db = getFirestore(firebaseApp);
