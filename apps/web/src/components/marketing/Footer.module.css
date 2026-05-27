@@ -1,0 +1,47 @@
+/* All hover states for Footer — moved out of onMouseEnter/onMouseLeave
+   JS handlers so CSS transitions fire correctly. */
+
+.footer {
+  /* container — no styles needed here, just a hook for scoping */
+}
+
+.navLink {
+  font-family: var(--pc-sans);
+  font-size: var(--pc-text-sm);
+  color: var(--pc-fg-2);
+  transition: color var(--pc-dur-fast) var(--pc-ease);
+}
+
+.navLink:hover {
+  color: var(--pc-fg);
+}
+
+.emailLink {
+  font-family: var(--pc-sans);
+  font-size: var(--pc-text-xl);
+  color: var(--pc-fg);
+  transition: color var(--pc-dur-fast) var(--pc-ease);
+}
+
+.emailLink:hover {
+  color: var(--pc-fg-2);
+}
+
+.socialIcon {
+  width: var(--pc-tap-min);
+  height: var(--pc-tap-min);
+  border-radius: var(--pc-radius-pill);
+  background: var(--pc-card);
+  border: 1px solid var(--pc-line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background var(--pc-dur-fast) var(--pc-ease),
+    border-color var(--pc-dur-fast) var(--pc-ease);
+}
+
+.socialIcon:hover {
+  background: var(--pc-card-hi);
+  border-color: var(--pc-line-strong);
+}

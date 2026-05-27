@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
+import styles from './Footer.module.css';
 
 const SOCIAL_LINKS = [
   { icon: 'camera',  href: 'https://instagram.com', label: 'Instagram' },
@@ -33,7 +34,7 @@ const BOOKING_LINKS = [
 export default function Footer() {
   return (
     <footer
-      className="pc-footer-grid"
+      className={`pc-footer-grid ${styles.footer}`}
       style={{
         padding: 'var(--pc-space-20) var(--pc-screen-pad-lg) var(--pc-space-10)',
         display: 'grid',
@@ -61,14 +62,7 @@ export default function Footer() {
         <Eyebrow>EMAIL →</Eyebrow>
         <a
           href="mailto:hello@perfectcleaners.in"
-          style={{
-            fontFamily: 'var(--pc-sans)',
-            fontSize: 'var(--pc-text-xl)',
-            color: 'var(--pc-fg)',
-            transition: 'color var(--pc-dur-fast) var(--pc-ease)',
-          }}
-          onMouseEnter={e => (e.currentTarget.style.color = 'var(--pc-fg-2)')}
-          onMouseLeave={e => (e.currentTarget.style.color = 'var(--pc-fg)')}
+          className={styles.emailLink}
         >
           hello@perfectcleaners.in
         </a>
@@ -80,27 +74,9 @@ export default function Footer() {
               key={icon}
               href={href}
               aria-label={label}
+              className={styles.socialIcon}
               target={href.startsWith('http') ? '_blank' : undefined}
               rel={href.startsWith('http') ? 'noopener noreferrer' : undefined}
-              style={{
-                width: 'var(--pc-tap-min)',
-                height: 'var(--pc-tap-min)',
-                borderRadius: 'var(--pc-radius-pill)',
-                background: 'var(--pc-card)',
-                border: '1px solid var(--pc-line)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'background var(--pc-dur-fast) var(--pc-ease), border-color var(--pc-dur-fast) var(--pc-ease)',
-              }}
-              onMouseEnter={e => {
-                (e.currentTarget as HTMLAnchorElement).style.background = 'var(--pc-card-hi)';
-                (e.currentTarget as HTMLAnchorElement).style.borderColor = 'var(--pc-line-strong)';
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLAnchorElement).style.background = 'var(--pc-card)';
-                (e.currentTarget as HTMLAnchorElement).style.borderColor = 'var(--pc-line)';
-              }}
             >
               <Icon name={icon} size={14} color="var(--pc-fg-2)" />
             </a>
@@ -113,18 +89,7 @@ export default function Footer() {
         <Eyebrow>QUICK LINKS</Eyebrow>
         <div style={{ marginTop: 'var(--pc-space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-3)' }}>
           {QUICK_LINKS.map(({ label, href }) => (
-            <Link
-              key={label}
-              href={href}
-              style={{
-                fontFamily: 'var(--pc-sans)',
-                fontSize: 'var(--pc-text-sm)',
-                color: 'var(--pc-fg-2)',
-                transition: 'color var(--pc-dur-fast) var(--pc-ease)',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.color = 'var(--pc-fg)')}
-              onMouseLeave={e => (e.currentTarget.style.color = 'var(--pc-fg-2)')}
-            >
+            <Link key={label} href={href} className={styles.navLink}>
               {label}
             </Link>
           ))}
@@ -137,18 +102,7 @@ export default function Footer() {
         <div style={{ marginTop: 'var(--pc-space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-3)' }}>
           {OFFICIAL_LINES.map(({ label, href }) =>
             href ? (
-              <a
-                key={label}
-                href={href}
-                style={{
-                  fontFamily: 'var(--pc-sans)',
-                  fontSize: 'var(--pc-text-sm)',
-                  color: 'var(--pc-fg-2)',
-                  transition: 'color var(--pc-dur-fast) var(--pc-ease)',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.color = 'var(--pc-fg)')}
-                onMouseLeave={e => (e.currentTarget.style.color = 'var(--pc-fg-2)')}
-              >
+              <a key={label} href={href} className={styles.navLink}>
                 {label}
               </a>
             ) : (
@@ -165,18 +119,7 @@ export default function Footer() {
         <Eyebrow>BOOKING</Eyebrow>
         <div style={{ marginTop: 'var(--pc-space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-3)' }}>
           {BOOKING_LINKS.map(({ label, href }) => (
-            <Link
-              key={label}
-              href={href}
-              style={{
-                fontFamily: 'var(--pc-sans)',
-                fontSize: 'var(--pc-text-sm)',
-                color: 'var(--pc-fg-2)',
-                transition: 'color var(--pc-dur-fast) var(--pc-ease)',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.color = 'var(--pc-fg)')}
-              onMouseLeave={e => (e.currentTarget.style.color = 'var(--pc-fg-2)')}
-            >
+            <Link key={label} href={href} className={styles.navLink}>
               {label}
             </Link>
           ))}
