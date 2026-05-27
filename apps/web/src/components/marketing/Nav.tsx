@@ -43,7 +43,7 @@ export default function Nav() {
           return (
             <Link key={href} href={href} style={{
               padding: '8px 18px', borderRadius: 999,
-              fontFamily: 'var(--pc-sans)', 'var(--pc-text-xs)', fontWeight: 500,
+              fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', fontWeight: 500,
               letterSpacing: '0.04em',
               background: active ? 'var(--pc-ink)' : 'transparent',
               color: active ? '#fff' : 'var(--pc-fg-2)',
@@ -58,7 +58,7 @@ export default function Nav() {
       {/* Book Now CTA */}
       <Link href="/book" style={{
         padding: '9px 20px', borderRadius: 999,
-        fontFamily: 'var(--pc-sans)', 'var(--pc-text-xs)', fontWeight: 600,
+        fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', fontWeight: 600,
         letterSpacing: '0.04em',
         background: 'var(--pc-warm)',
         color: 'var(--pc-ink)',
