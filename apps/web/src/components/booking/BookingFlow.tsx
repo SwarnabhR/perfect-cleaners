@@ -41,9 +41,9 @@ const CAL_MONTH_NAMES = [
 
 interface DateOption {
   id: string;
-  dayName: string;   // 'Mon'
-  dayNum: number;    // 28
-  monthName: string; // 'May'
+  dayName: string;
+  dayNum: number;
+  monthName: string;
   fullDate: Date;
 }
 
@@ -90,65 +90,66 @@ function validate(fields: {
   model: string; name: string; phone: string;
 }): FieldErrors {
   const e: FieldErrors = {};
-  if (!fields.address.trim())                                          e.address = 'Address is required.';
-  if (!/^\d{6}$/.test(fields.pincode))                                e.pincode = 'Enter a valid 6-digit pincode.';
-  if (!fields.model.trim())                                            e.model   = 'Vehicle model is required.';
-  if (!fields.name.trim())                                             e.name    = 'Name is required.';
-  if (!/^[6-9]\d{9}$/.test(fields.phone.replace(/\D/g, '')))         e.phone   = 'Enter a valid 10-digit mobile number.';
+  if (!fields.address.trim())                                    e.address = 'Address is required.';
+  if (!/^\d{6}$/.test(fields.pincode))                         e.pincode = 'Enter a valid 6-digit pincode.';
+  if (!fields.model.trim())                                      e.model   = 'Vehicle model is required.';
+  if (!fields.name.trim())                                       e.name    = 'Name is required.';
+  if (!/^[6-9]\d{9}$/.test(fields.phone.replace(/\D/g, '')))  e.phone   = 'Enter a valid 10-digit mobile number.';
   return e;
 }
 
-// ─── Calendar picker sub-component ───────────────────────────────────────────
+// ─── Calendar picker ──────────────────────────────────────────────────────────
 
 function CalendarPicker({
-  year, month, onPrev, onNext,
-  selected, onSelect,
+  year, month, onPrev, onNext, selected, onSelect,
 }: {
-  year: number;
-  month: number;
-  onPrev: () => void;
-  onNext: () => void;
-  selected: Date | null;
-  onSelect: (d: Date) => void;
+  year: number; month: number;
+  onPrev: () => void; onNext: () => void;
+  selected: Date | null; onSelect: (d: Date) => void;
 }) {
   const todayStart = (() => {
     const t = new Date();
     return new Date(t.getFullYear(), t.getMonth(), t.getDate());
   })();
 
-  const firstDow   = new Date(year, month, 1).getDay();
-  const daysInMo   = new Date(year, month + 1, 0).getDate();
+  const firstDow  = new Date(year, month, 1).getDay();
+  const daysInMo  = new Date(year, month + 1, 0).getDate();
   const cells: (number | null)[] = Array(firstDow).fill(null);
   for (let d = 1; d <= daysInMo; d++) cells.push(d);
   while (cells.length % 7 !== 0) cells.push(null);
 
   const navBtn: React.CSSProperties = {
-    width: 28, height: 28, borderRadius: 7,
+    width: 28, height: 28,
+    borderRadius: 'var(--pc-radius-sm)',
     border: '1px solid var(--pc-line-strong)',
-    background: 'transparent', color: 'var(--pc-fg-2)',
-    cursor: 'pointer', display: 'flex',
-    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    background: 'transparent',
+    color: 'var(--pc-fg-2)',
+    cursor: 'pointer',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   };
 
   return (
     <div style={{
       background: 'var(--pc-ink-raised)',
       border: '1px solid var(--pc-line-strong)',
-      borderRadius: 14,
-      padding: '18px 18px 14px',
+      borderRadius: 'var(--pc-radius-md)',
+      padding: 'var(--pc-space-5) var(--pc-space-5) var(--pc-space-4)',
       width: 292,
       boxShadow: 'var(--pc-shadow-pop)',
     }}>
       {/* Month navigation */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--pc-space-4)' }}>
         <button type="button" onClick={onPrev} style={navBtn} aria-label="Previous month">
           <svg width="7" height="11" viewBox="0 0 7 12" fill="none">
             <path d="M6 1L1 6l5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
         <span style={{
-          fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600,
-          color: 'var(--pc-fg)', letterSpacing: 'var(--pc-track-snug)',
+          fontFamily: 'var(--pc-sans)',
+          fontSize: 'var(--pc-text-sm)',
+          fontWeight: 600,
+          color: 'var(--pc-fg)',
+          letterSpacing: 'var(--pc-track-snug)',
         }}>
           {CAL_MONTH_NAMES[month]} {year}
         </span>
@@ -160,19 +161,21 @@ function CalendarPicker({
       </div>
 
       {/* Day-of-week header */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: 6 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: 'var(--pc-space-2)' }}>
         {CAL_DAY_LABELS.map(l => (
           <div key={l} style={{
             textAlign: 'center',
-            fontFamily: 'var(--pc-mono)', fontSize: 9,
-            color: 'var(--pc-fg-3)', letterSpacing: 'var(--pc-track-mono)',
-            paddingBottom: 6,
+            fontFamily: 'var(--pc-mono)',
+            fontSize: 'var(--pc-text-xs)',
+            color: 'var(--pc-fg-3)',
+            letterSpacing: 'var(--pc-track-mono)',
+            paddingBottom: 'var(--pc-space-2)',
           }}>{l}</div>
         ))}
       </div>
 
       {/* Day cells */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 'var(--pc-space-1)' }}>
         {cells.map((day, i) => {
           if (!day) return <div key={`e${i}`} />;
           const cellDate = new Date(year, month, day);
@@ -190,35 +193,36 @@ function CalendarPicker({
               disabled={isPast}
               onClick={() => !isPast && onSelect(cellDate)}
               style={{
-                padding: '6px 2px',
-                borderRadius: 6,
+                padding: 'var(--pc-space-2) var(--pc-space-1)',
+                borderRadius: 'var(--pc-radius-sm)',
                 border: 'none',
                 background: isSel
-                  ? 'rgba(91,111,82,0.85)'
+                  ? 'var(--pc-sage-active)'
                   : isToday
-                  ? 'rgba(91,111,82,0.15)'
+                  ? 'var(--pc-sage-subtle)'
                   : 'transparent',
                 color: isPast
                   ? 'var(--pc-fg-4)'
                   : isSel
-                  ? '#fff'
+                  ? 'var(--pc-sage-ink)'
                   : isToday
                   ? 'var(--pc-sage-ink)'
                   : 'var(--pc-fg)',
-                fontFamily: 'var(--pc-sans)', fontSize: 13,
+                fontFamily: 'var(--pc-sans)',
+                fontSize: 'var(--pc-text-sm)',
                 fontWeight: (isSel || isToday) ? 600 : 400,
                 cursor: isPast ? 'default' : 'pointer',
                 textAlign: 'center',
                 position: 'relative',
-                transition: 'background 80ms',
+                transition: 'background var(--pc-dur-fast) var(--pc-ease)',
               }}
             >
               {day}
               {isToday && !isSel && (
                 <span style={{
-                  position: 'absolute', bottom: 1, left: '50%',
+                  position: 'absolute', bottom: 'var(--pc-space-1)', left: '50%',
                   transform: 'translateX(-50%)',
-                  width: 3, height: 3, borderRadius: '50%',
+                  width: 3, height: 3, borderRadius: 'var(--pc-radius-pill)',
                   background: 'var(--pc-sage-hi)', display: 'block',
                 }} />
               )}
@@ -234,16 +238,23 @@ function CalendarPicker({
 
 function StepLabel({ n, children }: { n: string; children: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pc-space-2)', marginBottom: 'var(--pc-space-4)' }}>
       <div style={{
-        width: 24, height: 24, borderRadius: '50%',
-        background: 'var(--pc-card)', border: '1px solid var(--pc-line-strong)',
+        width: 24, height: 24,
+        borderRadius: 'var(--pc-radius-pill)',
+        background: 'var(--pc-card)',
+        border: '1px solid var(--pc-line-strong)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', flexShrink: 0,
+        fontFamily: 'var(--pc-mono)',
+        fontSize: 'var(--pc-text-xs)',
+        color: 'var(--pc-fg-3)', flexShrink: 0,
       }}>{n}</div>
       <h3 style={{
-        fontFamily: 'var(--pc-sans)', fontSize: 16, fontWeight: 600,
-        color: 'var(--pc-fg)', letterSpacing: 'var(--pc-track-snug)',
+        fontFamily: 'var(--pc-sans)',
+        fontSize: 'var(--pc-text-base)',
+        fontWeight: 600,
+        color: 'var(--pc-fg)',
+        letterSpacing: 'var(--pc-track-snug)',
       }}>{children}</h3>
     </div>
   );
@@ -253,8 +264,10 @@ function FieldError({ msg }: { msg?: string }) {
   if (!msg) return null;
   return (
     <p style={{
-      fontFamily: 'var(--pc-sans)', fontSize: 12,
-      color: 'var(--pc-danger)', marginTop: 5,
+      fontFamily: 'var(--pc-sans)',
+      fontSize: 'var(--pc-text-xs)',
+      color: 'var(--pc-danger)',
+      marginTop: 'var(--pc-space-1)',
     }}>{msg}</p>
   );
 }
@@ -262,31 +275,25 @@ function FieldError({ msg }: { msg?: string }) {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function BookingFlow() {
-  // Date / time
-  const [dates]           = useState<DateOption[]>(buildUpcomingDates);
+  const [dates]               = useState<DateOption[]>(buildUpcomingDates);
   const [selDate, setSelDate] = useState<DateOption>(() => buildUpcomingDates()[0]);
   const [selTime, setSelTime] = useState(TIMES[0]);
 
-  // Calendar state
   const [showCalendar, setShowCalendar] = useState(false);
   const [calYear,  setCalYear]  = useState(() => new Date().getFullYear());
   const [calMonth, setCalMonth] = useState(() => new Date().getMonth());
 
-  // Service
   const [service, setService] = useState(SERVICES[0]);
 
-  // Location + vehicle
   const [city,    setCity]    = useState(CITIES[0]);
   const [address, setAddress] = useState('');
   const [pincode, setPincode] = useState('');
-  const [brand,   setBrand]   = useState(BRANDS[4]); // Hyundai default
+  const [brand,   setBrand]   = useState(BRANDS[4]);
   const [model,   setModel]   = useState('');
 
-  // Contact
   const [name,  setName]  = useState('');
   const [phone, setPhone] = useState('');
 
-  // UI
   const [errors,       setErrors]       = useState<FieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result,       setResult]       = useState<{ bookingRef: string } | null>(null);
@@ -294,7 +301,6 @@ export default function BookingFlow() {
 
   const total = service.price + PLATFORM_FEE;
 
-  // ── Calendar helpers ─────────────────────────────────────────────────────────
   function prevCalMonth() {
     if (calMonth === 0) { setCalMonth(11); setCalYear(y => y - 1); }
     else setCalMonth(m => m - 1);
@@ -314,7 +320,6 @@ export default function BookingFlow() {
     setShowCalendar(false);
   }
 
-  // ── Form submit ───────────────────────────────────────────────────────────────
   async function handleSubmit() {
     const errs = validate({ address, pincode, model, name, phone });
     if (Object.keys(errs).length > 0) {
@@ -322,25 +327,23 @@ export default function BookingFlow() {
       document.querySelector('[data-error-anchor]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
-
     setErrors({});
     setSubmitError('');
     setIsSubmitting(true);
-
     try {
       const scheduledAt = buildScheduledAt(selDate, selTime);
       const res = await submitBooking({
-        serviceId:    service.id,
-        serviceName:  service.name,
-        price:        service.price,
-        platformFee:  PLATFORM_FEE,
+        serviceId:     service.id,
+        serviceName:   service.name,
+        price:         service.price,
+        platformFee:   PLATFORM_FEE,
         scheduledAt,
         city,
         pincode,
-        addressLine1: address,
-        vehicleMake:  brand,
-        vehicleModel: model,
-        customerName: name,
+        addressLine1:  address,
+        vehicleMake:   brand,
+        vehicleModel:  model,
+        customerName:  name,
         customerPhone: phone.replace(/\D/g, ''),
       });
       setResult({ bookingRef: res.bookingRef });
@@ -352,15 +355,21 @@ export default function BookingFlow() {
     }
   }
 
-  // ─── Success screen ──────────────────────────────────────────────────────────
+  // ─── Success screen ───────────────────────────────────────────────────────────
   if (result) {
     return (
-      <div style={{ maxWidth: 520, margin: '0 auto', textAlign: 'center', padding: '80px 24px 120px' }}>
+      <div style={{
+        maxWidth: 520, margin: '0 auto', textAlign: 'center',
+        padding: 'var(--pc-space-20) var(--pc-space-6) var(--pc-space-32)',
+      }}>
         <div style={{
-          width: 72, height: 72, borderRadius: '50%',
-          background: 'rgba(91,111,82,0.18)', border: '1px solid rgba(91,111,82,0.4)',
+          width: 72, height: 72,
+          borderRadius: 'var(--pc-radius-pill)',
+          background: 'var(--pc-sage-subtle)',
+          border: '1px solid var(--pc-sage-border)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          margin: '0 auto 28px',
+          margin: '0 auto',
+          marginBottom: 'var(--pc-space-8)',
         }}>
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
                stroke="var(--pc-sage-hi)" strokeWidth="2.5"
@@ -369,18 +378,25 @@ export default function BookingFlow() {
           </svg>
         </div>
 
-        <Eyebrow style={{ marginBottom: 10, display: 'block' }}>
+        <Eyebrow style={{ marginBottom: 'var(--pc-space-3)', display: 'block' }}>
           [CONFIRMED] · {result.bookingRef}
         </Eyebrow>
         <h2 style={{
-          fontFamily: 'var(--pc-serif)', fontSize: 38,
-          color: 'var(--pc-fg)', letterSpacing: 'var(--pc-track-tight)',
-          lineHeight: 1.05, marginBottom: 16,
+          fontFamily: 'var(--pc-serif)',
+          fontSize: 'var(--pc-text-3xl)',
+          color: 'var(--pc-fg)',
+          letterSpacing: 'var(--pc-track-tight)',
+          lineHeight: 'var(--pc-lh-tight)',
+          marginBottom: 'var(--pc-space-4)',
         }}>Booking confirmed.</h2>
         <p style={{
-          fontFamily: 'var(--pc-sans)', fontSize: 15,
-          color: 'var(--pc-fg-2)', lineHeight: 1.6,
-          marginBottom: 40, maxWidth: 380, margin: '0 auto 40px',
+          fontFamily: 'var(--pc-sans)',
+          fontSize: 'var(--pc-text-base)',
+          color: 'var(--pc-fg-2)',
+          lineHeight: 'var(--pc-lh-loose)',
+          maxWidth: 380,
+          margin: '0 auto',
+          marginBottom: 'var(--pc-space-10)',
         }}>
           <strong style={{ color: 'var(--pc-fg)' }}>{service.name}</strong> · ₹{total.toLocaleString('en-IN')} ·{' '}
           {selDate.dayName} {selDate.dayNum} {selDate.monthName} at {selTime}.
@@ -388,7 +404,7 @@ export default function BookingFlow() {
           <strong style={{ color: 'var(--pc-fg)' }}>+91 {phone}</strong>.
         </p>
 
-        <Card style={{ padding: 20, textAlign: 'left', marginBottom: 28 }}>
+        <Card style={{ padding: 'var(--pc-space-5)', textAlign: 'left', marginBottom: 'var(--pc-space-8)' }}>
           {[
             ['Booking ref',  result.bookingRef],
             ['Service',      service.name],
@@ -398,23 +414,50 @@ export default function BookingFlow() {
           ].map(([k, v]) => (
             <div key={k} style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-              padding: '10px 0', borderBottom: '1px solid var(--pc-line)', gap: 16,
+              padding: 'var(--pc-space-3) 0',
+              borderBottom: '1px solid var(--pc-line)',
+              gap: 'var(--pc-space-4)',
             }}>
-              <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', letterSpacing: 'var(--pc-track-mono)', textTransform: 'uppercase', flexShrink: 0, paddingTop: 1 }}>{k}</span>
-              <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)', textAlign: 'right' }}>{v}</span>
+              <span style={{
+                fontFamily: 'var(--pc-mono)',
+                fontSize: 'var(--pc-text-xs)',
+                color: 'var(--pc-fg-3)',
+                letterSpacing: 'var(--pc-track-mono)',
+                textTransform: 'uppercase',
+                flexShrink: 0, paddingTop: 'var(--pc-space-1)',
+              }}>{k}</span>
+              <span style={{
+                fontFamily: 'var(--pc-sans)',
+                fontSize: 'var(--pc-text-sm)',
+                color: 'var(--pc-fg)',
+                textAlign: 'right',
+              }}>{v}</span>
             </div>
           ))}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14 }}>
-            <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', letterSpacing: 'var(--pc-track-mono)', textTransform: 'uppercase' }}>Total paid</span>
-            <span style={{ fontFamily: 'var(--pc-serif)', fontSize: 26, color: 'var(--pc-fg)' }}>₹{total.toLocaleString('en-IN')}</span>
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            paddingTop: 'var(--pc-space-4)',
+          }}>
+            <span style={{
+              fontFamily: 'var(--pc-mono)',
+              fontSize: 'var(--pc-text-xs)',
+              color: 'var(--pc-fg-3)',
+              letterSpacing: 'var(--pc-track-mono)',
+              textTransform: 'uppercase',
+            }}>Total paid</span>
+            <span style={{
+              fontFamily: 'var(--pc-serif)',
+              fontSize: 'var(--pc-text-2xl)',
+              color: 'var(--pc-fg)',
+            }}>₹{total.toLocaleString('en-IN')}</span>
           </div>
         </Card>
 
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <PrimaryButton onClick={() => window.location.reload()} style={{ padding: '14px 28px' }}>
+        <div style={{ display: 'flex', gap: 'var(--pc-space-3)', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <PrimaryButton onClick={() => window.location.reload()} style={{ padding: 'var(--pc-space-4) var(--pc-space-8)' }}>
             Book Another →
           </PrimaryButton>
-          <GhostButton onClick={() => window.location.href = '/'} style={{ padding: '13px 28px' }}>
+          <GhostButton onClick={() => window.location.href = '/'} style={{ padding: 'var(--pc-space-4) var(--pc-space-8)' }}>
             Back to Home
           </GhostButton>
         </div>
@@ -425,22 +468,22 @@ export default function BookingFlow() {
   // ─── Form ─────────────────────────────────────────────────────────────────────
   return (
     <div style={{
-      maxWidth: 1040,
+      maxWidth: 'var(--pc-content-wide)',
       margin: '0 auto',
-      padding: '72px 40px 120px',
+      padding: 'var(--pc-space-20) var(--pc-space-10) var(--pc-space-32)',
       display: 'flex',
-      gap: 56,
+      gap: 'var(--pc-space-16)',
       flexWrap: 'wrap',
       alignItems: 'flex-start',
     }}>
 
       {/* ── Left: form steps ── */}
-      <div style={{ flex: '1 1 520px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 48 }}>
+      <div style={{ flex: '1 1 520px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-12)' }}>
 
         {/* Step 1 — Service */}
         <section>
           <StepLabel n="01">Select Service</StepLabel>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 'var(--pc-space-3)' }}>
             {SERVICES.map(s => {
               const active = service.id === s.id;
               return (
@@ -449,30 +492,37 @@ export default function BookingFlow() {
                   type="button"
                   onClick={() => setService(s)}
                   style={{
-                    padding: '14px 16px',
-                    borderRadius: 12,
-                    border: `1px solid ${active ? 'rgba(91,111,82,0.55)' : 'var(--pc-line)'}`,
-                    background: active ? 'rgba(58,77,54,0.35)' : 'var(--pc-card)',
+                    padding: 'var(--pc-space-4)',
+                    borderRadius: 'var(--pc-radius-md)',
+                    border: `1px solid ${active ? 'var(--pc-sage-border)' : 'var(--pc-line)'}`,
+                    background: active ? 'var(--pc-sage-subtle)' : 'var(--pc-card)',
                     cursor: 'pointer',
                     textAlign: 'left',
-                    transition: 'border-color 120ms, background 120ms',
+                    transition: 'border-color var(--pc-dur-fast) var(--pc-ease), background var(--pc-dur-fast) var(--pc-ease)',
                   }}
                 >
                   <div style={{
-                    fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 500,
+                    fontFamily: 'var(--pc-sans)',
+                    fontSize: 'var(--pc-text-sm)',
+                    fontWeight: 500,
                     color: active ? 'var(--pc-sage-ink)' : 'var(--pc-fg)',
-                    marginBottom: 4,
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8,
+                    marginBottom: 'var(--pc-space-1)',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 'var(--pc-space-2)',
                   }}>
                     <span>{s.name}</span>
-                    <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 12, color: active ? 'var(--pc-sage-ink)' : 'var(--pc-fg-2)' }}>
+                    <span style={{
+                      fontFamily: 'var(--pc-mono)',
+                      fontSize: 'var(--pc-text-xs)',
+                      color: active ? 'var(--pc-sage-ink)' : 'var(--pc-fg-2)',
+                    }}>
                       ₹{s.price.toLocaleString('en-IN')}
                     </span>
                   </div>
                   <div style={{
-                    fontFamily: 'var(--pc-sans)', fontSize: 12,
-                    color: active ? 'rgba(232,237,227,0.7)' : 'var(--pc-fg-3)',
-                    lineHeight: 1.45,
+                    fontFamily: 'var(--pc-sans)',
+                    fontSize: 'var(--pc-text-xs)',
+                    color: active ? 'var(--pc-sage-muted)' : 'var(--pc-fg-3)',
+                    lineHeight: 'var(--pc-lh-snug)',
                   }}>{s.desc}</div>
                 </button>
               );
@@ -484,11 +534,10 @@ export default function BookingFlow() {
         <section>
           <StepLabel n="02">Select Date & Time</StepLabel>
 
-          {/* Date pills + custom date picker */}
-          <div style={{ position: 'relative', marginBottom: 14 }}>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ position: 'relative', marginBottom: 'var(--pc-space-4)' }}>
+            <div style={{ display: 'flex', gap: 'var(--pc-space-2)', flexWrap: 'wrap' }}>
 
-              {/* Quick-pick date pills (next 5 days) */}
+              {/* Quick-pick date pills */}
               {dates.map(d => {
                 const active = selDate.id === d.id;
                 return (
@@ -497,71 +546,102 @@ export default function BookingFlow() {
                     type="button"
                     onClick={() => { setSelDate(d); setShowCalendar(false); }}
                     style={{
-                      padding: '10px 14px',
-                      borderRadius: 10,
-                      border: `1px solid ${active ? 'rgba(91,111,82,0.55)' : 'var(--pc-line)'}`,
-                      background: active ? 'rgba(58,77,54,0.35)' : 'var(--pc-card)',
+                      padding: 'var(--pc-space-2) var(--pc-space-4)',
+                      borderRadius: 'var(--pc-radius-sm)',
+                      border: `1px solid ${active ? 'var(--pc-sage-border)' : 'var(--pc-line)'}`,
+                      background: active ? 'var(--pc-sage-subtle)' : 'var(--pc-card)',
                       cursor: 'pointer',
                       textAlign: 'center',
                       minWidth: 60,
-                      transition: 'border-color 120ms, background 120ms',
+                      transition: 'border-color var(--pc-dur-fast) var(--pc-ease), background var(--pc-dur-fast) var(--pc-ease)',
                     }}
                   >
-                    <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, color: active ? 'var(--pc-sage-ink)' : 'var(--pc-fg-3)', letterSpacing: 'var(--pc-track-mono)', marginBottom: 3 }}>
+                    <div style={{
+                      fontFamily: 'var(--pc-mono)',
+                      fontSize: 'var(--pc-text-xs)',
+                      color: active ? 'var(--pc-sage-ink)' : 'var(--pc-fg-3)',
+                      letterSpacing: 'var(--pc-track-mono)',
+                      marginBottom: 'var(--pc-space-1)',
+                    }}>
                       {d.monthName.toUpperCase()}
                     </div>
-                    <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 17, fontWeight: 600, color: active ? 'var(--pc-sage-ink)' : 'var(--pc-fg)', lineHeight: 1 }}>
+                    <div style={{
+                      fontFamily: 'var(--pc-sans)',
+                      fontSize: 'var(--pc-text-lg)',
+                      fontWeight: 600,
+                      color: active ? 'var(--pc-sage-ink)' : 'var(--pc-fg)',
+                      lineHeight: 1,
+                    }}>
                       {d.dayNum}
                     </div>
-                    <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 11, color: active ? 'rgba(232,237,227,0.7)' : 'var(--pc-fg-3)', marginTop: 2 }}>
+                    <div style={{
+                      fontFamily: 'var(--pc-sans)',
+                      fontSize: 'var(--pc-text-xs)',
+                      color: active ? 'var(--pc-sage-muted)' : 'var(--pc-fg-3)',
+                      marginTop: 'var(--pc-space-1)',
+                    }}>
                       {d.dayName}
                     </div>
                   </button>
                 );
               })}
 
-              {/* Pick a specific date */}
+              {/* Custom date picker trigger */}
               <button
                 type="button"
                 onClick={() => setShowCalendar(v => !v)}
                 style={{
-                  padding: '10px 14px',
-                  borderRadius: 10,
+                  padding: 'var(--pc-space-2) var(--pc-space-4)',
+                  borderRadius: 'var(--pc-radius-sm)',
                   border: `1px solid ${
                     selDate.id === 'custom'
-                      ? 'rgba(91,111,82,0.55)'
+                      ? 'var(--pc-sage-border)'
                       : showCalendar
                       ? 'var(--pc-line-strong)'
                       : 'var(--pc-line)'
                   }`,
                   background: selDate.id === 'custom'
-                    ? 'rgba(58,77,54,0.35)'
+                    ? 'var(--pc-sage-subtle)'
                     : showCalendar
                     ? 'var(--pc-card-hi)'
                     : 'var(--pc-card)',
                   cursor: 'pointer',
                   textAlign: 'center',
                   minWidth: 60,
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-                  transition: 'border-color 120ms, background 120ms',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--pc-space-1)',
+                  transition: 'border-color var(--pc-dur-fast) var(--pc-ease), background var(--pc-dur-fast) var(--pc-ease)',
                 }}
                 title="Choose a specific date"
               >
                 {selDate.id === 'custom' ? (
                   <>
-                    <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, color: 'var(--pc-sage-ink)', letterSpacing: 'var(--pc-track-mono)' }}>
+                    <div style={{
+                      fontFamily: 'var(--pc-mono)',
+                      fontSize: 'var(--pc-text-xs)',
+                      color: 'var(--pc-sage-ink)',
+                      letterSpacing: 'var(--pc-track-mono)',
+                    }}>
                       {selDate.monthName.toUpperCase()}
                     </div>
-                    <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 17, fontWeight: 600, color: 'var(--pc-sage-ink)', lineHeight: 1 }}>
+                    <div style={{
+                      fontFamily: 'var(--pc-sans)',
+                      fontSize: 'var(--pc-text-lg)',
+                      fontWeight: 600,
+                      color: 'var(--pc-sage-ink)',
+                      lineHeight: 1,
+                    }}>
                       {selDate.dayNum}
                     </div>
-                    <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'rgba(232,237,227,0.7)' }}>
+                    <div style={{
+                      fontFamily: 'var(--pc-sans)',
+                      fontSize: 'var(--pc-text-xs)',
+                      color: 'var(--pc-sage-muted)',
+                    }}>
                       {selDate.dayName}
                     </div>
                   </>
                 ) : (
                   <>
-                    {/* Calendar icon */}
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
                          stroke={showCalendar ? 'var(--pc-fg-2)' : 'var(--pc-fg-3)'}
                          strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
@@ -570,7 +650,12 @@ export default function BookingFlow() {
                       <line x1="8" y1="2" x2="8" y2="6"/>
                       <line x1="3" y1="10" x2="21" y2="10"/>
                     </svg>
-                    <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 11, color: showCalendar ? 'var(--pc-fg-2)' : 'var(--pc-fg-3)', lineHeight: 1.2 }}>
+                    <div style={{
+                      fontFamily: 'var(--pc-sans)',
+                      fontSize: 'var(--pc-text-xs)',
+                      color: showCalendar ? 'var(--pc-fg-2)' : 'var(--pc-fg-3)',
+                      lineHeight: 'var(--pc-lh-snug)',
+                    }}>
                       Pick<br/>date
                     </div>
                   </>
@@ -578,19 +663,11 @@ export default function BookingFlow() {
               </button>
             </div>
 
-            {/* Calendar dropdown */}
             {showCalendar && (
-              <div style={{
-                position: 'absolute',
-                top: 'calc(100% + 8px)',
-                left: 0,
-                zIndex: 30,
-              }}>
+              <div style={{ position: 'absolute', top: 'calc(100% + var(--pc-space-2))', left: 0, zIndex: 30 }}>
                 <CalendarPicker
-                  year={calYear}
-                  month={calMonth}
-                  onPrev={prevCalMonth}
-                  onNext={nextCalMonth}
+                  year={calYear} month={calMonth}
+                  onPrev={prevCalMonth} onNext={nextCalMonth}
                   selected={selDate.id === 'custom' ? selDate.fullDate : null}
                   onSelect={handleCustomDate}
                 />
@@ -599,7 +676,7 @@ export default function BookingFlow() {
           </div>
 
           {/* Time chips */}
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 'var(--pc-space-2)', flexWrap: 'wrap' }}>
             {TIMES.map(t => {
               const active = selTime === t;
               return (
@@ -608,15 +685,16 @@ export default function BookingFlow() {
                   type="button"
                   onClick={() => setSelTime(t)}
                   style={{
-                    padding: '9px 16px',
-                    borderRadius: 8,
-                    border: `1px solid ${active ? 'rgba(91,111,82,0.55)' : 'var(--pc-line)'}`,
-                    background: active ? 'rgba(58,77,54,0.35)' : 'var(--pc-card)',
-                    fontFamily: 'var(--pc-mono)', fontSize: 12,
+                    padding: 'var(--pc-space-2) var(--pc-space-4)',
+                    borderRadius: 'var(--pc-radius-sm)',
+                    border: `1px solid ${active ? 'var(--pc-sage-border)' : 'var(--pc-line)'}`,
+                    background: active ? 'var(--pc-sage-subtle)' : 'var(--pc-card)',
+                    fontFamily: 'var(--pc-mono)',
+                    fontSize: 'var(--pc-text-xs)',
                     color: active ? 'var(--pc-sage-ink)' : 'var(--pc-fg-2)',
-                    letterSpacing: '0.04em',
+                    letterSpacing: 'var(--pc-track-snug)',
                     cursor: 'pointer',
-                    transition: 'border-color 120ms, background 120ms',
+                    transition: 'border-color var(--pc-dur-fast) var(--pc-ease), background var(--pc-dur-fast) var(--pc-ease)',
                   }}
                 >{t}</button>
               );
@@ -627,10 +705,9 @@ export default function BookingFlow() {
         {/* Step 3 — Location & Vehicle */}
         <section data-error-anchor>
           <StepLabel n="03">Location & Vehicle</StepLabel>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-3)' }}>
 
-            {/* City + Pincode */}
-            <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ display: 'flex', gap: 'var(--pc-space-3)' }}>
               <select
                 value={city}
                 onChange={e => setCity(e.target.value)}
@@ -652,7 +729,6 @@ export default function BookingFlow() {
               </div>
             </div>
 
-            {/* Address */}
             <div>
               <input
                 placeholder="Full address (flat / house no., street, locality)"
@@ -663,8 +739,7 @@ export default function BookingFlow() {
               <FieldError msg={errors.address} />
             </div>
 
-            {/* Brand + Model */}
-            <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ display: 'flex', gap: 'var(--pc-space-3)' }}>
               <select
                 value={brand}
                 onChange={e => setBrand(e.target.value)}
@@ -689,7 +764,7 @@ export default function BookingFlow() {
         {/* Step 4 — Contact */}
         <section>
           <StepLabel n="04">Contact Details</StepLabel>
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 'var(--pc-space-3)' }}>
             <div style={{ flex: 1 }}>
               <input
                 placeholder="Full name"
@@ -702,8 +777,11 @@ export default function BookingFlow() {
             <div style={{ flex: 1 }}>
               <div style={{ position: 'relative' }}>
                 <span style={{
-                  position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
-                  fontFamily: 'var(--pc-mono)', fontSize: 12, color: 'var(--pc-fg-3)',
+                  position: 'absolute', left: 'var(--pc-space-4)', top: '50%',
+                  transform: 'translateY(-50%)',
+                  fontFamily: 'var(--pc-mono)',
+                  fontSize: 'var(--pc-text-xs)',
+                  color: 'var(--pc-fg-3)',
                   pointerEvents: 'none',
                 }}>+91</span>
                 <input
@@ -714,7 +792,7 @@ export default function BookingFlow() {
                   maxLength={10}
                   inputMode="tel"
                   className={`${styles.input}${errors.phone ? ` ${styles.inputError}` : ''}`}
-                  style={{ paddingLeft: 42 }}
+                  style={{ paddingLeft: 'var(--pc-space-10)' }}
                 />
               </div>
               <FieldError msg={errors.phone} />
@@ -725,67 +803,73 @@ export default function BookingFlow() {
 
       {/* ── Right: sticky summary ── */}
       <div style={{ flex: '0 0 300px', minWidth: 260 }}>
-        <div style={{ position: 'sticky', top: 100 }}>
-          <Card style={{ padding: 24 }}>
-            <Eyebrow style={{ marginBottom: 20, display: 'block' }}>
+        <div style={{ position: 'sticky', top: 'var(--pc-space-24)' }}>
+          <Card style={{ padding: 'var(--pc-space-6)' }}>
+            <Eyebrow style={{ marginBottom: 'var(--pc-space-5)', display: 'block' }}>
               Booking Summary
             </Eyebrow>
 
-            {/* Service */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
-              <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg)', fontWeight: 500 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 'var(--pc-space-2)' }}>
+              <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg)', fontWeight: 500 }}>
                 {service.name}
               </span>
-              <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 13, color: 'var(--pc-fg)' }}>
+              <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg)' }}>
                 ₹{service.price.toLocaleString('en-IN')}
               </span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
-              <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)' }}>Platform fee</span>
-              <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 12, color: 'var(--pc-fg-2)' }}>₹{PLATFORM_FEE}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 'var(--pc-space-1)' }}>
+              <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg-2)' }}>Platform fee</span>
+              <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-2)' }}>₹{PLATFORM_FEE}</span>
             </div>
 
-            {/* Divider + Total */}
             <div style={{
               borderTop: '1px solid var(--pc-line)',
-              marginTop: 16, paddingTop: 16,
+              marginTop: 'var(--pc-space-4)', paddingTop: 'var(--pc-space-4)',
               display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
-              marginBottom: 8,
+              marginBottom: 'var(--pc-space-2)',
             }}>
-              <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 15, fontWeight: 600, color: 'var(--pc-fg)' }}>
+              <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-base)', fontWeight: 600, color: 'var(--pc-fg)' }}>
                 Total
               </span>
-              <span style={{ fontFamily: 'var(--pc-serif)', fontSize: 28, color: 'var(--pc-fg)', letterSpacing: 'var(--pc-track-tight)' }}>
+              <span style={{ fontFamily: 'var(--pc-serif)', fontSize: 'var(--pc-text-2xl)', color: 'var(--pc-fg)', letterSpacing: 'var(--pc-track-tight)' }}>
                 ₹{total.toLocaleString('en-IN')}
               </span>
             </div>
 
-            {/* Slot summary */}
             <div style={{
-              background: 'var(--pc-card-hi)', borderRadius: 8, padding: '10px 12px', marginBottom: 20,
+              background: 'var(--pc-card-hi)',
+              borderRadius: 'var(--pc-radius-sm)',
+              padding: 'var(--pc-space-3)',
+              marginBottom: 'var(--pc-space-5)',
             }}>
-              <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', letterSpacing: 'var(--pc-track-mono)', marginBottom: 4 }}>
-                SLOT
-              </div>
-              <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)' }}>
+              <div style={{
+                fontFamily: 'var(--pc-mono)',
+                fontSize: 'var(--pc-text-xs)',
+                color: 'var(--pc-fg-3)',
+                letterSpacing: 'var(--pc-track-mono)',
+                marginBottom: 'var(--pc-space-1)',
+              }}>SLOT</div>
+              <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg)' }}>
                 {selDate.dayName} {selDate.dayNum} {selDate.monthName} · {selTime}
               </div>
             </div>
 
-            {/* Submit */}
             {submitError && (
               <p style={{
-                fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-danger)',
-                marginBottom: 12, lineHeight: 1.5,
+                fontFamily: 'var(--pc-sans)',
+                fontSize: 'var(--pc-text-xs)',
+                color: 'var(--pc-danger)',
+                marginBottom: 'var(--pc-space-3)',
+                lineHeight: 'var(--pc-lh-snug)',
               }}>{submitError}</p>
             )}
+
             <PrimaryButton
               full
               disabled={isSubmitting}
               onClick={handleSubmit}
               style={{
-                padding: '15px 0',
-                fontSize: 14,
+                padding: 'var(--pc-space-4) 0',
                 opacity: isSubmitting ? 0.65 : 1,
                 cursor: isSubmitting ? 'not-allowed' : 'pointer',
               }}
@@ -794,8 +878,12 @@ export default function BookingFlow() {
             </PrimaryButton>
 
             <p style={{
-              fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)',
-              marginTop: 12, textAlign: 'center', lineHeight: 1.5,
+              fontFamily: 'var(--pc-sans)',
+              fontSize: 'var(--pc-text-xs)',
+              color: 'var(--pc-fg-3)',
+              marginTop: 'var(--pc-space-3)',
+              textAlign: 'center',
+              lineHeight: 'var(--pc-lh-snug)',
             }}>
               Payment collected on arrival · Free cancellation up to 2 hrs before slot
             </p>
