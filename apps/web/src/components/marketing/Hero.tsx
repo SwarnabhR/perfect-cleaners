@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { PrimaryButton, GhostButton } from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
