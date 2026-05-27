@@ -123,9 +123,31 @@
   margin: 0;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--pc-sage);
+  outline-offset: 3px;
+  border-radius: var(--pc-radius-xs);
+}
+
+::selection {
+  background-color: var(74, 94, 68, 0.35);
+  color: var(--pc-fg);
+}
+
 html {
   height: 100%;
   color-scheme: dark;
+  text-rendering: optimizeLegibility;
+  hanging-punctuation: first last;
+  scroll-behavior: smooth;
 }
 
 body {

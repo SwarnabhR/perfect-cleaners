@@ -16,7 +16,7 @@ export default function CTASection() {
       <div style={{ position: 'relative', padding: '48px 40px', maxWidth: 600, display: 'flex', flexDirection: 'column', gap: 18 }}>
         <Eyebrow>[BOOK NOW]</Eyebrow>
         <div style={{
-          fontFamily: 'var(--pc-serif)', fontSize: 48, lineHeight: 1.05,
+          fontFamily: 'var(--pc-serif)', fontSize: 'var(--pc-text-3xl)', lineHeight: 1.05,
           color: '#fff', letterSpacing: '-0.02em',
         }}>
           Book Your Premium Car Wash Today

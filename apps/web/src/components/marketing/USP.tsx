@@ -10,7 +10,7 @@ export default function USP() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         <Eyebrow>[KEY USP LIST]</Eyebrow>
         <div style={{
-          fontFamily: 'var(--pc-serif)', fontSize: 48, lineHeight: 1.05,
+          fontFamily: 'var(--pc-serif)', fontSize: 'var(--pc-text-3xl)', lineHeight: 1.05,
           color: '#fff', letterSpacing: '-0.02em',
         }}>
           Your Car Deserves More than an Ordinary Wash
@@ -24,10 +24,10 @@ export default function USP() {
         <Card style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 26, minHeight: 220 }}>
           <Icon name="sparkles" size={20} color="var(--pc-fg)" />
           <div>
-            <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: '#fff', fontWeight: 500, lineHeight: 1.3 }}>
+            <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: '#fff', fontWeight: 500, lineHeight: 1.3 }}>
               Premium Products<br />& Technology
             </div>
-            <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 11.5, color: 'var(--pc-fg-2)', lineHeight: 1.5, marginTop: 8 }}>
+            <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-2)', lineHeight: 1.5, marginTop: 8 }}>
               Highly skilled team dedicated to meticulous detailing with industry-leading products.
             </div>
           </div>

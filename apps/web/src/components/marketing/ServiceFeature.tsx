@@ -62,17 +62,17 @@ export default function ServiceFeature({ num, name, price, title, body }: Servic
           <div>
             <Eyebrow>FROM</Eyebrow>
             <div style={{
-              fontFamily: 'var(--pc-serif)', fontSize: 38, color: '#fff',
+              fontFamily: 'var(--pc-serif)', fontSize: 'var(--pc-text-3xl)', color: '#fff',
               letterSpacing: '-0.02em', marginTop: 4, lineHeight: 1.05,
             }}>
               {price}
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ fontFamily: 'var(--pc-serif)', fontSize: 22, color: '#fff', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
+            <div style={{ fontFamily: 'var(--pc-serif)', fontSize: 'var(--pc-text-xl)', color: '#fff', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
               {title}
             </div>
-            <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)', lineHeight: 1.55 }}>
+            <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg-2)', lineHeight: 1.55 }}>
               {body}
             </div>
           </div>

@@ -34,9 +34,9 @@ export default function MarketingHome() {
         <SectionHeader />
         <ServiceFeature {...SERVICES[0]} />
         <PremiumSection />
-        <div style={{ height: 16 }} />
+        <div style={{ height: 'var(--pc-space-4)' }} />
         <ServiceFeature {...SERVICES[1]} />
-        <div style={{ height: 16 }} />
+        <div style={{ height: 'var(--pc-space-4)' }} />
         <ServiceFeature {...SERVICES[2]} />
         <USP />
         <CTASection />

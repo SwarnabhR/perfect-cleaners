@@ -28,7 +28,7 @@ export default function Nav() {
       {/* Logo */}
       <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <Image src="/logo-pc-monogram.svg" width={24} height={28} alt="Perfect Cleaners mark" />
-        <span style={{ fontFamily: 'var(--pc-serif)', fontSize: 18, color: '#fff', letterSpacing: '0.08em' }}>
+        <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 14, color: '#fff', letterSpacing: '0.08em' }}>
           perfect<span style={{ color: 'var(--pc-fg-3)' }}>.cleaners</span>
         </span>
       </Link>
