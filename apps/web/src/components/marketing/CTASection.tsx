@@ -24,20 +24,11 @@ export default function CTASection() {
         }}>
           Book Your Premium Car Wash Today
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <PrimaryButton style={{ padding: '14px 26px' }}>Book Now</PrimaryButton>
           <GhostButton style={{ padding: '13px 24px' }}>Contact Us</GhostButton>
         </div>
       </div>
-
-      <style>{`
-        @media (max-width: 768px) {
-          .pc-cta-inner {
-            padding: var(--pc-space-8) var(--pc-space-6) !important;
-            max-width: 100% !important;
-          }
-        }
-      `}</style>
     </div>
   );
 }

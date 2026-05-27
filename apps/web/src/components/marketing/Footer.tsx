@@ -1,6 +1,5 @@
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
-import Image from 'next/image';
 
 const SOCIAL_ICONS = ['camera', 'phone', 'shield', 'star'] as const;
 
@@ -68,20 +67,6 @@ export default function Footer() {
           ))}
         </div>
       </div>
-
-      <style>{`
-        @media (max-width: 768px) {
-          .pc-footer-grid {
-            grid-template-columns: 1fr 1fr !important;
-            gap: 32px !important;
-          }
-        }
-        @media (max-width: 480px) {
-          .pc-footer-grid {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
     </footer>
   );
 }

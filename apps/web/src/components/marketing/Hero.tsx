@@ -22,7 +22,7 @@ export default function Hero() {
         <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-base)', color: 'var(--pc-fg-2)', lineHeight: 1.5, maxWidth: 440 }}>
           Professional detailing, advanced technology, and showroom-quality results — at your home, office, or our centre in Ghaziabad.
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <PrimaryButton style={{ padding: '14px 26px' }}>Book Now</PrimaryButton>
           <GhostButton style={{ padding: '13px 24px' }}>Contact Us</GhostButton>
         </div>
@@ -78,29 +78,6 @@ export default function Hero() {
         <CarImage tone="dark"  style={{ minHeight: 220 }} />
         <CarImage tone="sage"  style={{ minHeight: 220 }} />
       </div>
-
-      <style>{`
-        @media (max-width: 768px) {
-          .pc-hero-grid {
-            grid-template-columns: 1fr !important;
-          }
-          .pc-hero-right {
-            display: none;
-          }
-          .pc-hero-bento {
-            grid-column: 1 / -1 !important;
-            grid-template-columns: 1fr 1fr !important;
-          }
-        }
-        @media (max-width: 480px) {
-          .pc-hero-bento {
-            grid-template-columns: 1fr !important;
-          }
-          .pc-hero-bento > *:nth-child(3) {
-            display: none;
-          }
-        }
-      `}</style>
     </div>
   );
 }

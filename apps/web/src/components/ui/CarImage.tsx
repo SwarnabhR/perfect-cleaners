@@ -10,17 +10,21 @@ interface CarImageProps {
   tone?: Tone;
   label?: string;
   style?: React.CSSProperties;
+  className?: string;
 }
 
-export default function CarImage({ tone = 'dark', label, style }: CarImageProps) {
+export default function CarImage({ tone = 'dark', label, style, className }: CarImageProps) {
   const [a, b, c] = PALETTES[tone];
   return (
-    <div style={{
-      position: 'relative', borderRadius: 14, overflow: 'hidden',
-      background: `radial-gradient(120% 80% at 50% 130%, ${c} 0%, ${b} 35%, ${a} 75%)`,
-      border: '1px solid var(--pc-line)',
-      ...style,
-    }}>
+    <div
+      className={className}
+      style={{
+        position: 'relative', borderRadius: 14, overflow: 'hidden',
+        background: `radial-gradient(120% 80% at 50% 130%, ${c} 0%, ${b} 35%, ${a} 75%)`,
+        border: '1px solid var(--pc-line)',
+        ...style,
+      }}
+    >
       <div style={{
         position: 'absolute', top: '-30%', left: '20%', right: '20%', height: '80%',
         background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 70%)',
@@ -57,7 +61,7 @@ export default function CarImage({ tone = 'dark', label, style }: CarImageProps)
       {label && (
         <div style={{
           position: 'absolute', top: 10, left: 10,
-          fontFamily: 'var(--pc-mono)', fontSize: 9, letterSpacing: '0.1em',
+          fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)', letterSpacing: '0.1em',
           color: 'var(--pc-fg-2)', textTransform: 'uppercase',
           border: '1px solid var(--pc-line)', padding: '3px 7px', borderRadius: 4,
           background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',

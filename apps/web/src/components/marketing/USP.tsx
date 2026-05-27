@@ -18,7 +18,7 @@ export default function USP() {
         }}>
           Your Car Deserves More than an Ordinary Wash
         </div>
-        <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+        <div style={{ display: 'flex', gap: 10, marginTop: 4, flexWrap: 'wrap' }}>
           <PrimaryButton style={{ padding: '12px 22px' }}>Book Now</PrimaryButton>
           <GhostButton style={{ padding: '11px 22px' }}>Contact Us</GhostButton>
         </div>
@@ -50,25 +50,8 @@ export default function USP() {
             </div>
           </div>
         </Card>
-        <CarImage tone="dark" style={{ minHeight: 220 }} />
+        <CarImage className="pc-usp-car" tone="dark" style={{ minHeight: 220 }} />
       </div>
-
-      <style>{`
-        @media (max-width: 768px) {
-          .pc-usp-root {
-            grid-template-columns: 1fr !important;
-            gap: 24px !important;
-          }
-          .pc-usp-cards {
-            grid-template-columns: 1fr 1fr !important;
-          }
-        }
-        @media (max-width: 480px) {
-          .pc-usp-cards {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
     </div>
   );
 }

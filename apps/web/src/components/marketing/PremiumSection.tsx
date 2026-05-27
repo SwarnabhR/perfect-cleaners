@@ -20,10 +20,14 @@ const TILE_IMAGES = [
 
 export default function PremiumSection() {
   return (
-    <div style={{
-      margin: 'var(--pc-space-8) var(--pc-screen-pad-lg) 0',
-      background: 'var(--pc-sage)', borderRadius: 24, padding: 'var(--pc-space-8) var(--pc-space-8) var(--pc-space-6)',
-    }}>
+    <div
+      className="pc-premium-root"
+      style={{
+        margin: 'var(--pc-space-8) var(--pc-screen-pad-lg) 0',
+        background: 'var(--pc-sage)', borderRadius: 24,
+        padding: 'var(--pc-space-8) var(--pc-space-8) var(--pc-space-6)',
+      }}
+    >
       <div
         className="pc-premium-header"
         style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 24, marginBottom: 'var(--pc-space-8)' }}
@@ -31,7 +35,7 @@ export default function PremiumSection() {
         <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xl)', lineHeight: 1.4, color: '#fff', maxWidth: 600, fontWeight: 400 }}>
           we offer a range of premium services designed to protect and enhance your vehicle&apos;s appearance.
         </div>
-        <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap' }}>
           <button style={{
             background: '#fff', color: 'var(--pc-ink)', border: 'none', borderRadius: 999,
             padding: 'var(--pc-space-3) var(--pc-space-6)', fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', fontWeight: 500,
@@ -61,9 +65,7 @@ export default function PremiumSection() {
               alt=""
               aria-hidden="true"
               fill
-              style={{
-                objectFit: 'cover', opacity: 0.15, mixBlendMode: 'luminosity',
-              }}
+              style={{ objectFit: 'cover', opacity: 0.15, mixBlendMode: 'luminosity' }}
             />
             <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)', color: 'rgba(255,255,255,0.55)', letterSpacing: '0.08em', position: 'relative' }}>
               [{String(i + 1).padStart(2, '0')}]
@@ -72,23 +74,6 @@ export default function PremiumSection() {
           </div>
         ))}
       </div>
-
-      <style>{`
-        @media (max-width: 768px) {
-          .pc-premium-header {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-          }
-          .pc-premium-tiles {
-            grid-template-columns: 1fr 1fr !important;
-          }
-        }
-        @media (max-width: 480px) {
-          .pc-premium-tiles {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
     </div>
   );
 }

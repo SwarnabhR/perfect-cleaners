@@ -19,7 +19,6 @@ export function PrimaryButton({ children, full, style, className, ...props }: Bu
         fontWeight: 500,
         letterSpacing: '0.06em',
         textTransform: 'uppercase',
-        whiteSpace: 'nowrap',
         width: full ? '100%' : undefined,
         ...style,
       }}
@@ -44,7 +43,6 @@ export function GhostButton({ children, full, style, ...props }: ButtonProps) {
         fontWeight: 500,
         letterSpacing: '0.06em',
         textTransform: 'uppercase',
-        whiteSpace: 'nowrap',
         width: full ? '100%' : undefined,
         ...style,
       }}

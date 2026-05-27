@@ -37,7 +37,7 @@ export default function ServiceFeature({ num, name, price, title, body }: Servic
         style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr 1fr', gap: 16, alignItems: 'stretch' }}
       >
         {/* Dual image stack */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minHeight: 148 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <div style={{ height: 140, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--pc-line)', position: 'relative' }}>
               {imgA && (
@@ -83,17 +83,6 @@ export default function ServiceFeature({ num, name, price, title, body }: Servic
           </div>
         </div>
       </div>
-
-      <style>{`
-        @media (max-width: 768px) {
-          .pc-sf-grid {
-            grid-template-columns: 1fr !important;
-          }
-          .pc-sf-portrait {
-            height: 200px !important;
-          }
-        }
-      `}</style>
     </div>
   );
 }
