@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "144288172697",
+    "project_id": "perfect-cleaners",
+    "storage_bucket": "perfect-cleaners.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:144288172697:android:8bef65c7ca51f48a688608",
+        "android_client_info": {
+          "package_name": "com.perfectcleaners.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDMw23tnWAonPDH6RV084EL3gV6-XBOfX4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

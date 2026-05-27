@@ -3,9 +3,11 @@ import { View } from 'react-native';
 import { Home, Calendar, Tag, User } from 'lucide-react-native';
 import { colors, layout } from '@pc/tokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFCM } from '../../../hooks/useFCM';
 
 export default function CustomerTabsLayout() {
   const insets = useSafeAreaInsets();
+  useFCM(); // Registers FCM token + handles foreground notifications
 
   return (
     <Tabs

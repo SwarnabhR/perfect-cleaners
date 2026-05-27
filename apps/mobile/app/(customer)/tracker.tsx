@@ -1,17 +1,48 @@
+import { useEffect, useState } from 'react';
 import { ScrollView, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ChevronLeft, Clock, MapPin, Phone,
 } from 'lucide-react-native';
+import firestore from '@react-native-firebase/firestore';
+import type { Booking, BookingStatus } from '@pc/firebase';
 import { colors, typography, spacing, radii } from '@pc/tokens';
 
 const STEPS = ['Assigned', 'En Route', 'In Progress', 'Done'];
 
+const STATUS_STEP: Record<BookingStatus, number> = {
+  pending: 0,
+  assigned: 0,
+  enroute: 1,
+  inprogress: 2,
+  done: 3,
+  cancelled: 3,
+};
+
 export default function TrackerScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const currentStep = 1;
+  const { bookingId = 'PC-2058' } = useLocalSearchParams<{ bookingId?: string }>();
+  const [currentStep, setCurrentStep] = useState(1);
+  const [booking, setBooking] = useState<Partial<Booking> | null>(null);
+
+  useEffect(() => {
+    const unsub = firestore()
+      .collection('bookings')
+      .doc(bookingId)
+      .onSnapshot(
+        snap => {
+          if (snap.exists()) {
+            const data = snap.data() as Booking;
+            setBooking(data);
+            setCurrentStep(STATUS_STEP[data.status] ?? 0);
+          }
+        },
+        err => console.warn('[Tracker] Firestore:', err.message),
+      );
+    return () => unsub();
+  }, [bookingId]);
 
   return (
     <ScrollView

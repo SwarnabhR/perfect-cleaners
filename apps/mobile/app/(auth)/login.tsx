@@ -5,13 +5,11 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getAuth, signInWithPhoneNumber } from 'firebase/auth';
+import auth from '@react-native-firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { firebaseApp } from '@pc/firebase';
+import { setPendingConfirmation } from '../../auth-state';
 import { colors, typography, spacing, radii, layout } from '@pc/tokens';
 import PCMonogram from '../../components/PCMonogram';
-
-const auth = getAuth(firebaseApp);
 
 const DEMO_PROFILE = JSON.stringify({
   name: 'Aarav Mehta',
@@ -31,11 +29,13 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       if (phone === '0000000000') {
+        // Demo bypass — no Firebase call
+        setPendingConfirmation(null);
         router.push({ pathname: '/(auth)/otp', params: { phone, verificationId: 'demo' } });
         return;
       }
-      const fullPhone = `+91${phone}`;
-      const confirmation = await signInWithPhoneNumber(auth, fullPhone);
+      const confirmation = await auth().signInWithPhoneNumber(`+91${phone}`);
+      setPendingConfirmation(confirmation);
       router.push({ pathname: '/(auth)/otp', params: { phone, verificationId: confirmation.verificationId } });
     } catch (err: any) {
       Alert.alert('Error', err?.message || 'Failed to send OTP. Please try again.');

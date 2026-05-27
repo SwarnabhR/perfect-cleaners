@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet,
+  ImageBackground, View, Text, TouchableOpacity, StyleSheet,
   PanResponder, useWindowDimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -9,6 +9,7 @@ import { X, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { colors, typography, spacing, radii } from '@pc/tokens';
 
 const COMPARATOR_H_MARGIN = spacing[5] * 2;
+const BRAND_HERO = require('../../../../design-system/assets/brand-hero.png');
 
 export default function BeforeAfterViewer() {
   const [pos, setPos] = useState(56);
@@ -56,9 +57,10 @@ export default function BeforeAfterViewer() {
       >
         {/* Before (full width, dull) */}
         <View style={s.beforeLayer}>
-          <View style={s.carPlaceholder}>
-            <View style={s.carShapeDull} />
-          </View>
+          <ImageBackground source={BRAND_HERO} resizeMode="cover" style={s.compareImage}>
+            <View style={s.beforeWash} />
+            <View style={s.beforeDust} />
+          </ImageBackground>
           <View style={s.labelBefore}>
             <Text style={s.labelText}>BEFORE</Text>
           </View>
@@ -66,9 +68,13 @@ export default function BeforeAfterViewer() {
 
         {/* After (clipped to pos%) */}
         <View style={[s.afterLayer, { width: `${pos}%` as any }]}>
-          <View style={[s.carPlaceholder, { width: comparatorWidth.current || SW - COMPARATOR_H_MARGIN }]}>
-            <View style={s.carShapeBright} />
-          </View>
+          <ImageBackground
+            source={BRAND_HERO}
+            resizeMode="cover"
+            style={[s.compareImage, { width: comparatorWidth.current || SW - COMPARATOR_H_MARGIN }]}
+          >
+            <View style={s.afterPolish} />
+          </ImageBackground>
           <View style={s.labelAfter}>
             <Text style={s.labelTextAfter}>AFTER</Text>
           </View>
@@ -135,19 +141,19 @@ const s = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: '#0e0d0b',
   },
-  carPlaceholder: {
-    flex: 1, alignItems: 'center', justifyContent: 'center',
+  compareImage: { flex: 1 },
+  beforeWash: {
+    position: 'absolute', top: 0, bottom: 0, left: 0, right: 0,
+    backgroundColor: 'rgba(48,44,38,0.46)',
   },
-  carShapeDull: {
-    width: '70%', height: '35%', borderRadius: 14,
-    backgroundColor: '#3a3835',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+  beforeDust: {
+    position: 'absolute', left: 0, right: 0, bottom: 0, height: '34%',
+    backgroundColor: 'rgba(120,108,88,0.18)',
   },
-  carShapeBright: {
-    width: '70%', height: '35%', borderRadius: 14,
-    backgroundColor: '#252320',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)',
-    // Simulates post-wash sheen with a brighter border
+  afterPolish: {
+    position: 'absolute', top: 0, bottom: 0, left: 0, right: 0,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: 'rgba(14,13,11,0.08)',
   },
 
   divider: {

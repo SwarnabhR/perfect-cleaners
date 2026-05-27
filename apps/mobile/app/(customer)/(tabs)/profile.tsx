@@ -1,16 +1,19 @@
+import { useEffect, useState } from 'react';
 import { ScrollView, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ChevronRight, Plus, MapPin, Bell, CreditCard,
   Users, HelpCircle, LogOut,
 } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, typography, spacing, radii } from '@pc/tokens';
 import PCMonogram from '../../../components/PCMonogram';
 
-const CARS = [
-  ['BMW 3 Series', 'DL 4C AB 1234', 'Mineral Grey'],
-  ['Hyundai Creta', 'DL 8C XY 0921', 'Phantom Black'],
-];
+interface StoredProfile {
+  name: string;
+  phone?: string;
+  car?: { make: string; model: string; plate: string; color: string };
+}
 
 const PREFERENCES = [
   ['map-pin', 'Saved Addresses'],
@@ -32,6 +35,25 @@ const PREF_ICONS: Record<string, React.ReactNode> = {
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const [profile, setProfile] = useState<StoredProfile | null>(null);
+
+  useEffect(() => {
+    AsyncStorage.getItem('@pc/onboarding').then(json => {
+      if (json) setProfile(JSON.parse(json));
+    });
+  }, []);
+
+  const displayName = profile?.name ?? 'Your Name';
+  const initials = displayName
+    .split(' ')
+    .map(w => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+
+  const cars: [string, string, string][] = profile?.car
+    ? [[`${profile.car.make} ${profile.car.model}`, profile.car.plate, profile.car.color]]
+    : [['BMW 3 Series', 'DL 4C AB 1234', 'Mineral Grey']]; // fallback demo car
 
   return (
     <ScrollView
@@ -52,11 +74,11 @@ export default function ProfileScreen() {
       {/* User card */}
       <View style={s.userCard}>
         <View style={s.avatar}>
-          <Text style={s.avatarText}>AM</Text>
+          <Text style={s.avatarText}>{initials}</Text>
         </View>
         <View style={s.userInfo}>
-          <Text style={s.userName}>Aarav Mehta</Text>
-          <Text style={s.userPhone}>+91 98765 43210</Text>
+          <Text style={s.userName}>{displayName}</Text>
+          <Text style={s.userPhone}>{profile?.phone ?? '+91 ··········'}</Text>
         </View>
         <ChevronRight size={16} color={colors.fg3} strokeWidth={1.5} />
       </View>
@@ -65,7 +87,7 @@ export default function ProfileScreen() {
       <View style={s.section}>
         <Text style={s.eyebrow}>[YOUR CARS]</Text>
         <View style={s.carsList}>
-          {CARS.map(([name, plate, color]) => (
+          {cars.map(([name, plate, color]) => (
             <View key={plate} style={s.carCard}>
               <View style={s.carIcon}>
                 <View style={s.carShape} />

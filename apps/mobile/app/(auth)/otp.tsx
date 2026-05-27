@@ -5,12 +5,10 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getAuth, PhoneAuthProvider, signInWithCredential } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { firebaseApp } from '@pc/firebase';
+import { getPendingConfirmation } from '../../auth-state';
 import { colors, typography, spacing, radii } from '@pc/tokens';
 
-const auth = getAuth(firebaseApp);
 const OTP_LEN = 6;
 
 export default function OTPScreen() {
@@ -47,8 +45,9 @@ export default function OTPScreen() {
       if (verificationId === 'demo') {
         if (code !== '000000') throw new Error('Invalid demo code. Use 000000.');
       } else {
-        const credential = PhoneAuthProvider.credential(verificationId, code);
-        await signInWithCredential(auth, credential);
+        const conf = getPendingConfirmation();
+        if (!conf) throw new Error('Session expired. Please go back and try again.');
+        await conf.confirm(code);
       }
       const existing = await AsyncStorage.getItem('@pc/onboarding');
       if (existing) {

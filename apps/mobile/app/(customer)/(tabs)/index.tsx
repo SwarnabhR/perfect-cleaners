@@ -1,9 +1,11 @@
-import { ScrollView, View, Text, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native';
+import { ImageBackground, ScrollView, View, Text, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Bell, MapPin, ChevronRight, Phone, Star, Clock, Shield, Sparkles } from 'lucide-react-native';
 import { colors, typography, spacing, radii, layout } from '@pc/tokens';
 import PCMonogram from '../../../components/PCMonogram';
+
+const BRAND_HERO = require('../../../../../design-system/assets/brand-hero.png');
 
 const SERVICES = [
   {
@@ -61,25 +63,32 @@ export default function CustomerHome() {
 
       {/* Hero card */}
       <View style={[s.hero, { width: SW - spacing[6] * 2, marginHorizontal: spacing[6] }]}>
-        <View style={s.heroContent}>
-          <Text style={s.heroEye}>PERFECT CLEANERS</Text>
-          <Text style={s.heroTitle}>Professional{'\n'}Car Care{'\n'}Services</Text>
-          <View style={s.heroBtns}>
-            <TouchableOpacity
-              style={s.heroBtnPrimary}
-              onPress={() => router.push('/(customer)/booking')}
-              activeOpacity={0.8}
-            >
-              <Text style={s.heroBtnPrimaryText}>BOOK NOW</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={s.heroBtnGhost} activeOpacity={0.7}>
-              <Phone size={14} color={colors.fg2} strokeWidth={1.5} />
-              <Text style={s.heroBtnGhostText}>CONTACT US</Text>
-            </TouchableOpacity>
+        <ImageBackground source={BRAND_HERO} resizeMode="cover" style={s.heroImage}>
+          <View style={s.heroTopFade} />
+          <View style={s.heroBottomFade} />
+          <View style={s.heroFeatured}>
+            <Text style={s.heroFeaturedText}>[FEATURED]</Text>
           </View>
-        </View>
-        {/* Car silhouette placeholder */}
-        <View style={s.heroCarPlaceholder} />
+          <View style={s.heroContent}>
+            <Text style={s.heroTitle}>Bringing Your Car's{'\n'}Shine Back to Life</Text>
+            <Text style={s.heroSub}>
+              Professional detailing, advanced technology, and showroom-quality results.
+            </Text>
+            <View style={s.heroBtns}>
+              <TouchableOpacity
+                style={s.heroBtnPrimary}
+                onPress={() => router.push('/(customer)/booking')}
+                activeOpacity={0.8}
+              >
+                <Text style={s.heroBtnPrimaryText}>BOOK NOW</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.heroBtnGhost} activeOpacity={0.7}>
+                <Phone size={14} color={colors.fg2} strokeWidth={1.5} />
+                <Text style={s.heroBtnGhostText}>CONTACT US</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ImageBackground>
       </View>
 
       {/* Stat strip */}
@@ -197,21 +206,40 @@ const s = StyleSheet.create({
   },
 
   hero: {
-    height: 320, backgroundColor: colors.card,
+    height: 360, backgroundColor: colors.card,
     borderRadius: radii.xl, overflow: 'hidden',
     marginTop: spacing[4], marginBottom: spacing[4],
     borderWidth: 1, borderColor: colors.line,
   },
-  heroContent: { padding: spacing[6], flex: 1, justifyContent: 'flex-end' },
-  heroEye: {
-    fontFamily: typography.sans, fontSize: 10,
-    color: colors.fg3, letterSpacing: 2.5, textTransform: 'uppercase', marginBottom: 6,
+  heroImage: { flex: 1 },
+  heroTopFade: {
+    position: 'absolute', top: 0, left: 0, right: 0, height: 120,
+    backgroundColor: 'rgba(14,13,11,0.18)',
+  },
+  heroBottomFade: {
+    position: 'absolute', left: 0, right: 0, bottom: 0, height: 220,
+    backgroundColor: 'rgba(14,13,11,0.72)',
+  },
+  heroFeatured: {
+    position: 'absolute', top: spacing[4], left: spacing[4],
+    borderWidth: 1, borderColor: colors.lineStrong,
+    borderRadius: 4, paddingHorizontal: 8, paddingVertical: 4,
+    backgroundColor: 'rgba(0,0,0,0.42)',
+  },
+  heroFeaturedText: {
+    fontFamily: typography.mono, fontSize: 10, color: colors.fg2,
+    letterSpacing: 1, textTransform: 'uppercase',
+  },
+  heroContent: { position: 'absolute', left: 0, right: 0, bottom: 0, padding: spacing[5], gap: 12 },
+  heroSub: {
+    fontFamily: typography.sans, fontSize: typography.sm,
+    color: colors.fg2, lineHeight: 20, maxWidth: 280,
   },
   heroTitle: {
-    fontFamily: typography.serif, fontSize: typography['3xl'],
-    color: colors.fg, letterSpacing: -0.5, lineHeight: 44, marginBottom: spacing[5],
+    fontFamily: typography.serif, fontSize: 30,
+    color: colors.fg, letterSpacing: -0.5, lineHeight: 32,
   },
-  heroBtns: { flexDirection: 'row', gap: 10 },
+  heroBtns: { flexDirection: 'row', gap: 10, marginTop: 2 },
   heroBtnPrimary: {
     backgroundColor: colors.warm, borderRadius: radii.pill,
     paddingHorizontal: spacing[5], paddingVertical: 10,
@@ -223,12 +251,6 @@ const s = StyleSheet.create({
     borderRadius: radii.pill, paddingHorizontal: spacing[4], paddingVertical: 10,
   },
   heroBtnGhostText: { fontFamily: typography.sans, fontSize: typography.sm, color: colors.fg2 },
-  heroCarPlaceholder: {
-    position: 'absolute', right: -20, bottom: 20,
-    width: 200, height: 100, opacity: 0.06,
-    backgroundColor: colors.fg, borderRadius: 12,
-  },
-
   statStrip: {
     flexDirection: 'row', marginHorizontal: spacing[6],
     backgroundColor: colors.card, borderRadius: radii.md,
