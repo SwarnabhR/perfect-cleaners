@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { PrimaryButton, GhostButton } from '@/components/ui/Button';
 
 export default function Hero() {
   return (
@@ -59,13 +58,57 @@ export default function Hero() {
           or our centre in Ghaziabad — booked in under 2 minutes.
         </p>
 
-        {/* CTAs */}
+        {/*
+          CTAs — styled <Link> elements, NOT <Link><Button>.
+          Nesting a <button> inside an <a> is invalid HTML.
+          Button appearance is applied directly to the anchor.
+        */}
         <div style={{ display: 'flex', gap: 'var(--pc-space-2)', flexWrap: 'wrap' }}>
-          <Link href="/book">
-            <PrimaryButton style={{ padding: 'var(--pc-space-4) var(--pc-space-6)' }}>Book Now</PrimaryButton>
+          <Link
+            href="/book"
+            className="pc-hero-cta-primary"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 'var(--pc-space-4) var(--pc-space-6)',
+              background: 'var(--pc-warm)',
+              color: 'var(--pc-ink)',
+              border: 'none',
+              borderRadius: 'var(--pc-radius-pill)',
+              fontFamily: 'var(--pc-sans)',
+              fontSize: 'var(--pc-text-sm)',
+              fontWeight: 600,
+              letterSpacing: 'var(--pc-track-wide)',
+              textTransform: 'uppercase',
+              textDecoration: 'none',
+              transition: 'background var(--pc-dur-fast) var(--pc-ease), box-shadow var(--pc-dur-fast) var(--pc-ease)',
+            }}
+          >
+            Book Now
           </Link>
-          <Link href="/services">
-            <GhostButton style={{ padding: 'var(--pc-space-4) var(--pc-space-6)' }}>View Services</GhostButton>
+          <Link
+            href="/services"
+            className="pc-hero-cta-ghost"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 'var(--pc-space-4) var(--pc-space-6)',
+              background: 'transparent',
+              color: 'var(--pc-fg)',
+              border: '1px solid var(--pc-line-strong)',
+              borderRadius: 'var(--pc-radius-pill)',
+              fontFamily: 'var(--pc-sans)',
+              fontSize: 'var(--pc-text-sm)',
+              fontWeight: 500,
+              letterSpacing: 'var(--pc-track-wide)',
+              textTransform: 'uppercase',
+              textDecoration: 'none',
+              transition: 'background var(--pc-dur-fast) var(--pc-ease), border-color var(--pc-dur-fast) var(--pc-ease)',
+            }}
+          >
+            View Services
           </Link>
         </div>
 
@@ -82,12 +125,17 @@ export default function Hero() {
           ].map(([num, label]) => (
             <div key={label}>
               <div style={{
-                fontFamily: 'var(--pc-serif)', fontSize: 18,
-                color: 'var(--pc-fg)', letterSpacing: 'var(--pc-track-tight)', lineHeight: 1,
+                fontFamily: 'var(--pc-serif)',
+                fontSize: 'var(--pc-text-lg)',
+                color: 'var(--pc-fg)',
+                letterSpacing: 'var(--pc-track-tight)',
+                lineHeight: 1,
               }}>{num}</div>
               <div style={{
-                fontFamily: 'var(--pc-sans)', fontSize: 11,
-                color: 'var(--pc-fg-3)', marginTop: 3,
+                fontFamily: 'var(--pc-sans)',
+                fontSize: 'var(--pc-text-xs)',
+                color: 'var(--pc-fg-3)',
+                marginTop: 'var(--pc-space-1)',
               }}>{label}</div>
             </div>
           ))}
@@ -98,7 +146,6 @@ export default function Hero() {
       <div className="pc-hero-right">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--pc-space-2)', height: 260 }}>
           <div style={{ position: 'relative', borderRadius: 'var(--pc-radius-md)', overflow: 'hidden', border: '1px solid var(--pc-line)' }}>
-            {/* priority: above-the-fold on desktop; sizes: hidden on ≤768px */}
             <Image
               src="/hero-professional-detailer.png"
               alt="Professional detailer foam-gunning a car"
@@ -108,11 +155,11 @@ export default function Hero() {
               style={{ objectFit: 'cover' }}
             />
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 45%, rgba(14,13,11,0.85) 100%)' }} />
-            <div style={{
-              position: 'absolute', bottom: 12, left: 14,
+            <p style={{
+              position: 'absolute', bottom: 12, left: 14, margin: 0,
               fontFamily: 'var(--pc-mono)', fontSize: 9,
               color: 'rgba(255,255,255,0.6)', letterSpacing: 'var(--pc-track-mono)',
-            }}>CERTIFIED DETAILERS</div>
+            }}>CERTIFIED DETAILERS</p>
           </div>
           <div style={{ position: 'relative', borderRadius: 'var(--pc-radius-md)', overflow: 'hidden', border: '1px solid var(--pc-line)' }}>
             <Image
@@ -124,11 +171,11 @@ export default function Hero() {
               style={{ objectFit: 'cover' }}
             />
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 45%, rgba(14,13,11,0.85) 100%)' }} />
-            <div style={{
-              position: 'absolute', bottom: 12, left: 14,
+            <p style={{
+              position: 'absolute', bottom: 12, left: 14, margin: 0,
               fontFamily: 'var(--pc-mono)', fontSize: 9,
               color: 'rgba(255,255,255,0.6)', letterSpacing: 'var(--pc-track-mono)',
-            }}>BOOK IN 2 MINUTES</div>
+            }}>BOOK IN 2 MINUTES</p>
           </div>
         </div>
 
@@ -142,24 +189,24 @@ export default function Hero() {
             borderRadius: 'var(--pc-radius-md)', padding: 'var(--pc-space-4)',
             display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: 80,
           }}>
-            <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, color: 'var(--pc-fg-4)', letterSpacing: 'var(--pc-track-mono)' }}>
+            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, color: 'var(--pc-fg-4)', letterSpacing: 'var(--pc-track-mono)', margin: 0 }}>
               PROCESS
-            </div>
-            <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg)', lineHeight: 1.35 }}>
+            </p>
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg)', lineHeight: 1.35, margin: 0 }}>
               60-point<br />inspection checklist
-            </div>
+            </p>
           </div>
           <div style={{
             background: 'var(--pc-card)', border: '1px solid var(--pc-line)',
             borderRadius: 'var(--pc-radius-md)', padding: 'var(--pc-space-4)',
             display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: 80,
           }}>
-            <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, color: 'var(--pc-fg-4)', letterSpacing: 'var(--pc-track-mono)' }}>
+            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, color: 'var(--pc-fg-4)', letterSpacing: 'var(--pc-track-mono)', margin: 0 }}>
               COVERAGE
-            </div>
-            <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg)', lineHeight: 1.35 }}>
+            </p>
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg)', lineHeight: 1.35, margin: 0 }}>
               Delhi, Noida,<br />Gurgaon &amp; beyond
-            </div>
+            </p>
           </div>
         </div>
       </div>
@@ -186,12 +233,12 @@ export default function Hero() {
           />
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 40%, rgba(14,13,11,0.88) 100%)' }} />
           <div style={{ position: 'absolute', bottom: 16, left: 16 }}>
-            <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: 'var(--pc-track-mono)', marginBottom: 5 }}>
+            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: 'var(--pc-track-mono)', marginBottom: 5, marginTop: 0 }}>
               EXTERIOR WASH
-            </div>
-            <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)', fontWeight: 500 }}>
+            </p>
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)', fontWeight: 500, margin: 0 }}>
               Foam cannon to finish
-            </div>
+            </p>
           </div>
         </div>
 
@@ -206,12 +253,12 @@ export default function Hero() {
           />
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 40%, rgba(14,13,11,0.88) 100%)' }} />
           <div style={{ position: 'absolute', bottom: 16, left: 16 }}>
-            <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: 'var(--pc-track-mono)', marginBottom: 5 }}>
+            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: 'var(--pc-track-mono)', marginBottom: 5, marginTop: 0 }}>
               CERAMIC COATING
-            </div>
-            <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)', fontWeight: 500 }}>
+            </p>
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)', fontWeight: 500, margin: 0 }}>
               3-year protection
-            </div>
+            </p>
           </div>
         </div>
 
@@ -226,12 +273,12 @@ export default function Hero() {
           />
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(105deg, rgba(14,13,11,0.82) 0%, rgba(14,13,11,0.3) 60%, rgba(14,13,11,0) 100%)' }} />
           <div style={{ position: 'absolute', bottom: 20, left: 20 }}>
-            <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: 'var(--pc-track-mono)', marginBottom: 6 }}>
+            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: 'var(--pc-track-mono)', marginBottom: 6, marginTop: 0 }}>
               INTERIOR DETAIL
-            </div>
-            <div style={{ fontFamily: 'var(--pc-serif)', fontSize: 28, color: 'var(--pc-fg)', letterSpacing: 'var(--pc-track-tight)', lineHeight: 1.05 }}>
+            </p>
+            <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 28, color: 'var(--pc-fg)', letterSpacing: 'var(--pc-track-tight)', lineHeight: 1.05, margin: 0 }}>
               Every surface.<br />Nothing rushed.
-            </div>
+            </p>
           </div>
         </div>
       </div>

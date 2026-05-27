@@ -34,6 +34,7 @@ export default function FaqAccordion() {
           <Card key={i} style={{ padding: 0, overflow: 'hidden' }}>
             <button
               id={triggerId}
+              type="button"
               onClick={() => setOpenIndex(isOpen ? null : i)}
               aria-expanded={isOpen}
               aria-controls={panelId}
@@ -55,10 +56,6 @@ export default function FaqAccordion() {
               />
             </button>
 
-            {/*
-              grid-template-rows: '0fr' → '1fr' gives a smooth height transition.
-              The inner div must have min-height: 0 to allow collapse to zero.
-            */}
             <div
               id={panelId}
               role="region"
