@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { PrimaryButton, GhostButton } from '@/components/ui/Button';
 import Eyebrow from '@/components/ui/Eyebrow';
 
 export default function CTASection() {
@@ -60,11 +59,51 @@ export default function CTASection() {
           Pick a date, choose a service, confirm. We handle the rest — products, equipment, and a trained specialist at your door.
         </p>
         <div style={{ display: 'flex', gap: 'var(--pc-space-2)', flexWrap: 'wrap' }}>
-          <Link href="/book">
-            <PrimaryButton style={{ padding: 'var(--pc-space-4) var(--pc-space-6)' }}>Book Now</PrimaryButton>
+          <Link
+            href="/book"
+            className="pc-hero-cta-primary"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 'var(--pc-space-4) var(--pc-space-6)',
+              background: 'var(--pc-warm)',
+              color: 'var(--pc-ink)',
+              border: 'none',
+              borderRadius: 'var(--pc-radius-pill)',
+              fontFamily: 'var(--pc-sans)',
+              fontSize: 'var(--pc-text-sm)',
+              fontWeight: 600,
+              letterSpacing: 'var(--pc-track-wide)',
+              textTransform: 'uppercase',
+              textDecoration: 'none',
+              transition: 'background var(--pc-dur-fast) var(--pc-ease), box-shadow var(--pc-dur-fast) var(--pc-ease)',
+            }}
+          >
+            Book Now
           </Link>
-          <Link href="/contact">
-            <GhostButton style={{ padding: 'var(--pc-space-4) var(--pc-space-6)' }}>Get in Touch</GhostButton>
+          <Link
+            href="/contact"
+            className="pc-hero-cta-ghost"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 'var(--pc-space-4) var(--pc-space-6)',
+              background: 'transparent',
+              color: 'var(--pc-fg)',
+              border: '1px solid var(--pc-line-strong)',
+              borderRadius: 'var(--pc-radius-pill)',
+              fontFamily: 'var(--pc-sans)',
+              fontSize: 'var(--pc-text-sm)',
+              fontWeight: 500,
+              letterSpacing: 'var(--pc-track-wide)',
+              textTransform: 'uppercase',
+              textDecoration: 'none',
+              transition: 'background var(--pc-dur-fast) var(--pc-ease), border-color var(--pc-dur-fast) var(--pc-ease)',
+            }}
+          >
+            Get in Touch
           </Link>
         </div>
       </div>
