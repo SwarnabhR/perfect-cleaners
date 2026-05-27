@@ -1,0 +1,35 @@
+.card {
+  /* Reset button defaults when rendered as <button> */
+  all: unset;
+  box-sizing: border-box;
+
+  display: block;
+  background: var(--pc-card);
+  border: 1px solid var(--pc-line);
+  border-radius: var(--pc-radius-md);
+  padding: var(--pc-space-4);
+  width: 100%;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+}
+
+.interactive {
+  cursor: pointer;
+  transition:
+    background var(--pc-dur-fast) var(--pc-ease),
+    box-shadow var(--pc-dur-fast) var(--pc-ease);
+}
+
+.interactive:hover {
+  background: var(--pc-card-hi);
+}
+
+.interactive:active {
+  transform: scale(0.995);
+}
+
+.interactive:focus-visible {
+  outline: 2px solid var(--pc-sage);
+  outline-offset: 2px;
+}

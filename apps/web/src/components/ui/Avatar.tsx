@@ -31,7 +31,7 @@ const STACK_COLORS = [
 
 export function AvatarStack({ count = 3 }: { count?: number }) {
   return (
-    <div style={{ display: 'flex' }}>
+    <div aria-hidden="true" style={{ display: 'flex' }}>
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} style={{
           width: 22, height: 22,

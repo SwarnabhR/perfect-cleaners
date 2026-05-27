@@ -1,46 +1,46 @@
 import React from 'react';
+import styles from './Card.module.css';
 
-interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+type CardBaseProps = {
   children: React.ReactNode;
   style?: React.CSSProperties;
-  onClick?: () => void;
   hover?: boolean;
-}
+  className?: string;
+};
 
-export default function Card({ children, style, onClick, hover, ...props }: CardProps) {
+type InteractiveCardProps = CardBaseProps & {
+  onClick: () => void;
+} & Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onClick' | 'style' | 'className'>;
+
+type StaticCardProps = CardBaseProps & {
+  onClick?: undefined;
+} & Omit<React.HTMLAttributes<HTMLDivElement>, 'onClick' | 'style' | 'className'>;
+
+type CardProps = InteractiveCardProps | StaticCardProps;
+
+export default function Card({ children, style, onClick, hover, className, ...props }: CardProps) {
   const interactive = !!onClick || hover;
+  const cls = [styles.card, interactive ? styles.interactive : '', className ?? ''].filter(Boolean).join(' ');
 
-  function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
-    if (onClick && (e.key === 'Enter' || e.key === ' ')) {
-      e.preventDefault();
-      onClick();
-    }
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={cls}
+        style={style}
+        {...(props as React.ButtonHTMLAttributes<HTMLButtonElement>)}
+      >
+        {children}
+      </button>
+    );
   }
 
   return (
     <div
-      onClick={onClick}
-      onKeyDown={interactive ? handleKeyDown : undefined}
-      role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      style={{
-        background: 'var(--pc-card)',
-        border: '1px solid var(--pc-line)',
-        borderRadius: 'var(--pc-radius-md)',
-        padding: 'var(--pc-space-4)',
-        cursor: interactive ? 'pointer' : undefined,
-        transition: interactive
-          ? 'background var(--pc-dur-fast) var(--pc-ease), box-shadow var(--pc-dur-fast) var(--pc-ease)'
-          : undefined,
-        ...style,
-      }}
-      onMouseEnter={interactive ? e => {
-        (e.currentTarget as HTMLDivElement).style.background = 'var(--pc-card-hi)';
-      } : undefined}
-      onMouseLeave={interactive ? e => {
-        (e.currentTarget as HTMLDivElement).style.background = 'var(--pc-card)';
-      } : undefined}
-      {...props}
+      className={cls}
+      style={style}
+      {...(props as React.HTMLAttributes<HTMLDivElement>)}
     >
       {children}
     </div>
