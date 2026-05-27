@@ -7,7 +7,7 @@
 }
 .primary:hover {
   background: var(--pc-warm-2) !important;
-  box-shadow: 0 4px 20px rgba(240,237,232,0.18);
+  box-shadow: var(--pc-shadow-glow);
 }
 .primary:active {
   transform: scale(0.97);

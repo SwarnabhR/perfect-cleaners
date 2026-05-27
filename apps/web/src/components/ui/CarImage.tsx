@@ -1,9 +1,13 @@
 type Tone = 'dark' | 'sage' | 'light';
 
+// Palette values are direct CSS variable references compiled to hex at token definition.
+// These gradient stops must be raw hex since they're used inside SVG/CSS gradient strings
+// where CSS variables cannot be interpolated. Values mirror --pc-ink, --pc-ink-raised,
+// --pc-sage, --pc-sage-lo, and --pc-card token hex equivalents from the token package.
 const PALETTES: Record<Tone, [string, string, string]> = {
-  dark:  ['#1a1816', '#0a0908', '#2a2725'],
-  sage:  ['#4A5E44', '#2f3d2c', '#5B6F52'],
-  light: ['#3a3835', '#1a1816', '#26241f'],
+  dark:  ['#1a1816', '#0a0908', '#2a2725'],  // ink-raised, ink, card
+  sage:  ['#4A5E44', '#2f3d2c', '#5B6F52'],  // sage, sage-deep, sage-hi
+  light: ['#3a3835', '#1a1816', '#26241f'],  // card-hi, ink-raised, card-mid
 };
 
 interface CarImageProps {
@@ -19,7 +23,9 @@ export default function CarImage({ tone = 'dark', label, style, className }: Car
     <div
       className={className}
       style={{
-        position: 'relative', borderRadius: 14, overflow: 'hidden',
+        position: 'relative',
+        borderRadius: 'var(--pc-radius-md)',
+        overflow: 'hidden',
         background: `radial-gradient(120% 80% at 50% 130%, ${c} 0%, ${b} 35%, ${a} 75%)`,
         border: '1px solid var(--pc-line)',
         ...style,
@@ -60,11 +66,17 @@ export default function CarImage({ tone = 'dark', label, style, className }: Car
       </svg>
       {label && (
         <div style={{
-          position: 'absolute', top: 10, left: 10,
-          fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)', letterSpacing: '0.1em',
-          color: 'var(--pc-fg-2)', textTransform: 'uppercase',
-          border: '1px solid var(--pc-line)', padding: '3px 7px', borderRadius: 4,
-          background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
+          position: 'absolute', top: 'var(--pc-space-2)', left: 'var(--pc-space-2)',
+          fontFamily: 'var(--pc-mono)',
+          fontSize: 'var(--pc-text-xs)',
+          letterSpacing: 'var(--pc-track-mono)',
+          color: 'var(--pc-fg-2)',
+          textTransform: 'uppercase',
+          border: '1px solid var(--pc-line)',
+          padding: 'var(--pc-space-1) var(--pc-space-2)',
+          borderRadius: 'var(--pc-radius-xs)',
+          background: 'rgba(0,0,0,0.4)',
+          backdropFilter: 'blur(4px)',
         }}>
           [{label}]
         </div>
