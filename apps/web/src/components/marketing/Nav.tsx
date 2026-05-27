@@ -24,7 +24,7 @@ export default function Nav() {
     <>
       <nav style={{
         position: 'sticky', top: 0, zIndex: 50,
-        display: 'flex', alignItems: 'center', gap: 28,
+        display: 'flex', alignItems: 'center', gap: 'clamp(8px, 2vw, 28px)',
         padding: '20px var(--pc-screen-pad-lg)',
         background: 'rgba(14,13,11,0.72)', backdropFilter: 'blur(24px)',
         borderBottom: '1px solid var(--pc-line)',
@@ -41,7 +41,7 @@ export default function Nav() {
         <div
           className="pc-hide-mobile"
           style={{
-            display: 'flex', gap: 4, padding: 4, marginLeft: 'auto',
+            display: 'flex', gap: 4, padding: 4,
             background: 'var(--pc-card)', borderRadius: 999, border: '1px solid var(--pc-line)',
           }}
         >
@@ -62,55 +62,62 @@ export default function Nav() {
           })}
         </div>
 
-        {/* Book Now CTA — always visible */}
-        <Link href="/book" style={{
+        {/* Right-side group — marginLeft:auto lives here, not on individual items */}
+        <div style={{
           marginLeft: 'auto',
-          padding: '9px 20px', borderRadius: 999,
-          fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', fontWeight: 600,
-          letterSpacing: '0.04em',
-          background: 'var(--pc-warm)',
-          color: 'var(--pc-ink)',
-          border: 'none',
-          whiteSpace: 'nowrap',
+          display: 'flex', alignItems: 'center',
+          gap: 'clamp(8px, 2vw, 12px)',
           flexShrink: 0,
         }}>
-          Book Now
-        </Link>
-
-        {/* User pill — hidden on mobile */}
-        <div
-          className="pc-hide-mobile"
-          style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            background: 'var(--pc-card)', borderRadius: 999, padding: '5px 14px 5px 5px',
-            border: '1px solid var(--pc-line)',
-          }}
-        >
-          <Avatar name="Swarnabh Roy" size={30} />
-          <div>
-            <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: '#fff', fontWeight: 500, lineHeight: 1.2 }}>Swarnabh Roy</div>
-            <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)', letterSpacing: '0.06em', lineHeight: 1.2 }}>workspace.swarnabh@gmail.com</div>
-          </div>
-          <Icon name="chevron-down" size={12} color="var(--pc-fg-3)" style={{ marginLeft: 4 }} />
-        </div>
-
-        {/* Hamburger / Close — visible on mobile only */}
-        <button
-          className="pc-mobile-menu"
-          onClick={() => setMenuOpen(o => !o)}
-          aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
-          aria-expanded={menuOpen}
-          style={{
-            alignItems: 'center', justifyContent: 'center',
-            width: 40, height: 40, borderRadius: 'var(--pc-radius-sm)',
-            background: menuOpen ? 'var(--pc-card-hi)' : 'var(--pc-card)',
-            border: '1px solid var(--pc-line)',
+          {/* Book Now CTA — always visible */}
+          <Link href="/book" style={{
+            padding: '9px 20px', borderRadius: 999,
+            fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', fontWeight: 600,
+            letterSpacing: '0.04em',
+            background: 'var(--pc-warm)',
+            color: 'var(--pc-ink)',
+            border: 'none',
+            whiteSpace: 'nowrap',
             flexShrink: 0,
-            transition: 'background var(--pc-dur-fast) var(--pc-ease)',
-          }}
-        >
-          <Icon name={menuOpen ? 'x' : 'menu'} size={18} color="var(--pc-fg-2)" />
-        </button>
+          }}>
+            Book Now
+          </Link>
+
+          {/* User pill — hidden on mobile */}
+          <div
+            className="pc-hide-mobile"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              background: 'var(--pc-card)', borderRadius: 999, padding: '5px 14px 5px 5px',
+              border: '1px solid var(--pc-line)',
+            }}
+          >
+            <Avatar name="Swarnabh Roy" size={30} />
+            <div>
+              <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: '#fff', fontWeight: 500, lineHeight: 1.2 }}>Swarnabh Roy</div>
+              <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)', letterSpacing: '0.06em', lineHeight: 1.2 }}>workspace.swarnabh@gmail.com</div>
+            </div>
+            <Icon name="chevron-down" size={12} color="var(--pc-fg-3)" style={{ marginLeft: 4 }} />
+          </div>
+
+          {/* Hamburger / Close — visible on mobile only */}
+          <button
+            className="pc-mobile-menu"
+            onClick={() => setMenuOpen(o => !o)}
+            aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-expanded={menuOpen}
+            style={{
+              alignItems: 'center', justifyContent: 'center',
+              width: 40, height: 40, borderRadius: 'var(--pc-radius-sm)',
+              background: menuOpen ? 'var(--pc-card-hi)' : 'var(--pc-card)',
+              border: '1px solid var(--pc-line)',
+              flexShrink: 0,
+              transition: 'background var(--pc-dur-fast) var(--pc-ease)',
+            }}
+          >
+            <Icon name={menuOpen ? 'x' : 'menu'} size={18} color="var(--pc-fg-2)" />
+          </button>
+        </div>
       </nav>
 
       {/* Mobile drawer */}
