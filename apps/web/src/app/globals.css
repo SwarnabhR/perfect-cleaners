@@ -230,6 +230,29 @@ button { cursor: pointer; }
 .pc-nav-link:hover { color: var(--pc-fg); }
 
 /* ====================================================================
+   CTA pill link hover states
+   Used by: Hero, USP, CTASection, PremiumSection (styled <Link> CTAs
+   that replaced the invalid <Link><Button> nesting pattern).
+   The inline transition property on each element has nothing to
+   transition to without these rules.
+   ==================================================================== */
+
+.pc-hero-cta-primary:hover {
+  background: var(--pc-warm-2);
+}
+
+.pc-hero-cta-ghost:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(240, 237, 232, 0.45);
+}
+
+/* Nav "Book Now" pill — desktop only */
+.pc-nav-book-now:hover {
+  border-color: rgba(240, 237, 232, 0.5);
+  background: rgba(240, 237, 232, 0.06);
+}
+
+/* ====================================================================
    Mobile utility classes
    ==================================================================== */
 
