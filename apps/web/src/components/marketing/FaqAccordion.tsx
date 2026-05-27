@@ -16,7 +16,7 @@ export default function FaqAccordion() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   return (
-    <div style={{ padding: 'var(--pc-space-6) var(--pc-screen-pad-lg) var(--pc-space-20)', maxWidth: 800, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div style={{ padding: 'var(--pc-space-6) var(--pc-screen-pad-lg) var(--pc-space-20)', maxWidth: 800, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-4)' }}>
       {FAQS.map((faq, i) => (
         <Card key={i} style={{ padding: 0, overflow: 'hidden' }}>
           <button
@@ -24,7 +24,7 @@ export default function FaqAccordion() {
             style={{
               width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               padding: 'var(--pc-space-6)', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left',
-              color: 'white'
+              color: 'var(--pc-fg)',
             }}
           >
             <h3 style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-lg)', color: 'var(--pc-fg)', fontWeight: 500 }}>{faq.q}</h3>

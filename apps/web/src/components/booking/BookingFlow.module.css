@@ -5,13 +5,13 @@
 
 .input {
   width: 100%;
-  padding: 13px 16px;
+  padding: 13px 16px; /* optical: 13px doesn't map to 4px grid; intentional for input height */
   border-radius: var(--pc-radius-sm);
   border: 1px solid var(--pc-line-strong);
   background: var(--pc-card);
   color: var(--pc-fg);
   font-family: var(--pc-sans);
-  font-size: 14px;
+  font-size: var(--pc-text-sm);
   line-height: 1.4;
   outline: none;
   transition:
@@ -26,7 +26,7 @@
 }
 
 .input:focus {
-  border-color: rgba(91, 111, 82, 0.65);
+  border-color: rgba(91, 111, 82, 0.65); /* --pc-sage-hi derived, alpha not expressible as token */
   box-shadow: 0 0 0 3px rgba(91, 111, 82, 0.09);
 }
 
@@ -36,7 +36,7 @@
 }
 
 .inputError:focus {
-  box-shadow: 0 0 0 3px rgba(201, 85, 78, 0.09) !important;
+  box-shadow: 0 0 0 3px rgba(201, 85, 78, 0.09) !important; /* --pc-danger derived */
 }
 
 /* Chevron for <select> elements */

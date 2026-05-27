@@ -16,6 +16,14 @@ const NAV_LINKS = [
   { label: 'Contact',    href: '/contact'    },
 ] as const;
 
+// Glass surface values are intentional one-off rgba tints derived from
+// --pc-ink / --pc-ink-raised. Not mapped to tokens since they carry
+// opacity context that static tokens cannot express without CSS relative
+// color syntax (not yet universally supported in our target browsers).
+const GLASS_NAV  = 'rgba(14,13,11,0.45)';
+const GLASS_PILL = 'rgba(28,27,25,0.80)';
+const GLASS_MENU = 'rgba(14,13,11,0.97)';
+
 export default function Nav() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -25,17 +33,17 @@ export default function Nav() {
       <nav style={{
         position: 'sticky', top: 0, zIndex: 50,
         display: 'flex', alignItems: 'center', gap: 'clamp(8px, 2vw, 28px)',
-        padding: '20px var(--pc-screen-pad-lg)',
-        background: 'rgba(14,13,11,0.45)',
+        padding: 'var(--pc-space-5) var(--pc-screen-pad-lg)',
+        background: GLASS_NAV,
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        borderBottom: '1px solid rgba(255,255,255,0.12)',
+        borderBottom: '1px solid var(--pc-line-strong)',
       }}>
         {/* Logo */}
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 'var(--pc-space-2)', flexShrink: 0 }}>
           <Image src="/logo-pc-monogram.svg" width={24} height={28} alt="Perfect Cleaners mark" />
           <span style={{
-            fontFamily: 'var(--pc-mono)', fontSize: 14, color: '#fff',
+            fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg)',
             letterSpacing: '0.08em',
             textShadow: '0 1px 8px rgba(0,0,0,0.6)',
           }}>
@@ -47,21 +55,22 @@ export default function Nav() {
         <div
           className="pc-hide-mobile"
           style={{
-            display: 'flex', gap: 4, padding: 4,
-            background: 'rgba(28,27,25,0.80)',
-            borderRadius: 999,
-            border: '1px solid rgba(255,255,255,0.12)',
+            display: 'flex', gap: 'var(--pc-space-1)', padding: 'var(--pc-space-1)',
+            background: GLASS_PILL,
+            borderRadius: 'var(--pc-radius-pill)',
+            border: '1px solid var(--pc-line-strong)',
           }}
         >
           {NAV_LINKS.map(({ label, href }) => {
             const active = pathname === href;
             return (
               <Link key={href} href={href} style={{
-                padding: '8px 18px', borderRadius: 999,
+                padding: 'var(--pc-space-2) var(--pc-space-5)',
+                borderRadius: 'var(--pc-radius-pill)',
                 fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', fontWeight: 500,
                 letterSpacing: '0.04em',
                 background: active ? 'var(--pc-ink)' : 'transparent',
-                color: active ? '#fff' : 'var(--pc-fg-2)',
+                color: active ? 'var(--pc-fg)' : 'var(--pc-fg-2)',
                 border: active ? '1px solid var(--pc-line)' : '1px solid transparent',
               }}>
                 {label}
@@ -70,16 +79,17 @@ export default function Nav() {
           })}
         </div>
 
-        {/* Right-side group — marginLeft:auto lives here, not on individual items */}
+        {/* Right-side group */}
         <div style={{
           marginLeft: 'auto',
           display: 'flex', alignItems: 'center',
           gap: 'clamp(8px, 2vw, 12px)',
           flexShrink: 0,
         }}>
-          {/* Book Now CTA — always visible */}
+          {/* Book Now CTA */}
           <Link href="/book" style={{
-            padding: '9px 20px', borderRadius: 999,
+            padding: 'var(--pc-space-2) var(--pc-space-5)',
+            borderRadius: 'var(--pc-radius-pill)',
             fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', fontWeight: 600,
             letterSpacing: '0.04em',
             background: 'var(--pc-warm)',
@@ -95,18 +105,19 @@ export default function Nav() {
           <div
             className="pc-hide-mobile"
             style={{
-              display: 'flex', alignItems: 'center', gap: 10,
-              background: 'rgba(28,27,25,0.80)',
-              borderRadius: 999, padding: '5px 14px 5px 5px',
-              border: '1px solid rgba(255,255,255,0.12)',
+              display: 'flex', alignItems: 'center', gap: 'var(--pc-space-2)',
+              background: GLASS_PILL,
+              borderRadius: 'var(--pc-radius-pill)',
+              padding: 'var(--pc-space-1) var(--pc-space-4) var(--pc-space-1) var(--pc-space-1)',
+              border: '1px solid var(--pc-line-strong)',
             }}
           >
             <Avatar name="Swarnabh Roy" size={30} />
             <div>
-              <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: '#fff', fontWeight: 500, lineHeight: 1.2 }}>Swarnabh Roy</div>
+              <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg)', fontWeight: 500, lineHeight: 1.2 }}>Swarnabh Roy</div>
               <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)', letterSpacing: '0.06em', lineHeight: 1.2 }}>workspace.swarnabh@gmail.com</div>
             </div>
-            <Icon name="chevron-down" size={12} color="var(--pc-fg-3)" style={{ marginLeft: 4 }} />
+            <Icon name="chevron-down" size={12} color="var(--pc-fg-3)" style={{ marginLeft: 'var(--pc-space-1)' }} />
           </div>
 
           {/* Hamburger / Close — visible on mobile only */}
@@ -116,10 +127,11 @@ export default function Nav() {
             aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
             aria-expanded={menuOpen}
             style={{
-              alignItems: 'center', justifyContent: 'center',
-              width: 40, height: 40, borderRadius: 'var(--pc-radius-sm)',
-              background: menuOpen ? 'rgba(35,34,32,0.90)' : 'rgba(28,27,25,0.75)',
-              border: '1px solid rgba(255,255,255,0.14)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 40, height: 40,
+              borderRadius: 'var(--pc-radius-sm)',
+              background: menuOpen ? 'rgba(35,34,32,0.90)' : GLASS_PILL,
+              border: '1px solid var(--pc-line-strong)',
               flexShrink: 0,
               transition: 'background var(--pc-dur-fast) var(--pc-ease)',
             }}
@@ -136,7 +148,7 @@ export default function Nav() {
           aria-label="Navigation menu"
           style={{
             position: 'fixed', inset: 0, zIndex: 49,
-            background: 'rgba(14,13,11,0.97)',
+            background: GLASS_MENU,
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
             display: 'flex', flexDirection: 'column',
@@ -158,7 +170,7 @@ export default function Nav() {
                   style={{
                     fontFamily: 'var(--pc-serif)',
                     fontSize: 'var(--pc-text-2xl)',
-                    color: active ? '#fff' : 'var(--pc-fg-3)',
+                    color: active ? 'var(--pc-fg)' : 'var(--pc-fg-3)',
                     padding: 'var(--pc-space-4) 0',
                     borderBottom: '1px solid var(--pc-line)',
                     letterSpacing: '-0.01em',
