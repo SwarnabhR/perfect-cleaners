@@ -66,7 +66,48 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Main */}
-      <main style={{ flex: 1, minWidth: 0, overflowY: 'auto' }}>
+      <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', position: 'relative' }}>
+        <header style={{
+          position: 'sticky', top: 0, zIndex: 40,
+          display: 'flex', alignItems: 'center', gap: 12,
+          padding: '14px 28px',
+          background: 'rgba(14,13,11,0.88)', backdropFilter: 'blur(20px)',
+          borderBottom: '1px solid var(--pc-line)',
+        }}>
+          {/* Search bar */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '8px 14px', background: 'var(--pc-card)', borderRadius: 10,
+            border: '1px solid var(--pc-line)', flex: 1, maxWidth: 320,
+          }}>
+            <Icon name="search" size={14} color="var(--pc-fg-3)" />
+            <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)' }}>
+              Search bookings, customers…
+            </span>
+            <span style={{ marginLeft: 'auto', fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', padding: '2px 6px', border: '1px solid var(--pc-line)', borderRadius: 4 }}>⌘ K</span>
+          </div>
+          {/* Spacer */}
+          <div style={{ flex: 1 }} />
+          {/* New booking button */}
+          <button style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '9px 16px', borderRadius: 999,
+            background: 'var(--pc-warm)', border: 'none', cursor: 'pointer',
+            fontFamily: 'var(--pc-sans)', fontSize: 12, fontWeight: 600,
+            color: 'var(--pc-ink)', letterSpacing: '0.06em',
+          }}>+ NEW BOOKING</button>
+          {/* Notification bell */}
+          <button style={{
+            width: 36, height: 36, borderRadius: 999,
+            background: 'var(--pc-card)', border: '1px solid var(--pc-line)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', position: 'relative',
+          }}>
+            <Icon name="bell" size={15} color="var(--pc-fg-2)" />
+            <span style={{ position: 'absolute', top: 6, right: 7, width: 7, height: 7, borderRadius: 999, background: 'var(--pc-warning)' }} />
+          </button>
+        </header>
+
         {children}
       </main>
     </div>

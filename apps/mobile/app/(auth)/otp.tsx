@@ -50,6 +50,8 @@ export default function OTPScreen() {
         await conf.confirm(code);
       }
       const existing = await AsyncStorage.getItem('@pc/onboarding');
+      // Default to customer role (worker role set via separate worker onboarding in production)
+      await AsyncStorage.setItem('@pc/role', 'customer');
       if (existing) {
         router.replace('/(customer)/');
       } else {

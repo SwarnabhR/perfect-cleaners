@@ -3,9 +3,11 @@ import { View } from 'react-native';
 import { Briefcase, Wallet, User } from 'lucide-react-native';
 import { colors, layout } from '@pc/tokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFCM } from '../../../hooks/useFCM';
 
 export default function WorkerTabsLayout() {
   const insets = useSafeAreaInsets();
+  useFCM('workers'); // Registers FCM token to workers/{uid}
 
   return (
     <Tabs

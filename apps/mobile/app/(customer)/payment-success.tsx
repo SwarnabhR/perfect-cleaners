@@ -3,8 +3,64 @@ import { View, Text, StyleSheet, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Check } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
 import { colors, typography, spacing, radii } from '@pc/tokens';
 import HapticButton from '../../components/HapticButton';
+
+// Demo booking ID used by the tracker screen
+const DEMO_BOOKING_ID = 'PC-2058';
+
+/**
+ * Writes a demo booking document to Firestore so the tracker can subscribe
+ * to it immediately after the user taps "Track Your Booking".
+ * Uses merge:true so repeated taps are idempotent and won't clobber real data.
+ */
+async function seedDemoBooking() {
+  try {
+    const user = auth().currentUser;
+    const profileJson = await AsyncStorage.getItem('@pc/onboarding');
+    const profile = profileJson ? JSON.parse(profileJson) : null;
+
+    await firestore()
+      .collection('bookings')
+      .doc(DEMO_BOOKING_ID)
+      .set(
+        {
+          id: DEMO_BOOKING_ID,
+          customerId: user?.uid ?? 'demo',
+          status: 'enroute',
+          paymentStatus: 'paid',
+          paymentId: 'pay_NL2x9KQ4mZ',
+          serviceIds: ['premium-wash-interior'],
+          vehicle: {
+            id: 'v1',
+            make: profile?.car?.make ?? 'BMW',
+            model: profile?.car?.model ?? '3 Series',
+            year: 2022,
+            type: 'sedan',
+            registration: profile?.car?.plate ?? 'DL 4C AB 1234',
+            color: profile?.car?.color ?? 'Mineral Grey',
+          },
+          address: {
+            line1: profile?.address?.line1 ?? 'B-204, Kavi Nagar',
+            city: profile?.address?.city ?? 'Ghaziabad',
+            pincode: '201002',
+            coordinates: { latitude: 28.6735, longitude: 77.4449 },
+          },
+          priceBreakdown: { subtotal: 1200, tax: 0, total: 1080 },
+          photos: { before: [], after: [] },
+          scheduledAt: new Date('2025-05-28T08:30:00Z'),
+          updatedAt: firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+    console.log('[PaymentSuccess] Demo booking seeded →', DEMO_BOOKING_ID);
+  } catch (err: any) {
+    console.warn('[PaymentSuccess] Firestore seed failed:', err?.message);
+  }
+}
 
 export default function PaymentSuccess() {
   const router = useRouter();
@@ -15,6 +71,9 @@ export default function PaymentSuccess() {
   const glowScale = useRef(new Animated.Value(0.4)).current;
 
   useEffect(() => {
+    // Seed booking in Firestore (fire-and-forget — tracker needs it)
+    void seedDemoBooking();
+
     // Glow expands first, then check pops in with spring overshoot
     Animated.sequence([
       Animated.parallel([

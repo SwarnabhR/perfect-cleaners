@@ -28,28 +28,17 @@ export default function Hero() {
       <div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, height: 250 }}>
           <div style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', border: '1px solid var(--pc-line)' }}>
-            <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(80% 80% at 50% 30%, #2a2725 0%, #0e0d0b 100%)' }} />
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 50%, rgba(14,13,11,0.7) 100%)' }} />
-            <svg viewBox="0 0 200 250" width="100%" height="100%" style={{ position: 'absolute', inset: 0 }}>
-              <ellipse cx="100" cy="100" rx="80" ry="40" fill="rgba(255,255,255,0.06)" />
-              <circle cx="60"  cy="100" r="14" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="0.5" />
-              <circle cx="60"  cy="100" r="10" fill="none" stroke="rgba(255,255,255,0.4)"  strokeWidth="0.4" />
-              <circle cx="140" cy="100" r="14" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="0.5" />
-              <circle cx="140" cy="100" r="10" fill="none" stroke="rgba(255,255,255,0.4)"  strokeWidth="0.4" />
-              <rect x="40" y="140" width="120" height="40" rx="6" fill="rgba(0,0,0,0.4)" stroke="rgba(255,255,255,0.1)" />
-            </svg>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/hero-professional-detailer.png" alt="Professional detailer" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 40%, rgba(14,13,11,0.80) 100%)' }} />
             <div style={{ position: 'absolute', bottom: 12, left: 12, fontFamily: 'var(--pc-sans)', fontSize: 12, color: '#fff', fontWeight: 500 }}>
               Professional<br />Detailers
             </div>
           </div>
           <div style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', border: '1px solid var(--pc-line)' }}>
-            <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(60% 80% at 50% 40%, #3a3835 0%, #1a1816 100%)' }} />
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 50%, rgba(14,13,11,0.7) 100%)' }} />
-            <svg viewBox="0 0 200 250" width="100%" height="100%" style={{ position: 'absolute', inset: 0 }}>
-              <rect x="70" y="60" width="60" height="120" rx="10" fill="rgba(0,0,0,0.5)" stroke="rgba(255,255,255,0.2)" strokeWidth="0.6" />
-              <rect x="76" y="68" width="48" height="100" rx="3" fill="rgba(255,255,255,0.06)" />
-              <circle cx="100" cy="50" r="22" fill="rgba(255,255,255,0.08)" />
-            </svg>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/hero-booking-app.png" alt="Book anywhere, anytime" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 40%, rgba(14,13,11,0.80) 100%)' }} />
             <div style={{ position: 'absolute', bottom: 12, left: 12, fontFamily: 'var(--pc-sans)', fontSize: 12, color: '#fff', fontWeight: 500 }}>
               Booking<br />anywhere, anytime
             </div>

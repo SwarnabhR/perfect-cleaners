@@ -1,5 +1,3 @@
-import Icon from '@/components/ui/Icon';
-
 const ITEMS = [
   'Full Vacuuming (carpet, seats, trunk)',
   'Deep cleaning of upholstery or leather',
@@ -7,6 +5,16 @@ const ITEMS = [
   'Dashboard, console, and trim cleaning & shine',
   'Interior glass and mirror cleaning',
   'Odor elimination spray',
+];
+
+// Alternate between the two interior photos for visual variety
+const TILE_IMAGES = [
+  '/service-interior-a.png',
+  '/service-interior-b.png',
+  '/service-interior-a.png',
+  '/service-interior-b.png',
+  '/service-interior-a.png',
+  '/service-interior-b.png',
 ];
 
 export default function PremiumSection() {
@@ -38,12 +46,23 @@ export default function PremiumSection() {
           <div key={i} style={{
             background: 'var(--pc-sage-lo)', borderRadius: 14, padding: 16,
             minHeight: 140, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+            overflow: 'hidden', position: 'relative',
           }}>
-            <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.08em' }}>
+            {/* Background photo thumbnail at low opacity */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={TILE_IMAGES[i]}
+              alt=""
+              aria-hidden="true"
+              style={{
+                position: 'absolute', inset: 0, width: '100%', height: '100%',
+                objectFit: 'cover', opacity: 0.15, mixBlendMode: 'luminosity',
+              }}
+            />
+            <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.08em', position: 'relative' }}>
               [{String(i + 1).padStart(2, '0')}]
             </div>
-            <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: '#fff', lineHeight: 1.3 }}>{s}</div>
-            <Icon name="image" size={16} color="rgba(255,255,255,0.4)" style={{ alignSelf: 'flex-end' }} />
+            <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: '#fff', lineHeight: 1.3, position: 'relative' }}>{s}</div>
           </div>
         ))}
       </div>

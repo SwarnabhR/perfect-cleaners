@@ -6,11 +6,15 @@ import firestore from '@react-native-firebase/firestore';
 
 /**
  * Registers the device for FCM push notifications and persists the token to
- * the customer's Firestore document. Handles foreground message logging.
+ * the user's Firestore document. Handles foreground message logging.
  *
- * Must be called from a React component inside the authenticated customer area.
+ * @param targetCollection - Firestore collection to write the token to.
+ *   Pass `'customers'` (default) for the customer app, `'workers'` for the
+ *   worker app.
+ *
+ * Must be called from a React component inside the authenticated area.
  */
-export function useFCM() {
+export function useFCM(targetCollection: 'customers' | 'workers' = 'customers') {
   useEffect(() => {
     // FCM requires native modules — skip on web
     if (Platform.OS === 'web') return;
@@ -34,7 +38,7 @@ export function useFCM() {
 
         if (user && token) {
           await firestore()
-            .collection('customers')
+            .collection(targetCollection)
             .doc(user.uid)
             .set(
               {
@@ -43,7 +47,7 @@ export function useFCM() {
               },
               { merge: true },
             );
-          console.log('[FCM] Token registered for', user.uid);
+          console.log(`[FCM] Token registered for ${user.uid} in ${targetCollection}`);
         }
       } catch (err: any) {
         console.warn('[FCM] Registration failed:', err?.message);
@@ -61,5 +65,9 @@ export function useFCM() {
     return () => {
       unsubForeground?.();
     };
+  // targetCollection is stable (a string literal at each call site) so the
+  // dependency array is intentionally kept empty to mirror the previous
+  // behaviour of registering once on mount.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 }

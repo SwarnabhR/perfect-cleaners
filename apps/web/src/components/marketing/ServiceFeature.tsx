@@ -1,27 +1,12 @@
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
 
-function DetailTile({ tone = 'a', style }: { tone?: 'a' | 'b' | 'c'; style?: React.CSSProperties }) {
-  const tones = {
-    a: 'linear-gradient(135deg,#2a2725 0%,#0e0d0b 100%)',
-    b: 'linear-gradient(135deg,#1a1816 0%,#0a0908 100%)',
-    c: 'linear-gradient(135deg,#3a3835 0%,#1a1816 100%)',
-  };
-  return (
-    <div style={{
-      flex: 1, borderRadius: 8,
-      background: tones[tone],
-      border: '1px solid var(--pc-line)',
-      position: 'relative', overflow: 'hidden',
-      ...style,
-    }}>
-      <div style={{
-        position: 'absolute', inset: 0,
-        background: 'radial-gradient(60% 60% at 50% 30%, rgba(255,255,255,0.1) 0%, transparent 70%)',
-      }} />
-    </div>
-  );
-}
+// Map service number to the pair of real photos
+const SERVICE_IMAGES: Record<string, [string, string]> = {
+  '01': ['/service-interior-a.png',  '/service-interior-b.png' ],
+  '02': ['/service-exterior-a.png',  '/service-exterior-b.png' ],
+  '03': ['/service-coating-a.png',   '/service-coating-b.png'  ],
+};
 
 interface ServiceFeatureProps {
   num: string;
@@ -32,6 +17,8 @@ interface ServiceFeatureProps {
 }
 
 export default function ServiceFeature({ num, name, price, title, body }: ServiceFeatureProps) {
+  const [imgA, imgB] = SERVICE_IMAGES[num] ?? [null, null];
+
   return (
     <div style={{
       margin: '0 56px',
@@ -47,11 +34,32 @@ export default function ServiceFeature({ num, name, price, title, body }: Servic
       <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr 1fr', gap: 16, alignItems: 'stretch' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            <DetailTile tone="b" style={{ height: 140 }} />
-            <DetailTile tone="c" style={{ height: 140 }} />
+            {/* Photo A — small tile */}
+            <div style={{ height: 140, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--pc-line)', position: 'relative' }}>
+              {imgA && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={imgA} alt={name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+              )}
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 50%, rgba(14,13,11,0.55) 100%)' }} />
+            </div>
+            {/* Photo B — small tile */}
+            <div style={{ height: 140, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--pc-line)', position: 'relative' }}>
+              {imgB && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={imgB} alt={name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+              )}
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 50%, rgba(14,13,11,0.55) 100%)' }} />
+            </div>
           </div>
         </div>
-        <DetailTile tone="a" style={{ height: 280 }} />
+        {/* Large tall photo — same image as A, different crop via objectPosition */}
+        <div style={{ height: 280, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--pc-line)', position: 'relative' }}>
+          {imgA && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={imgA} alt={name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top' }} />
+          )}
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 60%, rgba(14,13,11,0.5) 100%)' }} />
+        </div>
         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '8px 0', gap: 24 }}>
           <div>
             <Eyebrow>FROM</Eyebrow>

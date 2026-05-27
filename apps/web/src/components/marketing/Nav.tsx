@@ -4,12 +4,14 @@ import { usePathname } from 'next/navigation';
 import Avatar from '@/components/ui/Avatar';
 import Icon from '@/components/ui/Icon';
 
-const LINKS = [
-  { label: 'Home',    href: '/'        },
-  { label: 'Service', href: '/services' },
-  { label: 'Booking', href: '/booking'  },
-  { label: 'Pricing', href: '/pricing'  },
-  { label: 'Contact', href: '/contact'  },
+const NAV_LINKS = [
+  { label: 'Home',       href: '/'           },
+  { label: 'Services',   href: '/services'   },
+  { label: 'Gallery',    href: '/gallery'    },
+  { label: 'About',      href: '/about'      },
+  { label: 'Journal',    href: '/journal'    },
+  { label: 'Membership', href: '/membership' },
+  { label: 'Contact',    href: '/contact'    },
 ] as const;
 
 export default function Nav() {
@@ -36,7 +38,7 @@ export default function Nav() {
         display: 'flex', gap: 4, padding: 4, marginLeft: 'auto',
         background: 'var(--pc-card)', borderRadius: 999, border: '1px solid var(--pc-line)',
       }}>
-        {LINKS.map(({ label, href }) => {
+        {NAV_LINKS.map(({ label, href }) => {
           const active = pathname === href;
           return (
             <Link key={href} href={href} style={{
@@ -52,6 +54,20 @@ export default function Nav() {
           );
         })}
       </div>
+
+      {/* Book Now CTA */}
+      <Link href="/book" style={{
+        padding: '9px 20px', borderRadius: 999,
+        fontFamily: 'var(--pc-sans)', fontSize: 12, fontWeight: 600,
+        letterSpacing: '0.04em',
+        background: 'var(--pc-warm)',
+        color: 'var(--pc-ink)',
+        border: 'none',
+        whiteSpace: 'nowrap',
+        flexShrink: 0,
+      }}>
+        Book Now
+      </Link>
 
       {/* User pill */}
       <div style={{

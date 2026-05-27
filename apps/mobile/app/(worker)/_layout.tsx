@@ -1,7 +1,25 @@
+import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
+import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from '@pc/tokens';
 
 export default function WorkerStackLayout() {
+  const [checked, setChecked] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    AsyncStorage.getItem('@pc/role').then(role => {
+      if (role !== 'worker') {
+        router.replace('/(customer)/(tabs)');
+      } else {
+        setChecked(true);
+      }
+    });
+  }, [router]);
+
+  if (!checked) return null;
+
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.ink } }}>
       <Stack.Screen name="(tabs)" />

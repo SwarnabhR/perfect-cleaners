@@ -3,6 +3,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography, spacing, radii } from '@pc/tokens';
+import { Group, Row } from '../../components/RowGroup';
+import { IndianRupee } from 'lucide-react-native';
 
 const DAYS: [string, number][] = [
   ['MON', 1800], ['TUE', 2200], ['WED', 2600], ['THU', 1400],
@@ -10,10 +12,10 @@ const DAYS: [string, number][] = [
 ];
 
 const BREAKDOWN = [
-  ['Exterior Wash', 9, '₹4,500'],
-  ['Premium Wash', 7, '₹8,400'],
-  ['Interior Detail', 5, '₹2,500'],
-  ['Coating', 2, '₹1,640'],
+  ['Exterior Wash', '9 JOBS', '₹4,500'],
+  ['Premium Wash', '7 JOBS', '₹8,400'],
+  ['Interior Detail', '5 JOBS', '₹2,500'],
+  ['Coating', '2 JOBS', '₹1,640'],
 ];
 
 const maxVal = Math.max(...DAYS.map(d => d[1]));
@@ -58,19 +60,40 @@ export default function EarningsScreen() {
       </View>
 
       {/* Breakdown */}
-      <View style={s.section}>
-        <Text style={s.eyebrow}>[BREAKDOWN BY SERVICE]</Text>
-        <View style={s.breakdownList}>
-          {BREAKDOWN.map(([name, count, amt]) => (
-            <View key={name} style={s.breakdownCard}>
-              <View style={s.breakdownInfo}>
-                <Text style={s.breakdownName}>{name}</Text>
-                <Text style={s.breakdownCount}>{count} JOBS</Text>
-              </View>
-              <Text style={s.breakdownAmt}>{amt}</Text>
-            </View>
+      <Group header="BREAKDOWN BY SERVICE">
+        {BREAKDOWN.map(([name, count, amt], i) => (
+          <Row
+            key={name}
+            icon={<IndianRupee size={15} color="#fff" />}
+            iconBg={colors.cardHi}
+            title={name}
+            sub={count}
+            value={amt}
+            onPress={() => {}}
+            isLast={i === BREAKDOWN.length - 1}
+          />
+        ))}
+      </Group>
+
+      {/* Transactions */}
+      <View style={{ marginTop: 24 }}>
+        <Group header="RECENT TRANSACTIONS">
+          {[
+            { id: 't1', title: 'Payout to HDFC Bank', sub: 'Completed · 12:45 PM', amt: '-₹4,200', isDebit: true },
+            { id: 't2', title: 'Earnings for PC-2052', sub: 'Exterior Wash', amt: '+₹800', isDebit: false },
+            { id: 't3', title: 'Earnings for PC-2051', sub: 'Interior Detailing', amt: '+₹1,200', isDebit: false },
+            { id: 't4', title: 'Customer Tip', sub: 'Job PC-2049', amt: '+₹100', isDebit: false },
+          ].map((t, i, arr) => (
+            <Row
+              key={t.id}
+              title={t.title}
+              sub={t.sub}
+              value={<Text style={{ fontFamily: typography.sansSemiBold, fontSize: 14, color: t.isDebit ? colors.fg : colors.success }}>{t.amt}</Text>}
+              onPress={() => {}}
+              isLast={i === arr.length - 1}
+            />
           ))}
-        </View>
+        </Group>
       </View>
     </ScrollView>
   );
@@ -87,6 +110,7 @@ const s = StyleSheet.create({
     marginHorizontal: spacing[5],
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line,
     borderRadius: radii.md, padding: spacing[4],
+    marginBottom: spacing[2],
   },
   chart: {
     flexDirection: 'row', alignItems: 'flex-end', gap: 8, height: 140, marginTop: spacing[3],
@@ -98,16 +122,4 @@ const s = StyleSheet.create({
   },
   chartLabel: { fontFamily: typography.mono, fontSize: 9, color: colors.fg3 },
   chartLabelToday: { color: '#fff' },
-
-  section: { paddingHorizontal: spacing[5], paddingTop: spacing[5] },
-  breakdownList: { marginTop: spacing[2], gap: 8 },
-  breakdownCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line,
-    borderRadius: radii.md, padding: 14,
-  },
-  breakdownInfo: { flex: 1 },
-  breakdownName: { fontFamily: typography.sansMedium, fontSize: 13, color: colors.fg },
-  breakdownCount: { fontFamily: typography.mono, fontSize: 10, color: colors.fg3, letterSpacing: 0.6 },
-  breakdownAmt: { fontFamily: typography.sansSemiBold, fontSize: 18, color: colors.fg },
 });

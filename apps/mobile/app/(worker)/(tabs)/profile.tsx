@@ -1,11 +1,14 @@
 import {
-  ScrollView, View, Text, TouchableOpacity, StyleSheet,
+  ScrollView, View, Text, TouchableOpacity, StyleSheet, Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import {
   MapPin, Star, Settings, Phone, CreditCard, Shield,
   HelpCircle, LogOut, ChevronRight, Check,
 } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import auth from '@react-native-firebase/auth';
 import { colors, typography, spacing, radii } from '@pc/tokens';
 
 const SKILLS: [string, boolean][] = [
@@ -41,6 +44,26 @@ const SETTINGS_ICONS: Record<string, React.ReactNode> = {
 
 export default function WorkerProfile() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+
+  async function handleSignOut() {
+    Alert.alert('Sign out', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign out',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await AsyncStorage.removeItem('@pc/onboarding');
+            await auth().signOut();
+            router.replace('/(auth)/login');
+          } catch (err: any) {
+            Alert.alert('Error', err?.message || 'Failed to sign out. Please try again.');
+          }
+        },
+      },
+    ]);
+  }
 
   return (
     <ScrollView
@@ -165,6 +188,7 @@ export default function WorkerProfile() {
                 s.settingsItem,
                 i < arr.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.line },
               ]}
+              onPress={label === 'Sign out' ? handleSignOut : undefined}
             >
               {SETTINGS_ICONS[icon]}
               <Text style={s.settingsLabel}>{label}</Text>
