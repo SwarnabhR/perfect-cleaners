@@ -142,7 +142,7 @@ export default function PlansSection() {
   };
 
   return (
-    <div style={{ padding: '72px 56px 120px', maxWidth: 1200, margin: '0 auto' }}>
+    <div style={{ padding: 'var(--pc-space-20) var(--pc-screen-pad-lg) var(--pc-space-20)', maxWidth: 1200, margin: '0 auto' }}>
 
       {/* ── Hero header ── */}
       <div style={{ textAlign: 'center', marginBottom: 56 }}>
@@ -172,11 +172,12 @@ export default function PlansSection() {
           Regular care, predictable pricing. Pick the frequency that fits your life — cancel or change anytime.
         </p>
 
-        {/* Billing cycle toggle */}
+        {/* Billing cycle toggle — full-width on mobile so 3 buttons have room */}
         <div style={{
           display: 'inline-flex', gap: 4, padding: 4,
           background: 'var(--pc-card)', borderRadius: 999,
           border: '1px solid var(--pc-line)',
+          maxWidth: '100%',
         }}>
           {(['weekly', 'monthly', 'yearly'] as Cycle[]).map(c => (
             <button
@@ -184,16 +185,19 @@ export default function PlansSection() {
               type="button"
               onClick={() => setCycle(c)}
               style={{
-                padding: '9px 20px',
+                padding: 'clamp(8px, 2vw, 9px) clamp(12px, 3vw, 20px)',
                 borderRadius: 999,
                 background: cycle === c ? 'var(--pc-ink-raised)' : 'transparent',
                 color: cycle === c ? 'var(--pc-fg)' : 'var(--pc-fg-2)',
                 border: cycle === c ? '1px solid var(--pc-line-strong)' : '1px solid transparent',
-                fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)',
+                fontFamily: 'var(--pc-sans)',
+                fontSize: 'clamp(12px, 3vw, var(--pc-text-sm))',
                 fontWeight: cycle === c ? 600 : 400,
                 letterSpacing: '0.03em',
                 cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: 7,
+                display: 'flex', alignItems: 'center',
+                gap: 'clamp(4px, 1vw, 7px)',
+                whiteSpace: 'nowrap',
                 transition: 'background var(--pc-dur-fast) var(--pc-ease), color var(--pc-dur-fast) var(--pc-ease)',
               }}
             >
@@ -203,20 +207,22 @@ export default function PlansSection() {
                   background: 'rgba(91,111,82,0.25)',
                   color: 'var(--pc-sage-ink)',
                   borderRadius: 999,
-                  padding: '2px 8px',
+                  padding: '2px 6px',
                   fontFamily: 'var(--pc-mono)', fontSize: 9,
                   letterSpacing: 'var(--pc-track-mono)',
-                }}>SAVE 23%</span>
+                  display: 'inline-block',
+                }}>−23%</span>
               )}
               {c === 'yearly' && (
                 <span style={{
                   background: 'rgba(91,111,82,0.25)',
                   color: 'var(--pc-sage-ink)',
                   borderRadius: 999,
-                  padding: '2px 8px',
+                  padding: '2px 6px',
                   fontFamily: 'var(--pc-mono)', fontSize: 9,
                   letterSpacing: 'var(--pc-track-mono)',
-                }}>SAVE 17%</span>
+                  display: 'inline-block',
+                }}>−17%</span>
               )}
             </button>
           ))}
@@ -242,7 +248,7 @@ export default function PlansSection() {
                 background: 'var(--pc-card)',
                 border: `1px solid ${popular ? 'rgba(91,111,82,0.55)' : 'var(--pc-line)'}`,
                 borderRadius: 20,
-                padding: '36px 32px',
+                padding: 'clamp(24px, 5vw, 36px) clamp(20px, 5vw, 32px)',
                 display: 'flex', flexDirection: 'column',
                 position: 'relative',
                 boxShadow: popular ? 'var(--pc-shadow-glow-sage)' : 'none',

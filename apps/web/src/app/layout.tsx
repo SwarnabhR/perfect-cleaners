@@ -32,7 +32,9 @@ export const metadata: Metadata = {
 
 export const viewport = {
   width: 'device-width',
-  initialScale: 1
+  initialScale: 1,
+  viewportFit: 'cover',     // iOS Dynamic Island / notch safe-area support
+  maximumScale: 1,          // prevent layout-breaking pinch-zoom on inputs
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

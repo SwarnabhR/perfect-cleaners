@@ -209,14 +209,16 @@ export default function Nav() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: 36,
-              height: 36,
+              width: 44,
+              height: 44,
               background: 'transparent',
               border: 'none',
               cursor: 'pointer',
               color: 'var(--pc-fg-2)',
               flexShrink: 0,
               padding: 0,
+              /* -4px negative margin absorbs the extra 8px without pushing other items */
+              marginRight: -4,
             }}
           >
             <Icon name={menuOpen ? 'x' : 'menu'} size={19} color="currentColor" strokeWidth={1.5} />
@@ -231,6 +233,7 @@ export default function Nav() {
         aria-label="Navigation"
         aria-modal="true"
         aria-hidden={!menuOpen}
+        className="pc-nav-drawer"
         style={{
           position: 'fixed',
           inset: 0,
@@ -240,7 +243,10 @@ export default function Nav() {
           WebkitBackdropFilter: 'blur(24px)',
           display: 'flex',
           flexDirection: 'column',
-          padding: 'calc(60px + 40px) var(--pc-screen-pad-lg) 48px',
+          // top padding = nav height + breathing room; bottom via .pc-nav-drawer CSS (safe-area-aware)
+          paddingTop: 'calc(60px + 40px)',
+          paddingLeft: 'var(--pc-screen-pad-lg)',
+          paddingRight: 'var(--pc-screen-pad-lg)',
           overflowY: 'auto',
           // Animate in/out with opacity + slight Y shift
           opacity: menuOpen ? 1 : 0,

@@ -515,18 +515,10 @@ export default function BookingFlow() {
 
   // ─── Form ─────────────────────────────────────────────────────────────────────
   return (
-    <div style={{
-      maxWidth: 'var(--pc-content-wide)',
-      margin: '0 auto',
-      padding: 'var(--pc-space-20) var(--pc-space-10) var(--pc-space-32)',
-      display: 'flex',
-      gap: 'var(--pc-space-16)',
-      flexWrap: 'wrap',
-      alignItems: 'flex-start',
-    }}>
+    <div className={styles.layout}>
 
       {/* ── Left: form steps ── */}
-      <div style={{ flex: '1 1 520px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-12)' }}>
+      <div className={styles.formCol}>
 
         {/* Subscription context banner — shown when arriving from /plans */}
         {subscriptionBanner && (
@@ -567,7 +559,7 @@ export default function BookingFlow() {
         {/* Step 1 — Service */}
         <section>
           <StepLabel n="01">Select Service</StepLabel>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 'var(--pc-space-3)' }}>
+          <div className="pc-service-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 'var(--pc-space-3)' }}>
             {SERVICES.map(s => {
               const active = service.id === s.id;
               return (
@@ -800,7 +792,7 @@ export default function BookingFlow() {
           <StepLabel n="03">Location &amp; Vehicle</StepLabel>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-3)' }}>
 
-            <div style={{ display: 'flex', gap: 'var(--pc-space-3)' }}>
+            <div className={styles.fieldRow}>
               <select
                 value={city}
                 onChange={e => setCity(e.target.value)}
@@ -833,7 +825,7 @@ export default function BookingFlow() {
               <FieldError msg={errors.address} />
             </div>
 
-            <div style={{ display: 'flex', gap: 'var(--pc-space-3)' }}>
+            <div className={styles.fieldRow}>
               <select
                 value={brand}
                 onChange={e => setBrand(e.target.value)}
@@ -859,7 +851,7 @@ export default function BookingFlow() {
         {/* Step 4 — Contact */}
         <section>
           <StepLabel n="04">Contact Details</StepLabel>
-          <div style={{ display: 'flex', gap: 'var(--pc-space-3)' }}>
+          <div className={styles.fieldRow}>
             <div style={{ flex: 1 }}>
               <input
                 placeholder="Full name"
@@ -898,8 +890,8 @@ export default function BookingFlow() {
         </section>
       </div>
 
-      {/* ── Right: sticky summary ── */}
-      <div style={{ flex: '0 0 300px', minWidth: 260 }}>
+      {/* ── Right: sticky summary (moves to top on mobile via CSS order) ── */}
+      <div className={styles.summaryCol}>
         <div style={{ position: 'sticky', top: 'var(--pc-space-16)' }}>
           <Card style={{ padding: 'var(--pc-space-6)' }}>
             <Eyebrow style={{ marginBottom: 'var(--pc-space-5)', display: 'block' }}>

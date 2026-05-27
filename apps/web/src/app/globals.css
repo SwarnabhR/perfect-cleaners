@@ -201,17 +201,10 @@ button { cursor: pointer; }
 }
 
 /* ====================================================================
-   Nav link hover
+   Nav hover — scoped to new editorial nav links
    ==================================================================== */
 
-.pc-nav-link:hover {
-  color: var(--pc-fg) !important;
-}
-.pc-nav-link-active {
-  background: var(--pc-ink) !important;
-  color: #fff !important;
-  border: 1px solid var(--pc-line) !important;
-}
+.pc-nav-link:hover { color: var(--pc-fg); }
 
 /* ====================================================================
    Mobile utility classes
@@ -227,10 +220,41 @@ button { cursor: pointer; }
   .pc-stack-mobile  { display: flex !important; flex-direction: column !important; }
   .pc-grid-2-mobile { grid-template-columns: 1fr 1fr !important; }
   .pc-grid-1-mobile { grid-template-columns: 1fr !important; }
+
+  /* ── iOS Safari auto-zoom prevention ──────────────────────────────
+     iOS Safari zooms the viewport when a focused input has font-size
+     < 16px. This override ensures inputs always meet that threshold on
+     mobile without changing the visual scale on desktop.
+  ──────────────────────────────────────────────────────────────────── */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* Minimum 44 × 44 pt touch target for the hamburger button */
+  .pc-mobile-menu {
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
 }
 
 @media (max-width: 480px) {
   .pc-grid-1-sm { grid-template-columns: 1fr !important; }
+}
+
+/* ====================================================================
+   iOS Safe-area (notch / Dynamic Island / home-bar) utilities
+   ==================================================================== */
+
+/* Mobile nav drawer: respect iOS home-bar at the bottom */
+.pc-nav-drawer {
+  padding-bottom: max(48px, calc(env(safe-area-inset-bottom) + 24px));
+}
+
+/* Body scroll padding for sticky nav so anchor links land correctly */
+html {
+  scroll-padding-top: 72px;
 }
 
 /* ====================================================================
@@ -336,5 +360,36 @@ button { cursor: pointer; }
   }
   .pc-contact-main {
     padding: var(--pc-space-12) var(--pc-screen-pad-lg) !important;
+  }
+}
+
+/* ====================================================================
+   Booking page
+   ==================================================================== */
+
+/* Calendar popover: clamp width to viewport on narrow phones */
+@media (max-width: 480px) {
+  .pc-calendar-popover {
+    width: calc(100vw - 2 * var(--pc-screen-pad-lg)) !important;
+    max-width: 292px;
+  }
+}
+
+/* Service selection cards: 1-column on phones */
+@media (max-width: 480px) {
+  .pc-service-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ====================================================================
+   Footer — word-break for long email on narrow screens
+   ==================================================================== */
+
+@media (max-width: 480px) {
+  .pc-footer-email {
+    font-size: var(--pc-text-lg) !important;
+    overflow-wrap: break-word;
+    word-break: break-all;
   }
 }

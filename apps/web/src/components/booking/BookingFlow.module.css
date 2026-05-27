@@ -48,6 +48,74 @@
   padding-right: 38px;
 }
 
+/* ── Responsive layout ─────────────────────────────────────────────────────── */
+
+/* Outer wrapper — form + summary side by side on desktop, stacked on mobile */
+.layout {
+  max-width: var(--pc-maxw-content);
+  margin: 0 auto;
+  padding: var(--pc-space-20) var(--pc-space-10) var(--pc-space-32);
+  display: flex;
+  gap: var(--pc-space-16);
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+/* Left: form steps */
+.formCol {
+  flex: 1 1 520px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pc-space-12);
+}
+
+/* Right: sticky summary card */
+.summaryCol {
+  flex: 0 0 300px;
+  min-width: 260px;
+}
+
+/* Two-field horizontal row (city+pincode, brand+model, name+phone) */
+.fieldRow {
+  display: flex;
+  gap: var(--pc-space-3);
+}
+
+@media (max-width: 768px) {
+  .layout {
+    padding: var(--pc-space-10) var(--pc-screen-pad-lg) var(--pc-space-16);
+    gap: var(--pc-space-8);
+  }
+
+  /* Summary floats to the top on mobile so users see pricing upfront */
+  .summaryCol {
+    flex: 1 1 100%;
+    order: -1;
+  }
+
+  /* Unstick the summary — no viewport to scroll within on mobile */
+  .summaryCol > div {
+    position: static !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .layout {
+    padding: var(--pc-space-8) var(--pc-screen-pad-lg) var(--pc-space-12);
+  }
+
+  /* Stack field pairs vertically on narrow phones */
+  .fieldRow {
+    flex-direction: column;
+  }
+
+  .fieldRow > * {
+    flex: none !important;
+    width: 100% !important;
+  }
+}
+
 /* ── Selection buttons (service cards, date pills, time chips) ── */
 /* These buttons already define transition inline; this rule provides
    the :hover target so the transition actually fires on unselected items. */

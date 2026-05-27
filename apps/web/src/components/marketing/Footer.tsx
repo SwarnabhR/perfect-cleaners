@@ -62,7 +62,7 @@ export default function Footer() {
         <Eyebrow>EMAIL →</Eyebrow>
         <a
           href="mailto:hello@perfectcleaners.in"
-          className={styles.emailLink}
+          className={`${styles.emailLink} pc-footer-email`}
         >
           hello@perfectcleaners.in
         </a>
