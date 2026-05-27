@@ -186,6 +186,10 @@ body {
   overflow-x: hidden;
 }
 
+a, button, [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+}
+
 a { color: inherit; text-decoration: none; }
 button { cursor: pointer; }
 

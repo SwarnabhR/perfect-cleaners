@@ -82,10 +82,10 @@ export default function Nav() {
           border: '1px solid var(--pc-line)',
         }}
       >
-        <Avatar name="Aarav Mehta" size={30} />
+        <Avatar name="Swarnabh Roy" size={30} />
         <div>
-          <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: '#fff', fontWeight: 500, lineHeight: 1.2 }}>Aarav Mehta</div>
-          <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)', letterSpacing: '0.06em', lineHeight: 1.2 }}>aarav@mail.com</div>
+          <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: '#fff', fontWeight: 500, lineHeight: 1.2 }}>Swarnabh Roy</div>
+          <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)', letterSpacing: '0.06em', lineHeight: 1.2 }}>workspace.swarnabh@gmail.com</div>
         </div>
         <Icon name="chevron-down" size={12} color="var(--pc-fg-3)" style={{ marginLeft: 4 }} />
       </div>
