@@ -26,14 +26,20 @@ export default function Nav() {
         position: 'sticky', top: 0, zIndex: 50,
         display: 'flex', alignItems: 'center', gap: 'clamp(8px, 2vw, 28px)',
         padding: '20px var(--pc-screen-pad-lg)',
-        background: 'rgba(14,13,11,0.72)', backdropFilter: 'blur(24px)',
-        borderBottom: '1px solid var(--pc-line)',
+        background: 'rgba(14,13,11,0.45)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderBottom: '1px solid rgba(255,255,255,0.12)',
       }}>
         {/* Logo */}
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
           <Image src="/logo-pc-monogram.svg" width={24} height={28} alt="Perfect Cleaners mark" />
-          <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 14, color: '#fff', letterSpacing: '0.08em' }}>
-            perfect<span style={{ color: 'var(--pc-fg-3)' }}>.cleaners</span>
+          <span style={{
+            fontFamily: 'var(--pc-mono)', fontSize: 14, color: '#fff',
+            letterSpacing: '0.08em',
+            textShadow: '0 1px 8px rgba(0,0,0,0.6)',
+          }}>
+            perfect<span style={{ color: 'var(--pc-fg-3)', textShadow: '0 1px 8px rgba(0,0,0,0.6)' }}>.cleaners</span>
           </span>
         </Link>
 
@@ -42,7 +48,9 @@ export default function Nav() {
           className="pc-hide-mobile"
           style={{
             display: 'flex', gap: 4, padding: 4,
-            background: 'var(--pc-card)', borderRadius: 999, border: '1px solid var(--pc-line)',
+            background: 'rgba(28,27,25,0.80)',
+            borderRadius: 999,
+            border: '1px solid rgba(255,255,255,0.12)',
           }}
         >
           {NAV_LINKS.map(({ label, href }) => {
@@ -88,8 +96,9 @@ export default function Nav() {
             className="pc-hide-mobile"
             style={{
               display: 'flex', alignItems: 'center', gap: 10,
-              background: 'var(--pc-card)', borderRadius: 999, padding: '5px 14px 5px 5px',
-              border: '1px solid var(--pc-line)',
+              background: 'rgba(28,27,25,0.80)',
+              borderRadius: 999, padding: '5px 14px 5px 5px',
+              border: '1px solid rgba(255,255,255,0.12)',
             }}
           >
             <Avatar name="Swarnabh Roy" size={30} />
@@ -109,8 +118,8 @@ export default function Nav() {
             style={{
               alignItems: 'center', justifyContent: 'center',
               width: 40, height: 40, borderRadius: 'var(--pc-radius-sm)',
-              background: menuOpen ? 'var(--pc-card-hi)' : 'var(--pc-card)',
-              border: '1px solid var(--pc-line)',
+              background: menuOpen ? 'rgba(35,34,32,0.90)' : 'rgba(28,27,25,0.75)',
+              border: '1px solid rgba(255,255,255,0.14)',
               flexShrink: 0,
               transition: 'background var(--pc-dur-fast) var(--pc-ease)',
             }}
@@ -129,6 +138,7 @@ export default function Nav() {
             position: 'fixed', inset: 0, zIndex: 49,
             background: 'rgba(14,13,11,0.97)',
             backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
             display: 'flex', flexDirection: 'column',
             paddingTop: 'calc(var(--pc-space-20) + 60px)',
             paddingLeft: 'var(--pc-screen-pad-lg)',
