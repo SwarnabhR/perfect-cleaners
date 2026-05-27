@@ -10,18 +10,18 @@ import Footer from '@/components/marketing/Footer';
 const SERVICES = [
   {
     num: '01', name: 'Interior Detailing', price: '₹500 — ₹1,000',
-    title: 'Specialist of Interior Detailing',
-    body: "We proudly offer a comprehensive refresh and protect your vehicle's interior, ensuring a truly luxurious feel that enhances your driving experience.",
+    title: 'Interior Detailing, Done Properly',
+    body: 'Deep-cleaned carpets, conditioned leather, and a cabin that smells as good as it looks. Every surface is worked by hand — nothing gets a quick wipe and a pass.',
   },
   {
     num: '02', name: 'Exterior Wash', price: '₹200 — ₹500',
-    title: 'Gentle Exterior Wash Service',
-    body: "Bring back your car's shine with our gentle yet thorough exterior wash.",
+    title: 'Exterior Wash, No Shortcuts',
+    body: "A pressure pre-rinse, pH-neutral foam cannon, and hand-mitt finish panel by panel. We don't run your car through a machine — because your paint notices the difference.",
   },
   {
     num: '03', name: 'Paint Protection', price: '₹4,000 — ₹50,000',
-    title: 'Paint Protection & Coating',
-    body: 'Protect your paint with advanced coatings that deliver lasting shine and defence.',
+    title: 'Paint Protection & Ceramic Coating',
+    body: 'From paint sealant to full 9H ceramic coating — we protect your paint from UV, water spots, and contamination. Protection that actually compounds your car\'s long-term value.',
   },
 ] as const;
 
@@ -31,7 +31,10 @@ export default function MarketingHome() {
       <Nav />
       <main>
         <Hero />
-        <SectionHeader />
+        <SectionHeader
+          title="Every service your car will ever need."
+          badgeText="1,500+ Cars Detailed"
+        />
         <ServiceFeature {...SERVICES[0]} />
         <PremiumSection />
         <div style={{ height: 'var(--pc-space-4)' }} />

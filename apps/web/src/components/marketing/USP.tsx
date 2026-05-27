@@ -3,7 +3,24 @@ import { PrimaryButton, GhostButton } from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
-import CarImage from '@/components/ui/CarImage';
+
+const CARDS = [
+  {
+    icon: 'sparkles',
+    heading: 'Professional-grade\nproducts only',
+    body: 'Koch Chemie, Meguiar\'s, CarPro — we use what detailers use, not what supermarkets stock. Your paint deserves the difference.',
+  },
+  {
+    icon: 'shield',
+    heading: 'Paint-safe\nthroughout',
+    body: 'Pre-rinse, decontamination, and a two-bucket hand-wash method. No automatic tunnels. No swirl marks. No compromises.',
+  },
+  {
+    icon: 'map-pin',
+    heading: 'Doorstep or\nour centre',
+    body: 'We travel to your home or office across Delhi NCR. Or drop in to our full-service centre in Ghaziabad for in-depth detailing work.',
+  },
+] as const;
 
 export default function USP() {
   return (
@@ -17,8 +34,9 @@ export default function USP() {
         alignItems: 'center',
       }}
     >
+      {/* Left: text + CTAs */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-5)' }}>
-        <Eyebrow>[KEY USP LIST]</Eyebrow>
+        <Eyebrow>[WHY PERFECT CLEANERS]</Eyebrow>
         <div style={{
           fontFamily: 'var(--pc-serif)',
           fontSize: 'var(--pc-text-3xl)',
@@ -26,69 +44,62 @@ export default function USP() {
           color: 'var(--pc-fg)',
           letterSpacing: 'var(--pc-track-tight)',
         }}>
-          Your Car Deserves More than an Ordinary Wash
+          The difference is in<br />what you can&apos;t see.
         </div>
+        <p style={{
+          fontFamily: 'var(--pc-sans)',
+          fontSize: 'var(--pc-text-base)',
+          color: 'var(--pc-fg-2)',
+          lineHeight: 'var(--pc-lh-loose)',
+          maxWidth: 380,
+          margin: 0,
+        }}>
+          Anyone can wash a car. We decontaminate, protect, and restore — then hand it back in better condition than we found it.
+        </p>
         <div style={{ display: 'flex', gap: 'var(--pc-space-2)', marginTop: 'var(--pc-space-1)', flexWrap: 'wrap' }}>
           <Link href="/book">
             <PrimaryButton style={{ padding: 'var(--pc-space-3) var(--pc-space-6)' }}>Book Now</PrimaryButton>
           </Link>
-          <Link href="/contact">
-            <GhostButton style={{ padding: 'var(--pc-space-3) var(--pc-space-6)' }}>Contact Us</GhostButton>
+          <Link href="/services">
+            <GhostButton style={{ padding: 'var(--pc-space-3) var(--pc-space-6)' }}>View Services</GhostButton>
           </Link>
         </div>
       </div>
 
+      {/* Right: 3-card grid */}
       <div
         className="pc-usp-cards"
-        style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.2fr', gap: 'var(--pc-space-3)' }}
+        style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--pc-space-3)' }}
       >
-        <Card style={{ padding: 'var(--pc-space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-8)', minHeight: 220 }}>
-          <Icon name="sparkles" size={20} color="var(--pc-fg)" />
-          <div>
-            <div style={{
-              fontFamily: 'var(--pc-sans)',
-              fontSize: 'var(--pc-text-sm)',
-              color: 'var(--pc-fg)',
-              fontWeight: 500,
-              lineHeight: 'var(--pc-lh-snug)',
-            }}>
-              Premium Products<br />&amp; Technology
+        {CARDS.map((card) => (
+          <Card
+            key={card.icon}
+            style={{ padding: 'var(--pc-space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-8)', minHeight: 220 }}
+          >
+            <Icon name={card.icon} size={20} color="var(--pc-fg)" strokeWidth={1.4} />
+            <div>
+              <div style={{
+                fontFamily: 'var(--pc-sans)',
+                fontSize: 'var(--pc-text-sm)',
+                color: 'var(--pc-fg)',
+                lineHeight: 'var(--pc-lh-snug)',
+              }}>
+                {card.heading.split('\n').map((line, i, arr) => (
+                  <span key={i}>{line}{i < arr.length - 1 ? <br /> : null}</span>
+                ))}
+              </div>
+              <div style={{
+                fontFamily: 'var(--pc-sans)',
+                fontSize: 'var(--pc-text-xs)',
+                color: 'var(--pc-fg-2)',
+                lineHeight: 'var(--pc-lh-loose)',
+                marginTop: 'var(--pc-space-2)',
+              }}>
+                {card.body}
+              </div>
             </div>
-            <div style={{
-              fontFamily: 'var(--pc-sans)',
-              fontSize: 'var(--pc-text-xs)',
-              color: 'var(--pc-fg-2)',
-              lineHeight: 'var(--pc-lh-loose)',
-              marginTop: 'var(--pc-space-2)',
-            }}>
-              Highly skilled team dedicated to meticulous detailing with industry-leading products.
-            </div>
-          </div>
-        </Card>
-        <Card style={{ padding: 'var(--pc-space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-8)', minHeight: 220 }}>
-          <Icon name="shield" size={20} color="var(--pc-fg)" />
-          <div>
-            <div style={{
-              fontFamily: 'var(--pc-sans)',
-              fontSize: 'var(--pc-text-sm)',
-              color: 'var(--pc-fg)',
-              fontWeight: 500,
-              lineHeight: 'var(--pc-lh-snug)',
-            }}>
-              Safe Paint-Friendly<br />Process
-            </div>
-            <div style={{
-              fontFamily: 'var(--pc-sans)',
-              fontSize: 'var(--pc-text-xs)',
-              color: 'var(--pc-fg-2)',
-              lineHeight: 'var(--pc-lh-loose)',
-              marginTop: 'var(--pc-space-2)',
-            }}>
-              Our techniques protect your paintwork from swirl marks, scratches, and harsh chemicals.
-            </div>
-          </div>
-        </Card>
-        <CarImage className="pc-usp-car" tone="dark" style={{ minHeight: 220 }} />
+          </Card>
+        ))}
       </div>
     </div>
   );

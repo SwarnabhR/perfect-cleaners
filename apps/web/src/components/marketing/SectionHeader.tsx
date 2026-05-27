@@ -9,8 +9,8 @@ interface SectionHeaderProps {
 }
 
 export default function SectionHeader({
-  title = "From a simple wash to comprehensive detailing",
-  badgeText = "9K+ Satisfied Customers",
+  title = "Every service your car will ever need.",
+  badgeText = "1,500+ Cars Detailed",
   subtitle
 }: SectionHeaderProps) {
   return (

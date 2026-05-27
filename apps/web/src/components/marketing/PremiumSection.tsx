@@ -4,24 +4,43 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { PrimaryButton, GhostButton } from '@/components/ui/Button';
 
-const ITEMS = [
-  'Full Vacuuming (carpet, seats, trunk)',
-  'Deep cleaning of upholstery or leather',
-  'Leather conditioning (if applicable)',
-  'Dashboard, console, and trim cleaning & shine',
-  'Interior glass and mirror cleaning',
-  'Odor elimination spray',
-];
-
-// TODO: replace with 6 distinct service tile images once assets are ready.
-// Currently alternates two placeholder images to fill the 6 slots.
-const TILE_IMAGES = [
-  '/service-interior-a.png',
-  '/service-interior-b.png',
-  '/service-interior-a.png',
-  '/service-interior-b.png',
-  '/service-interior-a.png',
-  '/service-interior-b.png',
+const SERVICES = [
+  {
+    label: 'EXTERIOR WASH',
+    title: 'Foam cannon\nto finish',
+    img: '/service-exterior-a.png',
+    alt: 'Foam cannon exterior wash',
+  },
+  {
+    label: 'EXTERIOR DETAIL',
+    title: 'Clay bar, polish,\npaint sealant',
+    img: '/service-exterior-b.png',
+    alt: 'Water beading on waxed paint',
+  },
+  {
+    label: 'INTERIOR CLEAN',
+    title: 'Vacuum, glass,\ntrims done right',
+    img: '/service-interior-a.png',
+    alt: 'Interior cleaning',
+  },
+  {
+    label: 'INTERIOR DETAIL',
+    title: 'Leather condition,\nodour eliminated',
+    img: '/service-interior-b.png',
+    alt: 'Interior detailing — dashboard and trim',
+  },
+  {
+    label: 'CERAMIC COATING',
+    title: '9H hardness,\n3-year protection',
+    img: '/service-coating-a.png',
+    alt: 'Ceramic coating application',
+  },
+  {
+    label: 'PAINT PROTECTION',
+    title: 'Mirror-gloss,\nswirl-free',
+    img: '/service-coating-b.png',
+    alt: 'Mirror-gloss reflection on coated paint',
+  },
 ];
 
 export default function PremiumSection() {
@@ -35,6 +54,7 @@ export default function PremiumSection() {
         padding: 'var(--pc-space-8) var(--pc-space-8) var(--pc-space-6)',
       }}
     >
+      {/* Header */}
       <div
         className="pc-premium-header"
         style={{
@@ -46,61 +66,76 @@ export default function PremiumSection() {
         }}
       >
         <div style={{
-          fontFamily: 'var(--pc-sans)',
-          fontSize: 'var(--pc-text-xl)',
-          lineHeight: 'var(--pc-lh-snug)',
+          fontFamily: 'var(--pc-serif)',
+          fontSize: 'var(--pc-text-2xl)',
+          lineHeight: 'var(--pc-lh-tight)',
           color: 'var(--pc-fg)',
-          maxWidth: 600,
-          fontWeight: 400,
+          maxWidth: 520,
+          letterSpacing: 'var(--pc-track-tight)',
         }}>
-          we offer a range of premium services designed to protect and enhance your vehicle&apos;s appearance.
+          Six services.<br />One obsessive standard.
         </div>
         <div style={{ display: 'flex', gap: 'var(--pc-space-2)', flexShrink: 0, flexWrap: 'wrap' }}>
           <Link href="/book">
             <PrimaryButton style={{ padding: 'var(--pc-space-3) var(--pc-space-6)' }}>Book Now</PrimaryButton>
           </Link>
-          <Link href="/contact">
-            <GhostButton style={{ padding: 'var(--pc-space-3) var(--pc-space-6)' }}>Contact Us</GhostButton>
+          <Link href="/services">
+            <GhostButton style={{ padding: 'var(--pc-space-3) var(--pc-space-6)' }}>All Services</GhostButton>
           </Link>
         </div>
       </div>
 
+      {/* Service tiles */}
       <div
         className="pc-premium-tiles"
         style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--pc-space-2)' }}
       >
-        {ITEMS.map((s, i) => (
-          <div key={i} style={{
-            background: 'var(--pc-sage-lo)',
+        {SERVICES.map((svc, i) => (
+          <div key={svc.label} style={{
             borderRadius: 'var(--pc-radius-md)',
-            padding: 'var(--pc-space-4)',
-            minHeight: 140,
-            display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-            overflow: 'hidden', position: 'relative',
+            minHeight: 160,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            overflow: 'hidden',
+            position: 'relative',
           }}>
+            {/* Photo */}
             <Image
-              src={TILE_IMAGES[i]}
-              alt=""
-              aria-hidden="true"
+              src={svc.img}
+              alt={svc.alt}
               fill
-              style={{ objectFit: 'cover', opacity: 0.15, mixBlendMode: 'luminosity' }}
+              style={{ objectFit: 'cover' }}
             />
+            {/* Gradient overlay */}
             <div style={{
-              fontFamily: 'var(--pc-mono)',
-              fontSize: 'var(--pc-text-xs)',
-              color: 'var(--pc-fg-4)',
-              letterSpacing: 'var(--pc-track-mono)',
+              position: 'absolute', inset: 0,
+              background: 'linear-gradient(180deg, rgba(14,13,11,0.15) 0%, rgba(14,13,11,0.78) 100%)',
+            }} />
+            {/* Index */}
+            <div style={{
               position: 'relative',
+              padding: 'var(--pc-space-4) var(--pc-space-4) 0',
+              fontFamily: 'var(--pc-mono)',
+              fontSize: 9,
+              color: 'rgba(255,255,255,0.45)',
+              letterSpacing: 'var(--pc-track-mono)',
             }}>
-              [{String(i + 1).padStart(2, '0')}]
+              [{String(i + 1).padStart(2, '0')}] {svc.label}
             </div>
+            {/* Title */}
             <div style={{
+              position: 'relative',
+              padding: '0 var(--pc-space-4) var(--pc-space-4)',
               fontFamily: 'var(--pc-sans)',
               fontSize: 'var(--pc-text-sm)',
               color: 'var(--pc-fg)',
               lineHeight: 'var(--pc-lh-snug)',
-              position: 'relative',
-            }}>{s}</div>
+            }}>
+              {svc.title.split('\n').map((line, j, arr) => (
+                <span key={j}>{line}{j < arr.length - 1 ? <br /> : null}</span>
+              ))}
+            </div>
           </div>
         ))}
       </div>

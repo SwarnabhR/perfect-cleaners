@@ -1,9 +1,7 @@
-'use client';
-
 import Link from 'next/link';
+import Image from 'next/image';
 import { PrimaryButton, GhostButton } from '@/components/ui/Button';
 import Eyebrow from '@/components/ui/Eyebrow';
-import CarImage from '@/components/ui/CarImage';
 
 export default function CTASection() {
   return (
@@ -12,24 +10,35 @@ export default function CTASection() {
       position: 'relative',
       borderRadius: 'var(--pc-radius-xl)',
       overflow: 'hidden',
-      minHeight: 280,
+      minHeight: 300,
       border: '1px solid var(--pc-line)',
     }}>
-      <CarImage tone="dark" style={{ position: 'absolute', inset: 0, borderRadius: 0, border: 'none' }} />
+      {/* Background photo — water beading on waxed paint */}
+      <Image
+        src="/service-exterior-b.png"
+        alt=""
+        aria-hidden="true"
+        fill
+        style={{ objectFit: 'cover' }}
+      />
+      {/* Left-side gradient */}
       <div style={{
         position: 'absolute', inset: 0,
-        background: 'linear-gradient(90deg, rgba(14,13,11,0.95) 35%, rgba(14,13,11,0.4) 65%, rgba(14,13,11,0.0) 100%)',
+        background: 'linear-gradient(90deg, rgba(14,13,11,0.97) 30%, rgba(14,13,11,0.6) 60%, rgba(14,13,11,0.1) 100%)',
       }} />
+      {/* Content */}
       <div
         className="pc-cta-inner"
         style={{
           position: 'relative',
           padding: 'var(--pc-space-12) var(--pc-space-10)',
-          maxWidth: 600,
-          display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-5)',
+          maxWidth: 560,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 'var(--pc-space-5)',
         }}
       >
-        <Eyebrow>[BOOK NOW]</Eyebrow>
+        <Eyebrow>[READY IN 2 MINUTES]</Eyebrow>
         <div style={{
           fontFamily: 'var(--pc-serif)',
           fontSize: 'var(--pc-text-3xl)',
@@ -37,14 +46,24 @@ export default function CTASection() {
           color: 'var(--pc-fg)',
           letterSpacing: 'var(--pc-track-tight)',
         }}>
-          Book Your Premium<br />Car Wash Today
+          At your driveway<br />or ours. Your call.
         </div>
+        <p style={{
+          fontFamily: 'var(--pc-sans)',
+          fontSize: 'var(--pc-text-base)',
+          color: 'var(--pc-fg-2)',
+          lineHeight: 'var(--pc-lh-loose)',
+          maxWidth: 360,
+          margin: 0,
+        }}>
+          Pick a date, choose a service, confirm. We handle the rest — products, equipment, and a trained specialist at your door.
+        </p>
         <div style={{ display: 'flex', gap: 'var(--pc-space-2)', flexWrap: 'wrap' }}>
           <Link href="/book">
             <PrimaryButton style={{ padding: 'var(--pc-space-4) var(--pc-space-6)' }}>Book Now</PrimaryButton>
           </Link>
           <Link href="/contact">
-            <GhostButton style={{ padding: 'var(--pc-space-4) var(--pc-space-6)' }}>Contact Us</GhostButton>
+            <GhostButton style={{ padding: 'var(--pc-space-4) var(--pc-space-6)' }}>Get in Touch</GhostButton>
           </Link>
         </div>
       </div>
