@@ -2,7 +2,6 @@ import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
 import Image from 'next/image';
 
-// Map service number to the pair of real photos
 const SERVICE_IMAGES: Record<string, [string, string]> = {
   '01': ['/service-interior-a.png',  '/service-interior-b.png' ],
   '02': ['/service-exterior-a.png',  '/service-exterior-b.png' ],
@@ -22,7 +21,7 @@ export default function ServiceFeature({ num, name, price, title, body }: Servic
 
   return (
     <div style={{
-      margin: 'var(--pc-screen-pad-lg)',
+      margin: '0 var(--pc-screen-pad-lg)',
       background: 'var(--pc-card)',
       border: '1px solid var(--pc-line)',
       borderRadius: 20, padding: 'var(--pc-space-8)',
@@ -35,14 +34,12 @@ export default function ServiceFeature({ num, name, price, title, body }: Servic
       <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr 1fr', gap: 16, alignItems: 'stretch' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            {/* Photo A — small tile */}
             <div style={{ height: 140, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--pc-line)', position: 'relative' }}>
               {imgA && (
                 <Image src={imgA} alt={name} fill style={{ objectFit: 'cover' }} />
               )}
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 50%, rgba(14,13,11,0.55) 100%)' }} />
             </div>
-            {/* Photo B — small tile */}
             <div style={{ height: 140, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--pc-line)', position: 'relative' }}>
               {imgB && (
                 <Image src={imgB} alt={name} fill style={{ objectFit: 'cover' }} />
@@ -51,19 +48,18 @@ export default function ServiceFeature({ num, name, price, title, body }: Servic
             </div>
           </div>
         </div>
-        {/* Large tall photo — same image as A, different crop via objectPosition */}
         <div style={{ height: 280, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--pc-line)', position: 'relative' }}>
           {imgA && (
             <Image src={imgA} alt={name} fill style={{ objectFit: 'cover', objectPosition: 'center top' }} />
           )}
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 60%, rgba(14,13,11,0.5) 100%)' }} />
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '8px 0', gap: 24 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 'var(--pc-space-2) 0', gap: 24 }}>
           <div>
             <Eyebrow>FROM</Eyebrow>
             <div style={{
               fontFamily: 'var(--pc-serif)', fontSize: 'var(--pc-text-3xl)', color: '#fff',
-              letterSpacing: '-0.02em', marginTop: 4, lineHeight: 1.05,
+              letterSpacing: '-0.02em', marginTop: 'var(--pc-space-1)', lineHeight: 1.05,
             }}>
               {price}
             </div>

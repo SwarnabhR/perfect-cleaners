@@ -16,23 +16,23 @@ export default function FaqAccordion() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   return (
-    <div style={{ padding: '24px 56px 80px', maxWidth: 800, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div style={{ padding: 'var(--pc-space-6) var(--pc-screen-pad-lg) var(--pc-space-20)', maxWidth: 800, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
       {FAQS.map((faq, i) => (
         <Card key={i} style={{ padding: 0, overflow: 'hidden' }}>
-          <button 
+          <button
             onClick={() => setOpenIndex(openIndex === i ? null : i)}
-            style={{ 
-              width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-              padding: '24px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left',
+            style={{
+              width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: 'var(--pc-space-6)', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left',
               color: 'white'
             }}
           >
-            <h3 style={{ fontFamily: 'var(--pc-sans)', fontSize: 18, color: 'var(--pc-fg)', fontWeight: 500 }}>{faq.q}</h3>
+            <h3 style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-lg)', color: 'var(--pc-fg)', fontWeight: 500 }}>{faq.q}</h3>
             <Icon name={openIndex === i ? 'minus' : 'plus'} size={20} color="var(--pc-fg-3)" />
           </button>
           {openIndex === i && (
-            <div style={{ padding: '0 24px 24px' }}>
-              <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 15, color: 'var(--pc-fg-2)', lineHeight: 1.6 }}>{faq.a}</p>
+            <div style={{ padding: '0 var(--pc-space-6) var(--pc-space-6)' }}>
+              <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-base)', color: 'var(--pc-fg-2)', lineHeight: 1.6 }}>{faq.a}</p>
             </div>
           )}
         </Card>
