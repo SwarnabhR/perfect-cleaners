@@ -1,5 +1,5 @@
 /* ──────────────────────────────────────────────────────────────────────────
-   BookingFlow — scoped styles for form inputs & selects.
+   BookingFlow — scoped styles for form inputs, selects & selection buttons.
    All other styling is inline via var(--pc-*) tokens for brand consistency.
    ────────────────────────────────────────────────────────────────────────── */
 
@@ -46,4 +46,27 @@
   background-repeat: no-repeat;
   background-position: right 14px center;
   padding-right: 38px;
+}
+
+/* ── Selection buttons (service cards, date pills, time chips) ── */
+/* These buttons already define transition inline; this rule provides
+   the :hover target so the transition actually fires on unselected items. */
+.selBtn {
+  /* no base styles needed — all appearance is inline via tokens */
+}
+
+.selBtn:hover:not([aria-pressed="true"]):not(:disabled) {
+  background: var(--pc-card-hi) !important;
+  border-color: var(--pc-line-strong) !important;
+}
+
+.selBtn:focus-visible {
+  outline: 2px solid var(--pc-sage);
+  outline-offset: 2px;
+}
+
+/* ── Submit button disabled state ── */
+.submitBtn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }

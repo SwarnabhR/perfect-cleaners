@@ -250,13 +250,13 @@ function StepLabel({ n, children }: { n: string; children: string }) {
         fontSize: 'var(--pc-text-xs)',
         color: 'var(--pc-fg-3)', flexShrink: 0,
       }}>{n}</div>
-      <h3 style={{
+      <h2 style={{
         fontFamily: 'var(--pc-sans)',
         fontSize: 'var(--pc-text-base)',
         fontWeight: 600,
         color: 'var(--pc-fg)',
         letterSpacing: 'var(--pc-track-snug)',
-      }}>{children}</h3>
+      }}>{children}</h2>
     </div>
   );
 }
@@ -416,7 +416,7 @@ export default function BookingFlow() {
         }}>
           <strong style={{ color: 'var(--pc-fg)' }}>{service.name}</strong> · ₹{total.toLocaleString('en-IN')} ·{' '}
           {selDate.dayName} {selDate.dayNum} {selDate.monthName} at {selTime}.
-          {' '}We'll confirm via WhatsApp on{' '}
+          {' '}We\'ll confirm via WhatsApp on{' '}
           <strong style={{ color: 'var(--pc-fg)' }}>+91 {phone}</strong>.
         </p>
 
@@ -512,7 +512,9 @@ export default function BookingFlow() {
                 <button
                   key={s.id}
                   type="button"
+                  aria-pressed={active}
                   onClick={() => setService(s)}
+                  className={styles.selBtn}
                   style={{
                     padding: 'var(--pc-space-4)',
                     borderRadius: 'var(--pc-radius-md)',
@@ -554,7 +556,7 @@ export default function BookingFlow() {
 
         {/* Step 2 — Date & Time */}
         <section>
-          <StepLabel n="02">Select Date & Time</StepLabel>
+          <StepLabel n="02">Select Date &amp; Time</StepLabel>
 
           <div ref={calendarRef} style={{ position: 'relative', marginBottom: 'var(--pc-space-4)' }}>
             <div style={{ display: 'flex', gap: 'var(--pc-space-2)', flexWrap: 'wrap' }}>
@@ -566,7 +568,9 @@ export default function BookingFlow() {
                   <button
                     key={d.id}
                     type="button"
+                    aria-pressed={active}
                     onClick={() => { setSelDate(d); setShowCalendar(false); }}
+                    className={styles.selBtn}
                     style={{
                       padding: 'var(--pc-space-2) var(--pc-space-4)',
                       borderRadius: 'var(--pc-radius-sm)',
@@ -614,6 +618,7 @@ export default function BookingFlow() {
                 onClick={() => setShowCalendar(v => !v)}
                 aria-label="Open date picker"
                 aria-expanded={showCalendar}
+                className={styles.selBtn}
                 style={{
                   padding: 'var(--pc-space-2) var(--pc-space-4)',
                   borderRadius: 'var(--pc-radius-sm)',
@@ -707,7 +712,9 @@ export default function BookingFlow() {
                 <button
                   key={t}
                   type="button"
+                  aria-pressed={active}
                   onClick={() => setSelTime(t)}
+                  className={styles.selBtn}
                   style={{
                     padding: 'var(--pc-space-2) var(--pc-space-4)',
                     borderRadius: 'var(--pc-radius-sm)',
@@ -728,7 +735,7 @@ export default function BookingFlow() {
 
         {/* Step 3 — Location & Vehicle */}
         <section data-error-anchor>
-          <StepLabel n="03">Location & Vehicle</StepLabel>
+          <StepLabel n="03">Location &amp; Vehicle</StepLabel>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-3)' }}>
 
             <div style={{ display: 'flex', gap: 'var(--pc-space-3)' }}>
@@ -809,10 +816,12 @@ export default function BookingFlow() {
                   fontSize: 'var(--pc-text-xs)',
                   color: 'var(--pc-fg-3)',
                   pointerEvents: 'none',
+                  userSelect: 'none',
                 }}>+91</span>
                 <input
                   placeholder="98765 43210"
                   type="tel"
+                  aria-label="Phone number (India +91)"
                   value={phone}
                   onChange={e => setPhone(e.target.value)}
                   maxLength={10}
@@ -894,11 +903,8 @@ export default function BookingFlow() {
               full
               disabled={isSubmitting}
               onClick={handleSubmit}
-              style={{
-                padding: 'var(--pc-space-4) 0',
-                opacity: isSubmitting ? 0.65 : 1,
-                cursor: isSubmitting ? 'not-allowed' : 'pointer',
-              }}
+              className={styles.submitBtn}
+              style={{ padding: 'var(--pc-space-4) 0' }}
             >
               {isSubmitting ? 'Confirming…' : 'Confirm Booking →'}
             </PrimaryButton>
