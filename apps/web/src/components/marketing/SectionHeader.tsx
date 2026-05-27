@@ -14,21 +14,21 @@ export default function SectionHeader({
   subtitle
 }: SectionHeaderProps) {
   return (
-    <div style={{ padding: '80px 56px 24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+    <div style={{ padding: 'var(--pc-space-20) var(--pc-screen-pad-lg) var(--pc-space-6)', display: 'flex', flexDirection: 'column', gap: 18 }}>
       {badgeText && (
         <Pill sage style={{ alignSelf: 'flex-start', padding: '6px 14px 6px 6px' }}>
           {typeof badgeText === 'string' && badgeText.includes('Customers') ? <AvatarStack count={4} /> : null}
-          <span style={{ marginLeft: 6, fontSize: 12 }}>{badgeText}</span>
+          <span style={{ marginLeft: 6, fontSize: 'var(--pc-text-xs)' }}>{badgeText}</span>
         </Pill>
       )}
       <div style={{
-        fontFamily: 'var(--pc-serif)', fontSize: 48, lineHeight: 1.05,
+        fontFamily: 'var(--pc-serif)', fontSize: 'var(--pc-text-hero)', lineHeight: 1.05,
         color: '#fff', letterSpacing: '-0.02em', maxWidth: 720,
       }}>
         {title}
       </div>
       {subtitle && (
-        <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 18, color: 'var(--pc-fg-2)', lineHeight: 1.5, maxWidth: 720 }}>
+        <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-lg)', color: 'var(--pc-fg-2)', lineHeight: 1.5, maxWidth: 720 }}>
           {subtitle}
         </div>
       )}
