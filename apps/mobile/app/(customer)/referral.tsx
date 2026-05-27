@@ -1,10 +1,8 @@
 import { ScrollView, View, Text, TouchableOpacity, StyleSheet, Alert, Share } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Clipboard from 'expo-clipboard';
 import { colors, typography, spacing, radii } from '@pc/tokens';
 import { ScreenHeader, Group, Row } from '../../components/RowGroup';
-
-// Note: expo-clipboard is available via expo (part of SDK 56). If not installed
-// separately, copy falls back to Alert. This is handled gracefully below.
 
 const REFERRAL_CODE = 'AARAV-PC';
 
@@ -33,8 +31,9 @@ export default function ReferralScreen() {
     } catch {}
   }
 
-  function handleCopy() {
-    Alert.alert('Referral code', `${REFERRAL_CODE}\n\nYour code has been copied.`);
+  async function handleCopy() {
+    await Clipboard.setStringAsync(REFERRAL_CODE);
+    Alert.alert('Copied!', `${REFERRAL_CODE} is now in your clipboard.`);
   }
 
   return (

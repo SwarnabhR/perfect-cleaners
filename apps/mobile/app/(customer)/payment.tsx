@@ -1,42 +1,140 @@
 import { useState } from 'react';
 import {
-  ScrollView, View, Text, TouchableOpacity, TextInput, StyleSheet,
+  ScrollView, View, Text, TouchableOpacity, StyleSheet, Alert,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import RazorpayCheckout, { type CheckoutOptions, type ErrorResponse } from 'react-native-razorpay';
 import {
-  X, Droplet, CreditCard, Wallet, Check,
-  Shield,
+  X, Droplet, CreditCard, Wallet, Check, Shield,
 } from 'lucide-react-native';
 import { colors, typography, spacing, radii } from '@pc/tokens';
 import HapticButton from '../../components/HapticButton';
 
+// ─── Razorpay key — loaded from env so it's never hard-coded ─────────────────
+const RAZORPAY_KEY = process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID ?? '';
+
+// ─── Static data ──────────────────────────────────────────────────────────────
+
 const METHODS = [
-  ['upi', 'UPI', 'Google Pay · PhonePe · Paytm · BHIM', 'droplet'],
-  ['card', 'Cards', 'Visa · Mastercard · RuPay · Amex', 'credit-card'],
-  ['netbanking', 'Net Banking', 'HDFC · ICICI · SBI · 60 banks', 'wallet'],
-  ['wallet', 'Wallets', 'Paytm · Mobikwik · Freecharge', 'wallet'],
+  ['upi',        'UPI',         'Google Pay · PhonePe · Paytm · BHIM', 'droplet'    ],
+  ['card',       'Cards',       'Visa · Mastercard · RuPay · Amex',    'credit-card'],
+  ['netbanking', 'Net Banking', 'HDFC · ICICI · SBI · 60 banks',       'wallet'     ],
+  ['wallet',     'Wallets',     'Paytm · Mobikwik · Freecharge',       'wallet'     ],
 ] as const;
 
 const UPI_APPS = [
-  ['gpay', 'GP', '#1A73E8'],
-  ['phonepe', 'PP', '#5F259F'],
-  ['paytm', 'PT', '#00BAF2'],
-  ['bhim', 'BH', '#00A6CB'],
+  ['gpay',   'GP', '#1A73E8'],
+  ['phonepe','PP', '#5F259F'],
+  ['paytm',  'PT', '#00BAF2'],
+  ['bhim',   'BH', '#00A6CB'],
 ] as const;
 
 const METHOD_ICONS: Record<string, React.ReactNode> = {
-  upi: <Droplet size={16} color={colors.fg2} strokeWidth={1.5} />,
-  card: <CreditCard size={16} color={colors.fg2} strokeWidth={1.5} />,
-  netbanking: <Wallet size={16} color={colors.fg2} strokeWidth={1.5} />,
-  wallet: <Wallet size={16} color={colors.fg2} strokeWidth={1.5} />,
+  upi:        <Droplet    size={16} color={colors.fg2} strokeWidth={1.5} />,
+  card:       <CreditCard size={16} color={colors.fg2} strokeWidth={1.5} />,
+  netbanking: <Wallet     size={16} color={colors.fg2} strokeWidth={1.5} />,
+  wallet:     <Wallet     size={16} color={colors.fg2} strokeWidth={1.5} />,
 };
 
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export default function PaymentSheet() {
-  const [method, setMethod] = useState('upi');
-  const [upiApp, setUpiApp] = useState('gpay');
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const [method,  setMethod]  = useState('upi');
+  const [upiApp,  setUpiApp]  = useState('gpay');
+  const [loading, setLoading] = useState(false);
+  const router  = useRouter();
+  const insets  = useSafeAreaInsets();
+
+  // Route params — populated from the booking detail screen
+  const params = useLocalSearchParams<{
+    bookingRef?: string;
+    amount?:     string;   // in ₹, e.g. "1080"
+    label?:      string;   // e.g. "Premium Wash + Interior"
+    orderId?:    string;   // Razorpay order ID from backend (optional in test mode)
+    phone?:      string;
+    name?:       string;
+  }>();
+
+  const bookingRef = params.bookingRef ?? 'PC-0000';
+  const amountRs   = Number(params.amount ?? 1080);
+  const amountPaise = amountRs * 100;
+  const label      = params.label    ?? 'Premium Wash + Interior';
+  const phone      = params.phone    ?? '';
+  const name       = params.name     ?? '';
+
+  // ── Promo (demo) ────────────────────────────────────────────────────────────
+  const promoDiscount = 120;
+  const totalRs = amountRs - promoDiscount;
+
+  // ── Pay handler ─────────────────────────────────────────────────────────────
+  async function handlePay() {
+    if (!RAZORPAY_KEY) {
+      Alert.alert(
+        'Configuration error',
+        'Razorpay key not set. Add EXPO_PUBLIC_RAZORPAY_KEY_ID to your .env file.',
+      );
+      return;
+    }
+
+    setLoading(true);
+
+    /**
+     * `order_id` should come from your backend (Cloud Function that calls the
+     * Razorpay Orders API). Pass it via route params from the booking detail
+     * screen once that integration is wired:
+     *
+     *   const { orderId } = await createRazorpayOrder({ amountPaise: totalRs * 100 });
+     *   router.push({ pathname: '/(customer)/payment', params: { orderId } });
+     *
+     * Empty string is accepted in Razorpay test mode.
+     */
+    const options: CheckoutOptions = {
+      key:         RAZORPAY_KEY,
+      amount:      totalRs * 100,           // paise (number, not string)
+      currency:    'INR',
+      name:        'Perfect Cleaners',
+      description: label,
+      image:       'https://perfectcleaners.in/logo-pc-monogram.png',
+      order_id:    params.orderId ?? '',    // supplied by backend in production
+      prefill: {
+        name:    name,
+        contact: phone ? `+91${phone}` : '',
+      },
+      notes: {
+        booking_ref: bookingRef,
+      },
+      theme: {
+        color:          colors.sage,
+        backdrop_color: colors.ink,
+      },
+      modal: {
+        ondismiss: () => setLoading(false),
+      },
+    };
+
+    try {
+      const data = await RazorpayCheckout.open(options);
+      // data.razorpay_payment_id — verify this signature on the backend
+      router.push({
+        pathname: '/(customer)/payment-success',
+        params: {
+          paymentId:  data.razorpay_payment_id,
+          bookingRef,
+        },
+      });
+    } catch (err: unknown) {
+      const e = err as Partial<ErrorResponse>;
+      if (e.code !== 0) {
+        // code 0 = user dismissed; anything else is a real error
+        Alert.alert('Payment failed', e.description ?? 'Something went wrong. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ─── UI ─────────────────────────────────────────────────────────────────────
 
   return (
     <View style={[s.overlay, { paddingBottom: insets.bottom }]}>
@@ -51,7 +149,7 @@ export default function PaymentSheet() {
           </View>
           <View style={s.razorpayInfo}>
             <Text style={s.razorpayLabel}>SECURED BY RAZORPAY</Text>
-            <Text style={s.razorpayMerchant}>Perfect Cleaners · #PC-2058</Text>
+            <Text style={s.razorpayMerchant}>Perfect Cleaners · #{bookingRef}</Text>
           </View>
           <TouchableOpacity style={s.closeBtn} onPress={() => router.back()}>
             <X size={12} color={colors.fg2} strokeWidth={1.5} />
@@ -62,17 +160,17 @@ export default function PaymentSheet() {
           {/* Order summary */}
           <View style={s.orderSummary}>
             <View style={s.orderRow}>
-              <Text style={s.orderLabel}>Premium Wash + Interior</Text>
-              <Text style={s.orderLabel}>₹1,200</Text>
+              <Text style={s.orderLabel}>{label}</Text>
+              <Text style={s.orderLabel}>₹{amountRs.toLocaleString('en-IN')}</Text>
             </View>
             <View style={s.orderRow}>
               <Text style={s.orderCode}>Promo · SHINE10</Text>
-              <Text style={s.orderDiscount}>− ₹120</Text>
+              <Text style={s.orderDiscount}>− ₹{promoDiscount}</Text>
             </View>
             <View style={s.orderDivider} />
             <View style={s.orderRow}>
               <Text style={s.orderTotalLabel}>Total</Text>
-              <Text style={s.orderTotal}>₹1,080</Text>
+              <Text style={s.orderTotal}>₹{totalRs.toLocaleString('en-IN')}</Text>
             </View>
           </View>
 
@@ -152,11 +250,14 @@ export default function PaymentSheet() {
 
           <HapticButton
             haptic="medium"
-            style={s.payBtn}
-            onPress={() => router.push('/(customer)/payment-success')}
+            style={[s.payBtn, loading && s.payBtnLoading]}
+            onPress={handlePay}
             activeOpacity={0.85}
+            disabled={loading}
           >
-            <Text style={s.payBtnText}>PAY ₹1,080</Text>
+            <Text style={s.payBtnText}>
+              {loading ? 'OPENING CHECKOUT…' : `PAY ₹${totalRs.toLocaleString('en-IN')}`}
+            </Text>
           </HapticButton>
 
           <View style={s.secureBar}>
@@ -196,8 +297,7 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   razorpayIconText: {
-    fontFamily: typography.sansBold, fontSize: 14,
-    color: '#fff', letterSpacing: -0.3,
+    fontFamily: typography.sansBold, fontSize: 14, color: '#fff', letterSpacing: -0.3,
   },
   razorpayInfo: { flex: 1 },
   razorpayLabel: {
@@ -217,15 +317,13 @@ const s = StyleSheet.create({
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line,
     borderRadius: radii.md, padding: 14, marginBottom: spacing[4], gap: spacing[1],
   },
-  orderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  orderLabel: { fontFamily: typography.sans, fontSize: 13, color: colors.fg2 },
-  orderCode: { fontFamily: typography.sans, fontSize: 12, color: colors.fg3 },
-  orderDiscount: { fontFamily: typography.sans, fontSize: 12, color: colors.sageHi },
-  orderDivider: { height: 1, backgroundColor: colors.line, marginVertical: spacing[1] },
-  orderTotalLabel: { fontFamily: typography.sansMedium, fontSize: 13, color: colors.fg },
-  orderTotal: {
-    fontFamily: typography.serif, fontSize: typography['2xl'], color: colors.fg, letterSpacing: -0.1,
-  },
+  orderRow:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+  orderLabel:     { fontFamily: typography.sans, fontSize: 13, color: colors.fg2 },
+  orderCode:      { fontFamily: typography.sans, fontSize: 12, color: colors.fg3 },
+  orderDiscount:  { fontFamily: typography.sans, fontSize: 12, color: colors.sageHi },
+  orderDivider:   { height: 1, backgroundColor: colors.line, marginVertical: spacing[1] },
+  orderTotalLabel:{ fontFamily: typography.sansMedium, fontSize: 13, color: colors.fg },
+  orderTotal:     { fontFamily: typography.serif, fontSize: typography['2xl'], color: colors.fg, letterSpacing: -0.1 },
 
   eyebrow: {
     fontFamily: typography.mono, fontSize: 9.5, color: colors.fg3,
@@ -244,20 +342,18 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: colors.line,
     alignItems: 'center', justifyContent: 'center',
   },
-  methodInfo: { flex: 1 },
+  methodInfo:  { flex: 1 },
   methodLabel: { fontFamily: typography.sansMedium, fontSize: 14, color: colors.fg },
-  methodSub: { fontFamily: typography.sans, fontSize: 11.5, color: colors.fg2, marginTop: 1 },
+  methodSub:   { fontFamily: typography.sans, fontSize: 11.5, color: colors.fg2, marginTop: 1 },
   radio: {
     width: 18, height: 18, borderRadius: 999,
     borderWidth: 1, borderColor: colors.lineStrong,
     alignItems: 'center', justifyContent: 'center',
   },
   radioActive: { borderColor: colors.warm, backgroundColor: colors.warm },
-  radioDot: { width: 6, height: 6, borderRadius: 999, backgroundColor: colors.ink },
+  radioDot:    { width: 6, height: 6, borderRadius: 999, backgroundColor: colors.ink },
 
-  upiGrid: {
-    flexDirection: 'row', gap: spacing[1], marginTop: spacing[2],
-  },
+  upiGrid:    { flexDirection: 'row', gap: spacing[1], marginTop: spacing[2] },
   upiCard: {
     flex: 1, alignItems: 'center', gap: spacing[1],
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line,
@@ -268,18 +364,14 @@ const s = StyleSheet.create({
     width: 44, height: 44, borderRadius: 9,
     alignItems: 'center', justifyContent: 'center',
   },
-  upiIconText: {
-    fontFamily: typography.sansBold, fontSize: 13, color: '#fff',
-  },
-  upiLabel: { fontFamily: typography.mono, fontSize: 9, color: colors.fg2, letterSpacing: 0.6 },
+  upiIconText: { fontFamily: typography.sansBold, fontSize: 13, color: '#fff' },
+  upiLabel:    { fontFamily: typography.mono, fontSize: 9, color: colors.fg2, letterSpacing: 0.6 },
   upiInputRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: spacing[1],
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line,
     borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14,
   },
-  upiInputText: {
-    flex: 1, fontFamily: typography.mono, fontSize: 14, color: colors.fg, letterSpacing: 0.4,
-  },
+  upiInputText:  { flex: 1, fontFamily: typography.mono, fontSize: 14, color: colors.fg, letterSpacing: 0.4 },
   upiInputCheck: {
     width: 22, height: 22, borderRadius: 999, backgroundColor: colors.sage,
     alignItems: 'center', justifyContent: 'center',
@@ -290,15 +382,11 @@ const s = StyleSheet.create({
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.lineStrong,
     borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14,
   },
-  cardNumber: {
-    flex: 1, fontFamily: typography.mono, fontSize: 14, color: colors.fg, letterSpacing: 1.8,
-  },
+  cardNumber: { flex: 1, fontFamily: typography.mono, fontSize: 14, color: colors.fg, letterSpacing: 1.8 },
   cardBrand: {
     backgroundColor: colors.ink, borderRadius: 4, paddingHorizontal: 8, paddingVertical: 4,
   },
-  cardBrandText: {
-    fontFamily: typography.sansBold, fontSize: 9, color: '#fff', letterSpacing: 0.4,
-  },
+  cardBrandText: { fontFamily: typography.sansBold, fontSize: 9, color: '#fff', letterSpacing: 0.4 },
   cardRow: { flexDirection: 'row', gap: spacing[2] },
 
   payBtn: {
@@ -306,6 +394,7 @@ const s = StyleSheet.create({
     paddingVertical: 14, alignItems: 'center', justifyContent: 'center',
     marginTop: spacing[5],
   },
+  payBtnLoading: { opacity: 0.6 },
   payBtnText: {
     fontFamily: typography.sansSemiBold, fontSize: 13, color: colors.ink, letterSpacing: 0.6,
   },
