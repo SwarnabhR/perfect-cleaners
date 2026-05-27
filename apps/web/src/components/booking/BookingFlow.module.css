@@ -1,0 +1,49 @@
+/* ──────────────────────────────────────────────────────────────────────────
+   BookingFlow — scoped styles for form inputs & selects.
+   All other styling is inline via var(--pc-*) tokens for brand consistency.
+   ────────────────────────────────────────────────────────────────────────── */
+
+.input {
+  width: 100%;
+  padding: 13px 16px;
+  border-radius: var(--pc-radius-sm);
+  border: 1px solid var(--pc-line-strong);
+  background: var(--pc-card);
+  color: var(--pc-fg);
+  font-family: var(--pc-sans);
+  font-size: 14px;
+  line-height: 1.4;
+  outline: none;
+  transition:
+    border-color var(--pc-dur-fast) var(--pc-ease),
+    box-shadow   var(--pc-dur-fast) var(--pc-ease);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.input::placeholder {
+  color: var(--pc-fg-3);
+}
+
+.input:focus {
+  border-color: rgba(91, 111, 82, 0.65);
+  box-shadow: 0 0 0 3px rgba(91, 111, 82, 0.09);
+}
+
+/* Applied when a field has a validation error */
+.inputError {
+  border-color: var(--pc-danger) !important;
+}
+
+.inputError:focus {
+  box-shadow: 0 0 0 3px rgba(201, 85, 78, 0.09) !important;
+}
+
+/* Chevron for <select> elements */
+.select {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' viewBox='0 0 11 7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%23666660' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 38px;
+}

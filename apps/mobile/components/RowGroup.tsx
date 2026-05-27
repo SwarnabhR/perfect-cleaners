@@ -148,12 +148,14 @@ export interface RowProps {
    */
   trailing?: React.ReactNode;
   destructive?: boolean;
+  /** Override the title text colour (e.g. danger red for a Sign Out row) */
+  titleColor?: string;
   onPress?: () => void;
   isLast?: boolean;
 }
 export function Row({
   icon, iconBg, title, sub, value,
-  trailing, destructive, onPress, isLast,
+  trailing, destructive, titleColor, onPress, isLast,
 }: RowProps) {
   const inner = (
     <>
@@ -163,7 +165,7 @@ export function Row({
         </View>
       )}
       <View style={g.body}>
-        <Text style={[g.title, destructive && g.danger]}>{title}</Text>
+        <Text style={[g.title, destructive && g.danger, titleColor ? { color: titleColor } : null]}>{title}</Text>
         {sub ? <Text style={g.sub}>{sub}</Text> : null}
       </View>
       {trailing !== undefined ? (

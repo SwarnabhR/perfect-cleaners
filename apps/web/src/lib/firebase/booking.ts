@@ -1,32 +1,59 @@
 import { db } from '@pc/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { Booking, BookingStatus, ServiceCategory, VehicleType } from '@pc/firebase';
+import type { Booking, BookingStatus, VehicleType } from '@pc/firebase';
 
-export async function submitBooking(data: {
+export interface SubmitBookingInput {
   serviceId: string;
   serviceName: string;
+  /** Base service price in ₹ before platform fee */
   price: number;
+  /** Platform / convenience fee in ₹ (default 50) */
+  platformFee?: number;
+  /** Fully-constructed Date combining the selected calendar day + slot time */
   scheduledAt: Date;
   city: string;
   pincode: string;
   addressLine1: string;
   vehicleMake: string;
   vehicleModel: string;
+  vehicleYear?: number;
+  vehicleType?: VehicleType;
   customerName: string;
+  /** 10-digit Indian mobile number (no country prefix) */
   customerPhone: string;
-}) {
-  const bookingsRef = collection(db, 'bookings');
+}
 
-  // Hardcode some defaults that will be selected correctly later when auth/catalog is fully built
+export interface SubmitBookingResult {
+  /** Firestore document ID */
+  docId: string;
+  /** Human-readable booking reference shown to customers, e.g. PC-4821 */
+  bookingRef: string;
+}
+
+/**
+ * Writes a new booking document to Firestore and returns the document ID
+ * plus a short human-readable reference number.
+ *
+ * Auth note: `customerId` is currently set to the phone number until Firebase
+ * Auth is wired end-to-end from the web form. Replace with `user.uid` once
+ * auth is integrated.
+ */
+export async function submitBooking(
+  data: SubmitBookingInput,
+): Promise<SubmitBookingResult> {
+  const fee = data.platformFee ?? 50;
+  const subtotal = data.price;
+  const total = subtotal + fee;
+
   const newBooking: Omit<Booking, 'id' | 'createdAt' | 'updatedAt'> = {
-    customerId: data.customerPhone, // use phone as temp ID if no auth
+    customerId: `phone:${data.customerPhone}`, // temp ID until auth is live
     serviceIds: [data.serviceId],
     vehicle: {
-      id: 'temp_vehicle_id',
+      id: 'web_booking_vehicle',
       make: data.vehicleMake,
       model: data.vehicleModel,
-      year: new Date().getFullYear(),
-      type: 'sedan' as VehicleType,
+      year: data.vehicleYear ?? new Date().getFullYear(),
+      type: data.vehicleType ?? 'sedan',
       registration: 'UNKNOWN',
       color: 'UNKNOWN',
     },
@@ -38,22 +65,23 @@ export async function submitBooking(data: {
       pincode: data.pincode,
       coordinates: { latitude: 0, longitude: 0 },
     },
-    priceBreakdown: {
-      subtotal: data.price,
-      tax: 0,
-      total: data.price + 50, // Including platform fee
-    },
+    priceBreakdown: { subtotal, tax: 0, total },
     paymentStatus: 'pending',
     photos: { before: [], after: [] },
   };
 
-  const docRef = await addDoc(bookingsRef, {
+  // Random 4-digit suffix for a display-friendly booking ref
+  const suffix = String(Math.floor(1000 + Math.random() * 9000));
+  const bookingRef = `PC-${suffix}`;
+
+  const docRef = await addDoc(collection(db, 'bookings'), {
     ...newBooking,
+    bookingRef,
     customerName: data.customerName,
-    customerPhone: data.customerPhone,
+    customerPhone: `+91${data.customerPhone}`,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
 
-  return docRef.id;
+  return { docId: docRef.id, bookingRef };
 }
