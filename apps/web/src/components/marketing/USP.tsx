@@ -38,7 +38,7 @@ export default function USP() {
             <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: '#fff', fontWeight: 500, lineHeight: 1.3 }}>
               Safe Paint-Friendly<br />Process
             </div>
-            <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)'.5, color: 'var(--pc-fg-2)', lineHeight: 1.5, marginTop: 8 }}>
+            <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-2)', lineHeight: 1.5, marginTop: 8 }}>
               Our techniques protect your paintwork from swirl marks, scratches, and harsh chemicals.
             </div>
           </div>

@@ -22,10 +22,10 @@ export default function ServiceFeature({ num, name, price, title, body }: Servic
 
   return (
     <div style={{
-      margin: '0 56px',
+      margin: 'var(--pc-screen-pad-lg)',
       background: 'var(--pc-card)',
       border: '1px solid var(--pc-line)',
-      borderRadius: 20, padding: 28,
+      borderRadius: 20, padding: 'var(--pc-space-8)',
       display: 'flex', flexDirection: 'column', gap: 24,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

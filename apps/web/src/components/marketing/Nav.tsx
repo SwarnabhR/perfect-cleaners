@@ -43,7 +43,7 @@ export default function Nav() {
           return (
             <Link key={href} href={href} style={{
               padding: '8px 18px', borderRadius: 999,
-              fontFamily: 'var(--pc-sans)', fontSize: 12, fontWeight: 500,
+              fontFamily: 'var(--pc-sans)', 'var(--pc-text-xs)', fontWeight: 500,
               letterSpacing: '0.04em',
               background: active ? 'var(--pc-ink)' : 'transparent',
               color: active ? '#fff' : 'var(--pc-fg-2)',
@@ -58,7 +58,7 @@ export default function Nav() {
       {/* Book Now CTA */}
       <Link href="/book" style={{
         padding: '9px 20px', borderRadius: 999,
-        fontFamily: 'var(--pc-sans)', fontSize: 12, fontWeight: 600,
+        fontFamily: 'var(--pc-sans)', 'var(--pc-text-xs)', fontWeight: 600,
         letterSpacing: '0.04em',
         background: 'var(--pc-warm)',
         color: 'var(--pc-ink)',
@@ -77,8 +77,8 @@ export default function Nav() {
       }}>
         <Avatar name="Aarav Mehta" size={30} />
         <div>
-          <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: '#fff', fontWeight: 500, lineHeight: 1.2 }}>Aarav Mehta</div>
-          <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, color: 'var(--pc-fg-3)', letterSpacing: '0.06em', lineHeight: 1.2 }}>aarav@mail.com</div>
+          <div style={{ fontFamily: 'var(--pc-sans)', 'var(--pc-text-xs)', color: '#fff', fontWeight: 500, lineHeight: 1.2 }}>Aarav Mehta</div>
+          <div style={{ fontFamily: 'var(--pc-mono)', 'var(--pc-text-xs)', color: 'var(--pc-fg-3)', letterSpacing: '0.06em', lineHeight: 1.2 }}>aarav@mail.com</div>
         </div>
         <Icon name="chevron-down" size={12} color="var(--pc-fg-3)" style={{ marginLeft: 4 }} />
       </div>

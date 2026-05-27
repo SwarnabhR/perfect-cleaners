@@ -16,7 +16,7 @@ export default function Hero() {
         }}>
           Bringing Your Car&apos;s<br />Shine Back to Life
         </div>
-        <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 15, color: 'var(--pc-fg-2)', lineHeight: 1.5, maxWidth: 440 }}>
+        <div style={{ fontFamily: 'var(--pc-sans)', 'var(--pc-text-base)', color: 'var(--pc-fg-2)', lineHeight: 1.5, maxWidth: 440 }}>
           Professional detailing, advanced technology, and showroom-quality results — at your home, office, or our centre in Ghaziabad.
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
@@ -57,7 +57,7 @@ export default function Hero() {
           <Card style={{ padding: 12, minHeight: 70, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <Eyebrow>[02]</Eyebrow>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-              <div style={{ fontFamily: 'var(--pc-sans)', fontSize: '(var--pc-text-xs)', color: '#fff', maxWidth: 130 }}>
+              <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: '#fff', maxWidth: 130 }}>
                 Trusted by 1,500+<br />Car Owners
               </div>
               <Icon name="users" size={14} color="var(--pc-fg-3)" />
