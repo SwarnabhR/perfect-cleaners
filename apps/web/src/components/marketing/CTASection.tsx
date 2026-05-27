@@ -5,7 +5,7 @@ import CarImage from '@/components/ui/CarImage';
 export default function CTASection() {
   return (
     <div style={{
-      margin: '80px 56px 0', position: 'relative', borderRadius: 24, overflow: 'hidden',
+      margin: 'var(--pc-space-20) var(--pc-screen-pad-lg) 0', position: 'relative', borderRadius: 24, overflow: 'hidden',
       minHeight: 280, border: '1px solid var(--pc-line)',
     }}>
       <CarImage tone="dark" style={{ position: 'absolute', inset: 0, borderRadius: 0, border: 'none' }} />

@@ -138,7 +138,7 @@
 }
 
 ::selection {
-  background-color: var(74, 94, 68, 0.35);
+  background-color: rgba(74, 94, 68, 0.35);
   color: var(--pc-fg);
 }
 

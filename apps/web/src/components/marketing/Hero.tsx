@@ -7,7 +7,7 @@ import Image from 'next/image';
 
 export default function Hero() {
   return (
-    <div style={{ padding: '40px 56px 0', display: 'grid', gridTemplateColumns: '1fr 1.05fr', gap: 32, alignItems: 'stretch' }}>
+    <div style={{ padding: 'var(--pc-space-10) var(--pc-screen-pad-lg) 0', display: 'grid', gridTemplateColumns: '1fr 1.05fr', gap: 32, alignItems: 'stretch' }}>
       {/* Left: headline + CTAs */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 22, paddingTop: 22 }}>
         <div style={{
@@ -48,7 +48,7 @@ export default function Hero() {
           <Card style={{ padding: 12, minHeight: 70, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <Eyebrow>[01]</Eyebrow>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-              <div style={{ fontFamily: 'var(--pc-sans)', fontSize: '(var--pc-text-xs)', color: '#fff', maxWidth: 110 }}>
+              <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: '#fff', maxWidth: 110 }}>
                 Mobile Service<br />Available
               </div>
               <Icon name="phone" size={14} color="var(--pc-fg-3)" />
