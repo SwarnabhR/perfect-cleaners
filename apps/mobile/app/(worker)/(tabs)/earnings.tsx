@@ -3,7 +3,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography, spacing, radii } from '@pc/tokens';
-import { Group, Row } from '../../components/RowGroup';
+import { Group, Row } from '../../../components/RowGroup';
 import { IndianRupee } from 'lucide-react-native';
 
 const DAYS: [string, number][] = [

@@ -37,7 +37,7 @@ export function CreditCard({
       toValue: flipped ? 1 : 0,
       friction: 8,
       tension: 40,
-      useNativeDriver: true,
+      useNativeDriver: false,
     }).start();
   }, [flipped]);
 

@@ -1,5 +1,6 @@
 import Nav from '@/components/marketing/Nav';
 import Footer from '@/components/marketing/Footer';
+import CTASection from '@/components/marketing/CTASection';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Card from '@/components/ui/Card';
 
@@ -7,7 +8,7 @@ export default function AboutPage() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--pc-ink)', display: 'flex', flexDirection: 'column' }}>
       <Nav />
-      <main style={{ flex: 1, padding: '120px 56px' }}>
+      <main style={{ flex: 1, padding: '80px 56px 80px' }}>
         <div style={{ maxWidth: 800, margin: '0 auto', textAlign: 'center' }}>
           <Eyebrow>[OUR STORY]</Eyebrow>
           <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 72, color: 'var(--pc-fg)', margin: '16px 0 32px', lineHeight: 1.1 }}>
@@ -21,8 +22,9 @@ export default function AboutPage() {
         </div>
 
         <div style={{ maxWidth: 1000, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 64, marginBottom: 120 }}>
-          <div style={{ height: 400, background: 'var(--pc-card)', borderRadius: 16, overflow: 'hidden' }}>
-            <div style={{ width: '100%', height: '100%', background: 'var(--pc-card-hi)' }} />
+          <div style={{ position: 'relative', height: 400, background: 'var(--pc-card)', borderRadius: 16, overflow: 'hidden', border: '1px solid var(--pc-line)' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/hero-professional-detailer.png" alt="Detailer at work" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
             <h2 style={{ fontFamily: 'var(--pc-serif)', fontSize: 40, color: 'var(--pc-fg)', marginBottom: 24 }}>The Perfect Cleaners Standard</h2>
@@ -35,7 +37,7 @@ export default function AboutPage() {
           </div>
         </div>
 
-        <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+        <div style={{ maxWidth: 1000, margin: '0 auto', marginBottom: 120 }}>
           <h2 style={{ fontFamily: 'var(--pc-serif)', fontSize: 40, color: 'var(--pc-fg)', marginBottom: 40, textAlign: 'center' }}>Our Core Values</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
             <Card style={{ padding: 32 }}>
@@ -55,6 +57,8 @@ export default function AboutPage() {
             </Card>
           </div>
         </div>
+        
+        <CTASection />
       </main>
       <Footer />
     </div>

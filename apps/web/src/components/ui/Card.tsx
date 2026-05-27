@@ -1,10 +1,10 @@
-interface CardProps {
+interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   style?: React.CSSProperties;
   onClick?: () => void;
 }
 
-export default function Card({ children, style, onClick }: CardProps) {
+export default function Card({ children, style, onClick, ...props }: CardProps) {
   return (
     <div
       onClick={onClick}
@@ -17,6 +17,7 @@ export default function Card({ children, style, onClick }: CardProps) {
         transition: onClick ? 'background var(--pc-dur-base) var(--pc-ease)' : undefined,
         ...style,
       }}
+      {...props}
     >
       {children}
     </div>

@@ -14,7 +14,7 @@ export default function Index() {
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 300,
-      useNativeDriver: true,
+      useNativeDriver: false,
     }).start();
 
     // Check auth/role state
@@ -35,7 +35,7 @@ export default function Index() {
 
   return (
     <View style={s.root}>
-      <Animated.View style={[s.content, { opacity }]}>
+      <Animated.View style={[s.content, { opacity: fadeAnim }]}>
         <View style={s.monogramWrap}>
           <PCMonogram size={32} />
         </View>

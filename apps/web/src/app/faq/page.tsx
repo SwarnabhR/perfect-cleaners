@@ -2,7 +2,9 @@
 import { useState } from 'react';
 import Nav from '@/components/marketing/Nav';
 import Footer from '@/components/marketing/Footer';
-import Eyebrow from '@/components/ui/Eyebrow';
+import SectionHeader from '@/components/marketing/SectionHeader';
+import CTASection from '@/components/marketing/CTASection';
+import Card from '@/components/ui/Card';
 import Icon from '@/components/ui/Icon';
 
 const FAQS = [
@@ -17,40 +19,37 @@ export default function FAQPage() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--pc-ink)', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--pc-ink)', display: 'flex', flexDirection: 'column', color: 'white' }}>
       <Nav />
-      <main style={{ flex: 1, padding: '120px 56px' }}>
-        <div style={{ maxWidth: 800, margin: '0 auto', textAlign: 'center', marginBottom: 80 }}>
-          <Eyebrow>[FAQ]</Eyebrow>
-          <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 72, color: 'var(--pc-fg)', margin: '16px 0 24px', lineHeight: 1.1 }}>
-            Common Questions.
-          </h1>
-          <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 18, color: 'var(--pc-fg-2)', lineHeight: 1.5 }}>
-            Everything you need to know about our services, process, and bookings.
-          </p>
-        </div>
-
-        <div style={{ maxWidth: 800, margin: '0 auto', display: 'flex', flexDirection: 'column' }}>
+      <main style={{ flex: 1 }}>
+        <SectionHeader 
+          badgeText="[FAQ]"
+          title="Common Questions."
+          subtitle="Everything you need to know about our services, process, and bookings."
+        />
+        <div style={{ padding: '24px 56px 80px', maxWidth: 800, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
           {FAQS.map((faq, i) => (
-            <div key={i} style={{ borderBottom: '1px solid var(--pc-line)' }}>
+            <Card key={i} style={{ padding: 0, overflow: 'hidden' }}>
               <button 
                 onClick={() => setOpenIndex(openIndex === i ? null : i)}
                 style={{ 
                   width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-                  padding: '24px 0', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left'
+                  padding: '24px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left',
+                  color: 'white'
                 }}
               >
-                <h3 style={{ fontFamily: 'var(--pc-sans)', fontSize: 20, color: 'var(--pc-fg)', fontWeight: 500 }}>{faq.q}</h3>
+                <h3 style={{ fontFamily: 'var(--pc-sans)', fontSize: 18, color: 'var(--pc-fg)', fontWeight: 500 }}>{faq.q}</h3>
                 <Icon name={openIndex === i ? 'minus' : 'plus'} size={20} color="var(--pc-fg-3)" />
               </button>
               {openIndex === i && (
-                <div style={{ paddingBottom: 24 }}>
-                  <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 16, color: 'var(--pc-fg-2)', lineHeight: 1.6 }}>{faq.a}</p>
+                <div style={{ padding: '0 24px 24px' }}>
+                  <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 15, color: 'var(--pc-fg-2)', lineHeight: 1.6 }}>{faq.a}</p>
                 </div>
               )}
-            </div>
+            </Card>
           ))}
         </div>
+        <CTASection />
       </main>
       <Footer />
     </div>

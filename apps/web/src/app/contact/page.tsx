@@ -61,7 +61,11 @@ export default function ContactPage() {
           </div>
 
           {/* Right: Form */}
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <div style={{ position: 'relative', width: '100%', height: 160, borderRadius: 12, overflow: 'hidden', border: '1px solid var(--pc-line)' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/gallery-interior.png" alt="Contact Us" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+            </div>
             <Card style={{ padding: 40 }}>
               <h2 style={{ fontFamily: 'var(--pc-serif)', fontSize: 32, color: 'var(--pc-fg)', marginBottom: 24 }}>Send a Message</h2>
               <form style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>

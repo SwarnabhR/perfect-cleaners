@@ -84,7 +84,7 @@ export default function PaymentSuccess() {
         toValue: 1,
         friction: 4,
         tension: 120,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     ]).start();
   }, []);

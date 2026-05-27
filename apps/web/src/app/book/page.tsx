@@ -16,6 +16,11 @@ export default function BookPage() {
             <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 48, color: 'var(--pc-fg)', margin: '8px 0 32px' }}>
               Schedule Your Detail.
             </h1>
+            
+            <div style={{ position: 'relative', width: '100%', height: 200, borderRadius: 12, overflow: 'hidden', marginBottom: 40, border: '1px solid var(--pc-line)' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/hero-booking-app.png" alt="Booking app preview" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+            </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
               <section>

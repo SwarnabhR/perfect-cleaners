@@ -9,6 +9,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import auth from '@react-native-firebase/auth';
 import { colors, typography, spacing, radii } from '@pc/tokens';
+import { Group, Row } from '../../../components/RowGroup';
 import PCMonogram from '../../../components/PCMonogram';
 
 interface StoredProfile {
@@ -111,12 +112,6 @@ export default function ProfileScreen() {
         </View>
         <ChevronRight size={16} color={colors.fg3} strokeWidth={1.5} />
       </View>
-
-import { Group, Row } from '../../../components/RowGroup';
-
-// ... (imports and PREF_ICONS stay mostly the same but we add Group/Row)
-
-  // ... (inside component)
 
       {/* Cars */}
       <Group header="Your Cars">

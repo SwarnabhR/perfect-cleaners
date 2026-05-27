@@ -36,7 +36,7 @@ export default function PaymentMethodsScreen() {
   useEffect(() => {
     Animated.spring(expandAnim, {
       toValue: expanded ? 1 : 0,
-      useNativeDriver: true,
+      useNativeDriver: false,
       friction: 8,
       tension: 40,
     }).start();
