@@ -13,7 +13,10 @@ export default function CTASection() {
         position: 'absolute', inset: 0,
         background: 'linear-gradient(90deg, rgba(14,13,11,0.95) 35%, rgba(14,13,11,0.4) 65%, rgba(14,13,11,0.0) 100%)',
       }} />
-      <div style={{ position: 'relative', padding: '48px 40px', maxWidth: 600, display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <div
+        className="pc-cta-inner"
+        style={{ position: 'relative', padding: '48px 40px', maxWidth: 600, display: 'flex', flexDirection: 'column', gap: 18 }}
+      >
         <Eyebrow>[BOOK NOW]</Eyebrow>
         <div style={{
           fontFamily: 'var(--pc-serif)', fontSize: 'var(--pc-text-3xl)', lineHeight: 1.05,
@@ -26,6 +29,15 @@ export default function CTASection() {
           <GhostButton style={{ padding: '13px 24px' }}>Contact Us</GhostButton>
         </div>
       </div>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .pc-cta-inner {
+            padding: var(--pc-space-8) var(--pc-space-6) !important;
+            max-width: 100% !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

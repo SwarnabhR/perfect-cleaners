@@ -31,7 +31,12 @@ export default function ServiceFeature({ num, name, price, title, body }: Servic
         <Eyebrow>[SERVICE] [{num}] / {name.toUpperCase()}</Eyebrow>
         <Icon name="arrow-up-right" size={16} color="var(--pc-fg-2)" />
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr 1fr', gap: 16, alignItems: 'stretch' }}>
+
+      <div
+        className="pc-sf-grid"
+        style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr 1fr', gap: 16, alignItems: 'stretch' }}
+      >
+        {/* Dual image stack */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <div style={{ height: 140, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--pc-line)', position: 'relative' }}>
@@ -48,12 +53,16 @@ export default function ServiceFeature({ num, name, price, title, body }: Servic
             </div>
           </div>
         </div>
-        <div style={{ height: 280, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--pc-line)', position: 'relative' }}>
+
+        {/* Portrait image */}
+        <div className="pc-sf-portrait" style={{ height: 280, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--pc-line)', position: 'relative' }}>
           {imgA && (
             <Image src={imgA} alt={name} fill style={{ objectFit: 'cover', objectPosition: 'center top' }} />
           )}
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 60%, rgba(14,13,11,0.5) 100%)' }} />
         </div>
+
+        {/* Price + info */}
         <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: 'var(--pc-space-2) 0', gap: 24 }}>
           <div>
             <Eyebrow>FROM</Eyebrow>
@@ -74,6 +83,17 @@ export default function ServiceFeature({ num, name, price, title, body }: Servic
           </div>
         </div>
       </div>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .pc-sf-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .pc-sf-portrait {
+            height: 200px !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

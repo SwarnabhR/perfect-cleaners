@@ -114,6 +114,30 @@
 }
 
 /* ====================================================================
+   Responsive token overrides
+   ==================================================================== */
+
+@media (max-width: 768px) {
+  :root {
+    --pc-screen-pad-lg: 20px;
+    --pc-text-hero: 38px;
+    --pc-text-3xl:  28px;
+    --pc-text-xl:   20px;
+    --pc-space-20:  48px;
+    --pc-space-16:  40px;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --pc-screen-pad-lg: 16px;
+    --pc-text-hero: 30px;
+    --pc-text-3xl:  24px;
+    --pc-space-20:  40px;
+  }
+}
+
+/* ====================================================================
    Reset + base
    ==================================================================== */
 
@@ -164,3 +188,23 @@ body {
 
 a { color: inherit; text-decoration: none; }
 button { cursor: pointer; }
+
+/* ====================================================================
+   Mobile utility classes used by marketing components
+   ==================================================================== */
+
+.pc-mobile-menu {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .pc-hide-mobile   { display: none !important; }
+  .pc-mobile-menu   { display: flex !important; }
+  .pc-stack-mobile  { display: flex !important; flex-direction: column !important; }
+  .pc-grid-2-mobile { grid-template-columns: 1fr 1fr !important; }
+  .pc-grid-1-mobile { grid-template-columns: 1fr !important; }
+}
+
+@media (max-width: 480px) {
+  .pc-grid-1-sm { grid-template-columns: 1fr !important; }
+}

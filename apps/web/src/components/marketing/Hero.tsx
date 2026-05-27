@@ -7,7 +7,10 @@ import Image from 'next/image';
 
 export default function Hero() {
   return (
-    <div style={{ padding: 'var(--pc-space-10) var(--pc-screen-pad-lg) 0', display: 'grid', gridTemplateColumns: '1fr 1.05fr', gap: 32, alignItems: 'stretch' }}>
+    <div
+      className="pc-hero-grid"
+      style={{ padding: 'var(--pc-space-10) var(--pc-screen-pad-lg) 0', display: 'grid', gridTemplateColumns: '1fr 1.05fr', gap: 32, alignItems: 'stretch' }}
+    >
       {/* Left: headline + CTAs */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 22, paddingTop: 22 }}>
         <div style={{
@@ -26,7 +29,7 @@ export default function Hero() {
       </div>
 
       {/* Right: image tiles + info cards */}
-      <div>
+      <div className="pc-hero-right">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, height: 250 }}>
           <div style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', border: '1px solid var(--pc-line)' }}>
             <Image src="/hero-professional-detailer.png" alt="Professional detailer" fill style={{ objectFit: 'cover' }} />
@@ -66,12 +69,38 @@ export default function Hero() {
         </div>
       </div>
 
-      {/* Wide car bento beneath */}
-      <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '1fr 0.8fr 1.6fr', gap: 10, marginTop: 18 }}>
+      {/* Wide car bento beneath — spans full width */}
+      <div
+        className="pc-hero-bento"
+        style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '1fr 0.8fr 1.6fr', gap: 10, marginTop: 18 }}
+      >
         <CarImage tone="light" label="ATTENTION TO DETAIL" style={{ minHeight: 220 }} />
         <CarImage tone="dark"  style={{ minHeight: 220 }} />
         <CarImage tone="sage"  style={{ minHeight: 220 }} />
       </div>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .pc-hero-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .pc-hero-right {
+            display: none;
+          }
+          .pc-hero-bento {
+            grid-column: 1 / -1 !important;
+            grid-template-columns: 1fr 1fr !important;
+          }
+        }
+        @media (max-width: 480px) {
+          .pc-hero-bento {
+            grid-template-columns: 1fr !important;
+          }
+          .pc-hero-bento > *:nth-child(3) {
+            display: none;
+          }
+        }
+      `}</style>
     </div>
   );
 }

@@ -24,7 +24,10 @@ export default function PremiumSection() {
       margin: 'var(--pc-space-8) var(--pc-screen-pad-lg) 0',
       background: 'var(--pc-sage)', borderRadius: 24, padding: 'var(--pc-space-8) var(--pc-space-8) var(--pc-space-6)',
     }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 24, marginBottom: 'var(--pc-space-8)' }}>
+      <div
+        className="pc-premium-header"
+        style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 24, marginBottom: 'var(--pc-space-8)' }}
+      >
         <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xl)', lineHeight: 1.4, color: '#fff', maxWidth: 600, fontWeight: 400 }}>
           we offer a range of premium services designed to protect and enhance your vehicle&apos;s appearance.
         </div>
@@ -42,7 +45,11 @@ export default function PremiumSection() {
           }}>Contact Us</button>
         </div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+
+      <div
+        className="pc-premium-tiles"
+        style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}
+      >
         {ITEMS.map((s, i) => (
           <div key={i} style={{
             background: 'var(--pc-sage-lo)', borderRadius: 14, padding: 'var(--pc-space-4)',
@@ -65,6 +72,23 @@ export default function PremiumSection() {
           </div>
         ))}
       </div>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .pc-premium-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+          }
+          .pc-premium-tiles {
+            grid-template-columns: 1fr 1fr !important;
+          }
+        }
+        @media (max-width: 480px) {
+          .pc-premium-tiles {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

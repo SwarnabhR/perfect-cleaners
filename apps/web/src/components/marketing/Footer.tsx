@@ -1,15 +1,19 @@
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
+import Image from 'next/image';
 
 const SOCIAL_ICONS = ['camera', 'phone', 'shield', 'star'] as const;
 
 export default function Footer() {
   return (
-    <footer style={{
-      padding: 'var(--pc-space-20) var(--pc-screen-pad-lg) var(--pc-space-10)',
-      display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 1fr', gap: 40,
-      borderTop: '1px solid var(--pc-line)', marginTop: 'var(--pc-space-20)',
-    }}>
+    <footer
+      className="pc-footer-grid"
+      style={{
+        padding: 'var(--pc-space-20) var(--pc-screen-pad-lg) var(--pc-space-10)',
+        display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 1fr', gap: 40,
+        borderTop: '1px solid var(--pc-line)', marginTop: 'var(--pc-space-20)',
+      }}
+    >
       {/* Brand */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -64,6 +68,20 @@ export default function Footer() {
           ))}
         </div>
       </div>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .pc-footer-grid {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 32px !important;
+          }
+        }
+        @media (max-width: 480px) {
+          .pc-footer-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </footer>
   );
 }
