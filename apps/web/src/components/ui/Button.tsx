@@ -16,7 +16,7 @@ export function PrimaryButton({ children, full, style, className, ...props }: Bu
         padding: 'var(--pc-space-3) var(--pc-space-6)',
         fontFamily: 'var(--pc-sans)',
         fontSize: 'var(--pc-text-sm)',
-        fontWeight: 500,
+        fontWeight: 600,
         letterSpacing: 'var(--pc-track-wide)',
         textTransform: 'uppercase',
         width: full ? '100%' : undefined,

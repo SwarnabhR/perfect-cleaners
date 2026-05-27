@@ -9,9 +9,18 @@ interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export default function Card({ children, style, onClick, hover, ...props }: CardProps) {
   const interactive = !!onClick || hover;
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+    if (onClick && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      onClick();
+    }
+  }
+
   return (
     <div
       onClick={onClick}
+      onKeyDown={interactive ? handleKeyDown : undefined}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
       style={{
