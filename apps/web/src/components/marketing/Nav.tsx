@@ -7,13 +7,13 @@ import Icon from '@/components/ui/Icon';
 import Image from 'next/image';
 
 const NAV_LINKS = [
-  { label: 'Home',       href: '/'           },
-  { label: 'Services',   href: '/services'   },
-  { label: 'Gallery',    href: '/gallery'    },
-  { label: 'About',      href: '/about'      },
-  { label: 'Journal',    href: '/journal'    },
-  { label: 'Membership', href: '/membership' },
-  { label: 'Contact',    href: '/contact'    },
+  { label: 'Home',     href: '/'         },
+  { label: 'Services', href: '/services' },
+  { label: 'Plans',    href: '/plans'    },
+  { label: 'Gallery',  href: '/gallery'  },
+  { label: 'About',    href: '/about'    },
+  { label: 'Journal',  href: '/journal'  },
+  { label: 'Contact',  href: '/contact'  },
 ] as const;
 
 // Glass surface values are intentional one-off rgba tints derived from
