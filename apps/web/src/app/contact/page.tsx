@@ -3,7 +3,6 @@ import Footer from '@/components/marketing/Footer';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Card from '@/components/ui/Card';
 import Icon from '@/components/ui/Icon';
-import Image from 'next/image';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -11,88 +10,239 @@ export const metadata: Metadata = {
   description: 'Get in touch for questions, custom quotes, or partnerships.',
 };
 
+const CONTACT_ITEMS = [
+  {
+    icon: 'map-pin',
+    label: 'Visit Our Centre',
+    lines: ['B-204 Industrial Area', 'Kavi Nagar, Ghaziabad', 'UP 201002'],
+  },
+  {
+    icon: 'phone',
+    label: 'Call Us',
+    lines: ['+91 98765 43210', 'Mon–Sun: 9:00 AM – 9:00 PM IST'],
+  },
+  {
+    icon: 'mail',
+    label: 'Email Us',
+    lines: ['hello@perfectcleaners.in'],
+  },
+] as const;
+
 export default function ContactPage() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--pc-ink)', display: 'flex', flexDirection: 'column' }}>
       <Nav />
-      <main style={{ flex: 1, padding: '80px 56px' }}>
-        <div style={{ maxWidth: 1000, margin: '0 auto', display: 'flex', gap: 80 }}>
-          {/* Left: Info */}
-          <div style={{ flex: 1 }}>
-            <Eyebrow>[GET IN TOUCH]</Eyebrow>
-            <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 64, color: 'var(--pc-fg)', margin: '16px 0 32px', lineHeight: 1.1 }}>
-              We're Here to Help.
-            </h1>
-            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 18, color: 'var(--pc-fg-2)', lineHeight: 1.5, marginBottom: 48 }}>
-              Have questions about our services, need a custom quote, or want to discuss a partnership? Drop us a line.
-            </p>
+      <main
+        className="pc-contact-main"
+        style={{ flex: 1, padding: 'var(--pc-space-20) var(--pc-screen-pad-lg)' }}
+      >
+        <div
+          className="pc-contact-layout"
+          style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', gap: 'var(--pc-space-20)', alignItems: 'flex-start' }}
+        >
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
-              <div style={{ display: 'flex', gap: 16 }}>
-                <div style={{ width: 48, height: 48, borderRadius: 24, background: 'var(--pc-card)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name="map-pin" size={20} color="var(--pc-sage)" />
+          {/* ── Left: info ── */}
+          <div style={{ flex: '0 0 380px', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-8)' }}>
+            <div>
+              <Eyebrow>[GET IN TOUCH]</Eyebrow>
+              <h1 style={{
+                fontFamily: 'var(--pc-serif)',
+                fontSize: 'var(--pc-text-3xl)',
+                color: 'var(--pc-fg)',
+                margin: 'var(--pc-space-4) 0 var(--pc-space-6)',
+                lineHeight: 1.05,
+                letterSpacing: '-0.02em',
+              }}>
+                We&apos;re Here<br />to Help.
+              </h1>
+              <p style={{
+                fontFamily: 'var(--pc-sans)',
+                fontSize: 'var(--pc-text-base)',
+                color: 'var(--pc-fg-2)',
+                lineHeight: 1.6,
+              }}>
+                Questions about our services, need a custom quote, or want to discuss a partnership? Drop us a line.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-6)' }}>
+              {CONTACT_ITEMS.map(({ icon, label, lines }) => (
+                <div key={label} style={{ display: 'flex', gap: 'var(--pc-space-4)', alignItems: 'flex-start' }}>
+                  <div style={{
+                    width: 44, height: 44, flexShrink: 0,
+                    borderRadius: 'var(--pc-radius-pill)',
+                    background: 'var(--pc-card)',
+                    border: '1px solid var(--pc-line)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Icon name={icon} size={18} color="var(--pc-sage-hi)" />
+                  </div>
+                  <div>
+                    <div style={{
+                      fontFamily: 'var(--pc-sans)',
+                      fontSize: 'var(--pc-text-sm)',
+                      color: 'var(--pc-fg)',
+                      fontWeight: 600,
+                      marginBottom: 'var(--pc-space-1)',
+                    }}>
+                      {label}
+                    </div>
+                    {lines.map(l => (
+                      <div key={l} style={{
+                        fontFamily: 'var(--pc-sans)',
+                        fontSize: 'var(--pc-text-sm)',
+                        color: 'var(--pc-fg-2)',
+                        lineHeight: 1.6,
+                      }}>{l}</div>
+                    ))}
+                  </div>
                 </div>
-                <div>
-                  <h3 style={{ fontFamily: 'var(--pc-sans)', fontSize: 16, color: 'var(--pc-fg)', fontWeight: 600, marginBottom: 4 }}>Visit Our Centre</h3>
-                  <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg-2)', lineHeight: 1.5 }}>
-                    B-204 Industrial Area<br />
-                    Kavi Nagar, Ghaziabad<br />
-                    UP 201002
-                  </p>
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 16 }}>
-                <div style={{ width: 48, height: 48, borderRadius: 24, background: 'var(--pc-card)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name="phone" size={20} color="var(--pc-sage)" />
-                </div>
-                <div>
-                  <h3 style={{ fontFamily: 'var(--pc-sans)', fontSize: 16, color: 'var(--pc-fg)', fontWeight: 600, marginBottom: 4 }}>Call Us</h3>
-                  <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg-2)', lineHeight: 1.5 }}>
-                    +91 98765 43210<br />
-                    Mon-Sun: 9:00 AM - 9:00 PM
-                  </p>
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 16 }}>
-                <div style={{ width: 48, height: 48, borderRadius: 24, background: 'var(--pc-card)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Icon name="mail" size={20} color="var(--pc-sage)" />
-                </div>
-                <div>
-                  <h3 style={{ fontFamily: 'var(--pc-sans)', fontSize: 16, color: 'var(--pc-fg)', fontWeight: 600, marginBottom: 4 }}>Email Us</h3>
-                  <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg-2)', lineHeight: 1.5 }}>
-                    hello@perfectcleaners.in
-                  </p>
-                </div>
+              ))}
+            </div>
+
+            {/* Divider */}
+            <div style={{ borderTop: '1px solid var(--pc-line)', paddingTop: 'var(--pc-space-6)' }}>
+              <Eyebrow>HOURS</Eyebrow>
+              <div style={{ marginTop: 'var(--pc-space-3)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-2)' }}>
+                {[
+                  ['Monday – Friday', '9:00 AM – 9:00 PM'],
+                  ['Saturday', '8:00 AM – 10:00 PM'],
+                  ['Sunday', '10:00 AM – 7:00 PM'],
+                ].map(([day, time]) => (
+                  <div key={day} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg-2)' }}>{day}</span>
+                    <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)', letterSpacing: '0.06em' }}>{time}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
 
-          {/* Right: Form */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 24 }}>
-            <div style={{ position: 'relative', width: '100%', height: 160, borderRadius: 12, overflow: 'hidden', border: '1px solid var(--pc-line)' }}>
-              <Image src="/contact-hero.png" alt="Contact Us" fill style={{ objectFit: 'cover' }} />
-            </div>
-            <Card style={{ padding: 40 }}>
-              <h2 style={{ fontFamily: 'var(--pc-serif)', fontSize: 32, color: 'var(--pc-fg)', marginBottom: 24 }}>Send a Message</h2>
-              <form style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <label style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', textTransform: 'uppercase' }}>Full Name</label>
-                  <input type="text" style={{ padding: 16, borderRadius: 8, background: 'var(--pc-ink)', border: '1px solid var(--pc-line)', color: 'var(--pc-fg)', fontFamily: 'var(--pc-sans)', fontSize: 14 }} />
+          {/* ── Right: form ── */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <Card style={{ padding: 'var(--pc-space-8)' }}>
+              <h2 style={{
+                fontFamily: 'var(--pc-serif)',
+                fontSize: 'var(--pc-text-2xl)',
+                color: 'var(--pc-fg)',
+                marginBottom: 'var(--pc-space-8)',
+                letterSpacing: '-0.01em',
+              }}>
+                Send a Message
+              </h2>
+              <form style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-5)' }}>
+
+                {/* Name + Phone row */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--pc-space-4)' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-2)' }}>
+                    <label style={{
+                      fontFamily: 'var(--pc-mono)',
+                      fontSize: 'var(--pc-text-xs)',
+                      color: 'var(--pc-fg-3)',
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
+                    }}>Full Name</label>
+                    <input
+                      type="text"
+                      placeholder="Rahul Sharma"
+                      className="pc-input"
+                    />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-2)' }}>
+                    <label style={{
+                      fontFamily: 'var(--pc-mono)',
+                      fontSize: 'var(--pc-text-xs)',
+                      color: 'var(--pc-fg-3)',
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
+                    }}>Phone Number</label>
+                    <input
+                      type="tel"
+                      placeholder="+91 98765 43210"
+                      className="pc-input"
+                    />
+                  </div>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <label style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', textTransform: 'uppercase' }}>Email Address</label>
-                  <input type="email" style={{ padding: 16, borderRadius: 8, background: 'var(--pc-ink)', border: '1px solid var(--pc-line)', color: 'var(--pc-fg)', fontFamily: 'var(--pc-sans)', fontSize: 14 }} />
+
+                {/* Email */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-2)' }}>
+                  <label style={{
+                    fontFamily: 'var(--pc-mono)',
+                    fontSize: 'var(--pc-text-xs)',
+                    color: 'var(--pc-fg-3)',
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                  }}>Email Address</label>
+                  <input
+                    type="email"
+                    placeholder="rahul@example.com"
+                    className="pc-input"
+                  />
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <label style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', textTransform: 'uppercase' }}>Message</label>
-                  <textarea rows={5} style={{ padding: 16, borderRadius: 8, background: 'var(--pc-ink)', border: '1px solid var(--pc-line)', color: 'var(--pc-fg)', fontFamily: 'var(--pc-sans)', fontSize: 14, resize: 'none' }} />
+
+                {/* Service interest */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-2)' }}>
+                  <label style={{
+                    fontFamily: 'var(--pc-mono)',
+                    fontSize: 'var(--pc-text-xs)',
+                    color: 'var(--pc-fg-3)',
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                  }}>Service Interest</label>
+                  <select
+                    className="pc-input"
+                    defaultValue=""
+                    style={{ appearance: 'none', WebkitAppearance: 'none' }}
+                  >
+                    <option value="" disabled>Select a service…</option>
+                    <option value="interior">Interior Detailing</option>
+                    <option value="exterior">Exterior Wash</option>
+                    <option value="coating">Paint Protection &amp; Coating</option>
+                    <option value="membership">Membership Plan</option>
+                    <option value="other">Other / General Enquiry</option>
+                  </select>
                 </div>
-                <button type="button" style={{
-                  padding: '16px 24px', borderRadius: 999,
-                  background: 'var(--pc-warm)', color: 'var(--pc-ink)',
-                  fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 600,
-                  border: 'none', cursor: 'pointer', marginTop: 8
-                }}>Send Message</button>
+
+                {/* Message */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-2)' }}>
+                  <label style={{
+                    fontFamily: 'var(--pc-mono)',
+                    fontSize: 'var(--pc-text-xs)',
+                    color: 'var(--pc-fg-3)',
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                  }}>Message</label>
+                  <textarea
+                    rows={5}
+                    placeholder="Tell us about your car and what you need…"
+                    className="pc-input"
+                    style={{ resize: 'none' }}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  style={{
+                    marginTop: 'var(--pc-space-2)',
+                    padding: 'var(--pc-space-4) var(--pc-space-6)',
+                    borderRadius: 'var(--pc-radius-pill)',
+                    background: 'var(--pc-warm)',
+                    color: 'var(--pc-ink)',
+                    fontFamily: 'var(--pc-sans)',
+                    fontSize: 'var(--pc-text-sm)',
+                    fontWeight: 600,
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'background var(--pc-dur-fast) var(--pc-ease), transform var(--pc-dur-fast) var(--pc-ease)',
+                    alignSelf: 'flex-start',
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--pc-warm-2)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--pc-warm)'; }}
+                >
+                  Send Message →
+                </button>
               </form>
             </Card>
           </div>

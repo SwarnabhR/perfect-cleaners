@@ -1,6 +1,30 @@
 .primary {
-  transition: transform var(--pc-dur-base) var(--pc-ease);
+  cursor: pointer;
+  transition:
+    background var(--pc-dur-fast) var(--pc-ease),
+    transform var(--pc-dur-fast) var(--pc-ease),
+    box-shadow var(--pc-dur-fast) var(--pc-ease);
+}
+.primary:hover {
+  background: var(--pc-warm-2) !important;
+  box-shadow: 0 4px 20px rgba(240,237,232,0.18);
 }
 .primary:active {
+  transform: scale(0.97);
+  background: var(--pc-warm-2) !important;
+}
+
+.ghost {
+  cursor: pointer;
+  transition:
+    background var(--pc-dur-fast) var(--pc-ease),
+    border-color var(--pc-dur-fast) var(--pc-ease),
+    transform var(--pc-dur-fast) var(--pc-ease);
+}
+.ghost:hover {
+  background: rgba(255,255,255,0.06) !important;
+  border-color: rgba(255,255,255,0.28) !important;
+}
+.ghost:active {
   transform: scale(0.97);
 }

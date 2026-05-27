@@ -15,7 +15,7 @@ export function PrimaryButton({ children, full, style, className, ...props }: Bu
         borderRadius: 999,
         padding: '12px 22px',
         fontFamily: 'var(--pc-sans)',
-        fontSize: 13,
+        fontSize: 'var(--pc-text-sm)',
         fontWeight: 500,
         letterSpacing: '0.06em',
         textTransform: 'uppercase',
@@ -29,9 +29,10 @@ export function PrimaryButton({ children, full, style, className, ...props }: Bu
   );
 }
 
-export function GhostButton({ children, full, style, ...props }: ButtonProps) {
+export function GhostButton({ children, full, style, className, ...props }: ButtonProps) {
   return (
     <button
+      className={`${styles.ghost} ${className ?? ''}`}
       style={{
         background: 'transparent',
         color: 'var(--pc-fg)',
@@ -39,7 +40,7 @@ export function GhostButton({ children, full, style, ...props }: ButtonProps) {
         borderRadius: 999,
         padding: '11px 22px',
         fontFamily: 'var(--pc-sans)',
-        fontSize: 13,
+        fontSize: 'var(--pc-text-sm)',
         fontWeight: 500,
         letterSpacing: '0.06em',
         textTransform: 'uppercase',
