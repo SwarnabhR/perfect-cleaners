@@ -1,9 +1,10 @@
-import { ScrollView, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { ScrollView, View, Text, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MessageCircle, Phone, Mail, Search } from 'lucide-react-native';
-import { colors, typography, spacing, radii } from '@pc/tokens';
+import { colors, spacing, radii } from '@pc/tokens';
 import { useThemeColors } from '../../theme';
+import { useSharedStyles } from '../../theme/sharedStyles';
 import { ScreenHeader, Group, Row } from '../../components/RowGroup';
 
 const FAQ = [
@@ -18,11 +19,9 @@ export default function HelpScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const c = useThemeColors();
+  const ss = useSharedStyles();
 
   const s = StyleSheet.create({
-    root: { flex: 1, backgroundColor: c.ink },
-    titleSection: { paddingHorizontal: spacing[5], paddingBottom: spacing[2] },
-    pageTitle: { fontFamily: typography.serif, fontSize: 32, color: c.fg, letterSpacing: -0.3 },
     searchWrap: { paddingHorizontal: spacing[5], paddingBottom: spacing[2] },
     searchBar: {
       flexDirection: 'row', alignItems: 'center', gap: spacing[2],
@@ -30,12 +29,12 @@ export default function HelpScreen() {
       paddingHorizontal: spacing[3], paddingVertical: 10,
       borderWidth: 1, borderColor: c.line,
     },
-    searchPlaceholder: { fontFamily: typography.sans, fontSize: 14, color: c.fg3 },
+    searchPlaceholder: { fontFamily: 'typography.sans', fontSize: 14, color: c.fg3 },
   });
 
   return (
     <ScrollView
-      style={s.root}
+      style={ss.screen}
       contentContainerStyle={{ paddingBottom: spacing[10] }}
       showsVerticalScrollIndicator={false}
     >
@@ -43,8 +42,8 @@ export default function HelpScreen() {
         <ScreenHeader title="Help & Support" />
       </View>
 
-      <View style={s.titleSection}>
-        <Text style={s.pageTitle}>Help.</Text>
+      <View style={ss.titleSection}>
+        <Text style={ss.pageTitle}>Help.</Text>
       </View>
 
       <View style={s.searchWrap}>
@@ -54,7 +53,6 @@ export default function HelpScreen() {
         </View>
       </View>
 
-      {/* iconBg values use static palette — sageHi and success are theme-invariant */}
       <Group header="Get in Touch">
         <Row
           icon={<MessageCircle size={15} color="#fff" strokeWidth={1.5} />}

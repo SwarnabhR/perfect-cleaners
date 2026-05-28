@@ -3,6 +3,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
 import { typography, spacing, radii } from '@pc/tokens';
 import { useThemeColors } from '../../theme';
+import { useSharedStyles } from '../../theme/sharedStyles';
 import { ScreenHeader, Group, Row } from '../../components/RowGroup';
 
 const REFERRAL_CODE = 'AARAV-PC';
@@ -24,15 +25,11 @@ const FRIENDS: Friend[] = [
 export default function ReferralScreen() {
   const insets = useSafeAreaInsets();
   const c = useThemeColors();
+  const ss = useSharedStyles();
 
   const s = StyleSheet.create({
     root: { flex: 1, backgroundColor: c.ink },
     hero: { paddingHorizontal: spacing[5], paddingBottom: spacing[4], alignItems: 'center', gap: spacing[2] },
-    heroEyebrow: { fontFamily: typography.mono, fontSize: 9.5, color: c.fg3, letterSpacing: 0.8, textTransform: 'uppercase' },
-    heroTitle: {
-      fontFamily: typography.serif, fontSize: 36, color: c.fg,
-      letterSpacing: -0.4, lineHeight: 40, textAlign: 'center',
-    },
     heroBody: {
       fontFamily: typography.sans, fontSize: 14, color: c.fg2,
       lineHeight: 21, textAlign: 'center', maxWidth: 290,
@@ -60,7 +57,6 @@ export default function ReferralScreen() {
       flex: 1, backgroundColor: c.card, borderRadius: radii.md,
       borderWidth: 1, borderColor: c.line, padding: 14, gap: 4,
     },
-    statLabel: { fontFamily: typography.mono, fontSize: 9, color: c.fg3, letterSpacing: 0.8, textTransform: 'uppercase' },
     statValue: { fontFamily: typography.serif, fontSize: 28, color: c.fg, letterSpacing: -0.3 },
     friendInitials: { fontFamily: typography.sansSemiBold, fontSize: 12, color: '#fff' },
     pendingText: { fontFamily: typography.sans, fontSize: 13, color: c.fg3 },
@@ -91,8 +87,8 @@ export default function ReferralScreen() {
       </View>
 
       <View style={s.hero}>
-        <Text style={s.heroEyebrow}>[GIVE ₹200, GET ₹200]</Text>
-        <Text style={s.heroTitle}>Share your shine.</Text>
+        <Text style={ss.eyebrow}>[GIVE ₹200, GET ₹200]</Text>
+        <Text style={ss.heroTitle}>Share your shine.</Text>
         <Text style={s.heroBody}>
           Refer a friend with your code. They get ₹200 off their first wash.
           You get ₹200 credit when they book.
@@ -113,11 +109,11 @@ export default function ReferralScreen() {
 
       <View style={s.stats}>
         <View style={s.statCard}>
-          <Text style={s.statLabel}>[FRIENDS JOINED]</Text>
+          <Text style={ss.eyebrow}>[FRIENDS JOINED]</Text>
           <Text style={s.statValue}>3</Text>
         </View>
         <View style={s.statCard}>
-          <Text style={s.statLabel}>[YOU EARNED]</Text>
+          <Text style={ss.eyebrow}>[YOU EARNED]</Text>
           <Text style={s.statValue}>₹600</Text>
         </View>
       </View>

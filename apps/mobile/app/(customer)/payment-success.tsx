@@ -6,8 +6,9 @@ import { Check } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
-import { typography, spacing, radii } from '@pc/tokens';
+import { spacing, radii } from '@pc/tokens';
 import { useThemeColors } from '../../theme';
+import { useSharedStyles } from '../../theme/sharedStyles';
 import HapticButton from '../../components/HapticButton';
 
 const DEMO_BOOKING_ID = 'PC-2058';
@@ -61,6 +62,7 @@ export default function PaymentSuccess() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const c = useThemeColors();
+  const ss = useSharedStyles();
 
   const scale = useRef(new Animated.Value(0)).current;
   const glowOpacity = useRef(new Animated.Value(0)).current;
@@ -84,13 +86,12 @@ export default function PaymentSuccess() {
       alignItems: 'center', justifyContent: 'center',
     },
     textSection: { alignItems: 'center', gap: spacing[2] },
-    eyebrow: { fontFamily: typography.mono, fontSize: 9.5, color: c.fg3, letterSpacing: 0.8, textTransform: 'uppercase' },
     title: {
-      fontFamily: typography.serif, fontSize: 32, color: c.fg,
+      fontFamily: 'typography.serif', fontSize: 32, color: c.fg,
       letterSpacing: -0.3, lineHeight: 35, textAlign: 'center',
     },
     body: {
-      fontFamily: typography.sans, fontSize: 14, color: c.fg2,
+      fontFamily: 'typography.sans', fontSize: 14, color: c.fg2,
       lineHeight: 21, textAlign: 'center', maxWidth: 280,
     },
     emailHighlight: { color: c.fg },
@@ -100,23 +101,9 @@ export default function PaymentSuccess() {
       borderRadius: radii.md, padding: spacing[4], gap: spacing[2],
     },
     detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    detailValue: { fontFamily: typography.mono, fontSize: 11, color: c.fg },
-    detailAmount: { fontFamily: typography.sansSemiBold, fontSize: typography.sm, color: c.fg },
+    detailValue: { fontFamily: 'typography.mono', fontSize: 11, color: c.fg },
+    detailAmount: { fontFamily: 'typography.sansSemiBold', fontSize: 14, color: c.fg },
     actions: { paddingHorizontal: spacing[6], paddingBottom: spacing[8], gap: spacing[1] },
-    primaryBtn: {
-      backgroundColor: c.warm, borderRadius: radii.pill,
-      paddingVertical: 14, alignItems: 'center',
-    },
-    primaryBtnText: {
-      fontFamily: typography.sansSemiBold, fontSize: 13, color: c.ink, letterSpacing: 0.6,
-    },
-    ghostBtn: {
-      borderRadius: radii.pill, paddingVertical: 13, alignItems: 'center',
-      borderWidth: 1, borderColor: c.lineStrong,
-    },
-    ghostBtnText: {
-      fontFamily: typography.sansMedium, fontSize: 13, color: c.fg, letterSpacing: 0.6,
-    },
   });
 
   useEffect(() => {
@@ -152,7 +139,7 @@ export default function PaymentSuccess() {
         </View>
 
         <View style={s.textSection}>
-          <Text style={s.eyebrow}>[CONFIRMED] · #PC-2058</Text>
+          <Text style={ss.eyebrow}>[CONFIRMED] · #PC-2058</Text>
           <Text style={s.title}>Booking confirmed.</Text>
           <Text style={s.body}>
             Premium Wash + Interior · ₹1,080 · Tue 28 May at 2:00 PM. We've sent a receipt to{' '}
@@ -162,15 +149,15 @@ export default function PaymentSuccess() {
 
         <View style={s.detailsCard}>
           <View style={s.detailRow}>
-            <Text style={s.eyebrow}>PAYMENT ID</Text>
+            <Text style={ss.eyebrow}>PAYMENT ID</Text>
             <Text style={s.detailValue}>pay_NL2x9KQ4mZ</Text>
           </View>
           <View style={s.detailRow}>
-            <Text style={s.eyebrow}>METHOD</Text>
+            <Text style={ss.eyebrow}>METHOD</Text>
             <Text style={s.detailValue}>UPI · GPay</Text>
           </View>
           <View style={s.detailRow}>
-            <Text style={s.eyebrow}>AMOUNT</Text>
+            <Text style={ss.eyebrow}>AMOUNT</Text>
             <Text style={s.detailAmount}>₹1,080</Text>
           </View>
         </View>
@@ -179,14 +166,14 @@ export default function PaymentSuccess() {
       <View style={s.actions}>
         <HapticButton
           haptic="success"
-          style={s.primaryBtn}
+          style={ss.primaryBtn}
           onPress={() => router.push('/(customer)/tracker')}
           activeOpacity={0.8}
         >
-          <Text style={s.primaryBtnText}>Track Your Booking →</Text>
+          <Text style={ss.primaryBtnText}>Track Your Booking →</Text>
         </HapticButton>
-        <HapticButton haptic="light" style={s.ghostBtn} activeOpacity={0.7}>
-          <Text style={s.ghostBtnText}>Download Receipt</Text>
+        <HapticButton haptic="light" style={ss.ghostBtn} activeOpacity={0.7}>
+          <Text style={ss.ghostBtnText}>Download Receipt</Text>
         </HapticButton>
       </View>
     </View>

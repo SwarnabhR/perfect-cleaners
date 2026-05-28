@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Home, Building2, MapPin, Plus } from 'lucide-react-native';
 import { typography, spacing, radii } from '@pc/tokens';
 import { useThemeColors } from '../../theme';
+import { useSharedStyles } from '../../theme/sharedStyles';
 import { ScreenHeader, Group, Row, SegCtrl } from '../../components/RowGroup';
 
 type AddressTag = 'home' | 'office' | 'other';
@@ -50,15 +51,15 @@ function SheetField({
   isLast?: boolean;
 }) {
   const c = useThemeColors();
+  const ss = useSharedStyles();
   const s = StyleSheet.create({
     field: { paddingHorizontal: spacing[4], paddingVertical: 11 },
     fieldBorder: { borderBottomWidth: 1, borderBottomColor: c.line },
-    fieldLabel: { fontFamily: typography.mono, fontSize: 9.5, color: c.fg3, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 4 },
     fieldInput: { fontFamily: typography.sans, fontSize: 14, color: c.fg, padding: 0 },
   });
   return (
     <View style={[s.field, !isLast && s.fieldBorder]}>
-      <Text style={s.fieldLabel}>{label}</Text>
+      <Text style={[ss.fieldLabel, { marginBottom: 4 }]}>{label}</Text>
       <TextInput
         style={s.fieldInput}
         placeholder={placeholder}
@@ -155,12 +156,10 @@ function AddAddressSheet({ visible, onClose }: { visible: boolean; onClose: () =
 export default function AddressesScreen() {
   const insets = useSafeAreaInsets();
   const c = useThemeColors();
+  const ss = useSharedStyles();
   const [sheetVisible, setSheetVisible] = useState(false);
 
   const s = StyleSheet.create({
-    root: { flex: 1, backgroundColor: c.ink },
-    titleSection: { paddingHorizontal: spacing[5], paddingBottom: spacing[2] },
-    pageTitle: { fontFamily: typography.serif, fontSize: 32, color: c.fg, letterSpacing: -0.3 },
     addBtn: {
       width: 36, height: 36, borderRadius: radii.pill,
       backgroundColor: c.card, borderWidth: 1, borderColor: c.line,
@@ -178,7 +177,7 @@ export default function AddressesScreen() {
   return (
     <>
       <ScrollView
-        style={s.root}
+        style={ss.screen}
         contentContainerStyle={{ paddingBottom: spacing[10] }}
         showsVerticalScrollIndicator={false}
       >
@@ -187,24 +186,25 @@ export default function AddressesScreen() {
             title="Addresses"
             trailing={
               <TouchableOpacity style={s.addBtn} onPress={() => setSheetVisible(true)} activeOpacity={0.7}>
-                <Plus size={14} color={c.fg} strokeWidth={2} />
+                <Plus size={16} color={c.fg} strokeWidth={1.5} />
               </TouchableOpacity>
             }
           />
         </View>
 
-        <View style={s.titleSection}>
-          <Text style={s.pageTitle}>Your addresses.</Text>
+        <View style={ss.titleSection}>
+          <Text style={ss.pageTitle}>Your addresses.</Text>
         </View>
 
         <Group>
-          {ADDRESSES.map((a, i) => (
+          {ADDRESSES.map((addr, i) => (
             <Row
-              key={a.id}
-              icon={<TagIcon tag={a.tag} />}
-              iconBg={a.primary ? c.sage : c.fg3}
-              title={a.primary ? `${a.label}  [DEFAULT]` : a.label}
-              sub={`${a.line1} · ${a.line2}`}
+              key={addr.id}
+              icon={<TagIcon tag={addr.tag} />}
+              iconBg={addr.tag === 'home' ? '#2D7D6F' : addr.tag === 'office' ? '#4B8CF5' : '#9E9E9E'}
+              title={addr.label}
+              sub={`${addr.line1} · ${addr.line2}`}
+              value={addr.primary ? 'Primary' : undefined}
               onPress={() => {}}
               isLast={i === ADDRESSES.length - 1}
             />
@@ -212,9 +212,9 @@ export default function AddressesScreen() {
         </Group>
 
         <View style={s.addWrap}>
-          <TouchableOpacity style={s.addNewBtn} onPress={() => setSheetVisible(true)} activeOpacity={0.75}>
-            <Plus size={14} color={c.fg2} strokeWidth={1.5} />
-            <Text style={s.addNewText}>Add New Address</Text>
+          <TouchableOpacity style={s.addNewBtn} onPress={() => setSheetVisible(true)} activeOpacity={0.8}>
+            <Plus size={15} color={c.fg2} strokeWidth={1.5} />
+            <Text style={s.addNewText}>ADD NEW ADDRESS</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

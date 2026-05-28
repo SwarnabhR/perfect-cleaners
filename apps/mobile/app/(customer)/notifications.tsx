@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { ScrollView, View, Text, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Check, Car, Star, CreditCard, Bell,
 } from 'lucide-react-native';
 import { colors, typography, spacing } from '@pc/tokens';
 import { useThemeColors } from '../../theme';
+import { useSharedStyles } from '../../theme/sharedStyles';
 import { ScreenHeader, Group, Row } from '../../components/RowGroup';
 
 type IconName = 'check' | 'car' | 'star' | 'card' | 'bell' | 'sparkle';
@@ -20,7 +21,6 @@ interface NotifItem {
   time: string;
 }
 
-// Tint values are theme-invariant semantic colors (success, warning, etc.)
 const ITEMS: NotifItem[] = [
   {
     unread: true, group: 'today', iconName: 'check', tint: colors.success,
@@ -73,6 +73,7 @@ function NotifIcon({ name, size = 15 }: { name: IconName; size?: number }) {
 
 function NotifRow({ n, isLast, onClear }: { n: NotifItem; isLast: boolean; onClear: () => void }) {
   const c = useThemeColors();
+  const ss = useSharedStyles();
   const [showClear, setShowClear] = useState(false);
 
   return (
@@ -106,20 +107,12 @@ function NotifRow({ n, isLast, onClear }: { n: NotifItem; isLast: boolean; onCle
 export default function NotificationsScreen() {
   const insets = useSafeAreaInsets();
   const c = useThemeColors();
+  const ss = useSharedStyles();
   const [items, setItems] = useState(ITEMS);
-
-  const s = StyleSheet.create({
-    root: { flex: 1, backgroundColor: c.ink },
-    markAll: { fontFamily: typography.sansMedium, fontSize: 13, color: c.sageHi, letterSpacing: 0.2 },
-  });
-
-  const handleMarkAllRead = () => {
-    setItems(items.map(item => ({ ...item, unread: false })));
-  };
 
   return (
     <ScrollView
-      style={s.root}
+      style={ss.screen}
       contentContainerStyle={{ paddingBottom: spacing[10] }}
       showsVerticalScrollIndicator={false}
     >
@@ -127,8 +120,14 @@ export default function NotificationsScreen() {
         <ScreenHeader
           title="Inbox"
           trailing={
-            <TouchableOpacity activeOpacity={0.7} hitSlop={8} onPress={handleMarkAllRead}>
-              <Text style={s.markAll}>Mark all read</Text>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              hitSlop={8}
+              onPress={() => setItems(items.map(item => ({ ...item, unread: false })))}
+            >
+              <Text style={{ fontFamily: typography.sansMedium, fontSize: 13, color: c.sageHi, letterSpacing: 0.2 }}>
+                Mark all read
+              </Text>
             </TouchableOpacity>
           }
         />
