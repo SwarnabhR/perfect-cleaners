@@ -13,29 +13,13 @@ const OTP_LEN = 6;
 
 export default function OTPScreen() {
   const { phone, verificationId } = useLocalSearchParams<{ phone: string; verificationId: string }>();
-  const [digits, setDigits] = useState<string[]>(Array(OTP_LEN).fill(''));
+  const [digits,  setDigits]  = useState<string[]>(Array(OTP_LEN).fill(''));
   const [loading, setLoading] = useState(false);
-  const refs = useRef<(TextInput | null)[]>(Array(OTP_LEN).fill(null));
-  const router = useRouter();
-  const c = useThemeColors();
-  const ss = useSharedStyles();
+  const refs    = useRef<(TextInput | null)[]>(Array(OTP_LEN).fill(null));
+  const router  = useRouter();
+  const c       = useThemeColors();
+  const ss      = useSharedStyles();
   const complete = digits.every(Boolean);
-
-  const s = StyleSheet.create({
-    header: { gap: 8 },
-    title: ss.onboardingTitle,
-    sub: ss.subtitle,
-    otpRow: { flexDirection: 'row', gap: spacing[2] },
-    box: {
-      flex: 1, height: 56,
-      backgroundColor: c.card, borderWidth: 1, borderColor: c.line,
-      borderRadius: radii.sm,
-      fontFamily: 'JetBrains Mono', fontSize: 20, color: c.fg,
-    },
-    boxFilled: { borderColor: c.sageHi },
-    resend: { alignItems: 'center' },
-    resendText: ss.subtitle,
-  });
 
   function handleDigit(val: string, idx: number) {
     const d = val.replace(/\D/g, '').slice(-1);
@@ -81,8 +65,8 @@ export default function OTPScreen() {
       <BackButton />
 
       <View style={s.header}>
-        <Text style={s.title}>Verify Phone</Text>
-        <Text style={s.sub}>6-digit code sent to +91 {phone}</Text>
+        <Text style={ss.onboardingTitle}>Verify Phone</Text>
+        <Text style={ss.subtitle}>6-digit code sent to +91 {phone}</Text>
       </View>
 
       <View style={s.otpRow}>
@@ -90,7 +74,10 @@ export default function OTPScreen() {
           <TextInput
             key={i}
             ref={el => { refs.current[i] = el; }}
-            style={[s.box, d && s.boxFilled]}
+            style={[
+              s.box,
+              { backgroundColor: c.card, borderColor: d ? c.sageHi : c.line, color: c.fg },
+            ]}
             value={d}
             onChangeText={val => handleDigit(val, i)}
             onKeyPress={({ nativeEvent }) => {
@@ -114,8 +101,16 @@ export default function OTPScreen() {
       </TouchableOpacity>
 
       <TouchableOpacity style={s.resend}>
-        <Text style={s.resendText}>Didn't receive a code? Resend</Text>
+        <Text style={ss.subtitle}>Didn’t receive a code? Resend</Text>
       </TouchableOpacity>
     </AuthScreenShell>
   );
 }
+
+// ─── Module-level StyleSheet ─────────────────────────────────────────────────
+const s = StyleSheet.create({
+  header: { gap: 8 },
+  otpRow: { flexDirection: 'row', gap: spacing[2] },
+  box:    { flex: 1, height: 56, borderWidth: 1, borderRadius: radii.sm, fontFamily: 'JetBrains Mono', fontSize: 20 },
+  resend: { alignItems: 'center' },
+});

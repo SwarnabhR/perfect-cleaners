@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, Platform, Alert,
+  StyleSheet, Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import auth from '@react-native-firebase/auth';
@@ -20,48 +20,12 @@ const DEMO_PROFILE = JSON.stringify({
 });
 
 export default function LoginScreen() {
-  const [phone, setPhone] = useState('');
+  const [phone,   setPhone]   = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const c = useThemeColors();
+  const c  = useThemeColors();
   const ss = useSharedStyles();
   const ready = phone.length === 10;
-
-  const s = StyleSheet.create({
-    logoArea: { alignItems: 'center', gap: spacing[2] },
-    form: { gap: spacing[3] },
-    phoneRow: { flexDirection: 'row', gap: 8 },
-    prefix: {
-      backgroundColor: c.card, borderWidth: 1, borderColor: c.line,
-      borderRadius: radii.sm, paddingHorizontal: spacing[4],
-      alignItems: 'center', justifyContent: 'center',
-    },
-    prefixText: { fontFamily: 'Inter Tight', fontSize: 16, color: c.fg2 },
-    input: [
-      ss.formInput,
-      { flex: 1, height: 48 } as any,
-    ],
-    disclaimer: {
-      fontFamily: 'Inter Tight', fontSize: 11,
-      color: c.fg4, textAlign: 'center', marginTop: 4,
-    },
-    devPanel: {
-      borderWidth: 1, borderColor: 'rgba(255,100,0,0.3)',
-      borderRadius: radii.md, padding: spacing[4], gap: spacing[2],
-      backgroundColor: 'rgba(255,80,0,0.05)',
-    },
-    devLabel: {
-      fontFamily: 'JetBrains Mono', fontSize: 9, color: 'rgba(255,120,0,0.6)',
-      letterSpacing: 1.2, textTransform: 'uppercase',
-    },
-    devRow: { flexDirection: 'row', gap: 8 },
-    devBtn: {
-      flex: 1, paddingVertical: 10, borderRadius: radii.sm, alignItems: 'center',
-      borderWidth: 1, borderColor: 'rgba(255,100,0,0.4)',
-      backgroundColor: 'rgba(255,80,0,0.08)',
-    },
-    devBtnText: { fontFamily: 'JetBrains Mono', fontSize: 11, color: 'rgba(255,140,0,0.85)', letterSpacing: 0.4 },
-  });
 
   async function handleSendOTP() {
     if (!ready || loading) return;
@@ -96,11 +60,11 @@ export default function LoginScreen() {
       <View style={s.form}>
         <Text style={ss.fieldLabel}>PHONE NUMBER</Text>
         <View style={s.phoneRow}>
-          <View style={s.prefix}>
-            <Text style={s.prefixText}>+91</Text>
+          <View style={[s.prefix, { backgroundColor: c.card, borderColor: c.line }]}>
+            <Text style={[s.prefixText, { color: c.fg2 }]}>+91</Text>
           </View>
           <TextInput
-            style={s.input}
+            style={[ss.formInput, s.phoneInput]}
             value={phone}
             onChangeText={t => setPhone(t.replace(/\D/g, '').slice(0, 10))}
             placeholder="98765 43210"
@@ -121,7 +85,7 @@ export default function LoginScreen() {
           <Text style={ss.primaryBtnText}>{loading ? 'SENDING...' : 'SEND OTP'}</Text>
         </TouchableOpacity>
 
-        <Text style={s.disclaimer}>
+        <Text style={[s.disclaimer, { color: c.fg4 }]}>
           By continuing you agree to our Terms of Service and Privacy Policy.
         </Text>
       </View>
@@ -142,3 +106,20 @@ export default function LoginScreen() {
     </AuthScreenShell>
   );
 }
+
+// ─── Module-level StyleSheet ─────────────────────────────────────────────────
+const s = StyleSheet.create({
+  logoArea:    { alignItems: 'center', gap: spacing[2] },
+  form:        { gap: spacing[3] },
+  phoneRow:    { flexDirection: 'row', gap: 8 },
+  prefix:      { borderWidth: 1, borderRadius: radii.sm, paddingHorizontal: spacing[4], alignItems: 'center', justifyContent: 'center' },
+  prefixText:  { fontFamily: 'Inter Tight', fontSize: 16 },
+  phoneInput:  { flex: 1, height: 48 },
+  disclaimer:  { fontFamily: 'Inter Tight', fontSize: 11, textAlign: 'center', marginTop: 4 },
+  // DEV panel — hardcoded orange tones intentional (debug UI, not themed)
+  devPanel:    { borderWidth: 1, borderColor: 'rgba(255,100,0,0.3)', borderRadius: radii.md, padding: spacing[4], gap: spacing[2], backgroundColor: 'rgba(255,80,0,0.05)' },
+  devLabel:    { fontFamily: 'JetBrains Mono', fontSize: 9, color: 'rgba(255,120,0,0.6)', letterSpacing: 1.2, textTransform: 'uppercase' },
+  devRow:      { flexDirection: 'row', gap: 8 },
+  devBtn:      { flex: 1, paddingVertical: 10, borderRadius: radii.sm, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,100,0,0.4)', backgroundColor: 'rgba(255,80,0,0.08)' },
+  devBtnText:  { fontFamily: 'JetBrains Mono', fontSize: 11, color: 'rgba(255,140,0,0.85)', letterSpacing: 0.4 },
+});
