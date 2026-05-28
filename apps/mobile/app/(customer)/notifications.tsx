@@ -4,7 +4,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Check, Car, Star, CreditCard, Bell,
 } from 'lucide-react-native';
-import { colors, typography, spacing, radii } from '@pc/tokens';
+import { colors, typography, spacing } from '@pc/tokens';
+import { useThemeColors } from '../../theme';
 import { ScreenHeader, Group, Row } from '../../components/RowGroup';
 
 type IconName = 'check' | 'car' | 'star' | 'card' | 'bell' | 'sparkle';
@@ -19,6 +20,7 @@ interface NotifItem {
   time: string;
 }
 
+// Tint values are theme-invariant semantic colors (success, warning, etc.)
 const ITEMS: NotifItem[] = [
   {
     unread: true, group: 'today', iconName: 'check', tint: colors.success,
@@ -51,7 +53,7 @@ const ITEMS: NotifItem[] = [
     time: '2 days ago',
   },
   {
-    unread: false, group: 'earlier', iconName: 'bell', tint: colors.fg3,
+    unread: false, group: 'earlier', iconName: 'bell', tint: '#9E9E9E',
     title: 'Booking scheduled',
     body: 'Premium Wash · Tue 28 May at 2:00 PM',
     time: '3 days ago',
@@ -61,21 +63,22 @@ const ITEMS: NotifItem[] = [
 function NotifIcon({ name, size = 15 }: { name: IconName; size?: number }) {
   const props = { size, color: '#fff', strokeWidth: 1.5 } as const;
   switch (name) {
-    case 'check':   return <Check   {...props} />;
-    case 'car':     return <Car     {...props} />;
+    case 'check':   return <Check      {...props} />;
+    case 'car':     return <Car        {...props} />;
     case 'card':    return <CreditCard {...props} />;
-    case 'bell':    return <Bell    {...props} />;
-    default:        return <Star    {...props} />;
+    case 'bell':    return <Bell       {...props} />;
+    default:        return <Star       {...props} />;
   }
 }
 
 function NotifRow({ n, isLast, onClear }: { n: NotifItem; isLast: boolean; onClear: () => void }) {
+  const c = useThemeColors();
   const [showClear, setShowClear] = useState(false);
 
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
       {n.unread && (
-        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.sage, position: 'absolute', left: 6, zIndex: 10 }} />
+        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: c.sage, position: 'absolute', left: 6, zIndex: 10 }} />
       )}
       <View style={{ flex: 1 }}>
         <Row
@@ -91,7 +94,7 @@ function NotifRow({ n, isLast, onClear }: { n: NotifItem; isLast: boolean; onCle
       {showClear && (
         <TouchableOpacity
           onPress={onClear}
-          style={{ paddingHorizontal: 16, height: '100%', justifyContent: 'center', backgroundColor: colors.danger }}
+          style={{ paddingHorizontal: 16, height: '100%', justifyContent: 'center', backgroundColor: c.danger }}
         >
           <Text style={{ color: '#fff', fontFamily: typography.sansMedium, fontSize: 13 }}>Clear</Text>
         </TouchableOpacity>
@@ -102,12 +105,13 @@ function NotifRow({ n, isLast, onClear }: { n: NotifItem; isLast: boolean; onCle
 
 export default function NotificationsScreen() {
   const insets = useSafeAreaInsets();
+  const c = useThemeColors();
   const [items, setItems] = useState(ITEMS);
 
-  const handleClear = (index: number, group: string) => {
-    // In a real app we'd filter by id, but using index for demo
-    setItems(items.filter((item, idx) => !(item.group === group && idx === index)));
-  };
+  const s = StyleSheet.create({
+    root: { flex: 1, backgroundColor: c.ink },
+    markAll: { fontFamily: typography.sansMedium, fontSize: 13, color: c.sageHi, letterSpacing: 0.2 },
+  });
 
   const handleMarkAllRead = () => {
     setItems(items.map(item => ({ ...item, unread: false })));
@@ -140,7 +144,7 @@ export default function NotificationsScreen() {
                 key={i}
                 n={n}
                 isLast={i === list.length - 1}
-                onClear={() => handleClear(items.indexOf(n), grp)}
+                onClear={() => setItems(prev => prev.filter(item => item !== n))}
               />
             ))}
           </Group>
@@ -149,13 +153,3 @@ export default function NotificationsScreen() {
     </ScrollView>
   );
 }
-
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.ink },
-  markAll: {
-    fontFamily: typography.sansMedium,
-    fontSize: 13,
-    color: colors.sageHi,
-    letterSpacing: 0.2,
-  },
-});

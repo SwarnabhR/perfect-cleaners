@@ -1,12 +1,14 @@
 import { useRef, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
-  KeyboardAvoidingView, Platform, StyleSheet,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Send } from 'lucide-react-native';
-import { colors, typography, spacing, radii } from '@pc/tokens';
+import { typography, spacing } from '@pc/tokens';
+import { useThemeColors } from '../../theme';
+import { useSharedStyles } from '../../theme/sharedStyles';
 
 interface Message {
   id: string;
@@ -24,9 +26,10 @@ const INITIAL_MESSAGES: Message[] = [
 ];
 
 function AgentAvatar() {
+  const c = useThemeColors();
   return (
-    <View style={s.agentAvatar}>
-      <Text style={s.agentAvatarText}>P</Text>
+    <View style={{ width: 36, height: 36, borderRadius: 999, backgroundColor: c.sageHi, alignItems: 'center', justifyContent: 'center' }}>
+      <Text style={{ fontFamily: typography.sansSemiBold, fontSize: 15, color: '#fff' }}>P</Text>
     </View>
   );
 }
@@ -34,6 +37,8 @@ function AgentAvatar() {
 export default function SupportChatScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const c = useThemeColors();
+  const ss = useSharedStyles();
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
   const [draft, setDraft] = useState('');
   const listRef = useRef<FlatList>(null);
@@ -50,26 +55,33 @@ export default function SupportChatScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={[s.root, { paddingBottom: insets.bottom }]}
+      style={[ss.screen, { paddingBottom: insets.bottom }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={0}
     >
       {/* Header */}
-      <View style={[s.header, { paddingTop: insets.top + spacing[2] }]}>
+      <View style={{
+        flexDirection: 'row', alignItems: 'center', gap: 12,
+        paddingHorizontal: spacing[5], paddingBottom: spacing[3],
+        borderBottomWidth: 1, borderBottomColor: c.line,
+        paddingTop: insets.top + spacing[2],
+      }}>
         <TouchableOpacity
-          style={s.backBtn}
+          style={ss.backBtn}
           onPress={() => router.back()}
           hitSlop={{ top: 8, left: 8, bottom: 8, right: 8 }}
           activeOpacity={0.7}
         >
-          <ArrowLeft size={18} color={colors.fg} strokeWidth={1.5} />
+          <ArrowLeft size={18} color={c.fg} strokeWidth={1.5} />
         </TouchableOpacity>
         <AgentAvatar />
-        <View style={s.agentInfo}>
-          <Text style={s.agentName}>Priya · Support</Text>
-          <View style={s.onlineRow}>
-            <View style={s.onlineDot} />
-            <Text style={s.onlineText}>Active now</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontFamily: typography.sansSemiBold, fontSize: 14, color: c.fg }}>
+            Priya · Support
+          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 }}>
+            <View style={{ width: 6, height: 6, borderRadius: 999, backgroundColor: c.success }} />
+            <Text style={{ fontFamily: typography.sans, fontSize: 11.5, color: c.success }}>Active now</Text>
           </View>
         </View>
       </View>
@@ -79,17 +91,24 @@ export default function SupportChatScreen() {
         ref={listRef}
         data={messages}
         keyExtractor={m => m.id}
-        contentContainerStyle={s.messageList}
+        contentContainerStyle={{ paddingHorizontal: spacing[4], paddingVertical: spacing[3], gap: spacing[2] }}
         showsVerticalScrollIndicator={false}
         renderItem={({ item: m }) => (
-          <View style={[s.msgRow, m.from === 'me' && s.msgRowMe]}>
+          <View style={{ alignItems: m.from === 'me' ? 'flex-end' : 'flex-start', gap: 3 }}>
             <View style={[
-              s.bubble,
-              m.from === 'me' ? s.bubbleMe : s.bubbleAgent,
+              { maxWidth: '78%', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 18 },
+              m.from === 'me'
+                ? { backgroundColor: c.sageHi }
+                : { backgroundColor: c.card, borderWidth: 1, borderColor: c.line },
             ]}>
-              <Text style={s.bubbleText}>{m.text}</Text>
+              <Text style={{ fontFamily: typography.sans, fontSize: 14, color: c.fg, lineHeight: 20 }}>
+                {m.text}
+              </Text>
             </View>
-            <Text style={[s.msgTime, m.from === 'me' && s.msgTimeMe]}>
+            <Text style={[
+              { fontFamily: typography.mono, fontSize: 9, color: c.fg3, letterSpacing: 0.3, paddingHorizontal: 4 },
+              m.from === 'me' && { textAlign: 'right' },
+            ]}>
               {m.time}
             </Text>
           </View>
@@ -97,123 +116,41 @@ export default function SupportChatScreen() {
       />
 
       {/* Input bar */}
-      <View style={[s.inputBar, { borderTopColor: colors.line }]}>
+      <View style={{
+        flexDirection: 'row', alignItems: 'center', gap: spacing[2],
+        paddingHorizontal: spacing[4], paddingVertical: spacing[2],
+        borderTopWidth: 1, borderTopColor: c.line,
+      }}>
         <TextInput
-          style={s.input}
+          style={{
+            flex: 1,
+            fontFamily: typography.sans, fontSize: 14, color: c.fg,
+            backgroundColor: c.card, borderRadius: 20,
+            paddingHorizontal: spacing[4],
+            paddingVertical: Platform.OS === 'ios' ? 10 : 8,
+            borderWidth: 1, borderColor: c.line,
+            maxHeight: 100,
+          }}
           value={draft}
           onChangeText={setDraft}
           placeholder="Message"
-          placeholderTextColor={colors.fg3}
+          placeholderTextColor={c.fg3}
           multiline
           maxLength={500}
           returnKeyType="send"
           onSubmitEditing={sendMessage}
         />
         <TouchableOpacity
-          style={[s.sendBtn, draft.trim() && s.sendBtnActive]}
+          style={[
+            ss.backBtn,
+            draft.trim() ? { backgroundColor: c.warm, borderColor: c.warm } : {},
+          ]}
           onPress={sendMessage}
           activeOpacity={0.8}
         >
-          <Send size={15} color={draft.trim() ? colors.ink : colors.fg3} strokeWidth={1.5} />
+          <Send size={15} color={draft.trim() ? c.ink : c.fg3} strokeWidth={1.5} />
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
   );
 }
-
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.ink },
-
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: spacing[5],
-    paddingBottom: spacing[3],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-  },
-  backBtn: {
-    width: 36, height: 36, borderRadius: radii.pill,
-    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  agentAvatar: {
-    width: 36, height: 36, borderRadius: 999,
-    backgroundColor: colors.sageHi,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  agentAvatarText: {
-    fontFamily: typography.sansSemiBold, fontSize: 15, color: '#fff',
-  },
-  agentInfo: { flex: 1 },
-  agentName: {
-    fontFamily: typography.sansSemiBold, fontSize: 14, color: colors.fg,
-  },
-  onlineRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
-  onlineDot: {
-    width: 6, height: 6, borderRadius: 999, backgroundColor: colors.success,
-  },
-  onlineText: {
-    fontFamily: typography.sans, fontSize: 11.5, color: colors.success,
-  },
-
-  messageList: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-    gap: spacing[2],
-  },
-  msgRow: {
-    alignItems: 'flex-start',
-    gap: 3,
-  },
-  msgRowMe: { alignItems: 'flex-end' },
-  bubble: {
-    maxWidth: '78%',
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 18,
-  },
-  bubbleAgent: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
-  bubbleMe:    { backgroundColor: colors.sageHi },
-  bubbleText: {
-    fontFamily: typography.sans, fontSize: 14, color: colors.fg,
-    lineHeight: 20,
-  },
-  msgTime: {
-    fontFamily: typography.mono, fontSize: 9, color: colors.fg3,
-    letterSpacing: 0.3, paddingHorizontal: 4,
-  },
-  msgTimeMe: { textAlign: 'right' },
-
-  inputBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    borderTopWidth: 1,
-  },
-  input: {
-    flex: 1,
-    fontFamily: typography.sans,
-    fontSize: 14,
-    color: colors.fg,
-    backgroundColor: colors.card,
-    borderRadius: 20,
-    paddingHorizontal: spacing[4],
-    paddingVertical: Platform.OS === 'ios' ? 10 : 8,
-    borderWidth: 1,
-    borderColor: colors.line,
-    maxHeight: 100,
-  },
-  sendBtn: {
-    width: 36, height: 36, borderRadius: 999,
-    backgroundColor: colors.card,
-    borderWidth: 1, borderColor: colors.line,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  sendBtnActive: {
-    backgroundColor: colors.warm, borderColor: colors.warm,
-  },
-});

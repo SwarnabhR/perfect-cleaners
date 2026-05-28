@@ -8,6 +8,10 @@ export const colors = {
   card:       '#1C1B19',
   cardHi:     '#232220',
 
+  // Semi-transparent surface overlays
+  inkOverlay:   'rgba(14,13,11,0.95)',  // sticky footer / bottom bar scrim
+  inkScrim:     'rgba(14,13,11,0.85)',  // modal/sheet overlay backdrop
+
   // Borders
   line:       'rgba(255,255,255,0.08)',
   lineStrong: 'rgba(255,255,255,0.14)',
@@ -27,6 +31,12 @@ export const colors = {
   warm:    '#F0EDE8',
   warm2:   '#E4DFD6',
   gold:    '#C9A961',
+
+  // Tinted backgrounds (for chips, icon wells, status pills)
+  sageFaint:    'rgba(91,111,82,0.18)',   // sage chip / pill fill
+  sageBorder:   'rgba(91,111,82,0.50)',   // sage chip / pill border
+  successFaint: 'rgba(111,174,106,0.16)', // success icon well fill
+  successBorder:'rgba(111,174,106,0.40)', // success icon well border
 
   // Semantic
   success: '#6FAE6A',
@@ -48,6 +58,10 @@ export const colorsLight = {
   card:       '#E5E1DA',
   cardHi:     '#DEDAD2',
 
+  // Semi-transparent surface overlays
+  inkOverlay:   'rgba(245,242,237,0.95)',
+  inkScrim:     'rgba(245,242,237,0.85)',
+
   // Borders
   line:       'rgba(0,0,0,0.08)',
   lineStrong: 'rgba(0,0,0,0.14)',
@@ -67,6 +81,12 @@ export const colorsLight = {
   warm:    '#0E0D0B',   // dark pill button on cream bg
   warm2:   '#232220',
   gold:    '#C9A961',
+
+  // Tinted backgrounds (same rgba as dark — invariant enough for both surfaces)
+  sageFaint:    'rgba(91,111,82,0.12)',
+  sageBorder:   'rgba(91,111,82,0.35)',
+  successFaint: 'rgba(111,174,106,0.12)',
+  successBorder:'rgba(111,174,106,0.30)',
 
   // Semantic (unchanged — saturated enough for both backgrounds)
   success: '#6FAE6A',

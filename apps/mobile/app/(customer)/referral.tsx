@@ -1,7 +1,8 @@
 import { ScrollView, View, Text, TouchableOpacity, StyleSheet, Alert, Share } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
-import { colors, typography, spacing, radii } from '@pc/tokens';
+import { typography, spacing, radii } from '@pc/tokens';
+import { useThemeColors } from '../../theme';
 import { ScreenHeader, Group, Row } from '../../components/RowGroup';
 
 const REFERRAL_CODE = 'AARAV-PC';
@@ -10,7 +11,7 @@ interface Friend {
   initials: string;
   name: string;
   sub: string;
-  amt: string | null; // null = pending
+  amt: string | null;
 }
 
 const FRIENDS: Friend[] = [
@@ -22,6 +23,49 @@ const FRIENDS: Friend[] = [
 
 export default function ReferralScreen() {
   const insets = useSafeAreaInsets();
+  const c = useThemeColors();
+
+  const s = StyleSheet.create({
+    root: { flex: 1, backgroundColor: c.ink },
+    hero: { paddingHorizontal: spacing[5], paddingBottom: spacing[4], alignItems: 'center', gap: spacing[2] },
+    heroEyebrow: { fontFamily: typography.mono, fontSize: 9.5, color: c.fg3, letterSpacing: 0.8, textTransform: 'uppercase' },
+    heroTitle: {
+      fontFamily: typography.serif, fontSize: 36, color: c.fg,
+      letterSpacing: -0.4, lineHeight: 40, textAlign: 'center',
+    },
+    heroBody: {
+      fontFamily: typography.sans, fontSize: 14, color: c.fg2,
+      lineHeight: 21, textAlign: 'center', maxWidth: 290,
+    },
+    codeCard: {
+      marginHorizontal: spacing[5], backgroundColor: c.card, borderRadius: radii.md,
+      borderWidth: 1, borderColor: c.lineStrong, padding: 18, alignItems: 'center', gap: spacing[3],
+    },
+    codeText: { fontFamily: typography.mono, fontSize: 26, color: c.fg, letterSpacing: 4 },
+    codeActions: { flexDirection: 'row', gap: 8, width: '100%' },
+    shareBtn: {
+      flex: 1, backgroundColor: c.warm, borderRadius: radii.sm, paddingVertical: 11, alignItems: 'center',
+    },
+    shareBtnText: { fontFamily: typography.sansSemiBold, fontSize: 13, color: c.ink, letterSpacing: 0.3 },
+    copyBtn: {
+      flex: 1, backgroundColor: c.cardHi, borderRadius: radii.sm, paddingVertical: 11, alignItems: 'center',
+      borderWidth: 1, borderColor: c.line,
+    },
+    copyBtnText: { fontFamily: typography.sansSemiBold, fontSize: 13, color: c.fg, letterSpacing: 0.3 },
+    stats: {
+      flexDirection: 'row', gap: spacing[2],
+      paddingHorizontal: spacing[5], paddingTop: spacing[4], paddingBottom: spacing[1],
+    },
+    statCard: {
+      flex: 1, backgroundColor: c.card, borderRadius: radii.md,
+      borderWidth: 1, borderColor: c.line, padding: 14, gap: 4,
+    },
+    statLabel: { fontFamily: typography.mono, fontSize: 9, color: c.fg3, letterSpacing: 0.8, textTransform: 'uppercase' },
+    statValue: { fontFamily: typography.serif, fontSize: 28, color: c.fg, letterSpacing: -0.3 },
+    friendInitials: { fontFamily: typography.sansSemiBold, fontSize: 12, color: '#fff' },
+    pendingText: { fontFamily: typography.sans, fontSize: 13, color: c.fg3 },
+    earnedText: { fontFamily: typography.serif, fontSize: 17, color: c.success },
+  });
 
   async function handleShare() {
     try {
@@ -46,7 +90,6 @@ export default function ReferralScreen() {
         <ScreenHeader title="Refer & Earn" />
       </View>
 
-      {/* Hero */}
       <View style={s.hero}>
         <Text style={s.heroEyebrow}>[GIVE ₹200, GET ₹200]</Text>
         <Text style={s.heroTitle}>Share your shine.</Text>
@@ -56,7 +99,6 @@ export default function ReferralScreen() {
         </Text>
       </View>
 
-      {/* Code card */}
       <View style={s.codeCard}>
         <Text style={s.codeText}>{REFERRAL_CODE}</Text>
         <View style={s.codeActions}>
@@ -69,7 +111,6 @@ export default function ReferralScreen() {
         </View>
       </View>
 
-      {/* Stats */}
       <View style={s.stats}>
         <View style={s.statCard}>
           <Text style={s.statLabel}>[FRIENDS JOINED]</Text>
@@ -81,15 +122,12 @@ export default function ReferralScreen() {
         </View>
       </View>
 
-      {/* Friends list */}
       <Group header="Friends">
         {FRIENDS.map((f, i) => (
           <Row
             key={f.name}
-            icon={
-              <Text style={s.friendInitials}>{f.initials}</Text>
-            }
-            iconBg={f.amt === null ? colors.fg3 : colors.sageHi}
+            icon={<Text style={s.friendInitials}>{f.initials}</Text>}
+            iconBg={f.amt === null ? c.fg3 : c.sageHi}
             title={f.name}
             sub={f.sub}
             value={
@@ -106,111 +144,3 @@ export default function ReferralScreen() {
     </ScrollView>
   );
 }
-
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.ink },
-
-  hero: {
-    paddingHorizontal: spacing[5],
-    paddingBottom: spacing[4],
-    alignItems: 'center',
-    gap: spacing[2],
-  },
-  heroEyebrow: {
-    fontFamily: typography.mono,
-    fontSize: 9.5,
-    color: colors.fg3,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-  },
-  heroTitle: {
-    fontFamily: typography.serif,
-    fontSize: 36,
-    color: colors.fg,
-    letterSpacing: -0.4,
-    lineHeight: 40,
-    textAlign: 'center',
-  },
-  heroBody: {
-    fontFamily: typography.sans,
-    fontSize: 14,
-    color: colors.fg2,
-    lineHeight: 21,
-    textAlign: 'center',
-    maxWidth: 290,
-  },
-
-  codeCard: {
-    marginHorizontal: spacing[5],
-    backgroundColor: colors.card,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.lineStrong,
-    padding: 18,
-    alignItems: 'center',
-    gap: spacing[3],
-  },
-  codeText: {
-    fontFamily: typography.mono,
-    fontSize: 26,
-    color: colors.fg,
-    letterSpacing: 4,
-  },
-  codeActions: { flexDirection: 'row', gap: 8, width: '100%' },
-  shareBtn: {
-    flex: 1,
-    backgroundColor: colors.warm,
-    borderRadius: radii.sm,
-    paddingVertical: 11,
-    alignItems: 'center',
-  },
-  shareBtnText: {
-    fontFamily: typography.sansSemiBold, fontSize: 13, color: colors.ink, letterSpacing: 0.3,
-  },
-  copyBtn: {
-    flex: 1,
-    backgroundColor: colors.cardHi,
-    borderRadius: radii.sm,
-    paddingVertical: 11,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.line,
-  },
-  copyBtnText: {
-    fontFamily: typography.sansSemiBold, fontSize: 13, color: colors.fg, letterSpacing: 0.3,
-  },
-
-  stats: {
-    flexDirection: 'row',
-    gap: spacing[2],
-    paddingHorizontal: spacing[5],
-    paddingTop: spacing[4],
-    paddingBottom: spacing[1],
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: colors.card,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.line,
-    padding: 14,
-    gap: 4,
-  },
-  statLabel: {
-    fontFamily: typography.mono, fontSize: 9, color: colors.fg3,
-    letterSpacing: 0.8, textTransform: 'uppercase',
-  },
-  statValue: {
-    fontFamily: typography.serif, fontSize: 28, color: colors.fg, letterSpacing: -0.3,
-  },
-
-  friendInitials: {
-    fontFamily: typography.sansSemiBold, fontSize: 12, color: '#fff',
-  },
-  pendingText: {
-    fontFamily: typography.sans, fontSize: 13, color: colors.fg3,
-  },
-  earnedText: {
-    fontFamily: typography.serif, fontSize: 17, color: colors.success,
-  },
-});

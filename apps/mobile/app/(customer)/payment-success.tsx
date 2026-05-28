@@ -6,17 +6,12 @@ import { Check } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
-import { colors, typography, spacing, radii } from '@pc/tokens';
+import { typography, spacing, radii } from '@pc/tokens';
+import { useThemeColors } from '../../theme';
 import HapticButton from '../../components/HapticButton';
 
-// Demo booking ID used by the tracker screen
 const DEMO_BOOKING_ID = 'PC-2058';
 
-/**
- * Writes a demo booking document to Firestore so the tracker can subscribe
- * to it immediately after the user taps "Track Your Booking".
- * Uses merge:true so repeated taps are idempotent and won't clobber real data.
- */
 async function seedDemoBooking() {
   try {
     const user = auth().currentUser;
@@ -65,16 +60,68 @@ async function seedDemoBooking() {
 export default function PaymentSuccess() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const c = useThemeColors();
 
   const scale = useRef(new Animated.Value(0)).current;
   const glowOpacity = useRef(new Animated.Value(0)).current;
   const glowScale = useRef(new Animated.Value(0.4)).current;
 
+  const s = StyleSheet.create({
+    root: { flex: 1, backgroundColor: c.ink },
+    content: {
+      flex: 1, paddingHorizontal: spacing[6],
+      alignItems: 'center', justifyContent: 'center', gap: spacing[5],
+    },
+    glowContainer: { width: 110, height: 110, alignItems: 'center', justifyContent: 'center' },
+    checkGlow: {
+      position: 'absolute',
+      width: 110, height: 110, borderRadius: 999,
+      backgroundColor: c.sage,
+      opacity: 0.22,
+    },
+    checkCircle: {
+      width: 78, height: 78, borderRadius: 999, backgroundColor: c.sage,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    textSection: { alignItems: 'center', gap: spacing[2] },
+    eyebrow: { fontFamily: typography.mono, fontSize: 9.5, color: c.fg3, letterSpacing: 0.8, textTransform: 'uppercase' },
+    title: {
+      fontFamily: typography.serif, fontSize: 32, color: c.fg,
+      letterSpacing: -0.3, lineHeight: 35, textAlign: 'center',
+    },
+    body: {
+      fontFamily: typography.sans, fontSize: 14, color: c.fg2,
+      lineHeight: 21, textAlign: 'center', maxWidth: 280,
+    },
+    emailHighlight: { color: c.fg },
+    detailsCard: {
+      width: '100%',
+      backgroundColor: c.card, borderWidth: 1, borderColor: c.line,
+      borderRadius: radii.md, padding: spacing[4], gap: spacing[2],
+    },
+    detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    detailValue: { fontFamily: typography.mono, fontSize: 11, color: c.fg },
+    detailAmount: { fontFamily: typography.sansSemiBold, fontSize: typography.sm, color: c.fg },
+    actions: { paddingHorizontal: spacing[6], paddingBottom: spacing[8], gap: spacing[1] },
+    primaryBtn: {
+      backgroundColor: c.warm, borderRadius: radii.pill,
+      paddingVertical: 14, alignItems: 'center',
+    },
+    primaryBtnText: {
+      fontFamily: typography.sansSemiBold, fontSize: 13, color: c.ink, letterSpacing: 0.6,
+    },
+    ghostBtn: {
+      borderRadius: radii.pill, paddingVertical: 13, alignItems: 'center',
+      borderWidth: 1, borderColor: c.lineStrong,
+    },
+    ghostBtnText: {
+      fontFamily: typography.sansMedium, fontSize: 13, color: c.fg, letterSpacing: 0.6,
+    },
+  });
+
   useEffect(() => {
-    // Seed booking in Firestore (fire-and-forget — tracker needs it)
     void seedDemoBooking();
 
-    // Glow expands first, then check pops in with spring overshoot
     Animated.sequence([
       Animated.parallel([
         Animated.timing(glowOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
@@ -92,7 +139,6 @@ export default function PaymentSuccess() {
   return (
     <View style={[s.root, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <View style={s.content}>
-        {/* Animated check */}
         <View style={s.glowContainer}>
           <Animated.View
             style={[
@@ -114,7 +160,6 @@ export default function PaymentSuccess() {
           </Text>
         </View>
 
-        {/* Details card */}
         <View style={s.detailsCard}>
           <View style={s.detailRow}>
             <Text style={s.eyebrow}>PAYMENT ID</Text>
@@ -131,7 +176,6 @@ export default function PaymentSuccess() {
         </View>
       </View>
 
-      {/* Actions */}
       <View style={s.actions}>
         <HapticButton
           haptic="success"
@@ -148,65 +192,3 @@ export default function PaymentSuccess() {
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.ink },
-  content: {
-    flex: 1, paddingHorizontal: spacing[6],
-    alignItems: 'center', justifyContent: 'center', gap: spacing[5],
-  },
-
-  glowContainer: {
-    width: 110, height: 110,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  checkGlow: {
-    position: 'absolute',
-    width: 110, height: 110, borderRadius: 999,
-    backgroundColor: colors.sage,
-    opacity: 0.22,
-  },
-  checkCircle: {
-    width: 78, height: 78, borderRadius: 999, backgroundColor: colors.sage,
-    alignItems: 'center', justifyContent: 'center',
-  },
-
-  textSection: { alignItems: 'center', gap: spacing[2] },
-  eyebrow: { fontFamily: typography.mono, fontSize: 9.5, color: colors.fg3, letterSpacing: 0.8, textTransform: 'uppercase' },
-  title: {
-    fontFamily: typography.serif, fontSize: 32, color: colors.fg,
-    letterSpacing: -0.3, lineHeight: 35, textAlign: 'center',
-  },
-  body: {
-    fontFamily: typography.sans, fontSize: 14, color: colors.fg2,
-    lineHeight: 21, textAlign: 'center', maxWidth: 280,
-  },
-  emailHighlight: { color: colors.fg },
-
-  detailsCard: {
-    width: '100%',
-    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line,
-    borderRadius: radii.md, padding: spacing[4], gap: spacing[2],
-  },
-  detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  detailValue: { fontFamily: typography.mono, fontSize: 11, color: colors.fg },
-  detailAmount: { fontFamily: typography.sansSemiBold, fontSize: typography.sm, color: colors.fg },
-
-  actions: {
-    paddingHorizontal: spacing[6], paddingBottom: spacing[8], gap: spacing[1],
-  },
-  primaryBtn: {
-    backgroundColor: colors.warm, borderRadius: radii.pill,
-    paddingVertical: 14, alignItems: 'center',
-  },
-  primaryBtnText: {
-    fontFamily: typography.sansSemiBold, fontSize: 13, color: colors.ink, letterSpacing: 0.6,
-  },
-  ghostBtn: {
-    borderRadius: radii.pill, paddingVertical: 13, alignItems: 'center',
-    borderWidth: 1, borderColor: colors.lineStrong,
-  },
-  ghostBtnText: {
-    fontFamily: typography.sansMedium, fontSize: 13, color: colors.fg, letterSpacing: 0.6,
-  },
-});

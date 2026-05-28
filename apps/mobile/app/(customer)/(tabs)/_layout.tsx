@@ -8,10 +8,10 @@ import { useFCM } from '../../../hooks/useFCM';
 
 export default function CustomerTabsLayout() {
   const insets = useSafeAreaInsets();
-  const { theme, colors: c } = useTheme();
+  const { colors: c } = useTheme();
   useFCM();
 
-  const tabBarBg = theme === 'dark' ? 'rgba(14,13,11,0.88)' : 'rgba(245,242,237,0.92)';
+  const tabBarBg = c.inkScrim;
 
   return (
     <Tabs

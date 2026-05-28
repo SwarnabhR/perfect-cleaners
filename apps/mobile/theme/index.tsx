@@ -3,7 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, colorsLight } from '@pc/tokens';
 
 export type AppTheme = 'light' | 'dark';
-type ThemeCtx = { theme: AppTheme; toggleTheme: () => void; colors: typeof colors };
+export type ColorPalette = typeof colors | typeof colorsLight;
+type ThemeCtx = { theme: AppTheme; toggleTheme: () => void; colors: ColorPalette };
 
 const STORAGE_KEY = '@pc/theme';
 const Ctx = createContext<ThemeCtx>({ theme: 'light', toggleTheme: () => {}, colors: colorsLight });

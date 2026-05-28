@@ -1,16 +1,18 @@
-import { ScrollView, View, Text, TouchableOpacity, Alert } from 'react-native';
+import { ScrollView, View, Text, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {
-  User, Bell, Shield, LogOut, ChevronRight
-} from 'lucide-react-native';
-import { colors, spacing } from '@pc/tokens';
+import { User, Bell, Shield, LogOut } from 'lucide-react-native';
+import { spacing } from '@pc/tokens';
 import { ScreenHeader, Group, Row } from '../../components/RowGroup';
+import { useTheme } from '../../theme';
+import { useSharedStyles } from '../../theme/sharedStyles';
 
 export default function WorkerSettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { theme, toggleTheme, colors: c } = useTheme();
+  const ss = useSharedStyles();
 
   const handleLogout = () => {
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
@@ -28,8 +30,9 @@ export default function WorkerSettingsScreen() {
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: colors.ink }}
+      style={ss.screen}
       contentContainerStyle={{ paddingBottom: spacing[10] }}
+      showsVerticalScrollIndicator={false}
     >
       <View style={{ paddingTop: insets.top }}>
         <ScreenHeader title="Settings" />
@@ -38,17 +41,24 @@ export default function WorkerSettingsScreen() {
       <Group header="ACCOUNT">
         <Row
           icon={<User size={15} color="#fff" />}
-          iconBg={colors.cardHi}
+          iconBg={c.cardHi}
           title="Profile & Identity"
-          value={<ChevronRight size={14} color={colors.fg3} />}
           onPress={() => {}}
         />
         <Row
           icon={<Bell size={15} color="#fff" />}
-          iconBg={colors.cardHi}
+          iconBg={c.cardHi}
           title="Push Notifications"
-          value={<ChevronRight size={14} color={colors.fg3} />}
           onPress={() => {}}
+          isLast
+        />
+      </Group>
+
+      <Group header="PREFERENCES">
+        <Row
+          title="Appearance"
+          value={theme === 'light' ? 'Light' : 'Dark'}
+          onPress={toggleTheme}
           isLast
         />
       </Group>
@@ -56,16 +66,14 @@ export default function WorkerSettingsScreen() {
       <Group header="SUPPORT & LEGAL">
         <Row
           icon={<Shield size={15} color="#fff" />}
-          iconBg={colors.cardHi}
+          iconBg={c.cardHi}
           title="Privacy Policy"
-          value={<ChevronRight size={14} color={colors.fg3} />}
           onPress={() => {}}
         />
         <Row
           icon={<Shield size={15} color="#fff" />}
-          iconBg={colors.cardHi}
+          iconBg={c.cardHi}
           title="Terms of Service"
-          value={<ChevronRight size={14} color={colors.fg3} />}
           onPress={() => {}}
           isLast
         />
@@ -74,9 +82,9 @@ export default function WorkerSettingsScreen() {
       <Group>
         <Row
           icon={<LogOut size={15} color="#fff" />}
-          iconBg={colors.danger}
+          iconBg={c.danger}
           title="Sign Out"
-          titleColor={colors.danger}
+          titleColor={c.danger}
           onPress={handleLogout}
           isLast
         />
