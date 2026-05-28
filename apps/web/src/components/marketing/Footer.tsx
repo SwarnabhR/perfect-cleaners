@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
 import styles from './Footer.module.css';
@@ -45,8 +46,12 @@ export default function Footer() {
       {/* Brand */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-5)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pc-space-2)' }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-pc-monogram.svg" width={28} height={32} alt="Perfect Cleaners mark" />
+          <Image
+            src="/logo-pc-monogram.svg"
+            width={28}
+            height={32}
+            alt="Perfect Cleaners mark"
+          />
           <span style={{
             fontFamily: 'var(--pc-mono)',
             fontSize: 'var(--pc-text-sm)',

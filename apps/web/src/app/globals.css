@@ -42,7 +42,7 @@
   --pc-sans:  var(--font-sans),  "Satoshi", -apple-system, sans-serif;
   --pc-mono:  var(--font-mono),  "IBM Plex Mono", ui-monospace, monospace;
 
-  --pc-text-xs:   11px;
+  --pc-text-xs:   12px;
   --pc-text-sm:   13px;
   --pc-text-base: 15px;
   --pc-text-lg:   18px;
@@ -254,6 +254,11 @@ button { cursor: pointer; }
 .pc-nav-book-now:hover {
   border-color: rgba(240, 237, 232, 0.5);
   background: rgba(240, 237, 232, 0.06);
+}
+
+/* Mobile drawer "Book Now" CTA */
+.pc-nav-drawer-cta:hover {
+  background: var(--pc-warm-2);
 }
 
 /* ====================================================================

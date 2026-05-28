@@ -77,7 +77,7 @@ export default function Nav() {
           />
           <span style={{
             fontFamily: 'var(--pc-mono)',
-            fontSize: 10.5,
+            fontSize: 'var(--pc-text-xs)',
             letterSpacing: '0.18em',
             textTransform: 'uppercase',
             color: 'var(--pc-fg)',
@@ -93,7 +93,7 @@ export default function Nav() {
           style={{
             position: 'absolute', left: '50%', transform: 'translateX(-50%)',
             display: 'flex', alignItems: 'center',
-            gap: 'clamp(18px, 2.4vw, 36px)',
+            gap: 'clamp(var(--pc-space-4), 2.4vw, var(--pc-space-8))',
           }}
         >
           {NAV_LINKS.map(({ label, href }) => {
@@ -104,7 +104,7 @@ export default function Nav() {
                 href={href}
                 style={{
                   fontFamily: 'var(--pc-mono)',
-                  fontSize: 10,
+                  fontSize: 'var(--pc-text-xs)',
                   letterSpacing: '0.14em',
                   textTransform: 'uppercase',
                   color: active ? 'var(--pc-fg)' : 'var(--pc-fg-3)',
@@ -135,7 +135,7 @@ export default function Nav() {
         <div style={{
           marginLeft: 'auto',
           display: 'flex', alignItems: 'center',
-          gap: 'clamp(14px, 2vw, 22px)',
+          gap: 'clamp(var(--pc-space-3), 2vw, var(--pc-space-6))',
           flexShrink: 0,
         }}>
 
@@ -148,13 +148,13 @@ export default function Nav() {
             className="pc-nav-desktop pc-nav-book-now"
             style={{
               fontFamily: 'var(--pc-mono)',
-              fontSize: 10,
+              fontSize: 'var(--pc-text-xs)',
               letterSpacing: '0.14em',
               textTransform: 'uppercase',
               color: 'var(--pc-warm)',
               border: '1px solid rgba(240,237,232,0.22)',
               borderRadius: '999px',
-              padding: '7px 18px',
+              padding: 'var(--pc-space-2) var(--pc-space-5)',
               whiteSpace: 'nowrap',
               textDecoration: 'none',
               transition: 'border-color 0.2s ease, background 0.2s ease',
@@ -208,12 +208,17 @@ export default function Nav() {
         tab out into background content, violating the promise made by
         aria-modal. role="navigation" is semantically accurate and makes no
         modal promises.
+
+        inert is set when the drawer is closed so keyboard users cannot
+        tab into the visually hidden links behind pointerEvents:none.
       */}
       <div
         id="mobile-nav-drawer"
         role="navigation"
         aria-label="Mobile navigation"
         aria-hidden={!menuOpen}
+        // @ts-expect-error — inert is a valid HTML attribute not yet in React's types
+        inert={!menuOpen ? '' : undefined}
         className="pc-nav-drawer"
         style={{
           position: 'fixed', inset: 0, zIndex: 49,
@@ -247,7 +252,7 @@ export default function Nav() {
                     letterSpacing: '-0.02em',
                     lineHeight: 1.15,
                     color: active ? 'var(--pc-fg)' : 'rgba(240,237,232,0.18)',
-                    padding: '14px 0',
+                    padding: 'var(--pc-space-4) 0',
                     borderBottom: '1px solid rgba(255,255,255,0.05)',
                     transition: 'color 0.15s ease',
                     transitionDelay: menuOpen ? `${i * 0.03}s` : '0s',
@@ -274,17 +279,19 @@ export default function Nav() {
         </p>
 
         {/* Bottom CTA */}
-        <div style={{ marginTop: 'auto', paddingTop: 32 }}>
+        <div style={{ marginTop: 'auto', paddingTop: 'var(--pc-space-8)' }}>
           <Link
             href="/book"
             onClick={() => setMenuOpen(false)}
+            className="pc-nav-drawer-cta"
             style={{
               display: 'block', textAlign: 'center',
-              padding: '15px 0', borderRadius: '999px',
+              padding: 'var(--pc-space-4) 0', borderRadius: '999px',
               background: 'var(--pc-warm)', color: 'var(--pc-ink)',
-              fontFamily: 'var(--pc-mono)', fontSize: 11,
+              fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)',
               letterSpacing: '0.16em', textTransform: 'uppercase',
               textDecoration: 'none',
+              transition: 'background var(--pc-dur-fast) var(--pc-ease)',
             }}
           >
             Book Now

@@ -26,7 +26,7 @@ export default function Hero() {
             background: 'var(--pc-sage-hi)', display: 'block', flexShrink: 0,
           }} />
           <span style={{
-            fontFamily: 'var(--pc-mono)', fontSize: 10,
+            fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)',
             color: 'var(--pc-fg-3)', letterSpacing: 'var(--pc-track-mono)',
           }}>
             DELHI NCR · GHAZIABAD
@@ -124,19 +124,21 @@ export default function Hero() {
             ['Since 2021', 'In business'],
           ].map(([num, label]) => (
             <div key={label}>
-              <div style={{
+              <p style={{
                 fontFamily: 'var(--pc-serif)',
                 fontSize: 'var(--pc-text-lg)',
                 color: 'var(--pc-fg)',
                 letterSpacing: 'var(--pc-track-tight)',
                 lineHeight: 1,
-              }}>{num}</div>
-              <div style={{
+                margin: 0,
+              }}>{num}</p>
+              <p style={{
                 fontFamily: 'var(--pc-sans)',
                 fontSize: 'var(--pc-text-xs)',
                 color: 'var(--pc-fg-3)',
                 marginTop: 'var(--pc-space-1)',
-              }}>{label}</div>
+                marginBottom: 0,
+              }}>{label}</p>
             </div>
           ))}
         </div>
@@ -157,7 +159,7 @@ export default function Hero() {
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 45%, rgba(14,13,11,0.85) 100%)' }} />
             <p style={{
               position: 'absolute', bottom: 12, left: 14, margin: 0,
-              fontFamily: 'var(--pc-mono)', fontSize: 9,
+              fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)',
               color: 'rgba(255,255,255,0.6)', letterSpacing: 'var(--pc-track-mono)',
             }}>CERTIFIED DETAILERS</p>
           </div>
@@ -173,7 +175,7 @@ export default function Hero() {
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 45%, rgba(14,13,11,0.85) 100%)' }} />
             <p style={{
               position: 'absolute', bottom: 12, left: 14, margin: 0,
-              fontFamily: 'var(--pc-mono)', fontSize: 9,
+              fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)',
               color: 'rgba(255,255,255,0.6)', letterSpacing: 'var(--pc-track-mono)',
             }}>BOOK IN 2 MINUTES</p>
           </div>
@@ -189,10 +191,10 @@ export default function Hero() {
             borderRadius: 'var(--pc-radius-md)', padding: 'var(--pc-space-4)',
             display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: 80,
           }}>
-            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, color: 'var(--pc-fg-4)', letterSpacing: 'var(--pc-track-mono)', margin: 0 }}>
+            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-4)', letterSpacing: 'var(--pc-track-mono)', margin: 0 }}>
               PROCESS
             </p>
-            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg)', lineHeight: 1.35, margin: 0 }}>
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg)', lineHeight: 1.35, margin: 0 }}>
               60-point<br />inspection checklist
             </p>
           </div>
@@ -201,10 +203,10 @@ export default function Hero() {
             borderRadius: 'var(--pc-radius-md)', padding: 'var(--pc-space-4)',
             display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: 80,
           }}>
-            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, color: 'var(--pc-fg-4)', letterSpacing: 'var(--pc-track-mono)', margin: 0 }}>
+            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-4)', letterSpacing: 'var(--pc-track-mono)', margin: 0 }}>
               COVERAGE
             </p>
-            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg)', lineHeight: 1.35, margin: 0 }}>
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg)', lineHeight: 1.35, margin: 0 }}>
               Delhi, Noida,<br />Gurgaon &amp; beyond
             </p>
           </div>
@@ -233,10 +235,10 @@ export default function Hero() {
           />
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 40%, rgba(14,13,11,0.88) 100%)' }} />
           <div style={{ position: 'absolute', bottom: 16, left: 16 }}>
-            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: 'var(--pc-track-mono)', marginBottom: 5, marginTop: 0 }}>
+            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)', color: 'rgba(255,255,255,0.45)', letterSpacing: 'var(--pc-track-mono)', marginBottom: 'var(--pc-space-1)', marginTop: 0 }}>
               EXTERIOR WASH
             </p>
-            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)', fontWeight: 500, margin: 0 }}>
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg)', fontWeight: 500, margin: 0 }}>
               Foam cannon to finish
             </p>
           </div>
@@ -253,10 +255,10 @@ export default function Hero() {
           />
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 40%, rgba(14,13,11,0.88) 100%)' }} />
           <div style={{ position: 'absolute', bottom: 16, left: 16 }}>
-            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: 'var(--pc-track-mono)', marginBottom: 5, marginTop: 0 }}>
+            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)', color: 'rgba(255,255,255,0.45)', letterSpacing: 'var(--pc-track-mono)', marginBottom: 'var(--pc-space-1)', marginTop: 0 }}>
               CERAMIC COATING
             </p>
-            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)', fontWeight: 500, margin: 0 }}>
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg)', fontWeight: 500, margin: 0 }}>
               3-year protection
             </p>
           </div>
@@ -273,10 +275,10 @@ export default function Hero() {
           />
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(105deg, rgba(14,13,11,0.82) 0%, rgba(14,13,11,0.3) 60%, rgba(14,13,11,0) 100%)' }} />
           <div style={{ position: 'absolute', bottom: 20, left: 20 }}>
-            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: 'var(--pc-track-mono)', marginBottom: 6, marginTop: 0 }}>
+            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)', color: 'rgba(255,255,255,0.45)', letterSpacing: 'var(--pc-track-mono)', marginBottom: 'var(--pc-space-1)', marginTop: 0 }}>
               INTERIOR DETAIL
             </p>
-            <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 28, color: 'var(--pc-fg)', letterSpacing: 'var(--pc-track-tight)', lineHeight: 1.05, margin: 0 }}>
+            <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 'var(--pc-text-2xl)', color: 'var(--pc-fg)', letterSpacing: 'var(--pc-track-tight)', lineHeight: 1.05, margin: 0 }}>
               Every surface.<br />Nothing rushed.
             </p>
           </div>
