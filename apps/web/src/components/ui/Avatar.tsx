@@ -41,7 +41,8 @@ export function AvatarStack({ count = 3 }: { count?: number }) {
     <div aria-hidden="true" style={{ display: 'flex' }}>
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} style={{
-          width: 22, height: 22,
+          width: 'var(--pc-space-6)',
+          height: 'var(--pc-space-6)',
           borderRadius: 'var(--pc-radius-pill)',
           background: STACK_COLORS[i % STACK_COLORS.length],
           border: '2px solid var(--pc-ink)',

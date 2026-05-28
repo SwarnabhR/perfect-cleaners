@@ -36,7 +36,14 @@ export default function CarImage({ tone = 'dark', label, style, className }: Car
         background: 'radial-gradient(ellipse at center, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 70%)',
         pointerEvents: 'none',
       }} />
-      <svg viewBox="0 0 320 180" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" style={{ display: 'block' }}>
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 320 180"
+        width="100%"
+        height="100%"
+        preserveAspectRatio="xMidYMid meet"
+        style={{ display: 'block' }}
+      >
         <defs>
           <linearGradient id="pcCarBody" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%"   stopColor="rgba(255,255,255,0.12)" />
@@ -75,7 +82,7 @@ export default function CarImage({ tone = 'dark', label, style, className }: Car
           border: '1px solid var(--pc-line)',
           padding: 'var(--pc-space-1) var(--pc-space-2)',
           borderRadius: 'var(--pc-radius-xs)',
-          background: 'rgba(0,0,0,0.4)',
+          background: 'var(--pc-ink-overlay)',
           backdropFilter: 'blur(4px)',
         }}>
           [{label}]

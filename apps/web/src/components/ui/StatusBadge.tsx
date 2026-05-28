@@ -29,9 +29,10 @@ export default function StatusBadge({ status }: StatusBadgeProps) {
       }}
     >
       <span
+        aria-hidden="true"
         style={{
-          width: 6,
-          height: 6,
+          width: 'var(--pc-space-2)',
+          height: 'var(--pc-space-2)',
           borderRadius: 'var(--pc-radius-pill)',
           background: dotColor,
           flexShrink: 0,

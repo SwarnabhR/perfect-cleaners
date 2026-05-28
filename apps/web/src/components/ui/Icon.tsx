@@ -54,6 +54,7 @@ interface IconProps {
 export default function Icon({ name, size = 20, color = 'currentColor', strokeWidth = 1.5, style }: IconProps) {
   return (
     <svg
+      aria-hidden="true"
       width={size}
       height={size}
       viewBox="0 0 24 24"
