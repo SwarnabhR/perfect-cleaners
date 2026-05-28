@@ -7,43 +7,23 @@ import { useThemeColors } from '../../theme';
 import { ScreenHeader, Group, Row } from '../../components/RowGroup';
 
 const BOOKING_DATA: Record<string, {
-  title: string;
-  status: string;
-  date: string;
-  car: string;
-  plate: string;
-  time: string;
-  address: string;
-  worker: string;
-  method: string;
-  paymentStatus: string;
-  total: string;
+  title: string; status: string; date: string; car: string;
+  plate: string; time: string; address: string; worker: string;
+  method: string; paymentStatus: string; total: string;
 }> = {
   '#PC-2041': {
     title: 'Exterior Wash',
     status: 'COMPLETED · 22 MAY 2026',
-    date: 'Fri, 22 May',
-    car: 'Hyundai Creta',
-    plate: 'DL 8C XY 0921',
-    time: '11:00 AM',
-    address: 'B-204, Kavi Nagar',
-    worker: 'Rahul Sharma',
-    method: 'HDFC •••• 4242',
-    paymentStatus: 'Paid',
-    total: '₹350',
+    date: 'Fri, 22 May', car: 'Hyundai Creta', plate: 'DL 8C XY 0921',
+    time: '11:00 AM', address: 'B-204, Kavi Nagar', worker: 'Rahul Sharma',
+    method: 'HDFC •••• 4242', paymentStatus: 'Paid', total: '₹350',
   },
   '#PC-2058': {
     title: 'Premium Wash + Interior',
     status: 'UPCOMING · 28 MAY 2026',
-    date: 'Tue, 28 May',
-    car: 'BMW 3 Series',
-    plate: 'DL 4C AB 1234',
-    time: '2:00 PM',
-    address: 'B-204, Kavi Nagar',
-    worker: 'Rahul Sharma',
-    method: 'UPI · GPay',
-    paymentStatus: 'Paid',
-    total: '₹1,080',
+    date: 'Tue, 28 May', car: 'BMW 3 Series', plate: 'DL 4C AB 1234',
+    time: '2:00 PM', address: 'B-204, Kavi Nagar', worker: 'Rahul Sharma',
+    method: 'UPI · GPay', paymentStatus: 'Paid', total: '₹1,080',
   },
 };
 
@@ -52,104 +32,29 @@ const FALLBACK_ID = '#PC-2041';
 export default function BookingDetailScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const c = useThemeColors();
+  const c      = useThemeColors();
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const bookingId = id ?? FALLBACK_ID;
-  const b = BOOKING_DATA[bookingId] ?? BOOKING_DATA[FALLBACK_ID];
+  const bookingId  = id ?? FALLBACK_ID;
+  const b          = BOOKING_DATA[bookingId] ?? BOOKING_DATA[FALLBACK_ID];
   const isCompleted = b.status.startsWith('COMPLETED');
-
-  const s = StyleSheet.create({
-    root: { flex: 1, backgroundColor: c.ink },
-    titleBlock: {
-      paddingHorizontal: spacing[5],
-      paddingBottom: spacing[3],
-    },
-    statusLabel: {
-      fontFamily: typography.mono,
-      fontSize: 9.5, color: c.fg3,
-      letterSpacing: 0.8, textTransform: 'uppercase',
-    },
-    serviceTitle: {
-      fontFamily: typography.serif,
-      fontSize: 32,
-      color: c.fg,
-      letterSpacing: -0.3,
-      lineHeight: 36,
-      marginTop: 4,
-    },
-
-    beforeAfter: {
-      marginHorizontal: spacing[5],
-      height: 200,
-      borderRadius: radii.md,
-      overflow: 'hidden',
-      flexDirection: 'row',
-      marginBottom: spacing[1],
-    },
-    beforeHalf: { flex: 1, position: 'relative' },
-    afterHalf:  { flex: 1, position: 'relative' },
-    divider: { width: 2, backgroundColor: '#fff', zIndex: 2 },
-    baImage: { width: '100%', height: '100%', borderRadius: 0, borderWidth: 0 },
-    baLabel: {
-      position: 'absolute', top: 10, left: 10,
-      paddingHorizontal: 7, paddingVertical: 3,
-      borderRadius: radii.xs,
-      backgroundColor: 'rgba(0,0,0,0.5)',
-    },
-    baLabelAfter: {
-      left: undefined, right: 10,
-      backgroundColor: c.sageHi,
-    },
-    baLabelText: {
-      fontFamily: typography.mono, fontSize: 9, color: '#fff', letterSpacing: 0.8,
-    },
-
-    carBanner: { marginHorizontal: spacing[5], marginBottom: spacing[1] },
-    carBannerImg: { height: 140 },
-
-    actions: {
-      paddingHorizontal: spacing[5],
-      paddingTop: spacing[4],
-      gap: spacing[2],
-    },
-    primaryBtn: {
-      backgroundColor: c.warm,
-      borderRadius: radii.pill,
-      paddingVertical: 14,
-      alignItems: 'center',
-    },
-    primaryBtnText: {
-      fontFamily: typography.sansSemiBold,
-      fontSize: 13, color: c.ink, letterSpacing: 0.6,
-    },
-    ghostBtn: {
-      borderRadius: radii.pill,
-      paddingVertical: 13,
-      alignItems: 'center',
-      borderWidth: 1,
-      borderColor: c.lineStrong,
-    },
-    ghostBtnText: {
-      fontFamily: typography.sansMedium,
-      fontSize: 13, color: c.fg, letterSpacing: 0.6,
-    },
-  });
 
   return (
     <ScrollView
-      style={s.root}
-      contentContainerStyle={{ paddingBottom: spacing[10] }}
+      style={[s.root, { backgroundColor: c.ink }]}
+      contentContainerStyle={s.scrollContent}
       showsVerticalScrollIndicator={false}
     >
       <View style={{ paddingTop: insets.top }}>
         <ScreenHeader title={bookingId} />
       </View>
 
+      {/* Title block */}
       <View style={s.titleBlock}>
-        <Text style={s.statusLabel}>{b.status}</Text>
-        <Text style={s.serviceTitle}>{b.title}</Text>
+        <Text style={[s.statusLabel,  { color: c.fg3 }]}>{b.status}</Text>
+        <Text style={[s.serviceTitle, { color: c.fg  }]}>{b.title}</Text>
       </View>
 
+      {/* Before / After or car banner */}
       {isCompleted ? (
         <View style={s.beforeAfter}>
           <View style={s.beforeHalf}>
@@ -161,7 +66,7 @@ export default function BookingDetailScreen() {
           <View style={s.divider} />
           <View style={s.afterHalf}>
             <CarImage tone="dark" style={s.baImage} />
-            <View style={[s.baLabel, s.baLabelAfter]}>
+            <View style={[s.baLabel, s.baLabelAfter, { backgroundColor: c.sageHi }]}>
               <Text style={s.baLabelText}>AFTER</Text>
             </View>
           </View>
@@ -172,6 +77,7 @@ export default function BookingDetailScreen() {
         </View>
       )}
 
+      {/* Detail rows */}
       <Group header="Details">
         <Row title="Car"     value={`${b.car} · ${b.plate}`} />
         <Row title="Date"    value={b.date} />
@@ -186,43 +92,39 @@ export default function BookingDetailScreen() {
         <Row title="Total"  value={b.total} isLast />
       </Group>
 
+      {/* Actions */}
       <View style={s.actions}>
         {isCompleted ? (
           <>
             <TouchableOpacity
-              style={s.primaryBtn}
+              style={[s.primaryBtn, { backgroundColor: c.warm }]}
               activeOpacity={0.8}
-              onPress={() =>
-                router.push({
-                  pathname: '/(customer)/rate-booking',
-                  params: { id: bookingId },
-                })
-              }
+              onPress={() => router.push({ pathname: '/(customer)/rate-booking', params: { id: bookingId } })}
             >
-              <Text style={s.primaryBtnText}>Rate & Review →</Text>
+              <Text style={[s.primaryBtnText, { color: c.ink }]}>Rate & Review →</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={s.ghostBtn}
+              style={[s.ghostBtn, { borderColor: c.lineStrong }]}
               activeOpacity={0.75}
               onPress={() => router.push('/(customer)/booking')}
             >
-              <Text style={s.ghostBtnText}>Book Again</Text>
+              <Text style={[s.ghostBtnText, { color: c.fg }]}>Book Again</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={s.ghostBtn} activeOpacity={0.75}>
-              <Text style={s.ghostBtnText}>Download Invoice</Text>
+            <TouchableOpacity style={[s.ghostBtn, { borderColor: c.lineStrong }]} activeOpacity={0.75}>
+              <Text style={[s.ghostBtnText, { color: c.fg }]}>Download Invoice</Text>
             </TouchableOpacity>
           </>
         ) : (
           <>
             <TouchableOpacity
-              style={s.primaryBtn}
+              style={[s.primaryBtn, { backgroundColor: c.warm }]}
               activeOpacity={0.8}
               onPress={() => router.push('/(customer)/tracker')}
             >
-              <Text style={s.primaryBtnText}>Track Booking →</Text>
+              <Text style={[s.primaryBtnText, { color: c.ink }]}>Track Booking →</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={s.ghostBtn} activeOpacity={0.75}>
-              <Text style={s.ghostBtnText}>Cancel Booking</Text>
+            <TouchableOpacity style={[s.ghostBtn, { borderColor: c.lineStrong }]} activeOpacity={0.75}>
+              <Text style={[s.ghostBtnText, { color: c.fg }]}>Cancel Booking</Text>
             </TouchableOpacity>
           </>
         )}
@@ -230,3 +132,31 @@ export default function BookingDetailScreen() {
     </ScrollView>
   );
 }
+
+// ─── Module-level StyleSheet ─────────────────────────────────────────────────
+const s = StyleSheet.create({
+  root:          { flex: 1 },
+  scrollContent: { paddingBottom: spacing[10] },
+
+  titleBlock:   { paddingHorizontal: spacing[5], paddingBottom: spacing[3] },
+  statusLabel:  { fontFamily: typography.mono, fontSize: 9.5, letterSpacing: 0.8, textTransform: 'uppercase' },
+  serviceTitle: { fontFamily: typography.serif, fontSize: 32, letterSpacing: -0.3, lineHeight: 36, marginTop: 4 },
+
+  beforeAfter: { marginHorizontal: spacing[5], height: 200, borderRadius: radii.md, overflow: 'hidden', flexDirection: 'row', marginBottom: spacing[1] },
+  beforeHalf:  { flex: 1, position: 'relative' },
+  afterHalf:   { flex: 1, position: 'relative' },
+  divider:     { width: 2, backgroundColor: '#fff', zIndex: 2 },
+  baImage:     { width: '100%', height: '100%', borderRadius: 0, borderWidth: 0 },
+  baLabel:     { position: 'absolute', top: 10, left: 10, paddingHorizontal: 7, paddingVertical: 3, borderRadius: radii.xs, backgroundColor: 'rgba(0,0,0,0.5)' },
+  baLabelAfter:{ left: undefined, right: 10 },
+  baLabelText: { fontFamily: typography.mono, fontSize: 9, color: '#fff', letterSpacing: 0.8 },
+
+  carBanner:    { marginHorizontal: spacing[5], marginBottom: spacing[1] },
+  carBannerImg: { height: 140 },
+
+  actions:        { paddingHorizontal: spacing[5], paddingTop: spacing[4], gap: spacing[2] },
+  primaryBtn:     { borderRadius: radii.pill, paddingVertical: 14, alignItems: 'center' },
+  primaryBtnText: { fontFamily: typography.sansSemiBold, fontSize: 13, letterSpacing: 0.6 },
+  ghostBtn:       { borderRadius: radii.pill, paddingVertical: 13, alignItems: 'center', borderWidth: 1 },
+  ghostBtnText:   { fontFamily: typography.sansMedium, fontSize: 13, letterSpacing: 0.6 },
+});
