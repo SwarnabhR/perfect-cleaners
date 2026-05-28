@@ -104,9 +104,9 @@ export default function Footer() {
                 {label}
               </a>
             ) : (
-              <div key={label} style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg-2)' }}>
+              <p key={label} style={{ margin: 0, fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg-2)' }}>
                 {label}
-              </div>
+              </p>
             )
           )}
         </div>

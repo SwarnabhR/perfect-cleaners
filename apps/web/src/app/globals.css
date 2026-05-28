@@ -15,6 +15,10 @@
   --pc-fg-2: #AAAAAA;
   --pc-fg-3: #666660;
   --pc-fg-4: #3A3A36;
+  --pc-fg-dim: rgba(255,255,255,0.45);
+
+  --pc-line-warm: rgba(240,237,232,0.45);
+  --pc-ink-overlay: rgba(12,11,9,0.97);
 
   --pc-sage:     #4A5E44;
   --pc-sage-hi:  #5B6F52;

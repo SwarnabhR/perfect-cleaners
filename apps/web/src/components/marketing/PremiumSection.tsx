@@ -155,8 +155,8 @@ export default function PremiumSection() {
               position: 'relative',
               padding: 'var(--pc-space-4) var(--pc-space-4) 0',
               fontFamily: 'var(--pc-mono)',
-              fontSize: 9,
-              color: 'rgba(255,255,255,0.45)',
+              fontSize: 'var(--pc-text-xs)',
+              color: 'var(--pc-fg-dim)',
               letterSpacing: 'var(--pc-track-mono)',
             }}>
               [{String(i + 1).padStart(2, '0')}] {svc.label}

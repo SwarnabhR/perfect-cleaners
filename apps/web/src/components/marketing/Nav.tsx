@@ -121,7 +121,7 @@ export default function Nav() {
                     style={{
                       position: 'absolute', bottom: 0, left: 0, right: 0,
                       height: '1px',
-                      background: 'rgba(240,237,232,0.45)',
+                      background: 'var(--pc-line-warm)',
                       borderRadius: '1px',
                     }}
                   />
@@ -172,7 +172,7 @@ export default function Nav() {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               width: 32, height: 32,
               borderRadius: '50%',
-              border: '1px solid rgba(255,255,255,0.1)',
+              border: '1px solid var(--pc-line-strong)',
               color: 'var(--pc-fg-3)',
               transition: 'border-color 0.18s ease, color 0.18s ease',
             }}
@@ -217,7 +217,7 @@ export default function Nav() {
         className="pc-nav-drawer"
         style={{
           position: 'fixed', inset: 0, zIndex: 49,
-          background: 'rgba(12,11,9,0.97)',
+          background: 'var(--pc-ink-overlay)',
           backdropFilter: 'blur(24px)',
           WebkitBackdropFilter: 'blur(24px)',
           display: 'flex', flexDirection: 'column',
@@ -264,11 +264,11 @@ export default function Nav() {
         {/* Location tag */}
         <p style={{
           fontFamily: 'var(--pc-mono)',
-          fontSize: 9.5,
+          fontSize: 'var(--pc-text-xs)',
           letterSpacing: '0.14em',
           textTransform: 'uppercase',
-          color: 'rgba(240,237,232,0.2)',
-          marginTop: 32, marginBottom: 0,
+          color: 'var(--pc-fg-dim)',
+          marginTop: 'var(--pc-space-8)', marginBottom: 0,
         }}>
           Delhi NCR · Ghaziabad
         </p>

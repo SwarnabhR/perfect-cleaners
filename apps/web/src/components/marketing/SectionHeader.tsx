@@ -21,16 +21,17 @@ export default function SectionHeader({
           <span style={{ marginLeft: 'var(--pc-space-2)', fontSize: 'var(--pc-text-xs)' }}>{badgeText}</span>
         </Pill>
       )}
-      <div style={{
+      <h2 style={{
         fontFamily: 'var(--pc-serif)', fontSize: 'var(--pc-text-hero)', lineHeight: 1.05,
         color: 'var(--pc-fg)', letterSpacing: '-0.02em', maxWidth: 720,
+        margin: 0,
       }}>
         {title}
-      </div>
+      </h2>
       {subtitle && (
-        <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-lg)', color: 'var(--pc-fg-2)', lineHeight: 1.5, maxWidth: 720 }}>
+        <p style={{ margin: 0, fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-lg)', color: 'var(--pc-fg-2)', lineHeight: 1.5, maxWidth: 720 }}>
           {subtitle}
-        </div>
+        </p>
       )}
     </div>
   );
