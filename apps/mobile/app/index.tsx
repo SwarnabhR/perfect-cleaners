@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { View, Text, Animated, StyleSheet } from 'react-native';
+import { View, Text, Animated, StyleSheet, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import auth from '@react-native-firebase/auth';
@@ -15,8 +15,8 @@ const KEY_ROLE       = '@pc/role';       // 'customer' | 'worker'
 const DEMO_UID = 'demo-user';
 
 export default function Index() {
-  const router    = useRouter();
-  const fadeAnim  = useRef(new Animated.Value(0)).current;
+  const router   = useRouter();
+  const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -24,6 +24,12 @@ export default function Index() {
       duration: 300,
       useNativeDriver: false,
     }).start();
+
+    // @react-native-firebase/* are native modules — they crash on web
+    // because the native bridge (Google Services plist/json) doesn't
+    // exist in the react-dom renderer. This app is native-only; skip
+    // the auth gate entirely on web.
+    if (Platform.OS === 'web') return;
 
     /**
      * Gate logic (runs once per mount, cleaned up on unmount).
@@ -111,6 +117,22 @@ export default function Index() {
     }
   }
 
+  // Web: native modules unavailable — render a static notice instead
+  // of crashing. The app is not intended to run on web.
+  if (Platform.OS === 'web') {
+    return (
+      <View style={[s.root, s.webRoot]}>
+        <View style={s.monogramWrap}>
+          <PCMonogram size={32} />
+        </View>
+        <Text style={s.wordmark}>PERFECT CLEANERS</Text>
+        <Text style={s.webNotice}>
+          Download the iOS or Android app to continue.
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <View style={s.root}>
       <Animated.View style={[s.content, { opacity: fadeAnim }]}>
@@ -130,6 +152,9 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  webRoot: {
+    gap: 16,
+  },
   content: {
     alignItems: 'center',
     gap: 12,
@@ -148,5 +173,11 @@ const s = StyleSheet.create({
     fontSize: 9.5,
     letterSpacing: 1.2,
     color: colors.fg,
+  },
+  webNotice: {
+    fontFamily: typography.sans,
+    fontSize: 13,
+    color: colors.fg3,
+    letterSpacing: 0.2,
   },
 });
