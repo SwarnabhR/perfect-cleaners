@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Icon from '@/components/ui/Icon';
@@ -10,12 +10,25 @@ import { useI18n } from '@/i18n';
 
 const NAV_HREFS = ['/services', '/plans', '/gallery', '/about', '/journal', '/contact'] as const;
 
+/** CSS selector that matches all naturally focusable elements. */
+const FOCUSABLE = [
+  'a[href]',
+  'button:not([disabled])',
+  'input:not([disabled])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  '[tabindex]:not([tabindex="-1"])',
+].join(',');
+
 export default function Nav() {
   const pathname  = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { theme, toggle } = useTheme();
   const { t } = useI18n();
+
+  const triggerRef = useRef<HTMLButtonElement>(null); // hamburger
+  const drawerRef  = useRef<HTMLDivElement>(null);    // drawer container
 
   const NAV_LINKS = [
     { label: t.nav.services, href: NAV_HREFS[0] },
@@ -26,6 +39,7 @@ export default function Nav() {
     { label: t.nav.contact,  href: NAV_HREFS[5] },
   ];
 
+  // ── Scroll listener ──────────────────────────────────────────────────────
   useEffect(() => {
     function onScroll() { setScrolled(window.scrollY > 40); }
     onScroll();
@@ -33,6 +47,7 @@ export default function Nav() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  // ── Escape to close ───────────────────────────────────────────────────────
   useEffect(() => {
     if (!menuOpen) return;
     function onKey(e: KeyboardEvent) { if (e.key === 'Escape') setMenuOpen(false); }
@@ -40,10 +55,52 @@ export default function Nav() {
     return () => document.removeEventListener('keydown', onKey);
   }, [menuOpen]);
 
+  // ── Body scroll lock ──────────────────────────────────────────────────────
   useEffect(() => {
     document.body.style.overflow = menuOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [menuOpen]);
+
+  // ── Focus management ──────────────────────────────────────────────────────
+  // On open: move focus to first focusable element inside the drawer.
+  // On close: return focus to the hamburger trigger.
+  useEffect(() => {
+    if (menuOpen) {
+      // Small rAF so the drawer is visible/interactable before we focus.
+      const id = requestAnimationFrame(() => {
+        const first = drawerRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE)[0];
+        first?.focus();
+      });
+      return () => cancelAnimationFrame(id);
+    } else {
+      triggerRef.current?.focus();
+    }
+  }, [menuOpen]);
+
+  // ── Focus trap (Tab / Shift+Tab) ──────────────────────────────────────────
+  const handleDrawerKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'Tab') return;
+    const nodes = Array.from(
+      drawerRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? []
+    );
+    if (nodes.length === 0) return;
+    const first = nodes[0];
+    const last  = nodes[nodes.length - 1];
+
+    if (e.shiftKey) {
+      // Shift+Tab: if focus is on first element, wrap to last
+      if (document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      }
+    } else {
+      // Tab: if focus is on last element, wrap to first
+      if (document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  }, []);
 
   return (
     <>
@@ -108,6 +165,7 @@ export default function Nav() {
               <Link
                 key={href}
                 href={href}
+                className="pc-nav-link"
                 style={{
                   fontFamily: 'var(--pc-mono)',
                   fontSize: 'var(--pc-text-xs)',
@@ -147,7 +205,7 @@ export default function Nav() {
 
           {/*
             Book Now — desktop.
-            pc-nav-book-now provides hover styles (border lift + faint bg).
+            pc-nav-book-now provides hover/active/focus-visible styles.
           */}
           <Link
             href="/book"
@@ -163,7 +221,7 @@ export default function Nav() {
               padding: 'var(--pc-space-2) var(--pc-space-5)',
               whiteSpace: 'nowrap',
               textDecoration: 'none',
-              transition: 'border-color 0.2s ease, background 0.2s ease',
+              transition: 'border-color var(--pc-dur-fast) var(--pc-ease), background var(--pc-dur-fast) var(--pc-ease), transform var(--pc-dur-fast) var(--pc-ease)',
             }}
           >
             {t.nav.bookNow}
@@ -208,6 +266,7 @@ export default function Nav() {
 
           {/* Hamburger — mobile */}
           <button
+            ref={triggerRef}
             className="pc-nav-hamburger"
             type="button"
             onClick={() => setMenuOpen(o => !o)}
@@ -227,24 +286,28 @@ export default function Nav() {
       </nav>
 
       {/*
-        Mobile drawer.
-        Previously role="dialog" aria-modal="true" — removed because no
-        focus trap is implemented. The dialog contract requires focus to be
-        trapped inside the drawer while open; without it, screen reader users
-        tab out into background content, violating the promise made by
-        aria-modal. role="navigation" is semantically accurate and makes no
-        modal promises.
+        Mobile drawer — now a proper dialog with focus trap.
 
-        inert is set when the drawer is closed so keyboard users cannot
-        tab into the visually hidden links behind pointerEvents:none.
+        Accessibility contract met:
+        - role="dialog" aria-modal="true": announces as modal to screen readers.
+        - aria-labelledby: points to the visually-hidden #mobile-nav-title heading.
+        - Focus moves in on open (first focusable element).
+        - Tab / Shift+Tab cycle within the drawer (handleDrawerKeyDown).
+        - Escape closes the drawer and returns focus to the hamburger.
+        - Focus returns to triggerRef on close (useEffect above).
+        - inert when closed: prevents background tab traversal before
+          React has painted the closed state.
       */}
       <div
         id="mobile-nav-drawer"
-        role="navigation"
-        aria-label="Mobile navigation"
+        ref={drawerRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="mobile-nav-title"
         aria-hidden={!menuOpen}
         inert={!menuOpen}
         className="pc-nav-drawer"
+        onKeyDown={handleDrawerKeyDown}
         style={{
           position: 'fixed', inset: 0, zIndex: 49,
           background: 'var(--pc-ink-overlay)',
@@ -261,6 +324,18 @@ export default function Nav() {
           transition: 'opacity 0.28s ease, transform 0.28s ease',
         }}
       >
+        {/* Visually-hidden title for screen readers */}
+        <h2
+          id="mobile-nav-title"
+          style={{
+            position: 'absolute', width: 1, height: 1,
+            padding: 0, margin: -1, overflow: 'hidden',
+            clip: 'rect(0,0,0,0)', whiteSpace: 'nowrap', borderWidth: 0,
+          }}
+        >
+          Site navigation
+        </h2>
+
         {/* Links */}
         <ul style={{ display: 'flex', flexDirection: 'column', listStyle: 'none', margin: 0, padding: 0 }}>
           {[{ label: t.nav.home, href: '/' }, ...NAV_LINKS].map(({ label, href }, i) => {
@@ -316,7 +391,7 @@ export default function Nav() {
               fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)',
               letterSpacing: '0.16em', textTransform: 'uppercase',
               textDecoration: 'none',
-              transition: 'background var(--pc-dur-fast) var(--pc-ease)',
+              transition: 'background var(--pc-dur-fast) var(--pc-ease), transform var(--pc-dur-fast) var(--pc-ease)',
             }}
           >
             {t.nav.bookNow}
