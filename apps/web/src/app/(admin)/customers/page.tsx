@@ -1,52 +1,53 @@
-import Eyebrow from '@/components/ui/Eyebrow';
+'use client';
+import { useState } from 'react';
 import Card from '@/components/ui/Card';
+import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
-import Avatar from '@/components/ui/Avatar';
 
 const CUSTOMERS = [
-  { name: 'Aarav Mehta',     phone: '+91 98765 43210', area: 'Indirapuram',    cars: 2, bookings: 14, spend: '₹18,240', lastBooking: '27 May', tier: 'Elite'    },
-  { name: 'Priya Singh',     phone: '+91 98111 22333', area: 'Vaishali',       cars: 1, bookings: 9,  spend: '₹7,200',  lastBooking: '27 May', tier: 'Premium'  },
-  { name: 'Raj Malhotra',    phone: '+91 99882 11000', area: 'Kaushambi',      cars: 3, bookings: 22, spend: '₹52,800', lastBooking: '26 May', tier: 'Elite'    },
-  { name: 'Divya Nair',      phone: '+91 91234 56789', area: 'Kavi Nagar',     cars: 1, bookings: 7,  spend: '₹6,400',  lastBooking: '26 May', tier: 'Premium'  },
-  { name: 'Vikram Patel',    phone: '+91 97654 32100', area: 'Raj Nagar Ext.', cars: 2, bookings: 5,  spend: '₹11,200', lastBooking: '27 May', tier: 'Premium'  },
-  { name: 'Neha Kapoor',     phone: '+91 93456 78901', area: 'Vasundhara',     cars: 1, bookings: 3,  spend: '₹2,850',  lastBooking: '27 May', tier: 'Standard' },
-  { name: 'Sameer Khan',     phone: '+91 96543 21098', area: 'Indirapuram',    cars: 1, bookings: 8,  spend: '₹4,600',  lastBooking: '27 May', tier: 'Standard' },
-  { name: 'Ananya Verma',    phone: '+91 99001 12345', area: 'Vaishali',       cars: 2, bookings: 11, spend: '₹12,900', lastBooking: '26 May', tier: 'Premium'  },
-  { name: 'Karan Gupta',     phone: '+91 98776 54321', area: 'Crossings Rep.', cars: 1, bookings: 6,  spend: '₹3,200',  lastBooking: '26 May', tier: 'Standard' },
-  { name: 'Meera Iyer',      phone: '+91 91111 22222', area: 'Indirapuram',    cars: 1, bookings: 4,  spend: '₹4,200',  lastBooking: '25 May', tier: 'Standard' },
-  { name: 'Arjun Reddy',     phone: '+91 94455 66778', area: 'Vasundhara',     cars: 2, bookings: 2,  spend: '₹5,600',  lastBooking: '25 May', tier: 'Premium'  },
-  { name: 'Shreya Joshi',    phone: '+91 87654 32109', area: 'Raj Nagar Ext.', cars: 1, bookings: 1,  spend: '₹450',    lastBooking: '24 May', tier: 'Standard' },
+  { id: 'C-001', name: 'Priya Sharma',   email: 'priya@email.com',   phone: '+91 98200 11111', jobs: 24, spent: '\u20b972,800', tier: 'Gold',     joined: 'Jan 2023' },
+  { id: 'C-002', name: 'Arjun Mehta',    email: 'arjun@email.com',   phone: '+91 98200 22222', jobs: 18, spent: '\u20b952,200', tier: 'Silver',   joined: 'Mar 2023' },
+  { id: 'C-003', name: 'Kavya Iyer',     email: 'kavya@email.com',   phone: '+91 98200 33333', jobs: 31, spent: '\u20b994,600', tier: 'Platinum', joined: 'Oct 2022' },
+  { id: 'C-004', name: 'Ravi Gupta',     email: 'ravi@email.com',    phone: '+91 98200 44444', jobs: 9,  spent: '\u20b921,600', tier: 'Bronze',   joined: 'Aug 2024' },
+  { id: 'C-005', name: 'Sneha Pillai',   email: 'sneha@email.com',   phone: '+91 98200 55555', jobs: 42, spent: '\u20b91,26,000',tier: 'Platinum', joined: 'Jun 2022' },
+  { id: 'C-006', name: 'Vikram Nair',    email: 'vikram@email.com',  phone: '+91 98200 66666', jobs: 12, spent: '\u20b936,400', tier: 'Silver',   joined: 'Feb 2024' },
+  { id: 'C-007', name: 'Ananya Reddy',   email: 'ananya@email.com',  phone: '+91 98200 77777', jobs: 6,  spent: '\u20b914,400', tier: 'Bronze',   joined: 'Nov 2024' },
+  { id: 'C-008', name: 'Kiran Joshi',    email: 'kiran@email.com',   phone: '+91 98200 88888', jobs: 27, spent: '\u20b981,000', tier: 'Gold',     joined: 'Apr 2023' },
 ];
 
 const TIER_COLORS: Record<string, string> = {
-  Elite:    '#D9A441',
-  Premium:  '#5B6F52',
-  Standard: '#6A8EAE',
+  Platinum: 'var(--pc-fg)',
+  Gold:     'var(--pc-warm)',
+  Silver:   'var(--pc-fg-3)',
+  Bronze:   'var(--pc-rust)',
 };
 
-const STATS = [
-  { label: 'TOTAL CUSTOMERS', value: '9,241', icon: 'users' },
-  { label: 'NEW THIS WEEK', value: '+84', icon: 'user-plus' },
-  { label: 'ELITE TIER', value: '312', icon: 'star' },
-  { label: 'RETENTION RATE', value: '73%', icon: 'repeat' },
+const KPIS = [
+  { label: 'Total Customers', value: '1,284', icon: 'users' },
+  { label: 'Active (30d)',    value: '847',   icon: 'user-check' },
+  { label: 'New This Month',  value: '63',    icon: 'user-plus' },
+  { label: 'Avg Lifetime',    value: '\u20b938,400', icon: 'trending-up' },
 ];
 
-const COLS = ['CUSTOMER', 'AREA', 'CARS', 'BOOKINGS', 'TOTAL SPEND', 'LAST BOOKING', 'TIER', ''];
-const COLS_TEMPLATE = '1.4fr 140px 60px 90px 110px 120px 110px 40px';
-
 export default function CustomersPage() {
+  const [search, setSearch] = useState('');
+
+  const filtered = CUSTOMERS.filter(c =>
+    c.name.toLowerCase().includes(search.toLowerCase()) ||
+    c.email.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <div style={{ padding: 32, display: 'flex', flexDirection: 'column', gap: 28 }}>
+
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <Eyebrow>[CUSTOMERS] · 9,241 REGISTERED</Eyebrow>
-          <div style={{ fontFamily: 'var(--pc-serif)', fontSize: 38, color: '#fff', letterSpacing: '-0.02em', marginTop: 8 }}>
-            Your clientele.
-          </div>
+          <Eyebrow style={{ display: 'block', marginBottom: 4 }}>CRM</Eyebrow>
+          <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 28, fontWeight: 400, color: 'var(--pc-fg)', margin: 0 }}>Customers</h1>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button style={{
+          <button type="button" style={{
             display: 'flex', alignItems: 'center', gap: 8,
             background: 'var(--pc-card)', border: '1px solid var(--pc-line-strong)', borderRadius: 999,
             padding: '10px 18px', cursor: 'pointer',
@@ -58,82 +59,100 @@ export default function CustomersPage() {
         </div>
       </div>
 
-      {/* Stat strip */}
+      {/* KPI strip */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-        {STATS.map(({ label, value, icon }) => (
+        {KPIS.map(({ label, value, icon }) => (
           <Card key={label} style={{ padding: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
             <div style={{
               width: 40, height: 40, borderRadius: 10,
-              background: 'var(--pc-card-hi)', border: '1px solid var(--pc-line-strong)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              background: 'var(--pc-card-hi)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}>
-              <Icon name={icon} size={16} color="var(--pc-fg-2)" />
+              <Icon name={icon} size={18} color="var(--pc-sage)" />
             </div>
             <div>
-              <Eyebrow>{label}</Eyebrow>
-              <div style={{ fontFamily: 'var(--pc-serif)', fontSize: 26, color: '#fff', letterSpacing: '-0.02em' }}>{value}</div>
+              <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 22, color: 'var(--pc-fg)', margin: '0 0 2px' }}>{value}</p>
+              <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', margin: 0 }}>{label}</p>
             </div>
           </Card>
         ))}
       </div>
 
-      {/* Filter + search */}
+      {/* Search + filter row */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        {['All', 'Elite', 'Premium', 'Standard'].map((t, i) => (
-          <span key={t} style={{
-            padding: '6px 14px', borderRadius: 999, cursor: 'pointer',
-            fontFamily: 'var(--pc-mono)', fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase',
-            background: i === 0 ? 'var(--pc-warm)' : 'transparent',
-            color: i === 0 ? 'var(--pc-ink)' : 'var(--pc-fg-2)',
-            border: i === 0 ? 'none' : '1px solid var(--pc-line)',
-          }}>{t}</span>
-        ))}
+        <div style={{ position: 'relative', flex: 1, maxWidth: 320 }}>
+          <Icon name="search" size={14} color="var(--pc-fg-4)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search customers\u2026"
+            style={{
+              width: '100%', paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9,
+              background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 999,
+              fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)',
+              outline: 'none',
+            }}
+          />
+        </div>
         <div style={{
           marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8,
-          background: 'var(--pc-card)', border: '1px solid var(--pc-line)',
-          borderRadius: 8, padding: '7px 12px',
         }}>
-          <Icon name="search" size={13} color="var(--pc-fg-3)" />
-          <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)' }}>Search customers...</span>
+          {['All', 'Platinum', 'Gold', 'Silver', 'Bronze'].map(t => (
+            <button type="button" key={t} style={{
+              padding: '7px 14px', borderRadius: 999,
+              border: '1px solid var(--pc-line)',
+              background: 'transparent', color: 'var(--pc-fg-2)',
+              fontFamily: 'var(--pc-sans)', fontSize: 13, cursor: 'pointer',
+            }}>{t}</button>
+          ))}
         </div>
       </div>
 
       {/* Table */}
       <Card style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{
-          display: 'grid', gridTemplateColumns: COLS_TEMPLATE,
-          padding: '10px 18px', borderBottom: '1px solid var(--pc-line)', gap: 12,
-        }}>
-          {COLS.map(h => (
-            <div key={h} style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, color: 'var(--pc-fg-3)', letterSpacing: '0.08em' }}>{h}</div>
-          ))}
-        </div>
-        {CUSTOMERS.map((c, i) => (
-          <div key={c.name} style={{
-            display: 'grid', gridTemplateColumns: COLS_TEMPLATE,
-            padding: '13px 18px', gap: 12, alignItems: 'center',
-            borderBottom: i < CUSTOMERS.length - 1 ? '1px solid var(--pc-line)' : 'none',
-            cursor: 'pointer',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <Avatar name={c.name} size={30} />
-              <div>
-                <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: '#fff', fontWeight: 500 }}>{c.name}</div>
-                <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, color: 'var(--pc-fg-3)', letterSpacing: '0.04em' }}>{c.phone}</div>
-              </div>
-            </div>
-            <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', letterSpacing: '0.04em' }}>{c.area}</span>
-            <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-2)' }}>{c.cars}</span>
-            <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-2)' }}>{c.bookings}</span>
-            <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 12, color: '#fff' }}>{c.spend}</span>
-            <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)' }}>{c.lastBooking.toUpperCase()}</span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ width: 7, height: 7, borderRadius: 999, background: TIER_COLORS[c.tier], flexShrink: 0 }} />
-              <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-2)' }}>{c.tier}</span>
-            </span>
-            <Icon name="more-horizontal" size={14} color="var(--pc-fg-3)" />
-          </div>
-        ))}
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid var(--pc-line)' }}>
+              {['Customer', 'Contact', 'Jobs', 'Total Spent', 'Tier', 'Joined'].map(h => (
+                <th key={h} style={{
+                  padding: '13px 18px', gap: 12, alignItems: 'center',
+                  textAlign: 'left', fontFamily: 'var(--pc-sans)', fontSize: 11,
+                  color: 'var(--pc-fg-3)', fontWeight: 500,
+                  textTransform: 'uppercase', letterSpacing: '0.06em',
+                }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map(c => (
+              <tr key={c.id} style={{ borderBottom: '1px solid var(--pc-line)' }}>
+                <td style={{ padding: '13px 18px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 999, background: 'var(--pc-card-hi)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, fontWeight: 600, color: 'var(--pc-fg-2)' }}>{c.name[0]}</span>
+                    </div>
+                    <div>
+                      <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg)', margin: '0 0 1px', fontWeight: 500 }}>{c.name}</p>
+                      <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)', margin: 0 }}>{c.id}</p>
+                    </div>
+                  </div>
+                </td>
+                <td style={{ padding: '13px 18px' }}>
+                  <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)', margin: '0 0 2px' }}>{c.email}</p>
+                  <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)', margin: 0 }}>{c.phone}</p>
+                </td>
+                <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg-2)' }}>{c.jobs}</td>
+                <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg)', fontWeight: 600 }}>{c.spent}</td>
+                <td style={{ padding: '13px 18px' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 7, height: 7, borderRadius: 999, background: TIER_COLORS[c.tier], flexShrink: 0 }} />
+                    <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: TIER_COLORS[c.tier] }}>{c.tier}</span>
+                  </span>
+                </td>
+                <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)' }}>{c.joined}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </Card>
     </div>
   );

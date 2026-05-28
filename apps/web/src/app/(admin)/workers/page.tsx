@@ -1,161 +1,157 @@
-import Eyebrow from '@/components/ui/Eyebrow';
+'use client';
+import { useState } from 'react';
 import Card from '@/components/ui/Card';
+import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
-import Avatar from '@/components/ui/Avatar';
 
 const WORKERS = [
-  { name: 'Rahul Sharma',   zone: 'Indirapuram',    rating: 4.9, jobs: 312, weekly: '₹18,200', monthly: '₹84,200', status: 'on-duty',  skills: ['Exterior', 'Interior', 'Ceramic Coat'],        onTime: '97%', active: true  },
-  { name: 'Asha Rao',       zone: 'Vaishali',       rating: 4.9, jobs: 287, weekly: '₹17,400', monthly: '₹78,300', status: 'on-duty',  skills: ['Exterior', 'Interior', 'Detailing'],           onTime: '98%', active: true  },
-  { name: 'Vikrant Bose',   zone: 'Kaushambi',      rating: 4.8, jobs: 264, weekly: '₹16,100', monthly: '₹72,900', status: 'en-route', skills: ['Exterior', 'PPF', 'Ceramic Coat'],             onTime: '95%', active: true  },
-  { name: 'Pradeep Menon',  zone: 'Raj Nagar Ext.', rating: 4.8, jobs: 251, weekly: '₹15,300', monthly: '₹68,400', status: 'on-duty',  skills: ['Interior', 'Detailing', 'Engine Bay'],         onTime: '96%', active: true  },
-  { name: 'Sunil Bhardwaj', zone: 'Vasundhara',     rating: 4.7, jobs: 238, weekly: '₹13,800', monthly: '₹61,000', status: 'on-duty',  skills: ['Exterior', 'Interior'],                        onTime: '94%', active: true  },
-  { name: 'Manoj Kumar',    zone: 'Indirapuram',    rating: 4.7, jobs: 203, weekly: '₹12,100', monthly: '₹53,400', status: 'idle',     skills: ['Exterior', 'Interior', 'Detailing'],           onTime: '93%', active: true  },
-  { name: 'Deepika Nair',   zone: 'Crossings Rep.', rating: 4.6, jobs: 174, weekly: '₹9,400',  monthly: '₹44,200', status: 'off-duty', skills: ['Interior', 'Leather Conditioning'],            onTime: '96%', active: false },
-  { name: 'Aryan Tiwari',   zone: 'Kavi Nagar',     rating: 4.6, jobs: 158, weekly: '₹8,200',  monthly: '₹38,900', status: 'off-duty', skills: ['Exterior', 'Tyre Dressing'],                   onTime: '91%', active: false },
+  { id: 'W-01', name: 'Rajan Kumar',  role: 'Senior Cleaner',  status: 'Available', jobs: 48, rating: 4.97, revenue: '\u20b912,400', zone: 'North Bengaluru', skills: ['Deep Clean', 'Move-in/out', 'Office'] },
+  { id: 'W-02', name: 'Sunita Devi',  role: 'Senior Cleaner',  status: 'On Job',    jobs: 42, rating: 4.94, revenue: '\u20b910,800', zone: 'South Bengaluru', skills: ['Regular', 'Deep Clean', 'Post-reno'] },
+  { id: 'W-03', name: 'Mohan Rao',   role: 'Cleaner',          status: 'Available', jobs: 39, rating: 4.91, revenue: '\u20b99,750',  zone: 'East Bengaluru',  skills: ['Regular', 'Office'] },
+  { id: 'W-04', name: 'Deepa Singh', role: 'Cleaner',          status: 'Off Today', jobs: 36, rating: 4.88, revenue: '\u20b99,100',  zone: 'West Bengaluru',  skills: ['Deep Clean', 'Carpet'] },
+  { id: 'W-05', name: 'Ramesh G.',   role: 'Junior Cleaner',   status: 'On Job',    jobs: 22, rating: 4.80, revenue: '\u20b95,500',  zone: 'North Bengaluru', skills: ['Regular'] },
+  { id: 'W-06', name: 'Lakshmi P.',  role: 'Junior Cleaner',   status: 'Available', jobs: 18, rating: 4.75, revenue: '\u20b94,500',  zone: 'Central',         skills: ['Regular', 'Deep Clean'] },
 ];
 
 const STATUS_COLORS: Record<string, string> = {
-  'on-duty': '#6FAE6A',
-  'en-route': '#D9A441',
-  'idle': '#6A8EAE',
-  'off-duty': 'var(--pc-fg-4)',
+  'Available': 'var(--pc-sage)',
+  'On Job':    'var(--pc-warm)',
+  'Off Today': 'var(--pc-fg-3)',
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  'on-duty': 'On Duty',
-  'en-route': 'En Route',
-  'idle': 'Idle',
-  'off-duty': 'Off Duty',
-};
-
-const STATS = [
-  { label: 'ACTIVE TODAY', value: '11 / 14', icon: 'users' },
-  { label: 'EN ROUTE', value: '3', icon: 'navigation' },
-  { label: 'TOTAL THIS MONTH', value: '₹5,61,400', icon: 'wallet' },
-  { label: 'AVG RATING', value: '4.8', icon: 'star' },
+const KPIS = [
+  { label: 'Total Workers', value: '18',  icon: 'users' },
+  { label: 'On Duty Today', value: '14',  icon: 'user-check' },
+  { label: 'Available Now', value: '6',   icon: 'circle-dot' },
+  { label: 'Avg Rating',    value: '4.89',icon: 'star' },
 ];
 
-const COLS = ['WORKER', 'ZONE', 'TODAY STATUS', 'RATING', 'JOBS', 'THIS WEEK', 'ON-TIME', 'SKILLS', ''];
-const COLS_TEMPLATE = '1.4fr 130px 130px 80px 70px 100px 80px 1fr 40px';
-
 export default function WorkersPage() {
+  const [selectedWorker, setSelectedWorker] = useState<typeof WORKERS[0] | null>(null);
+
   return (
     <div style={{ padding: 32, display: 'flex', flexDirection: 'column', gap: 28 }}>
+
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <Eyebrow>[WORKERS] · 14 REGISTERED</Eyebrow>
-          <div style={{ fontFamily: 'var(--pc-serif)', fontSize: 38, color: '#fff', letterSpacing: '-0.02em', marginTop: 8 }}>
-            Your team.
-          </div>
+          <Eyebrow style={{ display: 'block', marginBottom: 4 }}>TEAM</Eyebrow>
+          <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 28, fontWeight: 400, color: 'var(--pc-fg)', margin: 0 }}>Workers</h1>
         </div>
-        <button style={{
+        <button type="button" style={{
           display: 'flex', alignItems: 'center', gap: 8,
           background: 'var(--pc-warm)', border: 'none', borderRadius: 999,
           padding: '10px 20px', cursor: 'pointer',
           fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600, color: 'var(--pc-ink)',
         }}>
-          <Icon name="user-plus" size={14} color="var(--pc-ink)" />
+          <Icon name="plus" size={14} color="var(--pc-ink)" />
           Add Worker
         </button>
       </div>
 
-      {/* Stat strip */}
+      {/* KPI strip */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-        {STATS.map(({ label, value, icon }) => (
+        {KPIS.map(({ label, value, icon }) => (
           <Card key={label} style={{ padding: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
             <div style={{
               width: 40, height: 40, borderRadius: 10,
-              background: 'var(--pc-card-hi)', border: '1px solid var(--pc-line-strong)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              background: 'var(--pc-card-hi)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}>
-              <Icon name={icon} size={16} color="var(--pc-fg-2)" />
+              <Icon name={icon} size={18} color="var(--pc-sage)" />
             </div>
             <div>
-              <Eyebrow>{label}</Eyebrow>
-              <div style={{ fontFamily: 'var(--pc-serif)', fontSize: 26, color: '#fff', letterSpacing: '-0.02em' }}>{value}</div>
+              <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 22, color: 'var(--pc-fg)', margin: '0 0 2px' }}>{value}</p>
+              <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', margin: 0 }}>{label}</p>
             </div>
           </Card>
         ))}
       </div>
 
-      {/* Filter row */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        {['All', 'On Duty', 'En Route', 'Idle', 'Off Duty'].map((t, i) => (
-          <span key={t} style={{
-            padding: '6px 14px', borderRadius: 999, cursor: 'pointer',
-            fontFamily: 'var(--pc-mono)', fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase',
-            background: i === 0 ? 'var(--pc-warm)' : 'transparent',
-            color: i === 0 ? 'var(--pc-ink)' : 'var(--pc-fg-2)',
-            border: i === 0 ? 'none' : '1px solid var(--pc-line)',
-          }}>{t}</span>
-        ))}
-        <div style={{
-          marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8,
-          background: 'var(--pc-card)', border: '1px solid var(--pc-line)',
-          borderRadius: 8, padding: '7px 12px',
-        }}>
-          <Icon name="search" size={13} color="var(--pc-fg-3)" />
-          <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)' }}>Search workers...</span>
-        </div>
-      </div>
-
-      {/* Table */}
-      <Card style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{
-          display: 'grid', gridTemplateColumns: COLS_TEMPLATE,
-          padding: '10px 18px', borderBottom: '1px solid var(--pc-line)', gap: 12,
-        }}>
-          {COLS.map(h => (
-            <div key={h} style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, color: 'var(--pc-fg-3)', letterSpacing: '0.08em' }}>{h}</div>
-          ))}
-        </div>
-        {WORKERS.map((w, i) => (
-          <div key={w.name} style={{
-            display: 'grid', gridTemplateColumns: COLS_TEMPLATE,
-            padding: '13px 18px', gap: 12, alignItems: 'center',
-            borderBottom: i < WORKERS.length - 1 ? '1px solid var(--pc-line)' : 'none',
-            cursor: 'pointer',
-            opacity: w.active ? 1 : 0.6,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <Avatar name={w.name} size={30} />
-              <div>
-                <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: '#fff', fontWeight: 500 }}>{w.name}</div>
+      {/* Worker cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+        {WORKERS.map(w => (
+          <Card key={w.id} style={{ padding: 18, cursor: 'pointer' }} onClick={() => setSelectedWorker(w)}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 999, background: 'var(--pc-card-hi)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 600, color: 'var(--pc-fg-2)' }}>{w.name[0]}</span>
+                </div>
+                <div>
+                  <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg)', margin: '0 0 1px', fontWeight: 600 }}>{w.name}</p>
+                  <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)', margin: 0 }}>{w.role}</p>
+                </div>
+              </div>
+              <span style={{
+                fontFamily: 'var(--pc-sans)', fontSize: 11, fontWeight: 500,
+                color: STATUS_COLORS[w.status],
+                background: 'var(--pc-card-hi)', padding: '3px 8px', borderRadius: 999,
+              }}>{w.status}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 18, color: 'var(--pc-fg)', margin: '0 0 1px' }}>{w.jobs}</p>
+                <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 10, color: 'var(--pc-fg-3)', margin: 0 }}>JOBS</p>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 18, color: 'var(--pc-fg)', margin: '0 0 1px' }}>{w.rating}</p>
+                <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 10, color: 'var(--pc-fg-3)', margin: 0 }}>RATING</p>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 18, color: 'var(--pc-fg)', margin: '0 0 1px' }}>{w.revenue}</p>
+                <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 10, color: 'var(--pc-fg-3)', margin: 0 }}>REVENUE</p>
               </div>
             </div>
-            <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', letterSpacing: '0.04em' }}>{w.zone}</span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ width: 7, height: 7, borderRadius: 999, background: STATUS_COLORS[w.status], flexShrink: 0 }} />
-              <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-2)' }}>{STATUS_LABELS[w.status]}</span>
-            </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <Icon name="star" size={11} color="var(--pc-gold)" />
-              <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: '#fff' }}>{w.rating}</span>
-            </div>
-            <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-2)' }}>{w.jobs}</span>
-            <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: '#fff' }}>{w.weekly}</span>
-            <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-2)' }}>{w.onTime}</span>
-            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {w.skills.slice(0, 2).map(s => (
                 <span key={s} style={{
                   padding: '3px 8px', borderRadius: 999,
-                  background: 'rgba(91,111,82,0.18)', border: '1px solid rgba(91,111,82,0.4)',
+                  background: 'var(--pc-sage-tint)', border: '1px solid var(--pc-sage-lo)',
                   fontFamily: 'var(--pc-sans)', fontSize: 10, color: 'var(--pc-sage-hi)',
                 }}>{s}</span>
               ))}
               {w.skills.length > 2 && (
                 <span style={{
                   padding: '3px 8px', borderRadius: 999,
-                  background: 'var(--pc-card)', border: '1px solid var(--pc-line)',
+                  background: 'var(--pc-card-hi)', border: '1px solid var(--pc-line)',
                   fontFamily: 'var(--pc-sans)', fontSize: 10, color: 'var(--pc-fg-3)',
                 }}>+{w.skills.length - 2}</span>
               )}
             </div>
-            <Icon name="more-horizontal" size={14} color="var(--pc-fg-3)" />
-          </div>
+          </Card>
         ))}
-      </Card>
+      </div>
+
+      {/* Worker detail panel */}
+      {selectedWorker && (
+        <Card>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+            <Eyebrow>WORKER DETAILS</Eyebrow>
+            <button type="button" onClick={() => setSelectedWorker(null)} style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}>
+              <Icon name="x" size={16} color="var(--pc-fg-2)" />
+            </button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            {[
+              { label: 'Full Name', value: selectedWorker.name },
+              { label: 'Role',      value: selectedWorker.role },
+              { label: 'Zone',      value: selectedWorker.zone },
+              { label: 'Jobs',      value: String(selectedWorker.jobs) },
+            ].map(f => (
+              <div key={f.label}>
+                <label style={{ display: 'block', fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{f.label}</label>
+                <input
+                  defaultValue={f.value}
+                  style={{
+                    width: '100%', padding: '10px 14px',
+                    background: 'var(--pc-card-hi)', border: '1px solid var(--pc-line)', borderRadius: 8,
+                    fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg)', outline: 'none',
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
