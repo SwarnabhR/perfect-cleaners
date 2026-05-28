@@ -50,6 +50,24 @@ export interface Customer {
   phone: string;         // +91 format
   email?: string;
   vehicles: Vehicle[];
+  /**
+   * Set to true after the user completes the 3-step first-run
+   * onboarding flow (name → car → address). Used by index.tsx as
+   * the authoritative gate — AsyncStorage is a local cache of this.
+   */
+  onboardingComplete?: boolean;
+  /**
+   * 'customer' for end-users; 'worker' for service staff.
+   * Determines which tab group index.tsx routes to.
+   */
+  role?: 'customer' | 'worker';
+  defaultAddress?: {
+    line1: string;
+    area: string;
+    city: string;
+  };
+  walletBalance?: number;
+  referralCode?: string;
   createdAt: Date;
 }
 
