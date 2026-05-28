@@ -9,7 +9,8 @@ import { ChevronLeft, MapPin } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
-import { colors, typography, spacing, radii } from '@pc/tokens';
+import { typography, spacing, radii } from '@pc/tokens';
+import { useThemeColors } from '../../theme';
 
 const AREAS = ['Indirapuram', 'Vaishali', 'Kaushambi', 'Raj Nagar Ext.', 'Crossings Republik', 'Vasundhara'];
 
@@ -26,7 +27,65 @@ export default function OnboardingAddress() {
   const [saving, setSaving] = useState(false);
   const router  = useRouter();
   const insets  = useSafeAreaInsets();
+  const c       = useThemeColors();
   const ready   = line1.trim().length > 0 && area.length > 0;
+
+  const s = StyleSheet.create({
+    root: { flex: 1, backgroundColor: c.ink },
+    scroll: { flexGrow: 1, paddingHorizontal: spacing[6], paddingTop: spacing[5], gap: spacing[5] },
+
+    topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    backBtn: {
+      width: 36, height: 36, borderRadius: 999,
+      backgroundColor: c.card, borderWidth: 1, borderColor: c.line,
+      alignItems: 'center', justifyContent: 'center',
+    },
+    progress: { flexDirection: 'row', gap: 6 },
+    dot: { width: 20, height: 3, borderRadius: 999, backgroundColor: c.line },
+    dotActive: { backgroundColor: c.warm },
+
+    headingArea: { gap: spacing[2] },
+    step: { fontFamily: typography.mono, fontSize: 9.5, color: c.fg3, letterSpacing: 0.8, textTransform: 'uppercase' },
+    title: {
+      fontFamily: typography.serif, fontSize: typography['3xl'],
+      color: c.fg, letterSpacing: -0.5, lineHeight: 44,
+    },
+    sub: { fontFamily: typography.sans, fontSize: typography.sm, color: c.fg2 },
+
+    fieldArea: { gap: spacing[2] },
+    label: { fontFamily: typography.mono, fontSize: 9.5, color: c.fg3, letterSpacing: 0.8, textTransform: 'uppercase' },
+    input: {
+      height: 52,
+      backgroundColor: c.card, borderWidth: 1, borderColor: c.lineStrong,
+      borderRadius: radii.sm, paddingHorizontal: spacing[4],
+      fontFamily: typography.sans, fontSize: typography.base, color: c.fg,
+    },
+
+    areaGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    areaChip: {
+      flexDirection: 'row', alignItems: 'center', gap: 5,
+      paddingVertical: 8, paddingHorizontal: 12, borderRadius: radii.pill,
+      borderWidth: 1, borderColor: c.line,
+    },
+    areaChipActive: { backgroundColor: c.warm, borderColor: 'transparent' },
+    areaChipText: { fontFamily: typography.sans, fontSize: 12, color: c.fg2 },
+    areaChipTextActive: { fontFamily: typography.sansMedium, color: c.ink },
+
+    lockedInput: {
+      height: 52,
+      backgroundColor: c.inkRaised, borderWidth: 1, borderColor: c.line,
+      borderRadius: radii.sm, paddingHorizontal: spacing[4],
+      justifyContent: 'center',
+    },
+    lockedText: { fontFamily: typography.sans, fontSize: typography.base, color: c.fg3 },
+
+    btn: {
+      backgroundColor: c.warm, borderRadius: radii.pill,
+      paddingVertical: spacing[4], alignItems: 'center', marginTop: spacing[2],
+    },
+    btnOff: { opacity: 0.3 },
+    btnText: { fontFamily: typography.sansSemiBold, fontSize: typography.base, color: c.ink, letterSpacing: 0.6 },
+  });
 
   async function finish() {
     if (!ready || saving) return;
@@ -40,8 +99,6 @@ export default function OnboardingAddress() {
         address: { line1, area, city },
       };
 
-      // 1. Write to Firestore — source of truth.
-      //    Demo user (uid='demo-user') skips the Firestore write.
       if (user && user.uid !== 'demo-user') {
         await firestore()
           .collection('customers')
@@ -57,21 +114,19 @@ export default function OnboardingAddress() {
               registration: params.plate,
               color: params.carColor,
               year: new Date().getFullYear(),
-              type: 'sedan',          // default; user can edit in /cars
+              type: 'sedan',
             }],
             defaultAddress: { line1, area, city },
             onboardingComplete: true,
             role: 'customer',
             walletBalance: 0,
             createdAt: firestore.FieldValue.serverTimestamp(),
-          }, { merge: true }); // merge:true so a partial doc already created by auth trigger isn't clobbered
+          }, { merge: true });
       }
 
-      // 2. Hydrate AsyncStorage cache (fast path for next launch).
       await Promise.all([
         AsyncStorage.setItem(KEY_ONBOARDING, 'done'),
         AsyncStorage.setItem(KEY_ROLE, 'customer'),
-        // Keep the legacy key used by old otp.tsx for any in-flight sessions.
         AsyncStorage.setItem('@pc/onboarding', JSON.stringify(onboardingData)),
       ]);
 
@@ -94,7 +149,7 @@ export default function OnboardingAddress() {
         {/* Back + progress */}
         <View style={s.topRow}>
           <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
-            <ChevronLeft size={16} color={colors.fg} strokeWidth={1.5} />
+            <ChevronLeft size={16} color={c.fg} strokeWidth={1.5} />
           </TouchableOpacity>
           <View style={s.progress}>
             <View style={s.dot} />
@@ -118,7 +173,7 @@ export default function OnboardingAddress() {
             value={line1}
             onChangeText={setLine1}
             placeholder="B-204, Kavi Nagar"
-            placeholderTextColor={colors.fg4}
+            placeholderTextColor={c.fg4}
             autoFocus
             returnKeyType="next"
           />
@@ -134,7 +189,7 @@ export default function OnboardingAddress() {
                 style={[s.areaChip, area === a && s.areaChipActive]}
                 onPress={() => setArea(a)}
               >
-                <MapPin size={10} color={area === a ? colors.ink : colors.fg3} strokeWidth={1.5} />
+                <MapPin size={10} color={area === a ? c.ink : c.fg3} strokeWidth={1.5} />
                 <Text style={[s.areaChipText, area === a && s.areaChipTextActive]}>{a}</Text>
               </TouchableOpacity>
             ))}
@@ -161,61 +216,3 @@ export default function OnboardingAddress() {
     </KeyboardAvoidingView>
   );
 }
-
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.ink },
-  scroll: { flexGrow: 1, paddingHorizontal: spacing[6], paddingTop: spacing[5], gap: spacing[5] },
-
-  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  backBtn: {
-    width: 36, height: 36, borderRadius: 999,
-    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  progress: { flexDirection: 'row', gap: 6 },
-  dot: { width: 20, height: 3, borderRadius: 999, backgroundColor: colors.line },
-  dotActive: { backgroundColor: colors.warm },
-
-  headingArea: { gap: spacing[2] },
-  step: { fontFamily: typography.mono, fontSize: 9.5, color: colors.fg3, letterSpacing: 0.8, textTransform: 'uppercase' },
-  title: {
-    fontFamily: typography.serif, fontSize: typography['3xl'],
-    color: colors.fg, letterSpacing: -0.5, lineHeight: 44,
-  },
-  sub: { fontFamily: typography.sans, fontSize: typography.sm, color: colors.fg2 },
-
-  fieldArea: { gap: spacing[2] },
-  label: { fontFamily: typography.mono, fontSize: 9.5, color: colors.fg3, letterSpacing: 0.8, textTransform: 'uppercase' },
-  input: {
-    height: 52,
-    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.lineStrong,
-    borderRadius: radii.sm, paddingHorizontal: spacing[4],
-    fontFamily: typography.sans, fontSize: typography.base, color: colors.fg,
-  },
-
-  areaGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  areaChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingVertical: 8, paddingHorizontal: 12, borderRadius: radii.pill,
-    borderWidth: 1, borderColor: colors.line,
-  },
-  areaChipActive: { backgroundColor: colors.warm, borderColor: 'transparent' },
-  areaChipText: { fontFamily: typography.sans, fontSize: 12, color: colors.fg2 },
-  areaChipTextActive: { fontFamily: typography.sansMedium, color: colors.ink },
-
-  // inkRaised replaces the previous hardcoded rgba(255,255,255,0.02)
-  lockedInput: {
-    height: 52,
-    backgroundColor: colors.inkRaised, borderWidth: 1, borderColor: colors.line,
-    borderRadius: radii.sm, paddingHorizontal: spacing[4],
-    justifyContent: 'center',
-  },
-  lockedText: { fontFamily: typography.sans, fontSize: typography.base, color: colors.fg3 },
-
-  btn: {
-    backgroundColor: colors.warm, borderRadius: radii.pill,
-    paddingVertical: spacing[4], alignItems: 'center', marginTop: spacing[2],
-  },
-  btnOff: { opacity: 0.3 },
-  btnText: { fontFamily: typography.sansSemiBold, fontSize: typography.base, color: colors.ink, letterSpacing: 0.6 },
-});

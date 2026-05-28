@@ -7,7 +7,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getPendingConfirmation } from '../../auth-state';
-import { colors, typography, spacing, radii } from '@pc/tokens';
+import { typography, spacing, radii } from '@pc/tokens';
+import { useThemeColors } from '../../theme';
 
 const OTP_LEN = 6;
 
@@ -18,7 +19,37 @@ export default function OTPScreen() {
   const refs = useRef<(TextInput | null)[]>(Array(OTP_LEN).fill(null));
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const c = useThemeColors();
   const complete = digits.every(Boolean);
+
+  const s = StyleSheet.create({
+    root: { flex: 1, backgroundColor: c.ink },
+    inner: { flex: 1, paddingHorizontal: spacing[6], paddingTop: spacing[6], gap: spacing[8] },
+    back: { alignSelf: 'flex-start' },
+    backText: { fontFamily: typography.sans, fontSize: typography.sm, color: c.fg3 },
+    header: { gap: 8 },
+    title: { fontFamily: typography.serif, fontSize: typography['3xl'], color: c.fg, letterSpacing: -0.5 },
+    sub: { fontFamily: typography.sans, fontSize: typography.sm, color: c.fg2 },
+    otpRow: { flexDirection: 'row', gap: spacing[2] },
+    box: {
+      flex: 1, height: 56,
+      backgroundColor: c.card, borderWidth: 1, borderColor: c.line,
+      borderRadius: radii.sm,
+      fontFamily: typography.mono, fontSize: typography.xl, color: c.fg,
+    },
+    boxFilled: { borderColor: c.sageHi },
+    btn: {
+      backgroundColor: c.warm, borderRadius: radii.pill,
+      paddingVertical: spacing[4], alignItems: 'center',
+    },
+    btnOff: { opacity: 0.35 },
+    btnText: {
+      fontFamily: typography.sansSemiBold, fontSize: typography.base,
+      color: c.ink,
+    },
+    resend: { alignItems: 'center' },
+    resendText: { fontFamily: typography.sans, fontSize: typography.sm, color: c.fg3 },
+  });
 
   function handleDigit(val: string, idx: number) {
     const d = val.replace(/\D/g, '').slice(-1);
@@ -50,7 +81,6 @@ export default function OTPScreen() {
         await conf.confirm(code);
       }
       const existing = await AsyncStorage.getItem('@pc/onboarding');
-      // Default to customer role (worker role set via separate worker onboarding in production)
       await AsyncStorage.setItem('@pc/role', 'customer');
       if (existing) {
         router.replace('/(customer)/');
@@ -114,32 +144,3 @@ export default function OTPScreen() {
     </KeyboardAvoidingView>
   );
 }
-
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.ink },
-  inner: { flex: 1, paddingHorizontal: spacing[6], paddingTop: spacing[6], gap: spacing[8] },
-  back: { alignSelf: 'flex-start' },
-  backText: { fontFamily: typography.sans, fontSize: typography.sm, color: colors.fg3 },
-  header: { gap: 8 },
-  title: { fontFamily: typography.serif, fontSize: typography['3xl'], color: colors.fg, letterSpacing: -0.5 },
-  sub: { fontFamily: typography.sans, fontSize: typography.sm, color: colors.fg2 },
-   otpRow: { flexDirection: 'row', gap: spacing[2] },
-   box: {
-     flex: 1, height: 56, // 56px - not in spacing scale but used consistently for OTP boxes
-     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line,
-     borderRadius: radii.sm,
-     fontFamily: typography.mono, fontSize: typography.xl, color: colors.fg,
-   },
-  boxFilled: { borderColor: colors.sageHi },
-  btn: {
-    backgroundColor: colors.warm, borderRadius: radii.pill,
-    paddingVertical: spacing[4], alignItems: 'center',
-  },
-  btnOff: { opacity: 0.35 },
-  btnText: {
-    fontFamily: typography.sansSemiBold, fontSize: typography.base,
-    color: colors.ink,
-  },
-  resend: { alignItems: 'center' },
-  resendText: { fontFamily: typography.sans, fontSize: typography.sm, color: colors.fg3 },
-});

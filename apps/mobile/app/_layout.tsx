@@ -5,7 +5,7 @@ import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { colors } from '@pc/tokens';
+import { ThemeProvider, useTheme } from '../theme';
 import { I18nProvider } from '../i18n';
 import { InterTight_300Light } from '@expo-google-fonts/inter-tight/300Light';
 import { InterTight_400Regular } from '@expo-google-fonts/inter-tight/400Regular';
@@ -31,22 +31,27 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    if (fontsLoaded) {
-      void SplashScreen.hideAsync();
-    }
+    if (fontsLoaded) void SplashScreen.hideAsync();
   }, [fontsLoaded]);
 
-  if (!fontsLoaded) {
-    return null;
-  }
+  if (!fontsLoaded) return null;
 
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.ink }}>
+    <ThemeProvider>
+      <I18nProvider>
+        <AppShell />
+      </I18nProvider>
+    </ThemeProvider>
+  );
+}
+
+function AppShell() {
+  const { theme, colors: c } = useTheme();
+  return (
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: c.ink }}>
       <SafeAreaProvider>
-        <I18nProvider>
-          <StatusBar style="light" />
-          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.ink } }} />
-        </I18nProvider>
+        <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.ink } }} />
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

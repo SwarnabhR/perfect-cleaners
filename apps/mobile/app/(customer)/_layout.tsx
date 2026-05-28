@@ -1,11 +1,11 @@
 import { Stack } from 'expo-router';
-import { colors } from '@pc/tokens';
+import { useThemeColors } from '../../theme';
 
 export default function CustomerStackLayout() {
+  const c = useThemeColors();
   return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.ink } }}>
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.ink } }}>
       <Stack.Screen name="(tabs)" />
-      {/* booking flow */}
       <Stack.Screen name="booking"         options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="payment"         options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
       <Stack.Screen name="payment-success" options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
@@ -13,7 +13,6 @@ export default function CustomerStackLayout() {
       <Stack.Screen name="before-after"    options={{ animation: 'fade' }} />
       <Stack.Screen name="booking-detail"  options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="rate-booking"    options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
-      {/* account area */}
       <Stack.Screen name="notifications"   options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="addresses"       options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="cars"            options={{ animation: 'slide_from_right' }} />

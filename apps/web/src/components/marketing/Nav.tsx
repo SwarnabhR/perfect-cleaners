@@ -315,9 +315,7 @@ export default function Nav() {
           WebkitBackdropFilter: 'blur(24px)',
           display: 'flex', flexDirection: 'column',
           paddingTop: 'calc(60px + 40px)',
-          paddingLeft: 'var(--pc-screen-pad-lg)',
-          paddingRight: 'var(--pc-screen-pad-lg)',
-          overflowY: 'auto',
+          overflowY: 'hidden',
           opacity: menuOpen ? 1 : 0,
           transform: menuOpen ? 'translateY(0)' : 'translateY(-6px)',
           pointerEvents: menuOpen ? 'auto' : 'none',
@@ -336,8 +334,12 @@ export default function Nav() {
           Site navigation
         </h2>
 
-        {/* Links */}
-        <ul style={{ display: 'flex', flexDirection: 'column', listStyle: 'none', margin: 0, padding: 0 }}>
+        {/* Links — scrollable if viewport is short */}
+        <ul style={{
+          display: 'flex', flexDirection: 'column', listStyle: 'none', margin: 0,
+          padding: '0 var(--pc-screen-pad-lg)',
+          overflowY: 'auto', flex: 1, minHeight: 0,
+        }}>
           {[{ label: t.nav.home, href: '/' }, ...NAV_LINKS].map(({ label, href }, i) => {
             const active = pathname === href || pathname.startsWith(href + '/');
             return (
@@ -353,7 +355,7 @@ export default function Nav() {
                     lineHeight: 1.15,
                     color: active ? 'var(--pc-fg)' : 'var(--pc-fg-4)',
                     padding: 'var(--pc-space-4) 0',
-                    borderBottom: '1px solid rgba(255,255,255,0.05)',
+                    borderBottom: '1px solid var(--pc-line-faint)',
                     transition: 'color 0.15s ease',
                     transitionDelay: menuOpen ? `${i * 0.03}s` : '0s',
                     textDecoration: 'none',
@@ -366,20 +368,24 @@ export default function Nav() {
           })}
         </ul>
 
-        {/* Location tag */}
-        <p style={{
-          fontFamily: 'var(--pc-mono)',
-          fontSize: 'var(--pc-text-xs)',
-          letterSpacing: '0.14em',
-          textTransform: 'uppercase',
-          color: 'var(--pc-fg-dim)',
-          marginTop: 'var(--pc-space-8)', marginBottom: 0,
+        {/* Bottom section — always visible, never scrolls away */}
+        <div style={{
+          flexShrink: 0,
+          padding: 'var(--pc-space-6) var(--pc-screen-pad-lg) var(--pc-space-8)',
+          borderTop: '1px solid var(--pc-line-faint)',
         }}>
-          {t.nav.location}
-        </p>
-
-        {/* Bottom CTA */}
-        <div style={{ marginTop: 'auto', paddingTop: 'var(--pc-space-8)' }}>
+          {/* Location tag */}
+          <p style={{
+            fontFamily: 'var(--pc-mono)',
+            fontSize: 'var(--pc-text-xs)',
+            letterSpacing: '0.14em',
+            textTransform: 'uppercase',
+            color: 'var(--pc-fg-4)',
+            margin: '0 0 var(--pc-space-4)',
+          }}>
+            {t.nav.location}
+          </p>
+          <div style={{ paddingTop: 0 }}>
           <Link
             href="/book"
             onClick={() => setMenuOpen(false)}
@@ -396,6 +402,7 @@ export default function Nav() {
           >
             {t.nav.bookNow}
           </Link>
+          </div>
         </div>
       </div>
     </>
