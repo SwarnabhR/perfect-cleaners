@@ -23,8 +23,8 @@ export default function AnalyticsPage() {
           {['7D', '30D', '90D', 'Custom'].map((range, i) => (
             <button type="button" key={range} style={{
               padding: '6px 12px', borderRadius: 6, border: 'none', cursor: 'pointer',
-              background: i === 1 ? 'var(--pc-ink)' : 'transparent',
-              color: i === 1 ? 'var(--pc-fg-inv)' : 'var(--pc-fg-3)',
+              background: i === 1 ? 'var(--pc-ink-raised)' : 'transparent',
+              color: i === 1 ? 'var(--pc-fg)' : 'var(--pc-fg-3)',
               fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 500,
             }}>{range}</button>
           ))}
@@ -44,7 +44,7 @@ export default function AnalyticsPage() {
             <div>
               <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 4px' }}>{label}</p>
               <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 22, color: 'var(--pc-fg)', margin: '0 0 2px' }}>{value}</p>
-              <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: positive ? 'var(--pc-sage)' : 'var(--pc-rust)', margin: 0 }}>{delta} vs last period</p>
+              <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: positive ? 'var(--pc-sage)' : 'var(--pc-danger)', margin: 0 }}>{delta} vs last period</p>
             </div>
           </Card>
         ))}
@@ -133,7 +133,7 @@ export default function AnalyticsPage() {
                   <td style={{ padding: '12px 20px', fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg-2)' }}>{row.jobs}</td>
                   <td style={{ padding: '12px 20px', fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg)', fontWeight: 600 }}>{row.revenue}</td>
                   <td style={{ padding: '12px 20px', fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg-2)' }}>{row.avg}</td>
-                  <td style={{ padding: '12px 20px', fontFamily: 'var(--pc-sans)', fontSize: 13, color: row.trend.startsWith('+') ? 'var(--pc-sage)' : 'var(--pc-rust)' }}>{row.trend}</td>
+                  <td style={{ padding: '12px 20px', fontFamily: 'var(--pc-sans)', fontSize: 13, color: row.trend.startsWith('+') ? 'var(--pc-sage)' : 'var(--pc-danger)' }}>{row.trend}</td>
                 </tr>
               ))}
             </tbody>
@@ -147,7 +147,7 @@ export default function AnalyticsPage() {
             <svg aria-hidden="true" width="160" height="160" viewBox="0 0 160 160">
               <circle cx="80" cy="80" r="70" fill="transparent" stroke="var(--pc-sage)"      strokeWidth="20" strokeDasharray="440" strokeDashoffset="0"   />
               <circle cx="80" cy="80" r="70" fill="transparent" stroke="var(--pc-sage-hi)"   strokeWidth="20" strokeDasharray="440" strokeDashoffset="242" transform="rotate(-90 80 80)" />
-              <circle cx="80" cy="80" r="70" fill="transparent" stroke="var(--pc-sage-deep)" strokeWidth="20" strokeDasharray="440" strokeDashoffset="338" transform="rotate(79 80 80)" />
+              <circle cx="80" cy="80" r="70" fill="transparent" stroke="var(--pc-sage-lo)" strokeWidth="20" strokeDasharray="440" strokeDashoffset="338" transform="rotate(79 80 80)" />
               <circle cx="80" cy="80" r="70" fill="transparent" stroke="var(--pc-fg-4)"     strokeWidth="20" strokeDasharray="440" strokeDashoffset="374" transform="rotate(158 80 80)" />
             </svg>
           </div>
@@ -155,7 +155,7 @@ export default function AnalyticsPage() {
             {[
               { label: 'Customer request', color: 'var(--pc-sage)',       pct: '45%' },
               { label: 'Weather',          color: 'var(--pc-sage-hi)',    pct: '22%' },
-              { label: 'No-show',          color: 'var(--pc-sage-deep)',  pct: '18%' },
+              { label: 'No-show',          color: 'var(--pc-sage-lo)',  pct: '18%' },
               { label: 'Reschedule',       color: 'var(--pc-fg-4)',       pct: '15%' },
             ].map(r => (
               <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

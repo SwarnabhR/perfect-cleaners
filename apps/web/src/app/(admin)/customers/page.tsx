@@ -17,9 +17,9 @@ const CUSTOMERS = [
 
 const TIER_COLORS: Record<string, string> = {
   Platinum: 'var(--pc-fg)',
-  Gold:     'var(--pc-warm)',
+  Gold:     'var(--pc-gold)',
   Silver:   'var(--pc-fg-3)',
-  Bronze:   'var(--pc-rust)',
+  Bronze:   'var(--pc-warning)',
 };
 
 const KPIS = [

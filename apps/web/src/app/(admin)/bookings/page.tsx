@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
+import StatusPill from '@/components/ui/StatusPill';
 
 const BOOKINGS = [
   { id: '#B-1048', customer: 'Priya Sharma',   service: 'Deep Clean',    date: 'Today, 09:00',   status: 'In Progress', worker: 'Rajan K.',  amount: '\u20b93,200' },
@@ -15,12 +16,6 @@ const BOOKINGS = [
   { id: '#B-1055', customer: 'Kiran Joshi',    service: 'One-time',      date: 'Tomorrow, 14:00',status: 'Pending',     worker: 'Unassigned',amount: '\u20b92,100' },
 ];
 
-const STATUS_COLORS: Record<string, string> = {
-  'In Progress': 'var(--pc-sage)',
-  'Confirmed':   'var(--pc-warm)',
-  'Pending':     'var(--pc-fg-3)',
-  'Cancelled':   'var(--pc-rust)',
-};
 
 const KPIS = [
   { label: 'Today',     value: '12', icon: 'calendar' },
@@ -77,7 +72,7 @@ export default function BookingsPage() {
             padding: '7px 16px', borderRadius: 999, border: '1px solid',
             borderColor: filter === f ? 'var(--pc-sage)' : 'var(--pc-line)',
             background: filter === f ? 'var(--pc-sage)' : 'transparent',
-            color: filter === f ? 'var(--pc-ink)' : 'var(--pc-fg-2)',
+            color: filter === f ? 'var(--pc-sage-ink)' : 'var(--pc-fg-2)',
             fontFamily: 'var(--pc-sans)', fontSize: 13, cursor: 'pointer',
           }}>{f}</button>
         ))}
@@ -111,8 +106,8 @@ export default function BookingsPage() {
           </thead>
           <tbody>
             {BOOKINGS.map(b => (
-              <tr key={b.id} style={{ borderBottom: '1px solid var(--pc-line)' }}>
-                <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', fontWeight: 500 }}>{b.id}</td>
+              <tr key={b.id} className="pc-table-row" style={{ borderBottom: '1px solid var(--pc-line)' }}>
+                <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-mono)', fontSize: 12, color: 'var(--pc-fg-3)' }}>{b.id}</td>
                 <td style={{ padding: '13px 18px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <div style={{ width: 28, height: 28, borderRadius: 999, background: 'var(--pc-card-hi)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -125,13 +120,7 @@ export default function BookingsPage() {
                 <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)' }}>{b.date}</td>
                 <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg-2)' }}>{b.worker}</td>
                 <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg)', fontWeight: 600 }}>{b.amount}</td>
-                <td style={{ padding: '13px 18px' }}>
-                  <span style={{
-                    fontFamily: 'var(--pc-sans)', fontSize: 12, fontWeight: 500,
-                    color: STATUS_COLORS[b.status] || 'var(--pc-fg-3)',
-                    background: 'var(--pc-card-hi)', padding: '3px 10px', borderRadius: 999,
-                  }}>{b.status}</span>
-                </td>
+                <td style={{ padding: '13px 18px' }}><StatusPill status={b.status} /></td>
               </tr>
             ))}
           </tbody>

@@ -1,0 +1,47 @@
+import type { MobileTranslations } from './en';
+
+const hi: MobileTranslations = {
+  settings: {
+    title:  'सेटिंग्स।',
+    header: 'सेटिंग्स',
+    notifications:     'सूचनाएं',
+    privacySecurity:   'गोपनीयता और सुरक्षा',
+    preferences:       'प्राथमिकताएं',
+    account:           'अकाउंट',
+    bookingUpdates:    'बुकिंग अपडेट',
+    bookingUpdatesSub: 'ETA बदलाव, स्टेटस, पूर्णता',
+    promotions:        'प्रमोशन और ऑफर',
+    promotionsSub:     'नए डील और मौसमी छूट',
+    tipReminders:      'टिप रिमाइंडर',
+    faceId:            'Face ID',
+    faceIdSub:         'ऐप खोलें और भुगतान की पुष्टि करें',
+    location:          'लोकेशन',
+    locationSub:       'लाइव जॉब ट्रैकिंग के लिए आवश्यक',
+    twoFactor:         'दो-चरण प्रमाणीकरण',
+    language:          'भाषा',
+    currency:          'मुद्रा',
+    distanceUnit:      'दूरी इकाई',
+    haptics:           'हैप्टिक फीडबैक',
+    appearance:        'स्वरूप',
+    editProfile:       'प्रोफ़ाइल संपादित करें',
+    savedCards:        'सेव किए गए कार्ड',
+    exportData:        'मेरा डेटा निर्यात करें',
+    signOut:           'साइन आउट',
+    deleteAccount:     'अकाउंट हटाएं',
+    on:                'चालू',
+    kilometres:        'किलोमीटर',
+    alwaysDark:        'हमेशा डार्क',
+    inr:               '₹ INR',
+    signOutTitle:      'साइन आउट',
+    signOutMsg:        'क्या आप वाकई साइन आउट करना चाहते हैं?',
+    cancel:            'रद्द करें',
+    deleteTitle:       'अकाउंट हटाएं',
+    deleteMsg:         'यह स्थायी है। आपकी सभी बुकिंग हिस्ट्री और क्रेडिट हट जाएंगे।',
+    delete:            'हटाएं',
+  },
+  common: {
+    langLabel: 'हिंदी (IN)',
+  },
+};
+
+export default hi;

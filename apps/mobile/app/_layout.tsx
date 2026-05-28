@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { colors } from '@pc/tokens';
+import { I18nProvider } from '../i18n';
 import { InterTight_300Light } from '@expo-google-fonts/inter-tight/300Light';
 import { InterTight_400Regular } from '@expo-google-fonts/inter-tight/400Regular';
 import { InterTight_500Medium } from '@expo-google-fonts/inter-tight/500Medium';
@@ -42,8 +43,10 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.ink }}>
       <SafeAreaProvider>
-        <StatusBar style="light" />
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.ink } }} />
+        <I18nProvider>
+          <StatusBar style="light" />
+          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.ink } }} />
+        </I18nProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

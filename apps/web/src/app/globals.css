@@ -187,6 +187,36 @@
 }
 
 /* ====================================================================
+   Theme transition — only active during the theme switch itself so
+   hover/focus animations are not affected by the global transition.
+   ==================================================================== */
+
+.pc-theme-transitioning,
+.pc-theme-transitioning *,
+.pc-theme-transitioning *::before,
+.pc-theme-transitioning *::after {
+  transition:
+    background-color 220ms ease,
+    border-color 220ms ease,
+    color 120ms ease,
+    fill 220ms ease,
+    stroke 220ms ease !important;
+}
+
+/* ====================================================================
+   Admin table row hover
+   ==================================================================== */
+
+.pc-table-row {
+  transition: background-color var(--pc-dur-fast) var(--pc-ease);
+  cursor: pointer;
+}
+
+.pc-table-row:hover {
+  background: var(--pc-card-hi);
+}
+
+/* ====================================================================
    Reset + base
    ==================================================================== */
 

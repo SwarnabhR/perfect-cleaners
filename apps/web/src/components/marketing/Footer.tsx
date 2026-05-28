@@ -1,36 +1,26 @@
+'use client';
 import Link from 'next/link';
 import Image from 'next/image';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
+import { useI18n } from '@/i18n';
 import styles from './Footer.module.css';
 
+const QUICK_LINKS_HREFS  = ['/services', '/services', '/services', '/services'];
+const OFFICIAL_HREFS     = [undefined, 'tel:+919876543210', undefined] as (string | undefined)[];
+const BOOKING_HREFS      = ['/book', '/gallery', '/membership'];
+
 const SOCIAL_LINKS = [
-  { icon: 'camera',  href: 'https://instagram.com', label: 'Instagram' },
-  { icon: 'phone',   href: 'tel:+919876543210',     label: 'Call us' },
-  { icon: 'shield',  href: '/about',                label: 'About' },
-  { icon: 'star',    href: '/membership',           label: 'Membership' },
+  { icon: 'camera',  href: 'https://instagram.com', ariaLabel: 'Instagram' },
+  { icon: 'phone',   href: 'tel:+919876543210',     ariaLabel: 'Call us'   },
+  { icon: 'shield',  href: '/about',                ariaLabel: 'About'     },
+  { icon: 'star',    href: '/membership',           ariaLabel: 'Membership' },
 ] as const;
 
-const QUICK_LINKS = [
-  { label: 'Services',              href: '/services'   },
-  { label: 'Exterior Wash',         href: '/services'   },
-  { label: 'Interior Detailing',    href: '/services'   },
-  { label: 'Painting & Coating',    href: '/services'   },
-];
-
-const OFFICIAL_LINES = [
-  { label: 'Ghaziabad, Delhi NCR',  href: undefined },
-  { label: '+91 98765 43210',       href: 'tel:+919876543210' },
-  { label: '09:00 – 21:00 IST',     href: undefined },
-];
-
-const BOOKING_LINKS = [
-  { label: 'Book a Service',  href: '/book'       },
-  { label: 'Our Gallery',     href: '/gallery'    },
-  { label: 'Special Promo',   href: '/membership' },
-];
-
 export default function Footer() {
+  const { lang, setLang, t } = useI18n();
+  const f = t.footer;
+
   return (
     <footer
       className={`pc-footer-grid ${styles.footer}`}
@@ -62,7 +52,7 @@ export default function Footer() {
           </span>
         </div>
 
-        <Eyebrow>EMAIL →</Eyebrow>
+        <Eyebrow>{f.emailLabel}</Eyebrow>
         <a
           href="mailto:hello@perfectcleaners.in"
           className={`${styles.emailLink} pc-footer-email`}
@@ -70,13 +60,13 @@ export default function Footer() {
           hello@perfectcleaners.in
         </a>
 
-        <Eyebrow>SOCIAL MEDIA</Eyebrow>
+        <Eyebrow>{f.socialLabel}</Eyebrow>
         <div style={{ display: 'flex', gap: 'var(--pc-space-2)' }}>
-          {SOCIAL_LINKS.map(({ icon, href, label }) => (
+          {SOCIAL_LINKS.map(({ icon, href, ariaLabel }) => (
             <a
               key={icon}
               href={href}
-              aria-label={label}
+              aria-label={ariaLabel}
               className={styles.socialIcon}
               target={href.startsWith('http') ? '_blank' : undefined}
               rel={href.startsWith('http') ? 'noopener noreferrer' : undefined}
@@ -85,14 +75,50 @@ export default function Footer() {
             </a>
           ))}
         </div>
+
+        {/* Language toggle */}
+        <div
+          role="group"
+          aria-label="Language"
+          style={{
+            display: 'inline-flex',
+            border: '1px solid var(--pc-line)',
+            borderRadius: 999,
+            overflow: 'hidden',
+            alignSelf: 'flex-start',
+            marginTop: 'var(--pc-space-2)',
+          }}
+        >
+          {(['en', 'hi'] as const).map((l) => (
+            <button
+              key={l}
+              type="button"
+              onClick={() => setLang(l)}
+              aria-pressed={lang === l}
+              style={{
+                padding: '5px 14px',
+                background: lang === l ? 'var(--pc-card-hi)' : 'transparent',
+                color: lang === l ? 'var(--pc-fg)' : 'var(--pc-fg-4)',
+                fontFamily: 'var(--pc-sans)',
+                fontSize: 12,
+                fontWeight: lang === l ? 600 : 400,
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'background 0.18s ease, color 0.18s ease',
+              }}
+            >
+              {l === 'en' ? t.common.langEn : t.common.langHi}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Quick links */}
       <div>
-        <Eyebrow>QUICK LINKS</Eyebrow>
+        <Eyebrow>{f.quickLinksLabel}</Eyebrow>
         <div style={{ marginTop: 'var(--pc-space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-3)' }}>
-          {QUICK_LINKS.map(({ label, href }) => (
-            <Link key={label} href={href} className={styles.navLink}>
+          {f.quickLinks.map((label, i) => (
+            <Link key={i} href={QUICK_LINKS_HREFS[i]} className={styles.navLink}>
               {label}
             </Link>
           ))}
@@ -101,28 +127,29 @@ export default function Footer() {
 
       {/* Official */}
       <div>
-        <Eyebrow>OFFICIAL</Eyebrow>
+        <Eyebrow>{f.officialLabel}</Eyebrow>
         <div style={{ marginTop: 'var(--pc-space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-3)' }}>
-          {OFFICIAL_LINES.map(({ label, href }) =>
-            href ? (
-              <a key={label} href={href} className={styles.navLink}>
+          {f.official.map((label, i) => {
+            const href = OFFICIAL_HREFS[i];
+            return href ? (
+              <a key={i} href={href} className={styles.navLink}>
                 {label}
               </a>
             ) : (
-              <p key={label} style={{ margin: 0, fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg-2)' }}>
+              <p key={i} style={{ margin: 0, fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg-2)' }}>
                 {label}
               </p>
-            )
-          )}
+            );
+          })}
         </div>
       </div>
 
       {/* Booking */}
       <div>
-        <Eyebrow>BOOKING</Eyebrow>
+        <Eyebrow>{f.bookingLabel}</Eyebrow>
         <div style={{ marginTop: 'var(--pc-space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-3)' }}>
-          {BOOKING_LINKS.map(({ label, href }) => (
-            <Link key={label} href={href} className={styles.navLink}>
+          {f.booking.map((label, i) => (
+            <Link key={i} href={BOOKING_HREFS[i]} className={styles.navLink}>
               {label}
             </Link>
           ))}

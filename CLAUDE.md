@@ -124,6 +124,8 @@ app/
 
 ## Web Admin Dashboard (`apps/web/src/app/(admin)/`)
 
+`(admin)` is a Next.js App Router **route group** — the parentheses are stripped from the URL entirely. Do not use `/admin/` as a path prefix anywhere.
+
 Sidebar-nav layout (`layout.tsx`) with these routes:
 
 | Route | File | Description |
@@ -132,9 +134,10 @@ Sidebar-nav layout (`layout.tsx`) with these routes:
 | `/bookings` | `bookings/page.tsx` | Paginated bookings table with status filters |
 | `/workers` | `workers/page.tsx` | Worker roster with online status and assignment |
 | `/customers` | `customers/page.tsx` | Customer list with vehicle and booking counts |
-| `/services-mgmt` | *(planned)* | Service catalogue management |
-| `/promotions` | *(planned)* | Promo code CRUD |
-| `/settings` | *(planned)* | Operator-level settings |
+| `/services-mgmt` | `services-mgmt/page.tsx` | Service catalogue management |
+| `/promotions` | `promotions/page.tsx` | Promo code CRUD |
+| `/analytics` | `analytics/page.tsx` | Revenue charts, job mix, top services |
+| `/settings` | `settings/page.tsx` | Operator-level settings |
 
 Web UI primitives live in `apps/web/src/components/ui/`:
 
@@ -143,11 +146,21 @@ Web UI primitives live in `apps/web/src/components/ui/`:
 | `Avatar.tsx` | Initials-based avatar, used in sidebar and tables |
 | `Button.tsx` + `Button.module.css` | Primary/ghost variants with CSS modules |
 | `CarImage.tsx` | SVG car silhouettes keyed by `VehicleType` |
-| `Card.tsx` | Surface card wrapper |
+| `Card.tsx` | Surface card wrapper with optional interactive hover state |
 | `Eyebrow.tsx` | Mono uppercase label |
 | `Icon.tsx` | Inline Lucide icon renderer (name → SVG path map) |
 | `Pill.tsx` | Compact label pill |
-| `StatusBadge.tsx` | Booking pipeline status chip |
+| `StatusBadge.tsx` | Booking pipeline status chip (mobile/RN) |
+| `StatusPill.tsx` | Admin web status pill — coloured dot + tinted bg per status; handles booking statuses (In Progress, Confirmed, Pending, Cancelled) and worker statuses (Available, On Job, Off Today) |
+
+**Theme system (`apps/web`):**
+- Dark/light theming is controlled by `data-theme` on the `<html>` element.
+- `ThemeProvider` (`src/components/ThemeProvider.tsx`) persists preference to `localStorage` under key `pc-theme` and exposes `useTheme()` hook with `{ theme, toggle }`.
+- CSS variables for both themes live in `src/app/globals.css` — `:root` = dark (default), `[data-theme="light"]` = light overrides.
+- The mobile app remains dark-only. Never add theme switching to mobile.
+- Token exports: `colors` (dark) and `colorsLight` (light) are both exported from `packages/tokens/src/index.ts`.
+- When writing admin or marketing components, use only `var(--pc-*)` CSS variables — never hardcode dark-specific rgba values like `rgba(255,255,255,0.08)` since these break in light mode. Use `var(--pc-line)`, `var(--pc-line-faint)`, etc. instead.
+- SVG `stroke`/`fill` attributes do NOT support CSS variables — use `style={{ stroke: 'var(--pc-line-faint)' }}` (inline style prop) instead of `stroke="var(...)"` for theme-adaptive SVG colours.
 
 ## Firebase / Backend
 
@@ -168,11 +181,13 @@ Firebase credentials go in `.env.local` (Next.js) and `.env` (Expo — uses `EXP
 
 These come from `design-system/README.md` and apply to every UI surface.
 
-**Colors** — always-dark, no light mode:
-- Surfaces: `colors.ink → inkRaised → card → cardHi` (whispered steps)
+**Colors — dark mode (default) and light mode (web only):**
+- Surfaces: `colors.ink → inkRaised → card → cardHi` (whispered steps, dark to lighter in dark mode)
 - Only chromatic surface: `colors.sage` (`#4A5E44`) — fills, pills, active stepper step; never used as a button
-- Primary CTA: `colors.warm` (`#F0EDE8`) — off-white pill buttons only
-- `colors.gold` — hairline under wordmark only; do not use elsewhere
+- Primary CTA: `colors.warm` — dark mode: off-white `#F0EDE8` pill; light mode: inverts to near-black `#0E0D0B` pill. Always pair with `var(--pc-ink)` as text so both themes read correctly.
+- `colors.gold` (`#C9A961`) — hairline under wordmark and Gold tier badge only; do not use as a CTA or status colour
+- **Never use `var(--pc-warm)` as a status/label colour** — it inverts between themes. Use `var(--pc-info)`, `var(--pc-warning)`, `var(--pc-sage)`, or `var(--pc-danger)` for semantic status colours instead.
+- Mobile app is dark-only. Light mode applies to the web (marketing site + admin dashboard) only.
 
 **Typography:**
 - Serif (`Instrument Serif`) for hero/emotional text ≥28px only

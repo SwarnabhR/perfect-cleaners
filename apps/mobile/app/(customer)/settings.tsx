@@ -6,10 +6,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import auth from '@react-native-firebase/auth';
 import { colors, typography, spacing } from '@pc/tokens';
 import { ScreenHeader, Group, Row, SwitchRow } from '../../components/RowGroup';
+import { useI18n } from '../../i18n';
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { lang, t, setLang } = useI18n();
+  const s18n = t.settings;
 
   const [pushBooking,    setPushBooking]    = useState(true);
   const [pushPromo,      setPushPromo]      = useState(false);
@@ -19,10 +22,10 @@ export default function SettingsScreen() {
   const [haptics,        setHaptics]        = useState(true);
 
   async function handleSignOut() {
-    Alert.alert('Sign out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(s18n.signOutTitle, s18n.signOutMsg, [
+      { text: s18n.cancel, style: 'cancel' },
       {
-        text: 'Sign out',
+        text: s18n.signOut,
         style: 'destructive',
         onPress: async () => {
           try {
@@ -38,96 +41,96 @@ export default function SettingsScreen() {
   }
 
   function handleDelete() {
-    Alert.alert(
-      'Delete account',
-      'This is permanent. All your booking history and credits will be lost. This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: () => {} },
-      ],
-    );
+    Alert.alert(s18n.deleteTitle, s18n.deleteMsg, [
+      { text: s18n.cancel, style: 'cancel' },
+      { text: s18n.delete, style: 'destructive', onPress: () => {} },
+    ]);
   }
 
   return (
     <ScrollView
-      style={s.root}
+      style={ss.root}
       contentContainerStyle={{ paddingBottom: spacing[10] }}
       showsVerticalScrollIndicator={false}
     >
       <View style={{ paddingTop: insets.top }}>
-        <ScreenHeader title="Settings" />
+        <ScreenHeader title={s18n.header} />
       </View>
 
-      <View style={s.titleSection}>
-        <Text style={s.pageTitle}>Settings.</Text>
+      <View style={ss.titleSection}>
+        <Text style={ss.pageTitle}>{s18n.title}</Text>
       </View>
 
-      <Group header="Notifications">
+      <Group header={s18n.notifications}>
         <SwitchRow
-          title="Booking updates"
-          sub="ETA changes, status, completion"
+          title={s18n.bookingUpdates}
+          sub={s18n.bookingUpdatesSub}
           switchOn={pushBooking}
           onToggle={setPushBooking}
         />
         <SwitchRow
-          title="Promotions & offers"
-          sub="New deals and seasonal discounts"
+          title={s18n.promotions}
+          sub={s18n.promotionsSub}
           switchOn={pushPromo}
           onToggle={setPushPromo}
         />
         <SwitchRow
-          title="Tip reminders"
+          title={s18n.tipReminders}
           switchOn={pushTips}
           onToggle={setPushTips}
           isLast
         />
       </Group>
 
-      <Group header="Privacy & Security">
+      <Group header={s18n.privacySecurity}>
         <SwitchRow
-          title="Face ID"
-          sub="Unlock app and confirm payments"
+          title={s18n.faceId}
+          sub={s18n.faceIdSub}
           switchOn={biometric}
           onToggle={setBiometric}
         />
         <SwitchRow
-          title="Location"
-          sub="Required for live job tracking"
+          title={s18n.location}
+          sub={s18n.locationSub}
           switchOn={locationAlways}
           onToggle={setLocationAlways}
         />
         <Row
-          title="Two-factor authentication"
-          value="On"
+          title={s18n.twoFactor}
+          value={s18n.on}
           onPress={() => {}}
           isLast
         />
       </Group>
 
-      <Group header="Preferences">
-        <Row title="Language"      value="English (IN)" onPress={() => {}} />
-        <Row title="Currency"      value="₹ INR"        onPress={() => {}} />
-        <Row title="Distance unit" value="Kilometres"   onPress={() => {}} />
+      <Group header={s18n.preferences}>
+        <Row
+          title={s18n.language}
+          value={t.common.langLabel}
+          onPress={() => setLang(lang === 'en' ? 'hi' : 'en')}
+        />
+        <Row title={s18n.currency}      value={s18n.inr}        onPress={() => {}} />
+        <Row title={s18n.distanceUnit}  value={s18n.kilometres} onPress={() => {}} />
         <SwitchRow
-          title="Haptic feedback"
+          title={s18n.haptics}
           switchOn={haptics}
           onToggle={setHaptics}
         />
-        <Row title="Appearance"    value="Always Dark"  onPress={() => {}} isLast />
+        <Row title={s18n.appearance} value={s18n.alwaysDark} onPress={() => {}} isLast />
       </Group>
 
-      <Group header="Account">
-        <Row title="Edit profile"    onPress={() => {}} />
-        <Row title="Saved cards"     onPress={() => {}} />
-        <Row title="Export my data"  onPress={() => {}} />
-        <Row title="Sign out"        onPress={handleSignOut} destructive />
-        <Row title="Delete account"  onPress={handleDelete}  destructive isLast />
+      <Group header={s18n.account}>
+        <Row title={s18n.editProfile}   onPress={() => {}} />
+        <Row title={s18n.savedCards}    onPress={() => {}} />
+        <Row title={s18n.exportData}    onPress={() => {}} />
+        <Row title={s18n.signOut}       onPress={handleSignOut} destructive />
+        <Row title={s18n.deleteAccount} onPress={handleDelete}  destructive isLast />
       </Group>
     </ScrollView>
   );
 }
 
-const s = StyleSheet.create({
+const ss = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink },
   titleSection: { paddingHorizontal: spacing[5], paddingBottom: spacing[2] },
   pageTitle: {

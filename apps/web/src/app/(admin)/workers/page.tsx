@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
+import StatusPill from '@/components/ui/StatusPill';
 
 const WORKERS = [
   { id: 'W-01', name: 'Rajan Kumar',  role: 'Senior Cleaner',  status: 'Available', jobs: 48, rating: 4.97, revenue: '\u20b912,400', zone: 'North Bengaluru', skills: ['Deep Clean', 'Move-in/out', 'Office'] },
@@ -13,11 +14,6 @@ const WORKERS = [
   { id: 'W-06', name: 'Lakshmi P.',  role: 'Junior Cleaner',   status: 'Available', jobs: 18, rating: 4.75, revenue: '\u20b94,500',  zone: 'Central',         skills: ['Regular', 'Deep Clean'] },
 ];
 
-const STATUS_COLORS: Record<string, string> = {
-  'Available': 'var(--pc-sage)',
-  'On Job':    'var(--pc-warm)',
-  'Off Today': 'var(--pc-fg-3)',
-};
 
 const KPIS = [
   { label: 'Total Workers', value: '18',  icon: 'users' },
@@ -81,11 +77,7 @@ export default function WorkersPage() {
                   <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)', margin: 0 }}>{w.role}</p>
                 </div>
               </div>
-              <span style={{
-                fontFamily: 'var(--pc-sans)', fontSize: 11, fontWeight: 500,
-                color: STATUS_COLORS[w.status],
-                background: 'var(--pc-card-hi)', padding: '3px 8px', borderRadius: 999,
-              }}>{w.status}</span>
+              <StatusPill status={w.status} />
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
               <div style={{ textAlign: 'center' }}>

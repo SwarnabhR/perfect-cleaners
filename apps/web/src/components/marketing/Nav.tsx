@@ -6,21 +6,25 @@ import { usePathname } from 'next/navigation';
 import Icon from '@/components/ui/Icon';
 import Image from 'next/image';
 import { useTheme } from '@/components/ThemeProvider';
+import { useI18n } from '@/i18n';
 
-const NAV_LINKS = [
-  { label: 'Services', href: '/services' },
-  { label: 'Plans',    href: '/plans'    },
-  { label: 'Gallery',  href: '/gallery'  },
-  { label: 'About',    href: '/about'    },
-  { label: 'Journal',  href: '/journal'  },
-  { label: 'Contact',  href: '/contact'  },
-] as const;
+const NAV_HREFS = ['/services', '/plans', '/gallery', '/about', '/journal', '/contact'] as const;
 
 export default function Nav() {
   const pathname  = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { theme, toggle } = useTheme();
+  const { t } = useI18n();
+
+  const NAV_LINKS = [
+    { label: t.nav.services, href: NAV_HREFS[0] },
+    { label: t.nav.plans,    href: NAV_HREFS[1] },
+    { label: t.nav.gallery,  href: NAV_HREFS[2] },
+    { label: t.nav.about,    href: NAV_HREFS[3] },
+    { label: t.nav.journal,  href: NAV_HREFS[4] },
+    { label: t.nav.contact,  href: NAV_HREFS[5] },
+  ];
 
   useEffect(() => {
     function onScroll() { setScrolled(window.scrollY > 40); }
@@ -162,7 +166,7 @@ export default function Nav() {
               transition: 'border-color 0.2s ease, background 0.2s ease',
             }}
           >
-            Book Now
+            {t.nav.bookNow}
           </Link>
 
           {/* Theme toggle — desktop */}
@@ -239,8 +243,7 @@ export default function Nav() {
         role="navigation"
         aria-label="Mobile navigation"
         aria-hidden={!menuOpen}
-        // @ts-expect-error — inert is a valid HTML attribute not yet in React's types
-        inert={!menuOpen ? '' : undefined}
+        inert={!menuOpen}
         className="pc-nav-drawer"
         style={{
           position: 'fixed', inset: 0, zIndex: 49,
@@ -260,7 +263,7 @@ export default function Nav() {
       >
         {/* Links */}
         <ul style={{ display: 'flex', flexDirection: 'column', listStyle: 'none', margin: 0, padding: 0 }}>
-          {[{ label: 'Home', href: '/' }, ...NAV_LINKS].map(({ label, href }, i) => {
+          {[{ label: t.nav.home, href: '/' }, ...NAV_LINKS].map(({ label, href }, i) => {
             const active = pathname === href || pathname.startsWith(href + '/');
             return (
               <li key={href}>
@@ -297,7 +300,7 @@ export default function Nav() {
           color: 'var(--pc-fg-dim)',
           marginTop: 'var(--pc-space-8)', marginBottom: 0,
         }}>
-          Delhi NCR · Ghaziabad
+          {t.nav.location}
         </p>
 
         {/* Bottom CTA */}
@@ -316,7 +319,7 @@ export default function Nav() {
               transition: 'background var(--pc-dur-fast) var(--pc-ease)',
             }}
           >
-            Book Now
+            {t.nav.bookNow}
           </Link>
         </div>
       </div>

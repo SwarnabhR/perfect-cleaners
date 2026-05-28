@@ -6,14 +6,14 @@ import Icon from '@/components/ui/Icon';
 import { useTheme } from '@/components/ThemeProvider';
 
 const NAV = [
-  { label: 'Dashboard',  href: '/admin/dashboard',     icon: 'layout-dashboard' },
-  { label: 'Bookings',   href: '/admin/bookings',       icon: 'calendar' },
-  { label: 'Customers',  href: '/admin/customers',      icon: 'users' },
-  { label: 'Workers',    href: '/admin/workers',        icon: 'hard-hat' },
-  { label: 'Services',   href: '/admin/services-mgmt',  icon: 'sparkles' },
-  { label: 'Promotions', href: '/admin/promotions',     icon: 'tag' },
-  { label: 'Analytics',  href: '/admin/analytics',      icon: 'bar-chart-2' },
-  { label: 'Settings',   href: '/admin/settings',        icon: 'settings' },
+  { label: 'Dashboard',  href: '/dashboard',     icon: 'layout-dashboard' },
+  { label: 'Bookings',   href: '/bookings',       icon: 'calendar' },
+  { label: 'Customers',  href: '/customers',      icon: 'users' },
+  { label: 'Workers',    href: '/workers',        icon: 'hard-hat' },
+  { label: 'Services',   href: '/services-mgmt',  icon: 'sparkles' },
+  { label: 'Promotions', href: '/promotions',     icon: 'tag' },
+  { label: 'Analytics',  href: '/analytics',      icon: 'bar-chart-2' },
+  { label: 'Settings',   href: '/settings',       icon: 'settings' },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -22,7 +22,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { theme, toggle } = useTheme();
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--pc-bg)' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--pc-ink)' }}>
 
       {/* Sidebar */}
       <aside style={{

@@ -17,9 +17,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   function apply(t: Theme) {
+    const html = document.documentElement;
+    html.classList.add('pc-theme-transitioning');
     setTheme(t);
-    document.documentElement.setAttribute('data-theme', t);
+    html.setAttribute('data-theme', t);
     localStorage.setItem('pc-theme', t);
+    const tid = window.setTimeout(() => html.classList.remove('pc-theme-transitioning'), 260);
+    return () => window.clearTimeout(tid);
   }
 
   return (

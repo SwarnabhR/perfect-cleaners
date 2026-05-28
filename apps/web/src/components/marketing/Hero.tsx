@@ -1,7 +1,12 @@
+'use client';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useI18n } from '@/i18n';
 
 export default function Hero() {
+  const { t } = useI18n();
+  const h = t.hero;
+
   return (
     <div
       className="pc-hero-grid"
@@ -29,7 +34,7 @@ export default function Hero() {
             fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)',
             color: 'var(--pc-fg-3)', letterSpacing: 'var(--pc-track-mono)',
           }}>
-            DELHI NCR · GHAZIABAD
+            {h.eyebrow}
           </span>
         </div>
 
@@ -42,7 +47,7 @@ export default function Hero() {
           letterSpacing: 'var(--pc-track-tight)',
           margin: 0,
         }}>
-          The detail<br />standard<br />for Delhi NCR.
+          {h.headline[0]}<br />{h.headline[1]}<br />{h.headline[2]}
         </h1>
 
         {/* Sub */}
@@ -54,8 +59,7 @@ export default function Hero() {
           maxWidth: 400,
           margin: 0,
         }}>
-          Certified specialists, professional-grade products. At your driveway
-          or our centre in Noida — booked in under 2 minutes.
+          {h.sub}
         </p>
 
         {/*
@@ -85,7 +89,7 @@ export default function Hero() {
               transition: 'background var(--pc-dur-fast) var(--pc-ease), box-shadow var(--pc-dur-fast) var(--pc-ease)',
             }}
           >
-            Book Now
+            {h.bookNow}
           </Link>
           <Link
             href="/services"
@@ -108,7 +112,7 @@ export default function Hero() {
               transition: 'background var(--pc-dur-fast) var(--pc-ease), border-color var(--pc-dur-fast) var(--pc-ease)',
             }}
           >
-            View Services
+            {h.viewServices}
           </Link>
         </div>
 
@@ -118,11 +122,7 @@ export default function Hero() {
           borderTop: '1px solid var(--pc-line)',
           flexWrap: 'wrap',
         }}>
-          {[
-            ['1,500+', 'Cars detailed'],
-            ['4.9 / 5', 'Service rating'],
-            ['Since 2021', 'In business'],
-          ].map(([num, label]) => (
+          {h.stats.map(([num, label]) => (
             <div key={label}>
               <p style={{
                 fontFamily: 'var(--pc-serif)',
@@ -161,7 +161,7 @@ export default function Hero() {
               position: 'absolute', bottom: 12, left: 14, margin: 0,
               fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)',
               color: 'rgba(255,255,255,0.6)', letterSpacing: 'var(--pc-track-mono)',
-            }}>CERTIFIED DETAILERS</p>
+            }}>{h.tileCertified}</p>
           </div>
           <div style={{ position: 'relative', borderRadius: 'var(--pc-radius-md)', overflow: 'hidden', border: '1px solid var(--pc-line)' }}>
             <Image
@@ -177,7 +177,7 @@ export default function Hero() {
               position: 'absolute', bottom: 12, left: 14, margin: 0,
               fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)',
               color: 'rgba(255,255,255,0.6)', letterSpacing: 'var(--pc-track-mono)',
-            }}>BOOK IN 2 MINUTES</p>
+            }}>{h.tileBooking}</p>
           </div>
         </div>
 
@@ -192,10 +192,12 @@ export default function Hero() {
             display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: 80,
           }}>
             <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-4)', letterSpacing: 'var(--pc-track-mono)', margin: 0 }}>
-              PROCESS
+              {h.processLabel}
             </p>
             <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg)', lineHeight: 1.35, margin: 0 }}>
-              60-point<br />inspection checklist
+              {h.processDesc.split('\n').map((line, i, arr) => (
+                <span key={i}>{line}{i < arr.length - 1 ? <br /> : null}</span>
+              ))}
             </p>
           </div>
           <div style={{
@@ -204,10 +206,12 @@ export default function Hero() {
             display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: 80,
           }}>
             <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-4)', letterSpacing: 'var(--pc-track-mono)', margin: 0 }}>
-              COVERAGE
+              {h.coverageLabel}
             </p>
             <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg)', lineHeight: 1.35, margin: 0 }}>
-              Delhi, Noida,<br />Gurgaon &amp; beyond
+              {h.coverageDesc.split('\n').map((line, i, arr) => (
+                <span key={i}>{line}{i < arr.length - 1 ? <br /> : null}</span>
+              ))}
             </p>
           </div>
         </div>
@@ -236,10 +240,10 @@ export default function Hero() {
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 40%, rgba(14,13,11,0.88) 100%)' }} />
           <div style={{ position: 'absolute', bottom: 16, left: 16 }}>
             <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)', color: 'rgba(255,255,255,0.45)', letterSpacing: 'var(--pc-track-mono)', marginBottom: 'var(--pc-space-1)', marginTop: 0 }}>
-              EXTERIOR WASH
+              {h.tileExtLabel}
             </p>
             <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg)', fontWeight: 500, margin: 0 }}>
-              Foam cannon to finish
+              {h.tileExtDesc}
             </p>
           </div>
         </div>
@@ -256,10 +260,10 @@ export default function Hero() {
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 40%, rgba(14,13,11,0.88) 100%)' }} />
           <div style={{ position: 'absolute', bottom: 16, left: 16 }}>
             <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)', color: 'rgba(255,255,255,0.45)', letterSpacing: 'var(--pc-track-mono)', marginBottom: 'var(--pc-space-1)', marginTop: 0 }}>
-              CERAMIC COATING
+              {h.tileCoatLabel}
             </p>
             <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg)', fontWeight: 500, margin: 0 }}>
-              3-year protection
+              {h.tileCoatDesc}
             </p>
           </div>
         </div>
@@ -276,10 +280,12 @@ export default function Hero() {
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(105deg, rgba(14,13,11,0.82) 0%, rgba(14,13,11,0.3) 60%, rgba(14,13,11,0) 100%)' }} />
           <div style={{ position: 'absolute', bottom: 20, left: 20 }}>
             <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)', color: 'rgba(255,255,255,0.45)', letterSpacing: 'var(--pc-track-mono)', marginBottom: 'var(--pc-space-1)', marginTop: 0 }}>
-              INTERIOR DETAIL
+              {h.tileIntLabel}
             </p>
             <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 'var(--pc-text-2xl)', color: 'var(--pc-fg)', letterSpacing: 'var(--pc-track-tight)', lineHeight: 1.05, margin: 0 }}>
-              Every surface.<br />Nothing rushed.
+              {h.tileIntDesc.split('\n').map((line, i, arr) => (
+                <span key={i}>{line}{i < arr.length - 1 ? <br /> : null}</span>
+              ))}
             </p>
           </div>
         </div>

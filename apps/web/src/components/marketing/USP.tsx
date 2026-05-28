@@ -1,27 +1,16 @@
+'use client';
 import Link from 'next/link';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
+import { useI18n } from '@/i18n';
 
-const CARDS = [
-  {
-    icon: 'sparkles',
-    heading: 'Professional-grade\nproducts only',
-    body: 'Koch Chemie, Meguiar\'s, CarPro — we use what detailers use, not what supermarkets stock. Your paint deserves the difference.',
-  },
-  {
-    icon: 'shield',
-    heading: 'Paint-safe\nthroughout',
-    body: 'Pre-rinse, decontamination, and a two-bucket hand-wash method. No automatic tunnels. No swirl marks. No compromises.',
-  },
-  {
-    icon: 'map-pin',
-    heading: 'Doorstep or\nour centre',
-    body: 'We travel to your home or office across Delhi NCR. Or drop in to our full-service centre in Ghaziabad for in-depth detailing work.',
-  },
-] as const;
+const ICONS = ['sparkles', 'shield', 'map-pin'] as const;
 
 export default function USP() {
+  const { t } = useI18n();
+  const u = t.usp;
+
   return (
     <div
       className="pc-usp-root"
@@ -35,7 +24,7 @@ export default function USP() {
     >
       {/* Left: text + CTAs */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-5)' }}>
-        <Eyebrow>[WHY PERFECT CLEANERS]</Eyebrow>
+        <Eyebrow>{u.eyebrow}</Eyebrow>
         <div style={{
           fontFamily: 'var(--pc-serif)',
           fontSize: 'var(--pc-text-3xl)',
@@ -43,7 +32,9 @@ export default function USP() {
           color: 'var(--pc-fg)',
           letterSpacing: 'var(--pc-track-tight)',
         }}>
-          The difference is in<br />what you can&apos;t see.
+          {u.headline.split('\n').map((line, i, arr) => (
+            <span key={i}>{line}{i < arr.length - 1 ? <br /> : null}</span>
+          ))}
         </div>
         <p style={{
           fontFamily: 'var(--pc-sans)',
@@ -53,7 +44,7 @@ export default function USP() {
           maxWidth: 380,
           margin: 0,
         }}>
-          Anyone can wash a car. We decontaminate, protect, and restore — then hand it back in better condition than we found it.
+          {u.body}
         </p>
         <div style={{ display: 'flex', gap: 'var(--pc-space-2)', marginTop: 'var(--pc-space-1)', flexWrap: 'wrap' }}>
           <Link
@@ -77,7 +68,7 @@ export default function USP() {
               transition: 'background var(--pc-dur-fast) var(--pc-ease), box-shadow var(--pc-dur-fast) var(--pc-ease)',
             }}
           >
-            Book Now
+            {u.bookNow}
           </Link>
           <Link
             href="/services"
@@ -100,7 +91,7 @@ export default function USP() {
               transition: 'background var(--pc-dur-fast) var(--pc-ease), border-color var(--pc-dur-fast) var(--pc-ease)',
             }}
           >
-            View Services
+            {u.viewServices}
           </Link>
         </div>
       </div>
@@ -110,12 +101,12 @@ export default function USP() {
         className="pc-usp-cards"
         style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--pc-space-3)' }}
       >
-        {CARDS.map((card) => (
+        {u.cards.map((card, i) => (
           <Card
-            key={card.icon}
+            key={i}
             style={{ padding: 'var(--pc-space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-8)', minHeight: 220 }}
           >
-            <Icon name={card.icon} size={20} color="var(--pc-fg)" strokeWidth={1.4} />
+            <Icon name={ICONS[i]} size={20} color="var(--pc-fg)" strokeWidth={1.4} />
             <div>
               <div style={{
                 fontFamily: 'var(--pc-sans)',
@@ -123,8 +114,8 @@ export default function USP() {
                 color: 'var(--pc-fg)',
                 lineHeight: 'var(--pc-lh-snug)',
               }}>
-                {card.heading.split('\n').map((line, i, arr) => (
-                  <span key={i}>{line}{i < arr.length - 1 ? <br /> : null}</span>
+                {card.heading.split('\n').map((line, j, arr) => (
+                  <span key={j}>{line}{j < arr.length - 1 ? <br /> : null}</span>
                 ))}
               </div>
               <div style={{
