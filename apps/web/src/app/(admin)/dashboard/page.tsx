@@ -27,31 +27,32 @@ const TOP_WORKERS = [
 
 export default function DashboardPage() {
   return (
-    <div style={{ padding: 32, display: 'flex', flexDirection: 'column', gap: 32 }}>
+    <div style={{ padding: 'var(--pc-space-8)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-8)' }}>
 
       {/* Page title */}
       <div>
-        <Eyebrow style={{ display: 'block', marginBottom: 4 }}>OVERVIEW</Eyebrow>
-        <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 28, fontWeight: 400, color: 'var(--pc-fg)', margin: 0 }}>Dashboard</h1>
+        <Eyebrow style={{ display: 'block', marginBottom: 'var(--pc-space-1)' }}>OVERVIEW</Eyebrow>
+        <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 'var(--pc-text-2xl)', fontWeight: 400, color: 'var(--pc-fg)', margin: 0 }}>Dashboard</h1>
       </div>
 
       {/* KPI cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--pc-space-3)' }}>
         {KPIS.map(({ label, value, delta, icon, positive }) => (
-          <Card key={label} style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14, minHeight: 124 }}>
+          <Card key={label} style={{ padding: 'var(--pc-space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-3)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>{label}</p>
+              {/* fontSize:12 → --pc-text-xs (12px floor). Previously 11px which was below the floor. */}
+              <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)', textTransform: 'uppercase', letterSpacing: 'var(--pc-track-wide)', margin: 0 }}>{label}</p>
               <Icon name={icon} size={14} color="var(--pc-fg-4)" />
             </div>
             <div>
-              <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 26, color: 'var(--pc-fg)', margin: '0 0 4px' }}>{value}</p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 'var(--pc-text-2xl)', color: 'var(--pc-fg)', margin: '0 0 var(--pc-space-1)' }}>{value}</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pc-space-2)' }}>
                 <Icon
                   name={positive ? 'arrow-up-right' : 'arrow-down-right'}
                   size={12}
                   color={positive ? 'var(--pc-sage)' : 'var(--pc-danger)'}
                 />
-                <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: positive ? 'var(--pc-sage)' : 'var(--pc-danger)' }}>
+                <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: positive ? 'var(--pc-sage)' : 'var(--pc-danger)' }}>
                   {delta} vs last month
                 </span>
               </div>
@@ -61,23 +62,22 @@ export default function DashboardPage() {
       </div>
 
       {/* Charts row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 'var(--pc-space-3)' }}>
 
         {/* Revenue chart */}
         <Card style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '18px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div style={{ padding: 'var(--pc-space-5) var(--pc-space-5) 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <Eyebrow>REVENUE — LAST 30 DAYS</Eyebrow>
           </div>
-          <div style={{ padding: '12px 20px 0', display: 'flex', gap: 14, alignItems: 'center' }}>
+          <div style={{ padding: 'var(--pc-space-3) var(--pc-space-5) 0', display: 'flex', gap: 'var(--pc-space-3)', alignItems: 'center' }}>
             {[{ label: 'Revenue', c: 'var(--pc-sage)' }, { label: 'Target', c: 'var(--pc-warning)' }].map(({ label, c }) => (
-              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 8, height: 8, borderRadius: 999, background: c }} />
-                <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)' }}>{label}</span>
+              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 'var(--pc-space-2)' }}>
+                <span style={{ width: 8, height: 8, borderRadius: 'var(--pc-radius-pill)', background: c }} />
+                <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)' }}>{label}</span>
               </div>
             ))}
           </div>
           <svg aria-hidden="true" viewBox="0 0 800 320" width="100%" height="320" style={{ display: 'block' }}>
-            {/* Decorative background banding — uses CSS var so it adapts in light mode */}
             <g style={{ stroke: 'var(--pc-line-faint)' }} fill="none">
               <path d="M-20 100 Q200 80 400 110 T820 100" strokeWidth="20" />
               <path d="M-20 220 Q200 200 400 230 T820 220" strokeWidth="14" />
@@ -102,16 +102,16 @@ export default function DashboardPage() {
         </Card>
 
         {/* Worker utilisation */}
-        <Card style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <Card style={{ padding: 'var(--pc-space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-3)' }}>
           <Eyebrow>WORKER UTILISATION</Eyebrow>
           {TOP_WORKERS.map(w => (
-            <div key={w.name} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div key={w.name} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-2)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)' }}>{w.name}</span>
-                <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)' }}>{w.jobs} jobs</span>
+                <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg)' }}>{w.name}</span>
+                <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)' }}>{w.jobs} jobs</span>
               </div>
-              <div style={{ height: 4, background: 'var(--pc-line-strong)', borderRadius: 999, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${(w.jobs / 50) * 100}%`, background: 'var(--pc-sage)', borderRadius: 999 }} />
+              <div style={{ height: 4, background: 'var(--pc-line-strong)', borderRadius: 'var(--pc-radius-pill)', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${(w.jobs / 50) * 100}%`, background: 'var(--pc-sage)', borderRadius: 'var(--pc-radius-pill)' }} />
               </div>
             </div>
           ))}
@@ -120,7 +120,7 @@ export default function DashboardPage() {
 
       {/* Recent bookings */}
       <Card style={{ padding: 0, overflow: 'hidden' }}>
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--pc-line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ padding: 'var(--pc-space-4) var(--pc-space-5)', borderBottom: '1px solid var(--pc-line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Eyebrow>RECENT BOOKINGS</Eyebrow>
           <Icon name="sliders-horizontal" size={14} color="var(--pc-fg-3)" />
         </div>
@@ -142,19 +142,19 @@ export default function DashboardPage() {
           <thead>
             <tr style={{ borderBottom: '1px solid var(--pc-line)' }}>
               {['Booking', 'Customer', 'Service', 'Time', 'Worker', 'Status'].map(h => (
-                <th key={h} style={{ padding: '10px 20px', textAlign: 'left', fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
+                <th key={h} style={{ padding: 'var(--pc-space-3) var(--pc-space-5)', textAlign: 'left', fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: 'var(--pc-track-wide)' }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {RECENT_BOOKINGS.map(b => (
               <tr key={b.id} className="pc-table-row" style={{ borderBottom: '1px solid var(--pc-line)' }}>
-                <td style={{ padding: '13px 20px', fontFamily: 'var(--pc-mono)', fontSize: 12, color: 'var(--pc-fg-3)', fontWeight: 400 }}>{b.id}</td>
-                <td style={{ padding: '13px 20px', fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg)' }}>{b.customer}</td>
-                <td style={{ padding: '13px 20px', fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg-2)' }}>{b.service}</td>
-                <td style={{ padding: '13px 20px', fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg-2)' }}>{b.time}</td>
-                <td style={{ padding: '13px 20px', fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg-2)' }}>{b.worker}</td>
-                <td style={{ padding: '13px 20px' }}><StatusPill status={b.status} /></td>
+                <td style={{ padding: 'var(--pc-space-3) var(--pc-space-5)', fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)', fontWeight: 400 }}>{b.id}</td>
+                <td style={{ padding: 'var(--pc-space-3) var(--pc-space-5)', fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg)' }}>{b.customer}</td>
+                <td style={{ padding: 'var(--pc-space-3) var(--pc-space-5)', fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg-2)' }}>{b.service}</td>
+                <td style={{ padding: 'var(--pc-space-3) var(--pc-space-5)', fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg-2)' }}>{b.time}</td>
+                <td style={{ padding: 'var(--pc-space-3) var(--pc-space-5)', fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg-2)' }}>{b.worker}</td>
+                <td style={{ padding: 'var(--pc-space-3) var(--pc-space-5)' }}><StatusPill status={b.status} /></td>
               </tr>
             ))}
           </tbody>
@@ -163,25 +163,25 @@ export default function DashboardPage() {
 
       {/* Top workers */}
       <Card style={{ padding: 0 }}>
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--pc-line)' }}>
+        <div style={{ padding: 'var(--pc-space-4) var(--pc-space-5)', borderBottom: '1px solid var(--pc-line)' }}>
           <Eyebrow>TOP PERFORMERS THIS MONTH</Eyebrow>
         </div>
         {TOP_WORKERS.map((w, i) => (
           <div key={w.name} style={{
-            padding: '16px 20px',
+            padding: 'var(--pc-space-4) var(--pc-space-5)',
             borderBottom: i < TOP_WORKERS.length - 1 ? '1px solid var(--pc-line)' : 'none',
-            display: 'flex', alignItems: 'center', gap: 12,
+            display: 'flex', alignItems: 'center', gap: 'var(--pc-space-3)',
           }}>
-            <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 13, color: 'var(--pc-fg-4)', minWidth: 24 }}>
+            <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg-4)', minWidth: 24 }}>
               0{i + 1}
             </span>
             <div style={{ flex: 1 }}>
-              <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 600, color: 'var(--pc-fg)', margin: '0 0 2px' }}>{w.name}</p>
-              <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)', margin: 0 }}>{w.jobs} jobs · ★ {w.rating}</p>
+              <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', fontWeight: 600, color: 'var(--pc-fg)', margin: '0 0 var(--pc-space-1)' }}>{w.name}</p>
+              <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)', margin: 0 }}>{w.jobs} jobs · ★ {w.rating}</p>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pc-space-1)' }}>
               <Icon name="indian-rupee" size={12} color="var(--pc-sage)" />
-              <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 600, color: 'var(--pc-fg)' }}>{w.revenue}</span>
+              <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', fontWeight: 600, color: 'var(--pc-fg)' }}>{w.revenue}</span>
             </div>
           </div>
         ))}

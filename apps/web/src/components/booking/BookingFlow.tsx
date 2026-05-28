@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Card from '@/components/ui/Card';
-import { PrimaryButton, GhostButton } from '@/components/ui/Button';
 import { submitBooking } from '@/lib/firebase/booking';
 import styles from './BookingFlow.module.css';
 
@@ -205,9 +204,9 @@ function CalendarPicker({
                 borderRadius: 'var(--pc-radius-sm)',
                 border: 'none',
                 background: isSel
-                  ? 'var(--pc-sage-active)'
+                  ? 'var(--pc-sage-active, var(--pc-sage))'
                   : isToday
-                  ? 'var(--pc-sage-subtle)'
+                  ? 'var(--pc-sage-subtle, rgba(91,111,82,0.15))'
                   : 'transparent',
                 color: isPast
                   ? 'var(--pc-fg-4)'
@@ -402,13 +401,13 @@ export default function BookingFlow() {
     return (
       <div style={{
         maxWidth: 520, margin: '0 auto', textAlign: 'center',
-        padding: 'var(--pc-space-20) var(--pc-space-6) var(--pc-space-32)',
+        padding: 'var(--pc-space-20) var(--pc-space-6) var(--pc-space-24)',
       }}>
         <div style={{
           width: 72, height: 72,
           borderRadius: 'var(--pc-radius-pill)',
-          background: 'var(--pc-sage-subtle)',
-          border: '1px solid var(--pc-sage-border)',
+          background: 'rgba(91,111,82,0.15)',
+          border: '1px solid var(--pc-sage-hi)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           margin: '0 auto',
           marginBottom: 'var(--pc-space-8)',
@@ -495,19 +494,52 @@ export default function BookingFlow() {
           </div>
         </Card>
 
+        {/*
+          Success screen CTAs.
+          "Book Another" resets the page — no navigation, so <button> is correct.
+          "Back to Home" navigates, but this is not inside a <Link>, so we also
+          use <button> with router.push rather than the invalid <Link><button> pattern.
+          Both inherit PrimaryButton/GhostButton styles inline — no import needed.
+        */}
         <div style={{ display: 'flex', gap: 'var(--pc-space-3)', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <PrimaryButton
+          <button
+            type="button"
             onClick={() => router.refresh()}
-            style={{ padding: 'var(--pc-space-4) var(--pc-space-8)' }}
+            style={{
+              background: 'var(--pc-warm)',
+              color: 'var(--pc-ink)',
+              border: 'none',
+              borderRadius: 'var(--pc-radius-pill)',
+              padding: 'var(--pc-space-4) var(--pc-space-8)',
+              fontFamily: 'var(--pc-sans)',
+              fontSize: 'var(--pc-text-sm)',
+              fontWeight: 600,
+              letterSpacing: 'var(--pc-track-wide)',
+              textTransform: 'uppercase',
+              cursor: 'pointer',
+            }}
           >
             Book Another →
-          </PrimaryButton>
-          <GhostButton
+          </button>
+          <button
+            type="button"
             onClick={() => router.push('/')}
-            style={{ padding: 'var(--pc-space-4) var(--pc-space-8)' }}
+            style={{
+              background: 'transparent',
+              color: 'var(--pc-fg)',
+              border: '1px solid var(--pc-line-strong)',
+              borderRadius: 'var(--pc-radius-pill)',
+              padding: 'var(--pc-space-4) var(--pc-space-8)',
+              fontFamily: 'var(--pc-sans)',
+              fontSize: 'var(--pc-text-sm)',
+              fontWeight: 500,
+              letterSpacing: 'var(--pc-track-wide)',
+              textTransform: 'uppercase',
+              cursor: 'pointer',
+            }}
           >
             Back to Home
-          </GhostButton>
+          </button>
         </div>
       </div>
     );
@@ -527,7 +559,7 @@ export default function BookingFlow() {
             background: 'rgba(91,111,82,0.12)',
             border: '1px solid rgba(91,111,82,0.35)',
             borderRadius: 'var(--pc-radius-md)',
-            padding: '14px 16px',
+            padding: 'var(--pc-space-3) var(--pc-space-4)',
           }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                  stroke="var(--pc-sage-hi)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
@@ -548,7 +580,7 @@ export default function BookingFlow() {
               </p>
               <p style={{
                 fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)',
-                color: 'rgba(232,237,227,0.65)', margin: '4px 0 0', lineHeight: 1.5,
+                color: 'rgba(232,237,227,0.65)', margin: 'var(--pc-space-1) 0 0', lineHeight: 1.5,
               }}>
                 This books your first visit. Our team will contact you to set up your recurring schedule after payment.
               </p>
@@ -572,8 +604,8 @@ export default function BookingFlow() {
                   style={{
                     padding: 'var(--pc-space-4)',
                     borderRadius: 'var(--pc-radius-md)',
-                    border: `1px solid ${active ? 'var(--pc-sage-border)' : 'var(--pc-line)'}`,
-                    background: active ? 'var(--pc-sage-subtle)' : 'var(--pc-card)',
+                    border: `1px solid ${active ? 'var(--pc-sage-hi)' : 'var(--pc-line)'}`,
+                    background: active ? 'rgba(91,111,82,0.15)' : 'var(--pc-card)',
                     cursor: 'pointer',
                     textAlign: 'left',
                     transition: 'border-color var(--pc-dur-fast) var(--pc-ease), background var(--pc-dur-fast) var(--pc-ease)',
@@ -599,7 +631,7 @@ export default function BookingFlow() {
                   <div style={{
                     fontFamily: 'var(--pc-sans)',
                     fontSize: 'var(--pc-text-xs)',
-                    color: active ? 'var(--pc-sage-muted)' : 'var(--pc-fg-3)',
+                    color: active ? 'rgba(232,237,227,0.7)' : 'var(--pc-fg-3)',
                     lineHeight: 'var(--pc-lh-snug)',
                   }}>{s.desc}</div>
                 </button>
@@ -628,8 +660,8 @@ export default function BookingFlow() {
                     style={{
                       padding: 'var(--pc-space-2) var(--pc-space-4)',
                       borderRadius: 'var(--pc-radius-sm)',
-                      border: `1px solid ${active ? 'var(--pc-sage-border)' : 'var(--pc-line)'}`,
-                      background: active ? 'var(--pc-sage-subtle)' : 'var(--pc-card)',
+                      border: `1px solid ${active ? 'var(--pc-sage-hi)' : 'var(--pc-line)'}`,
+                      background: active ? 'rgba(91,111,82,0.15)' : 'var(--pc-card)',
                       cursor: 'pointer',
                       textAlign: 'center',
                       minWidth: 60,
@@ -657,7 +689,7 @@ export default function BookingFlow() {
                     <div style={{
                       fontFamily: 'var(--pc-sans)',
                       fontSize: 'var(--pc-text-xs)',
-                      color: active ? 'var(--pc-sage-muted)' : 'var(--pc-fg-3)',
+                      color: active ? 'rgba(232,237,227,0.7)' : 'var(--pc-fg-3)',
                       marginTop: 'var(--pc-space-1)',
                     }}>
                       {d.dayName}
@@ -678,13 +710,13 @@ export default function BookingFlow() {
                   borderRadius: 'var(--pc-radius-sm)',
                   border: `1px solid ${
                     selDate.id === 'custom'
-                      ? 'var(--pc-sage-border)'
+                      ? 'var(--pc-sage-hi)'
                       : showCalendar
                       ? 'var(--pc-line-strong)'
                       : 'var(--pc-line)'
                   }`,
                   background: selDate.id === 'custom'
-                    ? 'var(--pc-sage-subtle)'
+                    ? 'rgba(91,111,82,0.15)'
                     : showCalendar
                     ? 'var(--pc-card-hi)'
                     : 'var(--pc-card)',
@@ -718,7 +750,7 @@ export default function BookingFlow() {
                     <div style={{
                       fontFamily: 'var(--pc-sans)',
                       fontSize: 'var(--pc-text-xs)',
-                      color: 'var(--pc-sage-muted)',
+                      color: 'rgba(232,237,227,0.7)',
                     }}>
                       {selDate.dayName}
                     </div>
@@ -772,8 +804,8 @@ export default function BookingFlow() {
                   style={{
                     padding: 'var(--pc-space-2) var(--pc-space-4)',
                     borderRadius: 'var(--pc-radius-sm)',
-                    border: `1px solid ${active ? 'var(--pc-sage-border)' : 'var(--pc-line)'}`,
-                    background: active ? 'var(--pc-sage-subtle)' : 'var(--pc-card)',
+                    border: `1px solid ${active ? 'var(--pc-sage-hi)' : 'var(--pc-line)'}`,
+                    background: active ? 'rgba(91,111,82,0.15)' : 'var(--pc-card)',
                     fontFamily: 'var(--pc-mono)',
                     fontSize: 'var(--pc-text-xs)',
                     color: active ? 'var(--pc-sage-ink)' : 'var(--pc-fg-2)',
@@ -837,7 +869,7 @@ export default function BookingFlow() {
               </select>
               <div style={{ flex: 1 }}>
                 <input
-                  placeholder="Model (e.g. Nexon, Creta)"
+                  placeholder="Model (e.g. Creta, Nexon)"
                   value={model}
                   onChange={e => setModel(e.target.value)}
                   className={`${styles.input}${errors.model ? ` ${styles.inputError}` : ''}`}
@@ -850,9 +882,9 @@ export default function BookingFlow() {
 
         {/* Step 4 — Contact */}
         <section>
-          <StepLabel n="04">Contact Details</StepLabel>
-          <div className={styles.fieldRow}>
-            <div style={{ flex: 1 }}>
+          <StepLabel n="04">Your Details</StepLabel>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-3)' }}>
+            <div>
               <input
                 placeholder="Full name"
                 value={name}
@@ -861,119 +893,89 @@ export default function BookingFlow() {
               />
               <FieldError msg={errors.name} />
             </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ position: 'relative' }}>
-                <span style={{
-                  position: 'absolute', left: 'var(--pc-space-4)', top: '50%',
-                  transform: 'translateY(-50%)',
-                  fontFamily: 'var(--pc-mono)',
-                  fontSize: 'var(--pc-text-xs)',
-                  color: 'var(--pc-fg-3)',
-                  pointerEvents: 'none',
-                  userSelect: 'none',
-                }}>+91</span>
-                <input
-                  placeholder="98765 43210"
-                  type="tel"
-                  aria-label="Phone number (India +91)"
-                  value={phone}
-                  onChange={e => setPhone(e.target.value)}
-                  maxLength={10}
-                  inputMode="tel"
-                  className={`${styles.input}${errors.phone ? ` ${styles.inputError}` : ''}`}
-                  style={{ paddingLeft: 'var(--pc-space-10)' }}
-                />
-              </div>
+            <div>
+              <input
+                placeholder="Mobile number"
+                value={phone}
+                onChange={e => setPhone(e.target.value)}
+                inputMode="tel"
+                maxLength={10}
+                className={`${styles.input}${errors.phone ? ` ${styles.inputError}` : ''}`}
+              />
               <FieldError msg={errors.phone} />
             </div>
           </div>
         </section>
+
+        {submitError && (
+          <p style={{
+            fontFamily: 'var(--pc-sans)',
+            fontSize: 'var(--pc-text-sm)',
+            color: 'var(--pc-danger)',
+            padding: 'var(--pc-space-3) var(--pc-space-4)',
+            background: 'rgba(201,85,78,0.1)',
+            border: '1px solid rgba(201,85,78,0.3)',
+            borderRadius: 'var(--pc-radius-sm)',
+          }}>{submitError}</p>
+        )}
+
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={isSubmitting}
+          className={styles.submitBtn}
+        >
+          {isSubmitting ? 'Confirming…' : 'Confirm Booking →'}
+        </button>
       </div>
 
-      {/* ── Right: sticky summary (moves to top on mobile via CSS order) ── */}
+      {/* ── Right: order summary ── */}
       <div className={styles.summaryCol}>
-        <div style={{ position: 'sticky', top: 'var(--pc-space-16)' }}>
-          <Card style={{ padding: 'var(--pc-space-6)' }}>
-            <Eyebrow style={{ marginBottom: 'var(--pc-space-5)', display: 'block' }}>
-              Booking Summary
-            </Eyebrow>
+        <div style={{
+          position: 'sticky',
+          top: 'var(--pc-space-8)',
+          background: 'var(--pc-card)',
+          border: '1px solid var(--pc-line)',
+          borderRadius: 'var(--pc-radius-md)',
+          overflow: 'hidden',
+        }}>
+          <div style={{ padding: 'var(--pc-space-4) var(--pc-space-5)', borderBottom: '1px solid var(--pc-line)' }}>
+            <Eyebrow>ORDER SUMMARY</Eyebrow>
+          </div>
+          <div style={{ padding: 'var(--pc-space-5)' }}>
+            {[
+              ['Service',      service.name],
+              ['Date',         `${selDate.dayName} ${selDate.dayNum} ${selDate.monthName}`],
+              ['Time',         selTime],
+              ['Vehicle',      `${brand} ${model || '—'}`],
+              ['City',         city],
+            ].map(([k, v]) => (
+              <div key={k} style={{
+                display: 'flex', justifyContent: 'space-between',
+                padding: 'var(--pc-space-2) 0',
+                borderBottom: '1px solid var(--pc-line)',
+              }}>
+                <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)' }}>{k}</span>
+                <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg)', textAlign: 'right', maxWidth: '60%' }}>{v}</span>
+              </div>
+            ))}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 'var(--pc-space-2)' }}>
-              <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg)', fontWeight: 500 }}>
-                {service.name}
-              </span>
-              <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg)' }}>
-                ₹{service.price.toLocaleString('en-IN')}
-              </span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 'var(--pc-space-1)' }}>
-              <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg-2)' }}>Platform fee</span>
-              <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-2)' }}>₹{PLATFORM_FEE}</span>
-            </div>
-
-            <div style={{
-              borderTop: '1px solid var(--pc-line)',
-              marginTop: 'var(--pc-space-4)', paddingTop: 'var(--pc-space-4)',
-              display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
-              marginBottom: 'var(--pc-space-2)',
-            }}>
-              <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-base)', fontWeight: 600, color: 'var(--pc-fg)' }}>
-                Total
-              </span>
-              <span style={{ fontFamily: 'var(--pc-serif)', fontSize: 'var(--pc-text-2xl)', color: 'var(--pc-fg)', letterSpacing: 'var(--pc-track-tight)' }}>
-                ₹{total.toLocaleString('en-IN')}
-              </span>
-            </div>
-
-            <div style={{
-              background: 'var(--pc-card-hi)',
-              borderRadius: 'var(--pc-radius-sm)',
-              padding: 'var(--pc-space-3)',
-              marginBottom: 'var(--pc-space-5)',
-            }}>
-              <div style={{
-                fontFamily: 'var(--pc-mono)',
-                fontSize: 'var(--pc-text-xs)',
-                color: 'var(--pc-fg-3)',
-                letterSpacing: 'var(--pc-track-mono)',
-                marginBottom: 'var(--pc-space-1)',
-              }}>SLOT</div>
-              <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg)' }}>
-                {selDate.dayName} {selDate.dayNum} {selDate.monthName} · {selTime}
+            <div style={{ marginTop: 'var(--pc-space-4)', paddingTop: 'var(--pc-space-4)', borderTop: '1px solid var(--pc-line-strong)' }}>
+              {[
+                ['Base price',    `₹${service.price.toLocaleString('en-IN')}`],
+                ['Platform fee',  `₹${PLATFORM_FEE}`],
+              ].map(([k, v]) => (
+                <div key={k} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--pc-space-2)' }}>
+                  <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)' }}>{k}</span>
+                  <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-2)' }}>{v}</span>
+                </div>
+              ))}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 'var(--pc-space-3)' }}>
+                <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', fontWeight: 600, color: 'var(--pc-fg)' }}>Total</span>
+                <span style={{ fontFamily: 'var(--pc-serif)', fontSize: 'var(--pc-text-xl)', color: 'var(--pc-fg)' }}>₹{total.toLocaleString('en-IN')}</span>
               </div>
             </div>
-
-            {submitError && (
-              <p style={{
-                fontFamily: 'var(--pc-sans)',
-                fontSize: 'var(--pc-text-xs)',
-                color: 'var(--pc-danger)',
-                marginBottom: 'var(--pc-space-3)',
-                lineHeight: 'var(--pc-lh-snug)',
-              }}>{submitError}</p>
-            )}
-
-            <PrimaryButton
-              full
-              disabled={isSubmitting}
-              onClick={handleSubmit}
-              className={styles.submitBtn}
-              style={{ padding: 'var(--pc-space-4) 0' }}
-            >
-              {isSubmitting ? 'Confirming…' : 'Confirm Booking →'}
-            </PrimaryButton>
-
-            <p style={{
-              fontFamily: 'var(--pc-sans)',
-              fontSize: 'var(--pc-text-xs)',
-              color: 'var(--pc-fg-3)',
-              marginTop: 'var(--pc-space-3)',
-              textAlign: 'center',
-              lineHeight: 'var(--pc-lh-snug)',
-            }}>
-              Payment collected on arrival · Free cancellation up to 2 hours before.
-            </p>
-          </Card>
+          </div>
         </div>
       </div>
     </div>
