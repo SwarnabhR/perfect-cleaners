@@ -27,6 +27,7 @@
   --pc-sage-ink: #E8EDE3;
   --pc-warm:     #F0EDE8;
   --pc-warm-2:   #E4DFD6;
+  --pc-warm-3:   #D4CEC4;
   --pc-gold:     #C9A961;
 
   --pc-success: #6FAE6A;
@@ -88,6 +89,7 @@
   --pc-shadow-raised:    0 1px 0 rgba(255,255,255,0.06) inset, 0 0 0 1px rgba(255,255,255,0.10), 0 12px 40px -12px rgba(0,0,0,0.6);
   --pc-shadow-pop:       0 24px 60px -20px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.08);
   --pc-shadow-glow-sage: 0 0 0 1px rgba(91,111,82,0.4), 0 0 40px rgba(91,111,82,0.18);
+  --pc-shadow-glow:      0 0 0 1px rgba(240,237,232,0.18), 0 0 24px rgba(240,237,232,0.08);
 
   --pc-ease:     cubic-bezier(0.22, 1, 0.36, 1);
   --pc-ease-in:  cubic-bezier(0.4, 0, 1, 1);
@@ -132,27 +134,55 @@
   /* Primary CTA inverts — dark pill on cream bg */
   --pc-warm:   #0E0D0B;
   --pc-warm-2: #232220;
+  --pc-warm-3: #3A3A36;
 
   /* Shadows — natural drop shadows instead of inset glows */
   --pc-shadow-card:      0 1px 0 rgba(255,255,255,0.55) inset, 0 0 0 1px rgba(0,0,0,0.06);
   --pc-shadow-raised:    0 1px 3px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.06);
   --pc-shadow-pop:       0 8px 32px -8px rgba(0,0,0,0.16), 0 0 0 1px rgba(0,0,0,0.07);
   --pc-shadow-glow-sage: 0 0 0 1px rgba(74,94,68,0.25), 0 0 40px rgba(74,94,68,0.10);
+  --pc-shadow-glow:      0 0 0 1px rgba(14,13,11,0.14), 0 0 16px rgba(14,13,11,0.06);
 
   color-scheme: light;
 }
 
-/* Fix hover states that use hardcoded dark rgba values */
+/* Fix hover/active/focus states that use hardcoded dark rgba values */
 [data-theme="light"] .pc-hero-cta-primary:hover {
   background: #232220;
+}
+[data-theme="light"] .pc-hero-cta-primary:active {
+  background: #3A3A36;
+}
+[data-theme="light"] .pc-hero-cta-primary:focus-visible {
+  outline-color: rgba(74,94,68,0.7);
 }
 [data-theme="light"] .pc-hero-cta-ghost:hover {
   background: rgba(0,0,0,0.04);
   border-color: rgba(14,13,11,0.25);
 }
+[data-theme="light"] .pc-hero-cta-ghost:active {
+  background: rgba(0,0,0,0.08);
+  border-color: rgba(14,13,11,0.35);
+}
+[data-theme="light"] .pc-hero-cta-ghost:focus-visible {
+  outline-color: rgba(74,94,68,0.7);
+}
 [data-theme="light"] .pc-nav-book-now:hover {
   border-color: rgba(14,13,11,0.28);
   background: rgba(14,13,11,0.05);
+}
+[data-theme="light"] .pc-nav-book-now:active {
+  background: rgba(14,13,11,0.10);
+  border-color: rgba(14,13,11,0.38);
+}
+[data-theme="light"] .pc-nav-book-now:focus-visible {
+  outline-color: rgba(74,94,68,0.7);
+}
+[data-theme="light"] .pc-nav-drawer-cta:hover {
+  background: #232220;
+}
+[data-theme="light"] .pc-nav-drawer-cta:active {
+  background: #3A3A36;
 }
 [data-theme="light"] .pc-input:focus {
   border-color: rgba(0,0,0,0.28);
@@ -326,20 +356,41 @@ button { cursor: pointer; }
 .pc-nav-link:hover { color: var(--pc-fg); }
 
 /* ====================================================================
-   CTA pill link hover states
+   CTA pill link hover / active / focus states
    Used by: Hero, USP, CTASection, PremiumSection (styled <Link> CTAs
    that replaced the invalid <Link><Button> nesting pattern).
-   The inline transition property on each element has nothing to
-   transition to without these rules.
+
+   Rules are ordered: :hover → :active → :focus-visible so that
+   keyboard focus is always visible regardless of pointer state.
+   Light-theme overrides live in the [data-theme="light"] block above.
    ==================================================================== */
 
+/* Primary pill — cream/dark fill */
 .pc-hero-cta-primary:hover {
   background: var(--pc-warm-2);
 }
+.pc-hero-cta-primary:active {
+  background: var(--pc-warm-3);
+  transform: scale(0.97);
+}
+.pc-hero-cta-primary:focus-visible {
+  outline: 2px solid var(--pc-sage-hi);
+  outline-offset: 3px;
+}
 
+/* Ghost pill — transparent with border */
 .pc-hero-cta-ghost:hover {
   background: rgba(255, 255, 255, 0.05);
   border-color: rgba(240, 237, 232, 0.45);
+}
+.pc-hero-cta-ghost:active {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(240, 237, 232, 0.6);
+  transform: scale(0.97);
+}
+.pc-hero-cta-ghost:focus-visible {
+  outline: 2px solid var(--pc-sage-hi);
+  outline-offset: 3px;
 }
 
 /* Nav "Book Now" pill — desktop only */
@@ -347,10 +398,27 @@ button { cursor: pointer; }
   border-color: rgba(240, 237, 232, 0.5);
   background: rgba(240, 237, 232, 0.06);
 }
+.pc-nav-book-now:active {
+  background: rgba(240, 237, 232, 0.12);
+  border-color: rgba(240, 237, 232, 0.65);
+  transform: scale(0.97);
+}
+.pc-nav-book-now:focus-visible {
+  outline: 2px solid var(--pc-sage-hi);
+  outline-offset: 3px;
+}
 
 /* Mobile drawer "Book Now" CTA */
 .pc-nav-drawer-cta:hover {
   background: var(--pc-warm-2);
+}
+.pc-nav-drawer-cta:active {
+  background: var(--pc-warm-3);
+  transform: scale(0.97);
+}
+.pc-nav-drawer-cta:focus-visible {
+  outline: 2px solid var(--pc-sage-hi);
+  outline-offset: 3px;
 }
 
 /* ====================================================================
