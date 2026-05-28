@@ -2,6 +2,13 @@
   "name": "mobile",
   "version": "1.0.0",
   "main": "expo-router/entry",
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "exclude": ["react-native-razorpay", "expo-modules-jsi"]
+      }
+    }
+  },
   "dependencies": {
     "@expo-google-fonts/instrument-serif": "^0.4.1",
     "@expo-google-fonts/inter-tight": "^0.4.2",
