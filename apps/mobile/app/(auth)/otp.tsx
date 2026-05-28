@@ -1,14 +1,13 @@
 import { useState, useRef } from 'react';
-import {
-  View, Text, TextInput, TouchableOpacity, ScrollView,
-  StyleSheet, KeyboardAvoidingView, Platform, Alert,
-} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getPendingConfirmation } from '../../auth-state';
-import { typography, spacing, radii } from '@pc/tokens';
+import { spacing, radii } from '@pc/tokens';
 import { useThemeColors } from '../../theme';
+import { useSharedStyles } from '../../theme/sharedStyles';
+import AuthScreenShell from '../../components/AuthScreenShell';
+import BackButton from '../../components/BackButton';
 
 const OTP_LEN = 6;
 
@@ -18,37 +17,24 @@ export default function OTPScreen() {
   const [loading, setLoading] = useState(false);
   const refs = useRef<(TextInput | null)[]>(Array(OTP_LEN).fill(null));
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const c = useThemeColors();
+  const ss = useSharedStyles();
   const complete = digits.every(Boolean);
 
   const s = StyleSheet.create({
-    root: { flex: 1, backgroundColor: c.ink },
-    inner: { flex: 1, paddingHorizontal: spacing[6], paddingTop: spacing[6], gap: spacing[8] },
-    back: { alignSelf: 'flex-start' },
-    backText: { fontFamily: typography.sans, fontSize: typography.sm, color: c.fg3 },
     header: { gap: 8 },
-    title: { fontFamily: typography.serif, fontSize: typography['3xl'], color: c.fg, letterSpacing: -0.5 },
-    sub: { fontFamily: typography.sans, fontSize: typography.sm, color: c.fg2 },
+    title: ss.onboardingTitle,
+    sub: ss.subtitle,
     otpRow: { flexDirection: 'row', gap: spacing[2] },
     box: {
       flex: 1, height: 56,
       backgroundColor: c.card, borderWidth: 1, borderColor: c.line,
       borderRadius: radii.sm,
-      fontFamily: typography.mono, fontSize: typography.xl, color: c.fg,
+      fontFamily: 'JetBrains Mono', fontSize: 20, color: c.fg,
     },
     boxFilled: { borderColor: c.sageHi },
-    btn: {
-      backgroundColor: c.warm, borderRadius: radii.pill,
-      paddingVertical: spacing[4], alignItems: 'center',
-    },
-    btnOff: { opacity: 0.35 },
-    btnText: {
-      fontFamily: typography.sansSemiBold, fontSize: typography.base,
-      color: c.ink,
-    },
     resend: { alignItems: 'center' },
-    resendText: { fontFamily: typography.sans, fontSize: typography.sm, color: c.fg3 },
+    resendText: ss.subtitle,
   });
 
   function handleDigit(val: string, idx: number) {
@@ -82,11 +68,7 @@ export default function OTPScreen() {
       }
       const existing = await AsyncStorage.getItem('@pc/onboarding');
       await AsyncStorage.setItem('@pc/role', 'customer');
-      if (existing) {
-        router.replace('/(customer)/');
-      } else {
-        router.replace('/(onboarding)/name');
-      }
+      router.replace(existing ? '/(customer)/' : '/(onboarding)/name');
     } catch (err: any) {
       Alert.alert('Verification Failed', err?.message || 'Invalid code. Please try again.');
     } finally {
@@ -95,52 +77,45 @@ export default function OTPScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={[s.root, { paddingTop: insets.top, paddingBottom: insets.bottom }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView contentContainerStyle={s.inner} keyboardShouldPersistTaps="handled">
-        <TouchableOpacity onPress={() => router.back()} style={s.back}>
-          <Text style={s.backText}>← Back</Text>
-        </TouchableOpacity>
+    <AuthScreenShell>
+      <BackButton />
 
-        <View style={s.header}>
-          <Text style={s.title}>Verify Phone</Text>
-          <Text style={s.sub}>6-digit code sent to +91 {phone}</Text>
-        </View>
+      <View style={s.header}>
+        <Text style={s.title}>Verify Phone</Text>
+        <Text style={s.sub}>6-digit code sent to +91 {phone}</Text>
+      </View>
 
-        <View style={s.otpRow}>
-          {digits.map((d, i) => (
-            <TextInput
-              key={i}
-              ref={el => { refs.current[i] = el; }}
-              style={[s.box, d && s.boxFilled]}
-              value={d}
-              onChangeText={val => handleDigit(val, i)}
-              onKeyPress={({ nativeEvent }) => {
-                if (nativeEvent.key === 'Backspace') handleBackspace(i);
-              }}
-              keyboardType="number-pad"
-              maxLength={1}
-              selectTextOnFocus
-              textAlign="center"
-            />
-          ))}
-        </View>
+      <View style={s.otpRow}>
+        {digits.map((d, i) => (
+          <TextInput
+            key={i}
+            ref={el => { refs.current[i] = el; }}
+            style={[s.box, d && s.boxFilled]}
+            value={d}
+            onChangeText={val => handleDigit(val, i)}
+            onKeyPress={({ nativeEvent }) => {
+              if (nativeEvent.key === 'Backspace') handleBackspace(i);
+            }}
+            keyboardType="number-pad"
+            maxLength={1}
+            selectTextOnFocus
+            textAlign="center"
+          />
+        ))}
+      </View>
 
-        <TouchableOpacity
-          style={[s.btn, (!complete || loading) && s.btnOff]}
-          onPress={handleVerify}
-          activeOpacity={0.8}
-          disabled={!complete || loading}
-        >
-          <Text style={s.btnText}>{loading ? 'Verifying...' : 'Verify & Continue'}</Text>
-        </TouchableOpacity>
+      <TouchableOpacity
+        style={[ss.primaryBtn, (!complete || loading) && ss.primaryBtnOff]}
+        onPress={handleVerify}
+        activeOpacity={0.8}
+        disabled={!complete || loading}
+      >
+        <Text style={ss.primaryBtnText}>{loading ? 'Verifying...' : 'Verify & Continue'}</Text>
+      </TouchableOpacity>
 
-        <TouchableOpacity style={s.resend}>
-          <Text style={s.resendText}>Didn't receive a code? Resend</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      <TouchableOpacity style={s.resend}>
+        <Text style={s.resendText}>Didn't receive a code? Resend</Text>
+      </TouchableOpacity>
+    </AuthScreenShell>
   );
 }

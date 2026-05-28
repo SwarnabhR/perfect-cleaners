@@ -1,16 +1,19 @@
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert,
+  StyleSheet, Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronLeft, MapPin } from 'lucide-react-native';
+import { MapPin } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
-import { typography, spacing, radii } from '@pc/tokens';
+import { spacing, radii } from '@pc/tokens';
 import { useThemeColors } from '../../theme';
+import { useSharedStyles } from '../../theme/sharedStyles';
+import AuthScreenShell from '../../components/AuthScreenShell';
+import BackButton from '../../components/BackButton';
+import OnboardingProgress from '../../components/OnboardingProgress';
 
 const AREAS = ['Indirapuram', 'Vaishali', 'Kaushambi', 'Raj Nagar Ext.', 'Crossings Republik', 'Vasundhara'];
 
@@ -25,42 +28,13 @@ export default function OnboardingAddress() {
   const [area, setArea]   = useState('');
   const [city]            = useState('Ghaziabad');
   const [saving, setSaving] = useState(false);
-  const router  = useRouter();
-  const insets  = useSafeAreaInsets();
-  const c       = useThemeColors();
-  const ready   = line1.trim().length > 0 && area.length > 0;
+  const router = useRouter();
+  const c = useThemeColors();
+  const ss = useSharedStyles();
+  const ready = line1.trim().length > 0 && area.length > 0;
 
   const s = StyleSheet.create({
-    root: { flex: 1, backgroundColor: c.ink },
-    scroll: { flexGrow: 1, paddingHorizontal: spacing[6], paddingTop: spacing[5], gap: spacing[5] },
-
     topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    backBtn: {
-      width: 36, height: 36, borderRadius: 999,
-      backgroundColor: c.card, borderWidth: 1, borderColor: c.line,
-      alignItems: 'center', justifyContent: 'center',
-    },
-    progress: { flexDirection: 'row', gap: 6 },
-    dot: { width: 20, height: 3, borderRadius: 999, backgroundColor: c.line },
-    dotActive: { backgroundColor: c.warm },
-
-    headingArea: { gap: spacing[2] },
-    step: { fontFamily: typography.mono, fontSize: 9.5, color: c.fg3, letterSpacing: 0.8, textTransform: 'uppercase' },
-    title: {
-      fontFamily: typography.serif, fontSize: typography['3xl'],
-      color: c.fg, letterSpacing: -0.5, lineHeight: 44,
-    },
-    sub: { fontFamily: typography.sans, fontSize: typography.sm, color: c.fg2 },
-
-    fieldArea: { gap: spacing[2] },
-    label: { fontFamily: typography.mono, fontSize: 9.5, color: c.fg3, letterSpacing: 0.8, textTransform: 'uppercase' },
-    input: {
-      height: 52,
-      backgroundColor: c.card, borderWidth: 1, borderColor: c.lineStrong,
-      borderRadius: radii.sm, paddingHorizontal: spacing[4],
-      fontFamily: typography.sans, fontSize: typography.base, color: c.fg,
-    },
-
     areaGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     areaChip: {
       flexDirection: 'row', alignItems: 'center', gap: 5,
@@ -68,23 +42,13 @@ export default function OnboardingAddress() {
       borderWidth: 1, borderColor: c.line,
     },
     areaChipActive: { backgroundColor: c.warm, borderColor: 'transparent' },
-    areaChipText: { fontFamily: typography.sans, fontSize: 12, color: c.fg2 },
-    areaChipTextActive: { fontFamily: typography.sansMedium, color: c.ink },
-
+    areaChipText: { fontFamily: 'Inter Tight', fontSize: 12, color: c.fg2 },
+    areaChipTextActive: { fontFamily: 'Inter Tight Medium', color: c.ink },
     lockedInput: {
-      height: 52,
-      backgroundColor: c.inkRaised, borderWidth: 1, borderColor: c.line,
-      borderRadius: radii.sm, paddingHorizontal: spacing[4],
-      justifyContent: 'center',
+      height: 52, backgroundColor: c.inkRaised, borderWidth: 1, borderColor: c.line,
+      borderRadius: radii.sm, paddingHorizontal: spacing[4], justifyContent: 'center',
     },
-    lockedText: { fontFamily: typography.sans, fontSize: typography.base, color: c.fg3 },
-
-    btn: {
-      backgroundColor: c.warm, borderRadius: radii.pill,
-      paddingVertical: spacing[4], alignItems: 'center', marginTop: spacing[2],
-    },
-    btnOff: { opacity: 0.3 },
-    btnText: { fontFamily: typography.sansSemiBold, fontSize: typography.base, color: c.ink, letterSpacing: 0.6 },
+    lockedText: { fontFamily: 'Inter Tight', fontSize: 16, color: c.fg3 },
   });
 
   async function finish() {
@@ -92,7 +56,6 @@ export default function OnboardingAddress() {
     setSaving(true);
     try {
       const user = auth().currentUser;
-
       const onboardingData = {
         name: params.name,
         car: { make: params.make, model: params.model, plate: params.plate, color: params.carColor },
@@ -133,86 +96,67 @@ export default function OnboardingAddress() {
       router.replace('/(customer)/(tabs)');
     } catch (err: any) {
       setSaving(false);
-      Alert.alert(
-        'Could not save profile',
-        err?.message ?? 'Please check your connection and try again.',
-      );
+      Alert.alert('Could not save profile', err?.message ?? 'Please check your connection and try again.');
     }
   }
 
   return (
-    <KeyboardAvoidingView
-      style={[s.root, { paddingTop: insets.top, paddingBottom: insets.bottom }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
-        {/* Back + progress */}
-        <View style={s.topRow}>
-          <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
-            <ChevronLeft size={16} color={c.fg} strokeWidth={1.5} />
-          </TouchableOpacity>
-          <View style={s.progress}>
-            <View style={s.dot} />
-            <View style={s.dot} />
-            <View style={[s.dot, s.dotActive]} />
-          </View>
-        </View>
+    <AuthScreenShell>
+      <View style={s.topRow}>
+        <BackButton />
+        <OnboardingProgress current={3} total={3} />
+      </View>
 
-        {/* Heading */}
-        <View style={s.headingArea}>
-          <Text style={s.step}>[STEP 03 OF 03]</Text>
-          <Text style={s.title}>Where do we{'\n'}come to you?</Text>
-          <Text style={s.sub}>Saved as your default pickup address. Change anytime.</Text>
-        </View>
+      <View style={{ gap: spacing[2] }}>
+        <Text style={ss.onboardingStep}>[STEP 03 OF 03]</Text>
+        <Text style={ss.onboardingTitle}>Where do we{'\n'}come to you?</Text>
+        <Text style={ss.subtitle}>Saved as your default pickup address. Change anytime.</Text>
+      </View>
 
-        {/* Address line 1 */}
-        <View style={s.fieldArea}>
-          <Text style={s.label}>FLAT / HOUSE / BUILDING</Text>
-          <TextInput
-            style={s.input}
-            value={line1}
-            onChangeText={setLine1}
-            placeholder="B-204, Kavi Nagar"
-            placeholderTextColor={c.fg4}
-            autoFocus
-            returnKeyType="next"
-          />
-        </View>
+      <View style={ss.fieldArea}>
+        <Text style={ss.fieldLabel}>FLAT / HOUSE / BUILDING</Text>
+        <TextInput
+          style={ss.formInput}
+          value={line1}
+          onChangeText={setLine1}
+          placeholder="B-204, Kavi Nagar"
+          placeholderTextColor={c.fg4}
+          autoFocus
+          returnKeyType="next"
+        />
+      </View>
 
-        {/* Area picker */}
-        <View style={s.fieldArea}>
-          <Text style={s.label}>AREA · GHAZIABAD NCR</Text>
-          <View style={s.areaGrid}>
-            {AREAS.map(a => (
-              <TouchableOpacity
-                key={a}
-                style={[s.areaChip, area === a && s.areaChipActive]}
-                onPress={() => setArea(a)}
-              >
-                <MapPin size={10} color={area === a ? c.ink : c.fg3} strokeWidth={1.5} />
-                <Text style={[s.areaChipText, area === a && s.areaChipTextActive]}>{a}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+      <View style={ss.fieldArea}>
+        <Text style={ss.fieldLabel}>AREA · GHAZIABAD NCR</Text>
+        <View style={s.areaGrid}>
+          {AREAS.map(a => (
+            <TouchableOpacity
+              key={a}
+              style={[s.areaChip, area === a && s.areaChipActive]}
+              onPress={() => setArea(a)}
+            >
+              <MapPin size={10} color={area === a ? c.ink : c.fg3} strokeWidth={1.5} />
+              <Text style={[s.areaChipText, area === a && s.areaChipTextActive]}>{a}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
+      </View>
 
-        {/* City (locked) */}
-        <View style={s.fieldArea}>
-          <Text style={s.label}>CITY</Text>
-          <View style={s.lockedInput}>
-            <Text style={s.lockedText}>{city}, Uttar Pradesh</Text>
-          </View>
+      <View style={ss.fieldArea}>
+        <Text style={ss.fieldLabel}>CITY</Text>
+        <View style={s.lockedInput}>
+          <Text style={s.lockedText}>{city}, Uttar Pradesh</Text>
         </View>
+      </View>
 
-        <TouchableOpacity
-          style={[s.btn, (!ready || saving) && s.btnOff]}
-          onPress={finish}
-          activeOpacity={0.8}
-          disabled={!ready || saving}
-        >
-          <Text style={s.btnText}>{saving ? 'SAVING...' : 'ALL DONE →'}</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      <TouchableOpacity
+        style={[ss.primaryBtn, (!ready || saving) && ss.primaryBtnOff]}
+        onPress={finish}
+        activeOpacity={0.8}
+        disabled={!ready || saving}
+      >
+        <Text style={ss.primaryBtnText}>{saving ? 'SAVING...' : 'ALL DONE →'}</Text>
+      </TouchableOpacity>
+    </AuthScreenShell>
   );
 }

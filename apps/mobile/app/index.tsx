@@ -6,7 +6,7 @@ import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { typography } from '@pc/tokens';
 import { useThemeColors } from '../theme';
-import PCMonogram from '../components/PCMonogram';
+import BrandLogo from '../components/BrandLogo';
 
 const KEY_ONBOARDING = '@pc/onboarding';
 const KEY_ROLE       = '@pc/role';
@@ -18,24 +18,13 @@ export default function Index() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 300,
-      useNativeDriver: false,
-    }).start();
+    Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: false }).start();
 
     if (Platform.OS === 'web') return;
 
     const unsubscribe = auth().onAuthStateChanged(async user => {
-      if (!user) {
-        router.replace('/(auth)/login');
-        return;
-      }
-
-      if (user.uid === DEMO_UID) {
-        router.replace('/(customer)/(tabs)');
-        return;
-      }
+      if (!user) { router.replace('/(auth)/login'); return; }
+      if (user.uid === DEMO_UID) { router.replace('/(customer)/(tabs)'); return; }
 
       try {
         const [cachedOnboarding, cachedRole] = await Promise.all([
@@ -48,11 +37,7 @@ export default function Index() {
           return;
         }
 
-        const snap = await firestore()
-          .collection('customers')
-          .doc(user.uid)
-          .get();
-
+        const snap = await firestore().collection('customers').doc(user.uid).get();
         if (Boolean(snap.exists)) {
           const data = snap.data()!;
           if (data.onboardingComplete === true) {
@@ -65,7 +50,6 @@ export default function Index() {
             return;
           }
         }
-
         router.replace('/(onboarding)/name');
       } catch {
         router.replace('/(onboarding)/name');
@@ -76,31 +60,18 @@ export default function Index() {
   }, []);
 
   function routeByRole(role: string) {
-    if (role === 'worker') {
-      router.replace('/(worker)/(tabs)');
-    } else {
-      router.replace('/(customer)/(tabs)');
-    }
+    router.replace(role === 'worker' ? '/(worker)/(tabs)' : '/(customer)/(tabs)');
   }
 
   const s = StyleSheet.create({
     root: { flex: 1, backgroundColor: c.ink, alignItems: 'center', justifyContent: 'center' },
-    monogramWrap: {
-      width: 32, height: 32, borderRadius: 8,
-      backgroundColor: c.sage,
-      alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-    },
-    wordmark: { fontFamily: typography.mono, fontSize: 9.5, letterSpacing: 1.2, color: c.fg },
     webNotice: { fontFamily: typography.sans, fontSize: 13, color: c.fg3, letterSpacing: 0.2 },
   });
 
   if (Platform.OS === 'web') {
     return (
       <View style={[s.root, { gap: 16 }]}>
-        <View style={s.monogramWrap}>
-          <PCMonogram size={32} />
-        </View>
-        <Text style={s.wordmark}>PERFECT CLEANERS</Text>
+        <BrandLogo size="sm" />
         <Text style={s.webNotice}>Download the iOS or Android app to continue.</Text>
       </View>
     );
@@ -108,11 +79,8 @@ export default function Index() {
 
   return (
     <View style={s.root}>
-      <Animated.View style={[{ alignItems: 'center', gap: 12 }, { opacity: fadeAnim }]}>
-        <View style={s.monogramWrap}>
-          <PCMonogram size={32} />
-        </View>
-        <Text style={s.wordmark}>PERFECT CLEANERS</Text>
+      <Animated.View style={{ alignItems: 'center', gap: 12, opacity: fadeAnim }}>
+        <BrandLogo size="sm" />
       </Animated.View>
     </View>
   );
