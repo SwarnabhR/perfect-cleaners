@@ -19,6 +19,7 @@
 
   --pc-line-warm: rgba(240,237,232,0.45);
   --pc-ink-overlay: rgba(12,11,9,0.97);
+  --pc-nav-bg-scrolled: rgba(14,13,11,0.78);
 
   --pc-sage:     #4A5E44;
   --pc-sage-hi:  #5B6F52;
@@ -101,6 +102,67 @@
 }
 
 /* ====================================================================
+   Light theme — applied when <html data-theme="light">
+   ==================================================================== */
+
+[data-theme="light"] {
+  /* Surfaces — warm bone/parchment stack */
+  --pc-ink:        #F5F2ED;
+  --pc-ink-raised: #EDE9E3;
+  --pc-card:       #E5E1DA;
+  --pc-card-hi:    #DEDAD2;
+
+  /* Borders */
+  --pc-line:        rgba(0,0,0,0.08);
+  --pc-line-strong: rgba(0,0,0,0.14);
+  --pc-line-faint:  rgba(0,0,0,0.04);
+
+  /* Foreground */
+  --pc-fg:     #0E0D0B;
+  --pc-fg-2:   #55524B;
+  --pc-fg-3:   #8A8780;
+  --pc-fg-4:   #B8B5AE;
+  --pc-fg-dim: rgba(14,13,11,0.45);
+
+  /* Contextual */
+  --pc-line-warm:       rgba(14,13,11,0.18);
+  --pc-ink-overlay:     rgba(245,242,237,0.97);
+  --pc-nav-bg-scrolled: rgba(245,242,237,0.84);
+
+  /* Primary CTA inverts — dark pill on cream bg */
+  --pc-warm:   #0E0D0B;
+  --pc-warm-2: #232220;
+
+  /* Shadows — natural drop shadows instead of inset glows */
+  --pc-shadow-card:      0 1px 0 rgba(255,255,255,0.55) inset, 0 0 0 1px rgba(0,0,0,0.06);
+  --pc-shadow-raised:    0 1px 3px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.06);
+  --pc-shadow-pop:       0 8px 32px -8px rgba(0,0,0,0.16), 0 0 0 1px rgba(0,0,0,0.07);
+  --pc-shadow-glow-sage: 0 0 0 1px rgba(74,94,68,0.25), 0 0 40px rgba(74,94,68,0.10);
+
+  color-scheme: light;
+}
+
+/* Fix hover states that use hardcoded dark rgba values */
+[data-theme="light"] .pc-hero-cta-primary:hover {
+  background: #232220;
+}
+[data-theme="light"] .pc-hero-cta-ghost:hover {
+  background: rgba(0,0,0,0.04);
+  border-color: rgba(14,13,11,0.25);
+}
+[data-theme="light"] .pc-nav-book-now:hover {
+  border-color: rgba(14,13,11,0.28);
+  background: rgba(14,13,11,0.05);
+}
+[data-theme="light"] .pc-input:focus {
+  border-color: rgba(0,0,0,0.28);
+}
+[data-theme="light"] ::selection {
+  background-color: rgba(74,94,68,0.2);
+  color: var(--pc-fg);
+}
+
+/* ====================================================================
    Responsive token overrides
    ==================================================================== */
 
@@ -155,7 +217,7 @@
 
 html {
   height: 100%;
-  color-scheme: dark;
+  color-scheme: dark;  /* overridden to light by [data-theme="light"] above */
   text-rendering: optimizeLegibility;
   hanging-punctuation: first last;
   scroll-behavior: smooth;

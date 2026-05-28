@@ -51,11 +51,11 @@ export default function Nav() {
           display: 'flex',
           alignItems: 'center',
           padding: '0 var(--pc-screen-pad-lg)',
-          background: scrolled ? 'rgba(14,13,11,0.78)' : 'transparent',
+          background: scrolled ? 'var(--pc-nav-bg-scrolled)' : 'transparent',
           backdropFilter: scrolled ? 'blur(18px)' : 'none',
           WebkitBackdropFilter: scrolled ? 'blur(18px)' : 'none',
           borderBottom: scrolled
-            ? '1px solid rgba(255,255,255,0.055)'
+            ? '1px solid var(--pc-line-faint)'
             : '1px solid transparent',
           transition: 'background 0.4s ease, border-color 0.4s ease, backdrop-filter 0.4s ease',
         }}
@@ -152,7 +152,7 @@ export default function Nav() {
               letterSpacing: '0.14em',
               textTransform: 'uppercase',
               color: 'var(--pc-warm)',
-              border: '1px solid rgba(240,237,232,0.22)',
+              border: '1px solid var(--pc-line-warm)',
               borderRadius: '999px',
               padding: 'var(--pc-space-2) var(--pc-space-5)',
               whiteSpace: 'nowrap',
@@ -251,7 +251,7 @@ export default function Nav() {
                     fontSize: 'clamp(30px, 7vw, 44px)',
                     letterSpacing: '-0.02em',
                     lineHeight: 1.15,
-                    color: active ? 'var(--pc-fg)' : 'rgba(240,237,232,0.18)',
+                    color: active ? 'var(--pc-fg)' : 'var(--pc-fg-4)',
                     padding: 'var(--pc-space-4) 0',
                     borderBottom: '1px solid rgba(255,255,255,0.05)',
                     transition: 'color 0.15s ease',

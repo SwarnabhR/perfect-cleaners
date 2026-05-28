@@ -41,6 +41,45 @@ export const colors = {
   statusDone:       '#6FAE6A',
 } as const;
 
+export const colorsLight = {
+  // Surfaces — warm bone/parchment, mirrors dark theme inverted
+  ink:        '#F5F2ED',
+  inkRaised:  '#EDE9E3',
+  card:       '#E5E1DA',
+  cardHi:     '#DEDAD2',
+
+  // Borders
+  line:       'rgba(0,0,0,0.08)',
+  lineStrong: 'rgba(0,0,0,0.14)',
+  lineFaint:  'rgba(0,0,0,0.04)',
+
+  // Foreground
+  fg:  '#0E0D0B',
+  fg2: '#55524B',
+  fg3: '#8A8780',
+  fg4: '#B8B5AE',
+
+  // Brand accents — sage/gold unchanged; primary CTA inverts to dark pill
+  sage:    '#4A5E44',
+  sageHi:  '#5B6F52',
+  sageLo:  '#3A4D36',
+  sageInk: '#E8EDE3',
+  warm:    '#0E0D0B',   // dark pill button on cream bg
+  warm2:   '#232220',
+  gold:    '#C9A961',
+
+  // Semantic (unchanged — saturated enough for both backgrounds)
+  success: '#6FAE6A',
+  warning: '#D9A441',
+  danger:  '#C9554E',
+  info:    '#6A8EAE',
+
+  statusAssigned:   '#6A8EAE',
+  statusEnroute:    '#D9A441',
+  statusInProgress: '#5B6F52',
+  statusDone:       '#6FAE6A',
+} as const;
+
 export const spacing = {
   0:  0,
   1:  4,

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import Icon from '@/components/ui/Icon';
+import { useTheme } from '@/components/ThemeProvider';
 
 const NAV = [
   { label: 'Dashboard',  href: '/admin/dashboard',     icon: 'layout-dashboard' },
@@ -18,6 +19,7 @@ const NAV = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { theme, toggle } = useTheme();
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--pc-bg)' }}>
@@ -101,6 +103,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
 
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              type="button"
+              onClick={toggle}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              style={{
+                width: 36, height: 36, borderRadius: 999,
+                background: 'var(--pc-card)', border: '1px solid var(--pc-line)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                transition: 'background var(--pc-dur-fast) var(--pc-ease)',
+              }}
+            >
+              <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={14} color="var(--pc-fg-3)" />
+            </button>
             <button type="button" style={{
               display: 'flex', alignItems: 'center', gap: 6,
               background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 999,
