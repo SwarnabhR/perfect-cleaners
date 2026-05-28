@@ -11,7 +11,7 @@ import auth from '@react-native-firebase/auth';
 import { typography, spacing, radii } from '@pc/tokens';
 import { useThemeColors } from '../../../theme';
 import { Group, Row } from '../../../components/RowGroup';
-import PCMonogram from '../../../components/PCMonogram';
+import TabTopBar from '../../../components/TabTopBar';
 
 interface StoredProfile {
   name: string;
@@ -20,13 +20,13 @@ interface StoredProfile {
 }
 
 const PREFERENCES = [
-  ['map-pin', 'Saved Addresses'],
-  ['bell', 'Notifications'],
-  ['credit-card', 'Payment Methods'],
-  ['users', 'Refer & Earn'],
-  ['help-circle', 'Help & Support'],
-  ['log-out', 'Sign Out'],
-];
+  ['map-pin',     'Saved Addresses'  ],
+  ['bell',        'Notifications'    ],
+  ['credit-card', 'Payment Methods'  ],
+  ['users',       'Refer & Earn'     ],
+  ['help-circle', 'Help & Support'   ],
+  ['log-out',     'Sign Out'         ],
+] as const;
 
 function prefIcon(key: string, color: string) {
   const p = { size: 16, color, strokeWidth: 1.5 } as const;
@@ -42,45 +42,10 @@ function prefIcon(key: string, color: string) {
 }
 
 export default function ProfileScreen() {
-  const insets = useSafeAreaInsets();
-  const router = useRouter();
-  const c = useThemeColors();
+  const insets  = useSafeAreaInsets();
+  const router  = useRouter();
+  const c       = useThemeColors();
   const [profile, setProfile] = useState<StoredProfile | null>(null);
-
-  const s = StyleSheet.create({
-    root: { flex: 1, backgroundColor: c.ink },
-    topBar: {
-      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-      paddingHorizontal: spacing[5], paddingBottom: spacing[3],
-    },
-    settingsBtn: {
-      width: 36, height: 36, borderRadius: radii.pill,
-      backgroundColor: c.card, borderWidth: 1, borderColor: c.line,
-      alignItems: 'center', justifyContent: 'center',
-    },
-    monogram: {
-      width: 32, height: 32, borderRadius: radii.sm,
-      backgroundColor: c.sage, alignItems: 'center', justifyContent: 'center',
-    },
-    sectionHead: { paddingHorizontal: spacing[5] },
-    pageTitle: {
-      fontFamily: typography.serif, fontSize: 32, color: c.fg, letterSpacing: -0.3,
-    },
-    userCard: {
-      flexDirection: 'row', alignItems: 'center', gap: 14,
-      marginHorizontal: spacing[5], marginTop: spacing[4],
-      backgroundColor: c.inkRaised, borderTopWidth: 1, borderBottomWidth: 1, borderColor: c.line,
-      padding: spacing[4],
-    },
-    avatar: {
-      width: 52, height: 52, borderRadius: 999, backgroundColor: c.sage,
-      alignItems: 'center', justifyContent: 'center',
-    },
-    avatarText: { fontFamily: typography.sansSemiBold, fontSize: 20, color: '#fff' },
-    userInfo: { flex: 1 },
-    userName: { fontFamily: typography.sansMedium, fontSize: 16, color: c.fg },
-    userPhone: { fontFamily: typography.sans, fontSize: 12, color: c.fg2 },
-  });
 
   useEffect(() => {
     AsyncStorage.getItem('@pc/onboarding').then(json => {
@@ -108,47 +73,43 @@ export default function ProfileScreen() {
   }
 
   const displayName = profile?.name ?? 'Your Name';
-  const initials = displayName
-    .split(' ')
-    .map(w => w[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
+  const initials = displayName.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
 
   const cars: [string, string, string][] = profile?.car
     ? [[`${profile.car.make} ${profile.car.model}`, profile.car.plate, profile.car.color]]
     : [['BMW 3 Series', 'DL 4C AB 1234', 'Mineral Grey']];
 
+  const SettingsBtn = (
+    <TouchableOpacity
+      style={[styles.settingsBtn, { backgroundColor: c.card, borderColor: c.line }]}
+      onPress={() => router.push('/(customer)/settings')}
+      activeOpacity={0.7}
+    >
+      <Settings size={15} color={c.fg} strokeWidth={1.5} />
+    </TouchableOpacity>
+  );
+
   return (
     <ScrollView
-      style={s.root}
+      style={{ flex: 1, backgroundColor: c.ink }}
       contentContainerStyle={{ paddingBottom: spacing[10] }}
       showsVerticalScrollIndicator={false}
     >
-      <View style={[s.topBar, { paddingTop: insets.top + 12 }]}>
-        <View style={s.monogram}>
-          <PCMonogram size={18} color={c.warm} />
-        </View>
-        <TouchableOpacity
-          style={s.settingsBtn}
-          onPress={() => router.push('/(customer)/settings')}
-          activeOpacity={0.7}
-        >
-          <Settings size={15} color={c.fg} strokeWidth={1.5} />
-        </TouchableOpacity>
+      <View style={{ paddingTop: insets.top }}>
+        <TabTopBar right={SettingsBtn} />
       </View>
 
-      <View style={s.sectionHead}>
-        <Text style={s.pageTitle}>Your account.</Text>
+      <View style={styles.sectionHead}>
+        <Text style={[styles.pageTitle, { color: c.fg }]}>Your account.</Text>
       </View>
 
-      <View style={s.userCard}>
-        <View style={s.avatar}>
-          <Text style={s.avatarText}>{initials}</Text>
+      <View style={[styles.userCard, { backgroundColor: c.inkRaised, borderColor: c.line }]}>
+        <View style={[styles.avatar, { backgroundColor: c.sage }]}>
+          <Text style={styles.avatarText}>{initials}</Text>
         </View>
-        <View style={s.userInfo}>
-          <Text style={s.userName}>{displayName}</Text>
-          <Text style={s.userPhone}>{profile?.phone ?? '+91 ··········'}</Text>
+        <View style={styles.userInfo}>
+          <Text style={[styles.userName, { color: c.fg }]}>{displayName}</Text>
+          <Text style={[styles.userPhone, { color: c.fg2 }]}>{profile?.phone ?? '+91 ··········'}</Text>
         </View>
         <ChevronRight size={16} color={c.fg3} strokeWidth={1.5} />
       </View>
@@ -179,12 +140,12 @@ export default function ProfileScreen() {
             icon={prefIcon(icon, c.fg2)}
             iconBg={c.cardHi}
             onPress={
-              label === 'Sign Out'           ? handleSignOut
-              : label === 'Saved Addresses'  ? () => router.push('/(customer)/addresses')
-              : label === 'Notifications'    ? () => router.push('/(customer)/notifications')
-              : label === 'Payment Methods'  ? () => router.push('/(customer)/payment-methods')
-              : label === 'Refer & Earn'     ? () => router.push('/(customer)/referral')
-              : label === 'Help & Support'   ? () => router.push('/(customer)/help')
+              label === 'Sign Out'          ? handleSignOut
+              : label === 'Saved Addresses' ? () => router.push('/(customer)/addresses')
+              : label === 'Notifications'   ? () => router.push('/(customer)/notifications')
+              : label === 'Payment Methods' ? () => router.push('/(customer)/payment-methods')
+              : label === 'Refer & Earn'    ? () => router.push('/(customer)/referral')
+              : label === 'Help & Support'  ? () => router.push('/(customer)/help')
               : undefined
             }
             destructive={label === 'Sign Out'}
@@ -195,3 +156,15 @@ export default function ProfileScreen() {
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  settingsBtn: { width: 36, height: 36, borderRadius: radii.pill, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  sectionHead: { paddingHorizontal: spacing[5] },
+  pageTitle:   { fontFamily: typography.serif, fontSize: 32, letterSpacing: -0.3 },
+  userCard:    { flexDirection: 'row', alignItems: 'center', gap: 14, marginHorizontal: spacing[5], marginTop: spacing[4], borderTopWidth: 1, borderBottomWidth: 1, padding: spacing[4] },
+  avatar:      { width: 52, height: 52, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  avatarText:  { fontFamily: typography.sansSemiBold, fontSize: 20, color: '#fff' },
+  userInfo:    { flex: 1 },
+  userName:    { fontFamily: typography.sansMedium, fontSize: 16 },
+  userPhone:   { fontFamily: typography.sans, fontSize: 12 },
+});
