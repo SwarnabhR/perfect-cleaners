@@ -1,125 +1,112 @@
 import { ScrollView, View, Text, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { IndianRupee } from 'lucide-react-native';
+import { TrendingUp } from 'lucide-react-native';
 import { typography, spacing, radii } from '@pc/tokens';
 import { useThemeColors } from '../../../theme';
 import { useSharedStyles } from '../../../theme/sharedStyles';
+import TabTopBar from '../../../components/TabTopBar';
 import { Group, Row } from '../../../components/RowGroup';
 
-const DAYS: [string, number][] = [
-  ['MON', 1800], ['TUE', 2200], ['WED', 2600], ['THU', 1400],
-  ['FRI', 3100], ['SAT', 3800], ['SUN', 2140],
+const WEEKLY: { day: string; amt: number; jobs: number }[] = [
+  { day: 'Mon', amt: 1400, jobs: 4 },
+  { day: 'Tue', amt: 2100, jobs: 6 },
+  { day: 'Wed', amt: 1750, jobs: 5 },
+  { day: 'Thu', amt: 980,  jobs: 3 },
+  { day: 'Fri', amt: 2400, jobs: 7 },
+  { day: 'Sat', amt: 3200, jobs: 9 },
+  { day: 'Sun', amt: 700,  jobs: 2 },
 ];
 
-const BREAKDOWN = [
-  ['Exterior Wash',    '9 JOBS', '₹4,500'],
-  ['Premium Wash',     '7 JOBS', '₹8,400'],
-  ['Interior Detail',  '5 JOBS', '₹2,500'],
-  ['Coating',          '2 JOBS', '₹1,640'],
-];
+const TOTAL     = WEEKLY.reduce((s, d) => s + d.amt,  0);
+const TOTAL_JOBS= WEEKLY.reduce((s, d) => s + d.jobs, 0);
+const BAR_MAX   = Math.max(...WEEKLY.map(d => d.amt));
 
-const maxVal = Math.max(...DAYS.map(d => d[1]));
-const total  = DAYS.reduce((s, d) => s + d[1], 0);
-
-export default function EarningsScreen() {
+export default function EarningsTab() {
   const insets = useSafeAreaInsets();
-  const c = useThemeColors();
+  const c  = useThemeColors();
   const ss = useSharedStyles();
-
-  const s = StyleSheet.create({
-    root:       { flex: 1, backgroundColor: c.ink },
-    topSection: { paddingHorizontal: spacing[5], paddingBottom: spacing[4], gap: 4 },
-    total: { fontFamily: typography.serif, fontSize: 30, color: c.fg, letterSpacing: -0.3 },
-    sub:   { fontFamily: typography.sans,  fontSize: 13, color: c.fg2 },
-
-    chartCard: {
-      marginHorizontal: spacing[5],
-      backgroundColor: c.card, borderWidth: 1, borderColor: c.line,
-      borderRadius: radii.md, padding: spacing[4], marginBottom: spacing[2],
-    },
-    chart: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, height: 140, marginTop: spacing[3] },
-    chartCol:        { flex: 1, alignItems: 'center', gap: 8 },
-    chartBarWrapper: { flex: 1, width: '100%', justifyContent: 'flex-end' },
-    chartBar:        { width: '100%', borderRadius: 4 },
-    chartLabel:      { fontFamily: typography.mono, fontSize: 9, color: c.fg3 },
-    chartLabelToday: { color: c.fg },
-  });
 
   return (
     <ScrollView
-      style={s.root}
+      style={ss.screen}
       contentContainerStyle={{ paddingBottom: spacing[10] }}
       showsVerticalScrollIndicator={false}
     >
-      <View style={[s.topSection, { paddingTop: insets.top + 12 }]}>
-        <Text style={ss.eyebrow}>[EARNINGS]</Text>
-        <Text style={s.total}>₹{total.toLocaleString('en-IN')}</Text>
-        <Text style={s.sub}>This week · 23 jobs completed</Text>
+      <View style={{ paddingTop: insets.top }}>
+        <TabTopBar />
       </View>
 
-      {/* Chart */}
-      <View style={s.chartCard}>
-        <Text style={ss.eyebrow}>[7-DAY EARNINGS]</Text>
-        <View style={s.chart}>
-          {DAYS.map(([day, val]) => {
-            const h = (val / maxVal) * 120;
-            const isToday = day === 'SUN';
-            return (
-              <View key={day} style={s.chartCol}>
-                <View style={s.chartBarWrapper}>
-                  <View style={[
-                    s.chartBar,
-                    { height: h, backgroundColor: isToday ? c.sage : c.lineStrong },
-                    !isToday && { borderWidth: 1, borderColor: c.line },
-                  ]} />
-                </View>
-                <Text style={[s.chartLabel, isToday && s.chartLabelToday]}>{day}</Text>
-              </View>
-            );
-          })}
+      <View style={s.titleRow}>
+        <Text style={ss.eyebrow}>[THIS WEEK] · 22–28 MAY</Text>
+        <Text style={[ss.pageTitle, { color: c.fg }]}>Earnings.</Text>
+      </View>
+
+      {/* Summary pills */}
+      <View style={s.pills}>
+        <View style={[s.pill, { backgroundColor: c.card, borderColor: c.line }]}>
+          <Text style={[s.pillLabel, { color: c.fg3 }]}>Total earned</Text>
+          <Text style={[s.pillValue, { color: c.fg }]}>₹{TOTAL.toLocaleString('en-IN')}</Text>
+        </View>
+        <View style={[s.pill, { backgroundColor: c.card, borderColor: c.line }]}>
+          <Text style={[s.pillLabel, { color: c.fg3 }]}>Jobs done</Text>
+          <Text style={[s.pillValue, { color: c.fg }]}>{TOTAL_JOBS}</Text>
+        </View>
+        <View style={[s.pill, { backgroundColor: c.card, borderColor: c.line }]}>
+          <Text style={[s.pillLabel, { color: c.fg3 }]}>Avg/job</Text>
+          <Text style={[s.pillValue, { color: c.fg }]}>₹{Math.round(TOTAL / TOTAL_JOBS)}</Text>
         </View>
       </View>
 
-      {/* Breakdown */}
-      <Group header="BREAKDOWN BY SERVICE">
-        {BREAKDOWN.map(([name, count, amt], i) => (
-          <Row
-            key={name}
-            icon={<IndianRupee size={15} color="#fff" />}
-            iconBg={c.cardHi}
-            title={name}
-            sub={count}
-            value={amt}
-            onPress={() => {}}
-            isLast={i === BREAKDOWN.length - 1}
-          />
-        ))}
+      {/* Bar chart */}
+      <View style={s.chartSection}>
+        <Text style={ss.eyebrow}>[DAILY BREAKDOWN]</Text>
+        <View style={[s.chartCard, { backgroundColor: c.card, borderColor: c.line }]}>
+          <View style={s.bars}>
+            {WEEKLY.map(d => {
+              const h = Math.round((d.amt / BAR_MAX) * 100);
+              return (
+                <View key={d.day} style={s.barCol}>
+                  <Text style={[s.barAmt, { color: c.fg2 }]}>₹{(d.amt / 1000).toFixed(1)}k</Text>
+                  <View style={[s.barFill, { height: h, backgroundColor: c.sage }]} />
+                  <Text style={[s.barDay, { color: c.fg3 }]}>{d.day}</Text>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      </View>
+
+      {/* Payout row */}
+      <Group header="Payout">
+        <Row title="Next payout"   value="₹12,530" sub="Scheduled Mon, 2 Jun" />
+        <Row title="Bank account"  value="HDFC ···· 7821" />
+        <Row title="UPI ID"        value="rahul@upi" isLast />
       </Group>
 
-      {/* Transactions */}
-      <View style={{ marginTop: 24 }}>
-        <Group header="RECENT TRANSACTIONS">
-          {[
-            { id: 't1', title: 'Payout to HDFC Bank',     sub: 'Completed · 12:45 PM', amt: '-₹4,200', isDebit: true  },
-            { id: 't2', title: 'Earnings for PC-2052',    sub: 'Exterior Wash',         amt: '+₹800',   isDebit: false },
-            { id: 't3', title: 'Earnings for PC-2051',    sub: 'Interior Detailing',    amt: '+₹1,200', isDebit: false },
-            { id: 't4', title: 'Customer Tip',            sub: 'Job PC-2049',           amt: '+₹100',   isDebit: false },
-          ].map((tx, i, arr) => (
-            <Row
-              key={tx.id}
-              title={tx.title}
-              sub={tx.sub}
-              value={
-                <Text style={{ fontFamily: typography.sansSemiBold, fontSize: 14, color: tx.isDebit ? c.fg : c.success }}>
-                  {tx.amt}
-                </Text>
-              }
-              onPress={() => {}}
-              isLast={i === arr.length - 1}
-            />
-          ))}
-        </Group>
-      </View>
+      <Group header="Incentives">
+        <Row
+          icon={<TrendingUp size={14} color={c.sageHi} strokeWidth={1.5} />}
+          title="Top Performer Bonus"
+          sub="Complete 10 jobs this week for ₹500 extra"
+          value={<Text style={{ fontFamily: typography.mono, fontSize: 10, color: c.sageHi }}>7/10</Text>}
+          isLast
+        />
+      </Group>
     </ScrollView>
   );
 }
+
+const s = StyleSheet.create({
+  titleRow:     { paddingHorizontal: spacing[5], paddingBottom: spacing[3], gap: spacing[1] },
+  pills:        { flexDirection: 'row', paddingHorizontal: spacing[5], gap: spacing[2], marginBottom: spacing[1] },
+  pill:         { flex: 1, borderWidth: 1, borderRadius: radii.md, padding: spacing[3], gap: 4 },
+  pillLabel:    { fontFamily: typography.mono, fontSize: 9.5, letterSpacing: 0.6 },
+  pillValue:    { fontFamily: typography.serif, fontSize: 22, letterSpacing: -0.3 },
+  chartSection: { paddingHorizontal: spacing[5], gap: spacing[2], marginBottom: spacing[1] },
+  chartCard:    { borderWidth: 1, borderRadius: radii.md, padding: spacing[4] },
+  bars:         { flexDirection: 'row', alignItems: 'flex-end', gap: 6, height: 120 },
+  barCol:       { flex: 1, alignItems: 'center', gap: 4 },
+  barAmt:       { fontFamily: typography.mono, fontSize: 8, letterSpacing: 0.3 },
+  barFill:      { width: '100%', borderRadius: radii.xs, minHeight: 4 },
+  barDay:       { fontFamily: typography.mono, fontSize: 9.5, letterSpacing: 0.6 },
+});
