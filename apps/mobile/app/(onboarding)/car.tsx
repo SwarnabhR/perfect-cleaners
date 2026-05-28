@@ -1,76 +1,49 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Check } from 'lucide-react-native';
-import { spacing, radii } from '@pc/tokens';
+import { spacing, radii, typography } from '@pc/tokens';
 import { useThemeColors } from '../../theme';
 import { useSharedStyles } from '../../theme/sharedStyles';
 import AuthScreenShell from '../../components/AuthScreenShell';
-import BackButton from '../../components/BackButton';
+import BrandLogo from '../../components/BrandLogo';
 import OnboardingProgress from '../../components/OnboardingProgress';
 
-const MAKES = ['Maruti Suzuki', 'Hyundai', 'Tata', 'Honda', 'Toyota', 'BMW', 'Mercedes', 'Audi', 'Mahindra', 'Kia'];
-const COLORS = [
-  { label: 'White', hex: '#F4F4F2' },
-  { label: 'Silver', hex: '#B8B8B8' },
-  { label: 'Grey', hex: '#7A7A7A' },
-  { label: 'Black', hex: '#1A1A1A' },
-  { label: 'Blue', hex: '#2560B0' },
-  { label: 'Red', hex: '#C0392B' },
-  { label: 'Brown', hex: '#7D4E2A' },
-  { label: 'Other', hex: '#888888' },
-];
+const CAR_COLORS = ['White', 'Black', 'Silver', 'Grey', 'Blue', 'Red', 'Other'] as const;
 
 export default function OnboardingCar() {
-  const { name } = useLocalSearchParams<{ name: string }>();
-  const [make, setMake] = useState('');
+  const { name } = useLocalSearchParams<{ name?: string }>();
+  const [make,  setMake]  = useState('');
   const [model, setModel] = useState('');
   const [plate, setPlate] = useState('');
-  const [carColor, setCarColor] = useState('');
+  const [color, setColor] = useState('');
   const router = useRouter();
-  const c = useThemeColors();
+  const c  = useThemeColors();
   const ss = useSharedStyles();
-  const ready = make.trim().length > 0 && model.trim().length > 0;
 
-  const s = StyleSheet.create({
-    topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-    chipRow: { flexDirection: 'row', gap: 8, paddingVertical: 2 },
-    chip: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: radii.pill, borderWidth: 1, borderColor: c.line },
-    chipActive: { backgroundColor: c.warm, borderColor: 'transparent' },
-    chipText: { fontFamily: 'Inter Tight', fontSize: 12, color: c.fg2 },
-    chipTextActive: { color: c.ink, fontFamily: 'Inter Tight Medium' },
-    colorRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
-    colorSwatch: {
-      width: 36, height: 36, borderRadius: 999,
-      borderWidth: 2, borderColor: 'transparent',
-      alignItems: 'center', justifyContent: 'center',
-    },
-    colorSwatchActive: { borderColor: c.lineStrong },
-    colorLabel: { fontFamily: 'JetBrains Mono', fontSize: 10, color: c.fg2, letterSpacing: 0.6 },
-  });
+  const ready = make.trim().length > 0 && model.trim().length > 0;
 
   return (
     <AuthScreenShell>
-      <View style={s.topRow}>
-        <BackButton />
-        <OnboardingProgress current={2} total={3} />
-      </View>
+      <OnboardingProgress current={2} total={3} />
+      <BrandLogo size="sm" />
 
-      <View style={{ gap: spacing[2] }}>
+      <View style={s.heading}>
         <Text style={ss.onboardingStep}>[STEP 02 OF 03]</Text>
         <Text style={ss.onboardingTitle}>Tell us about{'\n'}your car.</Text>
-        <Text style={ss.subtitle}>We tailor the service to your vehicle.</Text>
+        <Text style={ss.subtitle}>So we know what we’re working with.</Text>
       </View>
 
       <View style={ss.fieldArea}>
         <Text style={ss.fieldLabel}>MAKE</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chipRow}>
-          {MAKES.map(m => (
-            <TouchableOpacity key={m} style={[s.chip, make === m && s.chipActive]} onPress={() => setMake(m)}>
-              <Text style={[s.chipText, make === m && s.chipTextActive]}>{m}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        <TextInput
+          style={ss.formInput}
+          value={make}
+          onChangeText={setMake}
+          placeholder="Hyundai"
+          placeholderTextColor={c.fg4}
+          autoCapitalize="words"
+          returnKeyType="next"
+        />
       </View>
 
       <View style={ss.fieldArea}>
@@ -79,7 +52,7 @@ export default function OnboardingCar() {
           style={ss.formInput}
           value={model}
           onChangeText={setModel}
-          placeholder="City, Creta, Nexon..."
+          placeholder="Creta"
           placeholderTextColor={c.fg4}
           autoCapitalize="words"
           returnKeyType="next"
@@ -87,7 +60,7 @@ export default function OnboardingCar() {
       </View>
 
       <View style={ss.fieldArea}>
-        <Text style={ss.fieldLabel}>REGISTRATION (OPTIONAL)</Text>
+        <Text style={ss.fieldLabel}>NUMBER PLATE <Text style={[s.optional, { color: c.fg3 }]}>(optional)</Text></Text>
         <TextInput
           style={ss.formInput}
           value={plate}
@@ -95,32 +68,42 @@ export default function OnboardingCar() {
           placeholder="DL 4C AB 1234"
           placeholderTextColor={c.fg4}
           autoCapitalize="characters"
-          returnKeyType="done"
+          returnKeyType="next"
         />
       </View>
 
       <View style={ss.fieldArea}>
-        <Text style={ss.fieldLabel}>COLOUR</Text>
+        <Text style={ss.fieldLabel}>COLOUR <Text style={[s.optional, { color: c.fg3 }]}>(optional)</Text></Text>
         <View style={s.colorRow}>
-          {COLORS.map(col => (
-            <TouchableOpacity
-              key={col.label}
-              style={[s.colorSwatch, { backgroundColor: col.hex }, carColor === col.label && s.colorSwatchActive]}
-              onPress={() => setCarColor(col.label)}
-              activeOpacity={0.8}
-            >
-              {carColor === col.label && (
-                <Check size={12} color={col.label === 'White' || col.label === 'Silver' ? '#000' : '#fff'} strokeWidth={2.5} />
-              )}
-            </TouchableOpacity>
-          ))}
+          {CAR_COLORS.map(col => {
+            const active = color === col;
+            return (
+              <TouchableOpacity
+                key={col}
+                style={[
+                  s.colorChip,
+                  { borderColor: active ? c.warm : c.line,
+                    backgroundColor: active ? c.cardHi : 'transparent' },
+                ]}
+                onPress={() => setColor(col)}
+                activeOpacity={0.7}
+              >
+                <Text style={[s.colorChipText, { color: active ? c.warm : c.fg2 }]}>{col}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
-        {carColor ? <Text style={s.colorLabel}>{carColor}</Text> : null}
       </View>
 
       <TouchableOpacity
         style={[ss.primaryBtn, !ready && ss.primaryBtnOff]}
-        onPress={() => ready && router.push({ pathname: '/(onboarding)/address', params: { name, make, model, plate, carColor } })}
+        onPress={() =>
+          ready &&
+          router.push({
+            pathname: '/(onboarding)/address',
+            params: { name, make, model, plate, color },
+          })
+        }
         activeOpacity={0.8}
         disabled={!ready}
       >
@@ -129,3 +112,12 @@ export default function OnboardingCar() {
     </AuthScreenShell>
   );
 }
+
+// ─── Module-level StyleSheet ─────────────────────────────────────────────────
+const s = StyleSheet.create({
+  heading:       { gap: spacing[2] },
+  optional:      { fontFamily: typography.sans, fontSize: typography.xs, fontWeight: '400' },
+  colorRow:      { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2], marginTop: spacing[1] },
+  colorChip:     { borderWidth: 1, borderRadius: radii.pill, paddingVertical: 7, paddingHorizontal: 14 },
+  colorChipText: { fontFamily: typography.sansMedium, fontSize: typography.sm },
+});
