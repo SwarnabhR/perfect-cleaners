@@ -10,7 +10,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void 
       style={{
         width: 44, height: 24, borderRadius: 999, cursor: 'pointer',
         background: checked ? 'var(--pc-sage)' : 'var(--pc-card-hi)',
-        position: 'relative', cursor: 'pointer', transition: 'background 0.2s',
+        position: 'relative', transition: 'background 0.2s',
         border: `2px solid ${checked ? 'transparent' : 'var(--pc-line)'}`
       }}>
       <div style={{
