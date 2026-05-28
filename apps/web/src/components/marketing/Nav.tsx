@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Icon from '@/components/ui/Icon';
 import Image from 'next/image';
+import { useTheme } from '@/components/ThemeProvider';
 
 const NAV_LINKS = [
   { label: 'Services', href: '/services' },
@@ -19,6 +20,7 @@ export default function Nav() {
   const pathname  = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const { theme, toggle } = useTheme();
 
   useEffect(() => {
     function onScroll() { setScrolled(window.scrollY > 40); }
@@ -162,6 +164,26 @@ export default function Nav() {
           >
             Book Now
           </Link>
+
+          {/* Theme toggle — desktop */}
+          <button
+            type="button"
+            onClick={toggle}
+            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            className="pc-nav-desktop"
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 32, height: 32,
+              borderRadius: '50%',
+              border: '1px solid var(--pc-line-strong)',
+              background: 'transparent',
+              color: 'var(--pc-fg-3)',
+              cursor: 'pointer',
+              transition: 'border-color 0.18s ease, color 0.18s ease',
+            }}
+          >
+            <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={14} color="currentColor" strokeWidth={1.5} />
+          </button>
 
           {/* Account icon — desktop */}
           <Link
