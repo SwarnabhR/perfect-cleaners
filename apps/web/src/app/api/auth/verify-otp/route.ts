@@ -14,11 +14,11 @@ export async function POST(req: NextRequest) {
       'https://control.msg91.com/api/v5/widget/verifyAccessToken',
       {
         method:  'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          authkey: process.env.MSG91_AUTH_KEY!,
-        },
-        body: JSON.stringify({ 'access-token': msg91Token }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          authkey:        process.env.MSG91_AUTH_KEY!,
+          'access-token': msg91Token,
+        }),
       },
     );
     const verifyData = await verifyRes.json();
