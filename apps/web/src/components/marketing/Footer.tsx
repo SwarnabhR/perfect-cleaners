@@ -8,7 +8,7 @@ import styles from './Footer.module.css';
 
 const QUICK_LINKS_HREFS  = ['/services', '/services', '/services', '/services', '/terms', '/privacy'];
 const OFFICIAL_HREFS     = [undefined, 'tel:+919876543210', undefined] as (string | undefined)[];
-const BOOKING_HREFS      = ['/book', '/gallery', '/membership'];
+const BOOKING_HREFS      = ['/book', '/plans', '/membership'];
 
 const SOCIAL_LINKS = [
   { icon: 'camera',  href: 'https://instagram.com', ariaLabel: 'Instagram' },

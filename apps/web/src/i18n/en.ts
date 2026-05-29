@@ -2,7 +2,6 @@ const en = {
   nav: {
     services:     'Services',
     plans:        'Plans',
-    gallery:      'Gallery',
     about:        'About',
     contact:      'Contact',
     home:         'Home',
@@ -58,7 +57,7 @@ const en = {
     bookingLabel:     'BOOKING',
     quickLinks:       ['Services', 'Exterior Wash', 'Interior Detailing', 'Painting & Coating', 'Terms of Service', 'Privacy Policy'],
     official:         ['Ghaziabad, Delhi NCR', '+91 98765 43210', '09:00 – 21:00 IST'],
-    booking:          ['Book a Service', 'Our Gallery', 'Special Promo'],
+    booking:          ['Book a Service', 'Our Plans', 'Special Promo'],
   },
   common: {
     langEn: 'EN',

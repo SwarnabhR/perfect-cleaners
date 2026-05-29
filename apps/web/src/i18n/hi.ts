@@ -4,7 +4,6 @@ const hi: Translations = {
   nav: {
     services:     'सेवाएं',
     plans:        'प्लान',
-    gallery:      'गैलरी',
     about:        'हमारे बारे में',
     contact:      'संपर्क',
     home:         'होम',
