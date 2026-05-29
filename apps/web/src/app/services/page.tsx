@@ -7,7 +7,7 @@ import CTASection from '@/components/marketing/CTASection';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Services | Perfect Cleaners',
+  title: 'Services',
   description: 'Premium car wash, interior detailing, and ceramic coating services.',
 };
 

@@ -4,7 +4,7 @@ import PlansSection from '@/components/plans/PlansSection';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Plans | Perfect Cleaners',
+  title: 'Plans',
   description:
     'Weekly, monthly, or annual subscriptions for premium car care. Choose your cadence — cancel or change anytime.',
 };

@@ -6,7 +6,7 @@ import ContactForm from './ContactForm';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Contact Us | Perfect Cleaners',
+  title: 'Contact Us',
   description: 'Get in touch for questions, custom quotes, or partnerships.',
 };
 

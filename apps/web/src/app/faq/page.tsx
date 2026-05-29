@@ -6,7 +6,7 @@ import FaqAccordion from '@/components/marketing/FaqAccordion';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'FAQ | Perfect Cleaners',
+  title: 'FAQ',
   description: 'Common questions about our services, process, and bookings.',
 };
 

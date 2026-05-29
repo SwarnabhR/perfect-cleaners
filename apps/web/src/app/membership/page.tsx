@@ -9,7 +9,7 @@ import Eyebrow from '@/components/ui/Eyebrow';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Membership | Perfect Cleaners',
+  title: 'Membership',
   description: 'Join our exclusive maintenance club for regular, discounted details.',
 };
 

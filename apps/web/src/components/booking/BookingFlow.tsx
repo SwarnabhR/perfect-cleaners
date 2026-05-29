@@ -394,7 +394,7 @@ export default function BookingFlow() {
       setResult({ bookingRef: res.bookingRef });
     } catch (err) {
       console.error('[BookingFlow] submitBooking error:', err);
-      setSubmitError('Something went wrong. Please try again or call us at +91 98765 43210.');
+      setSubmitError('Something went wrong. Please try again or call +91 98765 43210.');
     } finally {
       setIsSubmitting(false);
     }

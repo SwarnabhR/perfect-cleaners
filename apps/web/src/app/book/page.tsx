@@ -5,7 +5,7 @@ import BookingFlow from '@/components/booking/BookingFlow';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Book a Service | Perfect Cleaners',
+  title: 'Book a Service',
   description: 'Schedule your premium car wash and detailing service online.',
 };
 
