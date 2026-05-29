@@ -21,6 +21,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # From repo root — runs all apps via Turbo
 npm run dev          # start all dev servers in parallel
 npm run build        # production builds for all apps
+npm run lint         # run lint tasks across all workspaces
 npm run typecheck    # tsc --noEmit across all packages
 
 # Individual apps
@@ -60,6 +61,7 @@ Expo Router file-based routing. All screens live under `apps/mobile/app/`.
 ```
 app/
   _layout.tsx          ← root: GestureHandlerRootView, SafeAreaProvider, font loading, StatusBar
+  +html.tsx            ← Expo web HTML wrapper
   index.tsx            ← redirects to /(auth)/login
   (auth)/
     _layout.tsx        ← Stack, no header
@@ -104,17 +106,25 @@ app/
     job-detail.tsx     ← step-through job execution + checklist + photo capture
     photo-capture.tsx
     otp-complete.tsx
+    notifications.tsx  ← NEW — worker notification inbox
+    settings.tsx       ← NEW — worker preferences and app controls
 ```
 
-**Firebase Phone Auth note:** `signInWithPhoneNumber` from the Firebase JS SDK requires a DOM-based `RecaptchaVerifier` and does not work in React Native out of the box. A demo bypass is wired in: phone `0000000000` → OTP `000000` routes directly to the customer home. Real phone auth requires either the Firebase REST API or switching to `@react-native-firebase/auth` (bare/prebuild workflow).
+**Firebase Auth note:** Mobile now uses `@react-native-firebase/auth` (plus `@react-native-firebase/app`) and is no longer blocked by the Firebase JS SDK `RecaptchaVerifier` limitation in React Native. Keep web auth and shared Firebase utilities aligned with `packages/firebase` where possible.
 
 ## Mobile Shared Components (`apps/mobile/components/`)
 
 | Component | Purpose |
 |---|---|
+| `AuthScreenShell.tsx` | Shared auth-screen wrapper (layout + background treatment) |
+| `BackButton.tsx` | Reusable back-navigation button |
+| `BrandLogo.tsx` | Brand lockup wrapper for mobile screens |
+| `CreditCard.tsx` | Card visual used in payment methods surfaces |
 | `HapticButton.tsx` | Touchable wrapper that fires `expo-haptics` on press |
+| `OnboardingProgress.tsx` | Step indicator for onboarding flow |
 | `PCMonogram.tsx` | Inline SVG stacked-P monogram (replaces the static asset for RN) |
 | `RowGroup.tsx` | Grouped list-row layout primitive (settings/profile lists) |
+| `TabTopBar.tsx` | Shared top bar used on tab-driven screens |
 
 ## Mobile Hooks (`apps/mobile/hooks/`)
 
@@ -137,6 +147,7 @@ Sidebar-nav layout (`layout.tsx`) with these routes:
 | `/services-mgmt` | `services-mgmt/page.tsx` | Service catalogue management |
 | `/promotions` | `promotions/page.tsx` | Promo code CRUD |
 | `/analytics` | `analytics/page.tsx` | Revenue charts, job mix, top services |
+| `/login` | `login/page.tsx` | Admin login entry screen |
 | `/settings` | `settings/page.tsx` | Operator-level settings |
 
 Web UI primitives live in `apps/web/src/components/ui/`:
@@ -146,7 +157,7 @@ Web UI primitives live in `apps/web/src/components/ui/`:
 | `Avatar.tsx` | Initials-based avatar, used in sidebar and tables |
 | `Button.tsx` + `Button.module.css` | Primary/ghost variants with CSS modules |
 | `CarImage.tsx` | SVG car silhouettes keyed by `VehicleType` |
-| `Card.tsx` | Surface card wrapper with optional interactive hover state |
+| `Card.tsx` + `Card.module.css` | Surface card wrapper with optional interactive hover state |
 | `Eyebrow.tsx` | Mono uppercase label |
 | `Icon.tsx` | Inline Lucide icon renderer (name → SVG path map) |
 | `Pill.tsx` | Compact label pill |
