@@ -57,7 +57,7 @@ const en = {
     quickLinksLabel:  'QUICK LINKS',
     officialLabel:    'OFFICIAL',
     bookingLabel:     'BOOKING',
-    quickLinks:       ['Services', 'Exterior Wash', 'Interior Detailing', 'Painting & Coating'],
+    quickLinks:       ['Services', 'Exterior Wash', 'Interior Detailing', 'Painting & Coating', 'Terms of Service', 'Privacy Policy'],
     official:         ['Ghaziabad, Delhi NCR', '+91 98765 43210', '09:00 – 21:00 IST'],
     booking:          ['Book a Service', 'Our Gallery', 'Special Promo'],
   },

@@ -91,18 +91,20 @@ interface FieldErrors {
   address?: string;
   pincode?: string;
   model?:   string;
+  plate?:   string;
   name?:    string;
   phone?:   string;
 }
 
 function validate(fields: {
   address: string; pincode: string;
-  model: string; name: string; phone: string;
+  model: string; plate: string; name: string; phone: string;
 }): FieldErrors {
   const e: FieldErrors = {};
   if (!fields.address.trim())                                    e.address = 'Address is required.';
   if (!/^\d{6}$/.test(fields.pincode))                         e.pincode = 'Enter a valid 6-digit pincode.';
   if (!fields.model.trim())                                      e.model   = 'Vehicle model is required.';
+  if (fields.plate.replace(/\s/g, '').length < 5)              e.plate   = 'Enter a valid number plate.';
   if (!fields.name.trim())                                       e.name    = 'Name is required.';
   if (!/^[6-9]\d{9}$/.test(fields.phone.replace(/\D/g, '')))  e.phone   = 'Enter a valid 10-digit mobile number.';
   return e;
@@ -328,9 +330,11 @@ export default function BookingFlow() {
   const [pincode, setPincode] = useState('');
   const [brand,   setBrand]   = useState(BRANDS[4]);
   const [model,   setModel]   = useState('');
+  const [plate,   setPlate]   = useState('');
 
   const [name,  setName]  = useState('');
   const [phone, setPhone] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const [errors,       setErrors]       = useState<FieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -371,7 +375,7 @@ export default function BookingFlow() {
   }
 
   async function handleSubmit() {
-    const errs = validate({ address, pincode, model, name, phone });
+    const errs = validate({ address, pincode, model, plate, name, phone });
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
       document.querySelector('[data-error-anchor]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -401,6 +405,7 @@ export default function BookingFlow() {
         addressLine1:  address,
         vehicleMake:   brand,
         vehicleModel:  model,
+        vehiclePlate:  plate.toUpperCase(),
         customerName:  name,
         customerPhone: phone.replace(/\D/g, ''),
       });
@@ -919,15 +924,28 @@ export default function BookingFlow() {
               <PillSelect options={BRANDS} value={brand} onChange={setBrand} />
             </div>
 
-            {/* Model */}
-            <div>
-              <input
-                placeholder="Model (e.g. Creta, Nexon)"
-                value={model}
-                onChange={e => setModel(e.target.value)}
-                className={`${styles.input}${errors.model ? ` ${styles.inputError}` : ''}`}
-              />
-              <FieldError msg={errors.model} />
+            {/* Model + Plate */}
+            <div className={styles.fieldRow}>
+              <div style={{ flex: 1 }}>
+                <input
+                  placeholder="Model (e.g. Creta, Nexon)"
+                  value={model}
+                  onChange={e => setModel(e.target.value)}
+                  className={`${styles.input}${errors.model ? ` ${styles.inputError}` : ''}`}
+                />
+                <FieldError msg={errors.model} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <input
+                  placeholder="Number plate (e.g. DL 01 AB 1234)"
+                  value={plate}
+                  onChange={e => setPlate(e.target.value.toUpperCase())}
+                  autoCapitalize="characters"
+                  className={`${styles.input}${errors.plate ? ` ${styles.inputError}` : ''}`}
+                  style={{ fontFamily: 'var(--pc-mono)', letterSpacing: '0.06em' }}
+                />
+                <FieldError msg={errors.plate} />
+              </div>
             </div>
 
           </div>
@@ -972,10 +990,47 @@ export default function BookingFlow() {
           }}>{submitError}</p>
         )}
 
+        {/* Terms acceptance */}
+        <label style={{
+          display: 'flex', alignItems: 'flex-start', gap: 12,
+          cursor: 'pointer',
+        }}>
+          <div style={{
+            marginTop: 2, flexShrink: 0,
+            width: 18, height: 18, borderRadius: 4,
+            border: `1.5px solid ${termsAccepted ? 'var(--pc-sage-hi)' : 'var(--pc-line-strong)'}`,
+            background: termsAccepted ? 'var(--pc-sage)' : 'var(--pc-card)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'background 0.15s ease, border-color 0.15s ease',
+            flexDirection: 'column',
+          }}>
+            <input
+              type="checkbox"
+              checked={termsAccepted}
+              onChange={e => setTermsAccepted(e.target.checked)}
+              style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
+            />
+            {termsAccepted && (
+              <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                <path d="M1 4l3 3 5-6" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
+          </div>
+          <span style={{
+            fontFamily: 'var(--pc-sans)', fontSize: 13,
+            color: 'var(--pc-fg-2)', lineHeight: 1.6,
+          }}>
+            I have read and agree to the{' '}
+            <a href="/terms" target="_blank" rel="noopener" style={{ color: 'var(--pc-fg)', textDecoration: 'underline', textUnderlineOffset: 3 }}>Terms of Service</a>
+            {' '}and{' '}
+            <a href="/privacy" target="_blank" rel="noopener" style={{ color: 'var(--pc-fg)', textDecoration: 'underline', textUnderlineOffset: 3 }}>Privacy Policy</a>.
+          </span>
+        </label>
+
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={isSubmitting}
+          disabled={isSubmitting || !termsAccepted}
           className={styles.submitBtn}
         >
           {isSubmitting ? 'Confirming…' : 'Confirm Booking →'}
@@ -1000,7 +1055,7 @@ export default function BookingFlow() {
               ['Service',      service.name],
               ['Date',         `${selDate.dayName} ${selDate.dayNum} ${selDate.monthName}`],
               ['Time',         selTime],
-              ['Vehicle',      `${brand} ${model || '—'}`],
+              ['Vehicle',      `${brand} ${model || '—'}${plate ? ` · ${plate}` : ''}`],
               ['City',         city],
             ].map(([k, v]) => (
               <div key={k} style={{

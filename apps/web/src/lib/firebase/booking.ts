@@ -14,8 +14,9 @@ export interface SubmitBookingInput {
   city: string;
   pincode: string;
   addressLine1: string;
-  vehicleMake: string;
+  vehicleMake:  string;
   vehicleModel: string;
+  vehiclePlate?: string;
   vehicleYear?: number;
   vehicleType?: VehicleType;
   customerName: string;
@@ -56,7 +57,7 @@ export async function submitBooking(
       model: data.vehicleModel,
       year: data.vehicleYear ?? new Date().getFullYear(),
       type: data.vehicleType ?? 'sedan',
-      registration: 'UNKNOWN',
+      registration: data.vehiclePlate ?? 'UNKNOWN',
       color: 'UNKNOWN',
     },
     status: 'pending' as BookingStatus,
