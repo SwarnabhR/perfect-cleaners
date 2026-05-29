@@ -204,6 +204,16 @@
   color: var(--pc-fg);
 }
 
+/* /app page — stack on mobile */
+@media (max-width: 768px) {
+  .pc-app-hero {
+    grid-template-columns: 1fr !important;
+  }
+  .pc-app-screenshot {
+    display: none;
+  }
+}
+
 /* ====================================================================
    Responsive token overrides
    ==================================================================== */
