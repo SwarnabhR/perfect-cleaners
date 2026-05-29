@@ -1,4 +1,9 @@
 'use client';
+// Force every route in the (admin) group to be rendered at request time.
+// Admin pages are auth-gated and use live Firestore — they must never be
+// statically pre-generated (which runs without env vars and crashes Firebase).
+export const dynamic = 'force-dynamic';
+
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
@@ -97,11 +102,6 @@ function AdminShell({ children }: { children: React.ReactNode }) {
               {user?.email ?? 'ops@perfectcleaners.in'}
             </p>
           </div>
-          {/*
-            Log-out: was a bare <Icon> with cursor:pointer — not keyboard
-            accessible and had no onClick. Now a proper <button> with
-            aria-label. Wire up signOut() here when Firebase Auth is live.
-          */}
           <button
             type="button"
             aria-label="Sign out"
