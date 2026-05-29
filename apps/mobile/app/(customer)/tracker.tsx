@@ -160,6 +160,15 @@ export default function TrackerScreen() {
         </View>
       )}
 
+      {/* OTP — shown when job is in progress so customer can confirm completion */}
+      {booking?.status === 'inprogress' && (booking as any)?.otpCode && (
+        <View style={{ marginHorizontal: spacing[5], marginTop: spacing[3], backgroundColor: c.sage, borderRadius: radii.md, padding: spacing[4], gap: spacing[1] }}>
+          <Text style={{ fontFamily: typography.mono, fontSize: 9.5, color: 'rgba(255,255,255,0.7)', letterSpacing: 0.8, textTransform: 'uppercase' }}>JOB COMPLETION CODE</Text>
+          <Text style={{ fontFamily: typography.serif, fontSize: 38, color: '#fff', letterSpacing: 8 }}>{(booking as any).otpCode}</Text>
+          <Text style={{ fontFamily: typography.sans, fontSize: 12, color: 'rgba(255,255,255,0.8)', lineHeight: 17 }}>Share this 4-digit code with your technician to confirm the job is complete.</Text>
+        </View>
+      )}
+
       {/* Order summary */}
       <View style={s.orderCard}>
         <Text style={ss.eyebrow}>[ORDER]</Text>

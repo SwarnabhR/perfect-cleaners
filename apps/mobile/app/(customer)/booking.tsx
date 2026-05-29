@@ -70,12 +70,15 @@ export default function BookingScreen() {
       const bookingRef = firestore().collection('bookings').doc();
       const bookingId  = bookingRef.id;
 
+      const otpCode = String(Math.floor(1000 + Math.random() * 9000));
+
       await bookingRef.set({
         id:            bookingId,
         customerId:    user?.uid ?? 'demo',
         customerName:  profile?.name ?? '',
         status:        'pending',
         paymentStatus: 'pending',
+        otpCode,
         serviceIds:    [pack.toLowerCase()],
         vehicle: {
           id:           'v1',

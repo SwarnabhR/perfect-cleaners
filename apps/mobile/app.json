@@ -38,6 +38,13 @@
             "useFrameworks": "static"
           }
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Perfect Cleaners needs access to your photo library to add before/after photos of your vehicle.",
+          "cameraPermission": "Perfect Cleaners needs camera access to capture before/after photos of your vehicle."
+        }
       ]
     ],
     "extra": {

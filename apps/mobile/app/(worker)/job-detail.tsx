@@ -1,33 +1,106 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ScrollView, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft, ChevronRight, Phone, Camera, Check } from 'lucide-react-native';
+import firestore from '@react-native-firebase/firestore';
+import type { BookingStatus } from '@pc/firebase';
 import { typography, spacing, radii } from '@pc/tokens';
 import { useThemeColors } from '../../theme';
 import { useSharedStyles } from '../../theme/sharedStyles';
 
-const CHECKLIST = [
-  ['Hand wash & rinse', true],
-  ['Wax & shine', true],
-  ['Tyre dressing', true],
-  ['Interior vacuum', true],
-  ['Dashboard polish', false],
-  ['Glass treatment', false],
+const DEFAULT_CHECKLIST = [
+  'Hand wash & rinse',
+  'Wax & shine',
+  'Tyre dressing',
+  'Interior vacuum',
+  'Dashboard polish',
+  'Glass treatment',
 ];
 
 const LABELS = ['En Route', 'Arrived', 'In Progress', 'Complete'];
 
+// Step index → Firestore BookingStatus
+const STEP_STATUS: BookingStatus[] = ['enroute', 'assigned', 'inprogress', 'done'];
+
 export default function JobDetail() {
-  const [step, setStep] = useState(2);
-  const insets = useSafeAreaInsets();
   const router = useRouter();
-  const c = useThemeColors();
+  const insets = useSafeAreaInsets();
+  const c  = useThemeColors();
   const ss = useSharedStyles();
+  const { bookingId = 'PC-2058' } = useLocalSearchParams<{ bookingId?: string }>();
+
+  const [step,      setStep]      = useState(0);
+  const [checklist, setChecklist] = useState<Record<string, boolean>>(
+    Object.fromEntries(DEFAULT_CHECKLIST.map(item => [item, false])),
+  );
+
+  // Load booking state from Firestore
+  useEffect(() => {
+    const unsub = firestore()
+      .collection('bookings')
+      .doc(bookingId)
+      .onSnapshot(snap => {
+        if (!Boolean(snap.exists)) return;
+        const data = snap.data();
+        // Restore step from status
+        const statusStep = STEP_STATUS.indexOf(data?.status ?? 'enroute');
+        if (statusStep >= 0) setStep(statusStep);
+        // Restore checklist (stored as Record<string, boolean> on the booking)
+        if (data?.checklist) setChecklist(prev => ({ ...prev, ...data.checklist }));
+      },
+      err => console.warn('[JobDetail]', err.message),
+    );
+    return () => unsub();
+  }, [bookingId]);
+
+  async function toggleItem(item: string) {
+    const updated = { ...checklist, [item]: !checklist[item] };
+    setChecklist(updated);
+    try {
+      await firestore().collection('bookings').doc(bookingId).update({
+        checklist:  updated,
+        updatedAt:  firestore.FieldValue.serverTimestamp(),
+      });
+    } catch (err) {
+      console.warn('[JobDetail] checklist update failed:', err);
+    }
+  }
+
+  async function handleStepAdvance() {
+    const nextStep = Math.min(3, step + 1);
+    setStep(nextStep);
+    try {
+      await firestore().collection('bookings').doc(bookingId).update({
+        status:    STEP_STATUS[nextStep],
+        updatedAt: firestore.FieldValue.serverTimestamp(),
+      });
+    } catch (err) {
+      console.warn('[JobDetail] step update failed:', err);
+    }
+    if (nextStep === 3) {
+      router.push({ pathname: '/(worker)/otp-complete', params: { bookingId } });
+    }
+  }
+
+  async function handleStepBack() {
+    const prevStep = Math.max(0, step - 1);
+    setStep(prevStep);
+    try {
+      await firestore().collection('bookings').doc(bookingId).update({
+        status:    STEP_STATUS[prevStep],
+        updatedAt: firestore.FieldValue.serverTimestamp(),
+      });
+    } catch (err) {
+      console.warn('[JobDetail] step back failed:', err);
+    }
+  }
+
+  const items = Object.entries(checklist);
+  const doneCount = items.filter(([, v]) => v).length;
 
   const s = StyleSheet.create({
     root: { flex: 1, backgroundColor: c.ink },
-
     statusBadge: {
       flexDirection: 'row', alignItems: 'center', gap: 6, marginLeft: 'auto',
       paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999,
@@ -47,77 +120,56 @@ export default function JobDetail() {
       backgroundColor: c.cardHi, borderWidth: 1, borderColor: c.line,
       alignItems: 'center', justifyContent: 'center',
     },
-    carShape: {
-      width: 64, height: 26, borderRadius: 5,
-      backgroundColor: c.ink, borderWidth: 1, borderColor: c.lineStrong,
-    },
-    customerInfo:  { flex: 1 },
-    customerName:  { fontFamily: typography.sansMedium, fontSize: 15, color: c.fg },
-    customerCar:   { fontFamily: typography.sans, fontSize: 12, color: c.fg2 },
-    customerColor: { fontFamily: typography.mono, fontSize: 10, color: c.fg3, letterSpacing: 0.6, marginTop: 2 },
-    callBtn: {
-      width: 40, height: 40, borderRadius: 999, backgroundColor: c.sage,
-      alignItems: 'center', justifyContent: 'center',
-    },
+    carShape:       { width: 64, height: 26, borderRadius: 5, backgroundColor: c.ink, borderWidth: 1, borderColor: c.lineStrong },
+    customerInfo:   { flex: 1 },
+    customerName:   { fontFamily: typography.sansMedium, fontSize: 15, color: c.fg },
+    customerCar:    { fontFamily: typography.sans, fontSize: 12, color: c.fg2 },
+    customerColor:  { fontFamily: typography.mono, fontSize: 10, color: c.fg3, letterSpacing: 0.6, marginTop: 2 },
+    callBtn:        { width: 40, height: 40, borderRadius: 999, backgroundColor: c.sage, alignItems: 'center', justifyContent: 'center' },
 
     stepperCard: {
       marginHorizontal: spacing[5], marginTop: spacing[3],
       backgroundColor: c.card, borderWidth: 1, borderColor: c.line,
       borderRadius: radii.md, padding: 18, gap: spacing[2],
     },
-    dotTrack:  { flexDirection: 'row', alignItems: 'center' },
-    stepDot: {
-      flexShrink: 0,
-      width: 28, height: 28, borderRadius: 999,
-      backgroundColor: c.card, borderWidth: 1, borderColor: c.line,
-      alignItems: 'center', justifyContent: 'center',
-    },
-    stepDotActive:      { backgroundColor: c.sage, borderColor: 'transparent' },
-    stepDotCurrent:     { borderColor: c.sageHi },
-    stepDotText:        { fontFamily: typography.mono, fontSize: 10, color: c.fg3 },
-    stepDotTextActive:  { color: c.fg },
-    stepConn:           { flex: 1, height: 1, backgroundColor: c.line },
-    stepConnActive:     { backgroundColor: c.sage },
-    labelTrack:         { flexDirection: 'row' },
-    stepLabel:          { flex: 1, fontFamily: typography.mono, fontSize: 9.5, color: c.fg3, letterSpacing: 0.8, textAlign: 'center' },
-    stepLabelActive:    { color: c.fg },
+    dotTrack:         { flexDirection: 'row', alignItems: 'center' },
+    stepDot:          { flexShrink: 0, width: 28, height: 28, borderRadius: 999, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, alignItems: 'center', justifyContent: 'center' },
+    stepDotActive:    { backgroundColor: c.sage, borderColor: 'transparent' },
+    stepDotCurrent:   { borderColor: c.sageHi },
+    stepDotText:      { fontFamily: typography.mono, fontSize: 10, color: c.fg3 },
+    stepDotTextActive:{ color: c.fg },
+    stepConn:         { flex: 1, height: 1, backgroundColor: c.line },
+    stepConnActive:   { backgroundColor: c.sage },
+    labelTrack:       { flexDirection: 'row' },
+    stepLabel:        { flex: 1, fontFamily: typography.mono, fontSize: 9.5, color: c.fg3, letterSpacing: 0.8, textAlign: 'center' },
+    stepLabelActive:  { color: c.fg },
 
-    section:   { paddingHorizontal: spacing[5], paddingTop: spacing[4] },
-    checklist: { marginTop: spacing[2], gap: 6 },
-    checkItem: {
+    section:  { paddingHorizontal: spacing[5], paddingTop: spacing[4] },
+    checklist:{ marginTop: spacing[2], gap: 6 },
+    checkItem:{
       flexDirection: 'row', alignItems: 'center', gap: 12,
       backgroundColor: c.card, borderWidth: 1, borderColor: c.line,
       borderRadius: radii.md, paddingVertical: 12, paddingHorizontal: 14,
     },
-    checkbox: {
-      width: 20, height: 20, borderRadius: 6,
-      borderWidth: 1, borderColor: c.lineStrong,
-      alignItems: 'center', justifyContent: 'center',
-    },
-    checkboxDone: { backgroundColor: c.sage, borderColor: c.sage },
+    checkbox:       { width: 20, height: 20, borderRadius: 6, borderWidth: 1, borderColor: c.lineStrong, alignItems: 'center', justifyContent: 'center' },
+    checkboxDone:   { backgroundColor: c.sage, borderColor: c.sage },
     checkLabel:     { flex: 1, fontFamily: typography.sans, fontSize: 13, color: c.fg },
     checkLabelDone: { color: c.fg3, textDecorationLine: 'line-through' },
 
-    photoRow: { flexDirection: 'row', gap: 8, marginTop: spacing[2] },
-    photoBefore: {
-      flex: 1, height: 110, borderRadius: radii.md, overflow: 'hidden',
-      backgroundColor: c.cardHi, borderWidth: 1, borderColor: c.line,
-      justifyContent: 'flex-end', padding: spacing[2],
-    },
-    photoLabel: {
-      fontFamily: typography.mono, fontSize: 9, color: c.fg2, letterSpacing: 0.8,
-      alignSelf: 'flex-start',
-      backgroundColor: 'rgba(0,0,0,0.5)', // always-dark photo label overlay
-      paddingVertical: 3, paddingHorizontal: 7, borderRadius: 4,
-    },
-    photoAdd: {
-      flex: 1, height: 110, borderRadius: radii.md,
-      borderWidth: 1, borderColor: c.lineStrong,
-      backgroundColor: c.lineFaint,
-      alignItems: 'center', justifyContent: 'center', gap: 6,
-    },
-    photoAddText: { fontFamily: typography.mono, fontSize: 10, color: c.fg3, letterSpacing: 0.8 },
+    photoRow:  { flexDirection: 'row', gap: 8, marginTop: spacing[2] },
+    photoBefore:{ flex: 1, height: 110, borderRadius: radii.md, overflow: 'hidden', backgroundColor: c.cardHi, borderWidth: 1, borderColor: c.line, justifyContent: 'flex-end', padding: spacing[2] },
+    photoLabel: { fontFamily: typography.mono, fontSize: 9, color: c.fg2, letterSpacing: 0.8, alignSelf: 'flex-start', backgroundColor: 'rgba(0,0,0,0.5)', paddingVertical: 3, paddingHorizontal: 7, borderRadius: 4 },
+    photoAdd:   { flex: 1, height: 110, borderRadius: radii.md, borderWidth: 1, borderColor: c.lineStrong, backgroundColor: c.lineFaint, alignItems: 'center', justifyContent: 'center', gap: 6 },
+    photoAddText:{ fontFamily: typography.mono, fontSize: 10, color: c.fg3, letterSpacing: 0.8 },
   });
+
+  const currentStatus = STEP_STATUS[step];
+  const statusColor: Record<string, string> = {
+    enroute:    c.statusEnroute,
+    assigned:   c.statusAssigned,
+    inprogress: c.statusInProgress,
+    done:       c.statusDone,
+  };
 
   return (
     <View style={[s.root, { paddingTop: insets.top }]}>
@@ -127,10 +179,10 @@ export default function JobDetail() {
           <TouchableOpacity style={ss.backBtn} onPress={() => router.back()}>
             <ChevronLeft size={16} color={c.fg} strokeWidth={1.5} />
           </TouchableOpacity>
-          <Text style={ss.eyebrow}>[JOB] #PC-2058</Text>
+          <Text style={ss.eyebrow}>[JOB] #{bookingId.slice(0, 8).toUpperCase()}</Text>
           <View style={s.statusBadge}>
-            <View style={[s.badgeDot, { backgroundColor: c.statusInProgress }]} />
-            <Text style={s.badgeText}>IN PROGRESS</Text>
+            <View style={[s.badgeDot, { backgroundColor: statusColor[currentStatus] ?? c.fg3 }]} />
+            <Text style={s.badgeText}>{currentStatus.toUpperCase()}</Text>
           </View>
         </View>
 
@@ -153,7 +205,7 @@ export default function JobDetail() {
         <View style={s.stepperCard}>
           <View style={s.dotTrack}>
             {LABELS.flatMap((_, i) => {
-              const active = i <= step;
+              const active    = i <= step;
               const isCurrent = i === step;
               const items = [
                 <View key={`dot-${i}`} style={[s.stepDot, active && s.stepDotActive, isCurrent && s.stepDotCurrent]}>
@@ -175,15 +227,15 @@ export default function JobDetail() {
 
         {/* Checklist */}
         <View style={s.section}>
-          <Text style={ss.eyebrow}>[CHECKLIST] · 4 OF 6</Text>
+          <Text style={ss.eyebrow}>[CHECKLIST] · {doneCount} OF {items.length}</Text>
           <View style={s.checklist}>
-            {CHECKLIST.map(([label, done], i) => (
-              <View key={i} style={s.checkItem}>
+            {items.map(([item, done]) => (
+              <TouchableOpacity key={item} style={s.checkItem} onPress={() => toggleItem(item)} activeOpacity={0.8}>
                 <View style={[s.checkbox, done && s.checkboxDone]}>
                   {done && <Check size={12} color="#fff" strokeWidth={2.5} />}
                 </View>
-                <Text style={[s.checkLabel, done && s.checkLabelDone]}>{label}</Text>
-              </View>
+                <Text style={[s.checkLabel, done && s.checkLabelDone]}>{item}</Text>
+              </TouchableOpacity>
             ))}
           </View>
         </View>
@@ -192,13 +244,21 @@ export default function JobDetail() {
         <View style={s.section}>
           <Text style={ss.eyebrow}>[PHOTOS] · BEFORE / AFTER</Text>
           <View style={s.photoRow}>
-            <View style={s.photoBefore}>
-              <Text style={s.photoLabel}>BEFORE</Text>
-            </View>
-            <View style={s.photoAdd}>
+            <TouchableOpacity
+              style={s.photoBefore}
+              onPress={() => router.push({ pathname: '/(worker)/photo-capture', params: { bookingId, phase: 'before' } })}
+              activeOpacity={0.8}
+            >
+              <Text style={s.photoLabel}>BEFORE — TAP TO ADD</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={s.photoAdd}
+              onPress={() => router.push({ pathname: '/(worker)/photo-capture', params: { bookingId, phase: 'after' } })}
+              activeOpacity={0.8}
+            >
               <Camera size={20} color={c.fg3} strokeWidth={1.5} />
               <Text style={s.photoAddText}>ADD AFTER</Text>
-            </View>
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
@@ -215,20 +275,15 @@ export default function JobDetail() {
       ]}>
         <TouchableOpacity
           style={[ss.ghostBtn, { flex: 1, flexDirection: 'row', gap: 6 }]}
-          onPress={() => setStep(Math.max(0, step - 1))}
+          onPress={handleStepBack}
+          disabled={step === 0}
         >
-          <ChevronLeft size={14} color={c.fg} strokeWidth={1.5} />
-          <Text style={ss.ghostBtnText}>Previous</Text>
+          <ChevronLeft size={14} color={step === 0 ? c.fg4 : c.fg} strokeWidth={1.5} />
+          <Text style={[ss.ghostBtnText, step === 0 && { color: c.fg4 }]}>Previous</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[ss.primaryBtn, { flex: 2 }]}
-          onPress={() => {
-            if (step === 3) {
-              router.push('/(worker)/otp-complete');
-            } else {
-              setStep(Math.min(3, step + 1));
-            }
-          }}
+          onPress={handleStepAdvance}
         >
           <Text style={ss.primaryBtnText}>
             {step === 3 ? 'Awaiting OTP →' : 'Mark Step Complete →'}

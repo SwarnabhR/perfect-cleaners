@@ -5,7 +5,10 @@
   "expo": {
     "doctor": {
       "reactNativeDirectoryCheck": {
-        "exclude": ["react-native-razorpay", "expo-modules-jsi"]
+        "exclude": [
+          "react-native-razorpay",
+          "expo-modules-jsi"
+        ]
       }
     }
   },
@@ -27,6 +30,7 @@
     "expo-dev-client": "~56.0.16",
     "expo-font": "^56.0.5",
     "expo-haptics": "~56.0.3",
+    "expo-image-picker": "~56.0.14",
     "expo-router": "~56.2.7",
     "expo-splash-screen": "~56.0.10",
     "expo-status-bar": "~56.0.4",

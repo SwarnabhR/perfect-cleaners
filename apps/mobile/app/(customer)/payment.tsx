@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import {
-  ScrollView, View, Text, TouchableOpacity, StyleSheet, Alert,
+  ScrollView, View, Text, TouchableOpacity, StyleSheet, Alert, TextInput,
 } from 'react-native';
+import firestore from '@react-native-firebase/firestore';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import RazorpayCheckout, { type CheckoutOptions, type ErrorResponse } from 'react-native-razorpay';
@@ -37,9 +38,13 @@ function MethodIcon({ id, color }: { id: string; color: string }) {
 }
 
 export default function PaymentSheet() {
-  const [method,  setMethod]  = useState('upi');
-  const [upiApp,  setUpiApp]  = useState('gpay');
-  const [loading, setLoading] = useState(false);
+  const [method,       setMethod]       = useState('upi');
+  const [upiApp,       setUpiApp]       = useState('gpay');
+  const [loading,      setLoading]      = useState(false);
+  const [promoInput,   setPromoInput]   = useState('');
+  const [promoApplied, setPromoApplied] = useState<{ code: string; discount: number } | null>(null);
+  const [promoError,   setPromoError]   = useState('');
+  const [promoLoading, setPromoLoading] = useState(false);
   const router  = useRouter();
   const insets  = useSafeAreaInsets();
   const c = useThemeColors();
@@ -55,14 +60,61 @@ export default function PaymentSheet() {
     name?:       string;
   }>();
 
-  const bookingId     = params.bookingId  ?? '';
-  const bookingRef    = params.bookingRef ?? 'PC-0000';
-  const amountRs      = Number(params.amount ?? 1080);
-  const label         = params.label    ?? 'Premium Wash + Interior';
-  const phone         = params.phone    ?? '';
-  const name          = params.name     ?? '';
-  const promoDiscount = 120;
-  const totalRs       = amountRs - promoDiscount;
+  const bookingId  = params.bookingId  ?? '';
+  const bookingRef = params.bookingRef ?? 'PC-0000';
+  const amountRs   = Number(params.amount ?? 1080);
+  const label      = params.label ?? 'Premium Wash + Interior';
+  const phone      = params.phone ?? '';
+  const name       = params.name  ?? '';
+  const discount   = promoApplied?.discount ?? 0;
+  const totalRs    = Math.max(amountRs - discount, 0);
+
+  async function applyPromo() {
+    const code = promoInput.trim().toUpperCase();
+    if (!code) return;
+    setPromoError('');
+    setPromoLoading(true);
+    try {
+      const snap = await firestore()
+        .collection('promotions')
+        .where('code',     '==', code)
+        .where('isActive', '==', true)
+        .limit(1)
+        .get();
+
+      if (snap.empty) {
+        setPromoError('Code not found or inactive.');
+        return;
+      }
+
+      const data = snap.docs[0].data();
+      const now   = Date.now();
+      const from  = data.validFrom?.toDate?.()?.getTime()  ?? 0;
+      const until = data.validUntil?.toDate?.()?.getTime() ?? Infinity;
+
+      if (now < from)  { setPromoError('Code not yet active.'); return; }
+      if (now > until) { setPromoError('Code has expired.');     return; }
+      if (data.maxUses > 0 && data.usedCount >= data.maxUses) {
+        setPromoError('Code has reached its usage limit.');
+        return;
+      }
+      if (data.minOrderValue > 0 && amountRs < data.minOrderValue) {
+        setPromoError(`Minimum order ₹${data.minOrderValue} required.`);
+        return;
+      }
+
+      const discount = data.discountType === 'percent'
+        ? Math.round(amountRs * data.discountValue / 100)
+        : data.discountValue;
+
+      setPromoApplied({ code, discount: Math.min(discount, amountRs) });
+      setPromoInput('');
+    } catch (err: any) {
+      setPromoError('Could not validate code. Please try again.');
+    } finally {
+      setPromoLoading(false);
+    }
+  }
 
   async function handlePay() {
     if (!RAZORPAY_KEY) {
@@ -88,6 +140,13 @@ export default function PaymentSheet() {
     };
     try {
       const data = await RazorpayCheckout.open(options);
+      if (bookingId && promoApplied) {
+        await firestore().collection('bookings').doc(bookingId).update({
+          promoCode:    promoApplied.code,
+          promoDiscount: promoApplied.discount,
+          updatedAt:    firestore.FieldValue.serverTimestamp(),
+        });
+      }
       router.push({
         pathname: '/(customer)/payment-success',
         params: {
@@ -139,16 +198,52 @@ export default function PaymentSheet() {
               <Text style={[s.orderLabel, { color: c.fg2 }]}>{label}</Text>
               <Text style={[s.orderLabel, { color: c.fg2 }]}>₹{amountRs.toLocaleString('en-IN')}</Text>
             </View>
-            <View style={s.orderRow}>
-              <Text style={[s.orderCode,    { color: c.fg3    }]}>Promo · SHINE10</Text>
-              <Text style={[s.orderDiscount,{ color: c.sageHi }]}>− ₹{promoDiscount}</Text>
-            </View>
+            {promoApplied && (
+              <View style={s.orderRow}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={[s.orderCode, { color: c.fg3 }]}>Promo · {promoApplied.code}</Text>
+                  <TouchableOpacity onPress={() => setPromoApplied(null)} hitSlop={8}>
+                    <Text style={{ fontFamily: typography.mono, fontSize: 10, color: c.fg3 }}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+                <Text style={[s.orderDiscount, { color: c.sageHi }]}>− ₹{promoApplied.discount}</Text>
+              </View>
+            )}
             <View style={[s.orderDivider, { backgroundColor: c.line }]} />
             <View style={s.orderRow}>
               <Text style={[s.orderTotalLabel, { color: c.fg }]}>Total</Text>
               <Text style={[s.orderTotal,      { color: c.fg }]}>₹{totalRs.toLocaleString('en-IN')}</Text>
             </View>
           </View>
+
+          {/* Promo code input */}
+          {!promoApplied && (
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 4 }}>
+              <TextInput
+                style={[s.promoInput, { backgroundColor: c.card, borderColor: c.line, color: c.fg }]}
+                value={promoInput}
+                onChangeText={t => { setPromoInput(t.toUpperCase()); setPromoError(''); }}
+                placeholder="PROMO CODE"
+                placeholderTextColor={c.fg4}
+                autoCapitalize="characters"
+                returnKeyType="done"
+                onSubmitEditing={applyPromo}
+              />
+              <TouchableOpacity
+                style={[s.promoBtn, { backgroundColor: promoInput.trim() ? c.sage : c.card, borderColor: promoInput.trim() ? 'transparent' : c.line }]}
+                onPress={applyPromo}
+                disabled={promoLoading || !promoInput.trim()}
+                activeOpacity={0.8}
+              >
+                <Text style={{ fontFamily: typography.sansMedium, fontSize: 13, color: promoInput.trim() ? '#fff' : c.fg3 }}>
+                  {promoLoading ? '…' : 'Apply'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          {promoError ? (
+            <Text style={{ fontFamily: typography.sans, fontSize: 12, color: c.danger, marginBottom: 8 }}>{promoError}</Text>
+          ) : null}
 
           <Text style={[s.eyebrow, { color: c.fg3 }]}>[PAYMENT METHOD]</Text>
 
@@ -330,6 +425,9 @@ const s = StyleSheet.create({
   cardBrand:        { borderRadius: 4, paddingHorizontal: 8, paddingVertical: 4 },
   cardBrandText:    { fontFamily: typography.sansBold, fontSize: 9, color: '#fff', letterSpacing: 0.4 },
   cardRow:          { flexDirection: 'row', gap: spacing[2] },
+
+  promoInput:       { flex: 1, fontFamily: typography.sans, fontSize: 13, borderWidth: 1, borderRadius: radii.sm, paddingHorizontal: spacing[3], paddingVertical: 10 },
+  promoBtn:         { paddingHorizontal: spacing[4], paddingVertical: 10, borderRadius: radii.sm, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
 
   payBtn:           { borderRadius: radii.pill, paddingVertical: 14, alignItems: 'center', justifyContent: 'center', marginTop: spacing[5] },
   payBtnLoading:    { opacity: 0.6 },

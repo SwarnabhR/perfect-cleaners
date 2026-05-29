@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
   KeyboardAvoidingView, Platform,
@@ -6,24 +6,29 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Send } from 'lucide-react-native';
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
 import { typography, spacing } from '@pc/tokens';
 import { useThemeColors } from '../../theme';
 import { useSharedStyles } from '../../theme/sharedStyles';
 
 interface Message {
-  id: string;
-  from: 'agent' | 'me';
+  id:   string;
+  from: 'agent' | 'customer';
   text: string;
   time: string;
 }
 
-const INITIAL_MESSAGES: Message[] = [
-  { id: '1', from: 'agent', text: 'Hi! Priya from Perfect Cleaners. How can I help?', time: '12:42' },
-  { id: '2', from: 'me',    text: 'Hi — can I move my Tuesday booking to Wednesday?', time: '12:43' },
-  { id: '3', from: 'agent', text: 'Of course. I can see #PC-2058 — Premium Wash + Interior, Tue 2:00 PM. What time on Wednesday?', time: '12:43' },
-  { id: '4', from: 'me',    text: '2 PM works again', time: '12:44' },
-  { id: '5', from: 'agent', text: 'Done. New booking confirmed for Wed 29 May at 2:00 PM. Anything else?', time: '12:44' },
-];
+function formatTime(ts: any): string {
+  const d = ts?.toDate ? ts.toDate() : new Date();
+  return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+const GREETING: Omit<Message, 'id'> = {
+  from: 'agent',
+  text: 'Hi! Priya from Perfect Cleaners. How can I help?',
+  time: '',
+};
 
 function AgentAvatar() {
   const c = useThemeColors();
@@ -35,21 +40,63 @@ function AgentAvatar() {
 }
 
 export default function SupportChatScreen() {
-  const insets = useSafeAreaInsets();
-  const router = useRouter();
-  const c = useThemeColors();
-  const ss = useSharedStyles();
-  const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
-  const [draft, setDraft] = useState('');
+  const insets  = useSafeAreaInsets();
+  const router  = useRouter();
+  const c       = useThemeColors();
+  const ss      = useSharedStyles();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [draft,    setDraft]    = useState('');
   const listRef = useRef<FlatList>(null);
 
-  function sendMessage() {
+  const user = auth().currentUser;
+  const uid  = user?.uid ?? 'anonymous';
+
+  useEffect(() => {
+    const chatRef = firestore()
+      .collection('support')
+      .doc(uid)
+      .collection('messages');
+
+    // Seed the greeting on first open if chat is empty
+    chatRef.limit(1).get().then(snap => {
+      if (snap.empty) {
+        chatRef.add({
+          from:      'agent',
+          text:      GREETING.text,
+          createdAt: firestore.FieldValue.serverTimestamp(),
+        });
+      }
+    });
+
+    return chatRef
+      .orderBy('createdAt', 'asc')
+      .onSnapshot(
+        snap => {
+          setMessages(snap.docs.map(d => ({
+            id:   d.id,
+            from: d.data().from,
+            text: d.data().text,
+            time: formatTime(d.data().createdAt),
+          })));
+          setTimeout(() => listRef.current?.scrollToEnd({ animated: false }), 50);
+        },
+        err => console.warn('[SupportChat]', err.message),
+      );
+  }, [uid]);
+
+  async function sendMessage() {
     const text = draft.trim();
     if (!text) return;
-    const now = new Date();
-    const time = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
-    setMessages(prev => [...prev, { id: String(Date.now()), from: 'me', text, time }]);
     setDraft('');
+    await firestore()
+      .collection('support')
+      .doc(uid)
+      .collection('messages')
+      .add({
+        from:      'customer',
+        text,
+        createdAt: firestore.FieldValue.serverTimestamp(),
+      });
     setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 80);
   }
 
@@ -94,10 +141,10 @@ export default function SupportChatScreen() {
         contentContainerStyle={{ paddingHorizontal: spacing[4], paddingVertical: spacing[3], gap: spacing[2] }}
         showsVerticalScrollIndicator={false}
         renderItem={({ item: m }) => (
-          <View style={{ alignItems: m.from === 'me' ? 'flex-end' : 'flex-start', gap: 3 }}>
+          <View style={{ alignItems: m.from === 'customer' ? 'flex-end' : 'flex-start', gap: 3 }}>
             <View style={[
               { maxWidth: '78%', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 18 },
-              m.from === 'me'
+              m.from === 'customer'
                 ? { backgroundColor: c.sageHi }
                 : { backgroundColor: c.card, borderWidth: 1, borderColor: c.line },
             ]}>
@@ -105,12 +152,14 @@ export default function SupportChatScreen() {
                 {m.text}
               </Text>
             </View>
-            <Text style={[
-              { fontFamily: typography.mono, fontSize: 9, color: c.fg3, letterSpacing: 0.3, paddingHorizontal: 4 },
-              m.from === 'me' && { textAlign: 'right' },
-            ]}>
-              {m.time}
-            </Text>
+            {m.time ? (
+              <Text style={[
+                { fontFamily: typography.mono, fontSize: 9, color: c.fg3, letterSpacing: 0.3, paddingHorizontal: 4 },
+                m.from === 'customer' && { textAlign: 'right' },
+              ]}>
+                {m.time}
+              </Text>
+            ) : null}
           </View>
         )}
       />

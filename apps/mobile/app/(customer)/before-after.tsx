@@ -1,9 +1,10 @@
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   ImageBackground, View, Text, TouchableOpacity, StyleSheet,
   PanResponder, useWindowDimensions,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import firestore from '@react-native-firebase/firestore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { colors, typography, spacing, radii } from '@pc/tokens';
@@ -14,9 +15,30 @@ const BRAND_HERO = require('../../../../design-system/assets/brand-hero.png');
 export default function BeforeAfterViewer() {
   const [pos, setPos] = useState(56);
   const comparatorWidth = useRef(0);
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const router  = useRouter();
+  const insets  = useSafeAreaInsets();
   const { width: SW } = useWindowDimensions();
+  const { bookingId = 'PC-2058' } = useLocalSearchParams<{ bookingId?: string }>();
+
+  const [beforeUrl, setBeforeUrl] = useState<string | null>(null);
+  const [afterUrl,  setAfterUrl]  = useState<string | null>(null);
+  const [bookingRef, setBookingRef] = useState('PC-2058');
+
+  useEffect(() => {
+    const unsub = firestore()
+      .collection('bookings')
+      .doc(bookingId)
+      .onSnapshot(snap => {
+        if (!Boolean(snap.exists)) return;
+        const data = snap.data();
+        setBeforeUrl(data?.photos?.before?.[0] ?? null);
+        setAfterUrl(data?.photos?.after?.[0]  ?? null);
+        // Display friendly ref for header
+        const ref = data?.id ?? bookingId;
+        setBookingRef(ref.slice(0, 8).toUpperCase());
+      });
+    return () => unsub();
+  }, [bookingId]);
 
   function clampPos(x: number): number {
     const w = comparatorWidth.current || SW - COMPARATOR_H_MARGIN;
@@ -44,7 +66,7 @@ export default function BeforeAfterViewer() {
           <X size={16} color={colors.fg} strokeWidth={1.5} />
         </TouchableOpacity>
         <View>
-          <Text style={s.eyebrow}>[BEFORE / AFTER] · #PC-2058</Text>
+          <Text style={s.eyebrow}>[BEFORE / AFTER] · #{bookingRef}</Text>
           <Text style={s.serviceName}>Premium Wash + Interior</Text>
         </View>
       </View>
@@ -57,9 +79,9 @@ export default function BeforeAfterViewer() {
       >
         {/* Before (full width, dull) */}
         <View style={s.beforeLayer}>
-          <ImageBackground source={BRAND_HERO} resizeMode="cover" style={s.compareImage}>
-            <View style={s.beforeWash} />
-            <View style={s.beforeDust} />
+          <ImageBackground source={beforeUrl ? { uri: beforeUrl } : BRAND_HERO} resizeMode="cover" style={s.compareImage}>
+            {!beforeUrl && <View style={s.beforeWash} />}
+            {!beforeUrl && <View style={s.beforeDust} />}
           </ImageBackground>
           <View style={s.labelBefore}>
             <Text style={s.labelText}>BEFORE</Text>
