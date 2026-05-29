@@ -46,11 +46,11 @@ export default function RootLayout() {
 }
 
 function AppShell() {
-  const { theme, colors: c } = useTheme();
+  const { colors: c } = useTheme();
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: c.ink }}>
       <SafeAreaProvider>
-        <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
+        <StatusBar style="dark" />
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.ink } }} />
       </SafeAreaProvider>
     </GestureHandlerRootView>
