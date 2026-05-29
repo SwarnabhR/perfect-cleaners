@@ -62,11 +62,8 @@ export default function Nav() {
   }, [menuOpen]);
 
   // ── Focus management ──────────────────────────────────────────────────────
-  // On open: move focus to first focusable element inside the drawer.
-  // On close: return focus to the hamburger trigger.
   useEffect(() => {
     if (menuOpen) {
-      // Small rAF so the drawer is visible/interactable before we focus.
       const id = requestAnimationFrame(() => {
         const first = drawerRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE)[0];
         first?.focus();
@@ -88,13 +85,11 @@ export default function Nav() {
     const last  = nodes[nodes.length - 1];
 
     if (e.shiftKey) {
-      // Shift+Tab: if focus is on first element, wrap to last
       if (document.activeElement === first) {
         e.preventDefault();
         last.focus();
       }
     } else {
-      // Tab: if focus is on last element, wrap to first
       if (document.activeElement === last) {
         e.preventDefault();
         first.focus();
@@ -104,8 +99,14 @@ export default function Nav() {
 
   return (
     <>
+      {/*
+        pc-nav-mobile-border: on mobile (<= 1024px), always show the sage
+        green bottom border regardless of scroll state. On desktop the
+        inline borderBottom style (transparent / line-faint) takes over.
+      */}
       <nav
         aria-label="Main navigation"
+        className="pc-nav-mobile-border"
         style={{
           position: 'sticky',
           top: 0,
@@ -202,11 +203,6 @@ export default function Nav() {
           gap: 'clamp(var(--pc-space-3), 2vw, var(--pc-space-6))',
           flexShrink: 0,
         }}>
-
-          {/*
-            Book Now — desktop.
-            pc-nav-book-now provides hover/active/focus-visible styles.
-          */}
           <Link
             href="/book"
             className="pc-nav-desktop pc-nav-book-now"
@@ -285,19 +281,6 @@ export default function Nav() {
         </div>
       </nav>
 
-      {/*
-        Mobile drawer — now a proper dialog with focus trap.
-
-        Accessibility contract met:
-        - role="dialog" aria-modal="true": announces as modal to screen readers.
-        - aria-labelledby: points to the visually-hidden #mobile-nav-title heading.
-        - Focus moves in on open (first focusable element).
-        - Tab / Shift+Tab cycle within the drawer (handleDrawerKeyDown).
-        - Escape closes the drawer and returns focus to the hamburger.
-        - Focus returns to triggerRef on close (useEffect above).
-        - inert when closed: prevents background tab traversal before
-          React has painted the closed state.
-      */}
       <div
         id="mobile-nav-drawer"
         ref={drawerRef}
@@ -322,7 +305,6 @@ export default function Nav() {
           transition: 'opacity 0.28s ease, transform 0.28s ease',
         }}
       >
-        {/* Visually-hidden title for screen readers */}
         <h2
           id="mobile-nav-title"
           style={{
@@ -334,7 +316,6 @@ export default function Nav() {
           Site navigation
         </h2>
 
-        {/* Links — scrollable if viewport is short */}
         <ul style={{
           display: 'flex', flexDirection: 'column', listStyle: 'none', margin: 0,
           padding: '0 var(--pc-screen-pad-lg)',
@@ -368,13 +349,11 @@ export default function Nav() {
           })}
         </ul>
 
-        {/* Bottom section — always visible, never scrolls away */}
         <div style={{
           flexShrink: 0,
           padding: 'var(--pc-space-6) var(--pc-screen-pad-lg) var(--pc-space-8)',
           borderTop: '1px solid var(--pc-line-faint)',
         }}>
-          {/* Location tag */}
           <p style={{
             fontFamily: 'var(--pc-mono)',
             fontSize: 'var(--pc-text-xs)',
