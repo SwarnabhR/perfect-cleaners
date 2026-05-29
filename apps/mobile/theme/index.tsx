@@ -10,11 +10,16 @@ const STORAGE_KEY = '@pc/theme';
 const Ctx = createContext<ThemeCtx>({ theme: 'light', toggleTheme: () => {}, colors: colorsLight });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
+  // Default is always 'light'. AsyncStorage only overrides if the user has
+  // explicitly toggled the theme before (saved value exists).
   const [theme, setTheme] = useState<AppTheme>('light');
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY).then(saved => {
+      // Only honour a saved preference — never default to dark.
       if (saved === 'dark' || saved === 'light') setTheme(saved);
+    }).catch(() => {
+      // If storage is unavailable (e.g. first-run sandbox), stay on 'light'.
     });
   }, []);
 
