@@ -204,16 +204,16 @@ function CalendarPicker({
                 borderRadius: 'var(--pc-radius-sm)',
                 border: 'none',
                 background: isSel
-                  ? 'var(--pc-sage-active, var(--pc-sage))'
+                  ? 'var(--pc-sage-active)'
                   : isToday
-                  ? 'var(--pc-sage-subtle, rgba(91,111,82,0.15))'
+                  ? 'var(--pc-sage-subtle)'
                   : 'transparent',
                 color: isPast
                   ? 'var(--pc-fg-4)'
                   : isSel
-                  ? 'var(--pc-sage-ink)'
+                  ? 'var(--pc-sage-on-tint)'
                   : isToday
-                  ? 'var(--pc-sage-ink)'
+                  ? 'var(--pc-sage-on-tint)'
                   : 'var(--pc-fg)',
                 fontFamily: 'var(--pc-sans)',
                 fontSize: 'var(--pc-text-sm)',
@@ -245,24 +245,27 @@ function CalendarPicker({
 
 function StepLabel({ n, children }: { n: string; children: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pc-space-2)', marginBottom: 'var(--pc-space-4)' }}>
-      <div style={{
-        width: 24, height: 24,
-        borderRadius: 'var(--pc-radius-pill)',
-        background: 'var(--pc-card)',
-        border: '1px solid var(--pc-line-strong)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
+    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pc-space-3)', marginBottom: 'var(--pc-space-5)' }}>
+      <span style={{
         fontFamily: 'var(--pc-mono)',
-        fontSize: 'var(--pc-text-xs)',
-        color: 'var(--pc-fg-3)', flexShrink: 0,
-      }}>{n}</div>
+        fontSize: 10,
+        letterSpacing: '0.1em',
+        color: 'var(--pc-fg-3)',
+        flexShrink: 0,
+      }}>
+        [{n}]
+      </span>
       <h2 style={{
         fontFamily: 'var(--pc-sans)',
         fontSize: 'var(--pc-text-base)',
         fontWeight: 600,
         color: 'var(--pc-fg)',
         letterSpacing: 'var(--pc-track-snug)',
-      }}>{children}</h2>
+        margin: 0,
+      }}>
+        {children}
+      </h2>
+      <div style={{ flex: 1, height: 1, background: 'var(--pc-line)' }} />
     </div>
   );
 }
@@ -406,7 +409,7 @@ export default function BookingFlow() {
         <div style={{
           width: 72, height: 72,
           borderRadius: 'var(--pc-radius-pill)',
-          background: 'rgba(91,111,82,0.15)',
+          background: 'var(--pc-sage-subtle)',
           border: '1px solid var(--pc-sage-hi)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           margin: '0 auto',
@@ -556,8 +559,8 @@ export default function BookingFlow() {
         {subscriptionBanner && (
           <div style={{
             display: 'flex', alignItems: 'flex-start', gap: 12,
-            background: 'rgba(91,111,82,0.12)',
-            border: '1px solid rgba(91,111,82,0.35)',
+            background: 'rgba(74,94,68,0.10)',
+            border: '1px solid rgba(74,94,68,0.30)',
             borderRadius: 'var(--pc-radius-md)',
             padding: 'var(--pc-space-3) var(--pc-space-4)',
           }}>
@@ -570,7 +573,7 @@ export default function BookingFlow() {
             <div>
               <p style={{
                 fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)',
-                color: 'var(--pc-sage-ink)', fontWeight: 500, margin: 0,
+                color: 'var(--pc-sage-on-tint)', fontWeight: 500, margin: 0,
               }}>
                 Setting up your{' '}
                 <strong style={{ textTransform: 'capitalize' }}>{subscriptionBanner.cycle}</strong>
@@ -580,7 +583,7 @@ export default function BookingFlow() {
               </p>
               <p style={{
                 fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)',
-                color: 'rgba(232,237,227,0.65)', margin: 'var(--pc-space-1) 0 0', lineHeight: 1.5,
+                color: 'var(--pc-sage-on-tint-2)', margin: 'var(--pc-space-1) 0 0', lineHeight: 1.5,
               }}>
                 This books your first visit. Our team will contact you to set up your recurring schedule after payment.
               </p>
@@ -605,7 +608,7 @@ export default function BookingFlow() {
                     padding: 'var(--pc-space-4)',
                     borderRadius: 'var(--pc-radius-md)',
                     border: `1px solid ${active ? 'var(--pc-sage-hi)' : 'var(--pc-line)'}`,
-                    background: active ? 'rgba(91,111,82,0.15)' : 'var(--pc-card)',
+                    background: active ? 'var(--pc-sage-subtle)' : 'var(--pc-card)',
                     cursor: 'pointer',
                     textAlign: 'left',
                     transition: 'border-color var(--pc-dur-fast) var(--pc-ease), background var(--pc-dur-fast) var(--pc-ease)',
@@ -615,7 +618,7 @@ export default function BookingFlow() {
                     fontFamily: 'var(--pc-sans)',
                     fontSize: 'var(--pc-text-sm)',
                     fontWeight: 500,
-                    color: active ? 'var(--pc-sage-ink)' : 'var(--pc-fg)',
+                    color: active ? 'var(--pc-sage-on-tint)' : 'var(--pc-fg)',
                     marginBottom: 'var(--pc-space-1)',
                     display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 'var(--pc-space-2)',
                   }}>
@@ -623,7 +626,7 @@ export default function BookingFlow() {
                     <span style={{
                       fontFamily: 'var(--pc-mono)',
                       fontSize: 'var(--pc-text-xs)',
-                      color: active ? 'var(--pc-sage-ink)' : 'var(--pc-fg-2)',
+                      color: active ? 'var(--pc-sage-on-tint)' : 'var(--pc-fg-2)',
                     }}>
                       ₹{s.price.toLocaleString('en-IN')}
                     </span>
@@ -631,7 +634,7 @@ export default function BookingFlow() {
                   <div style={{
                     fontFamily: 'var(--pc-sans)',
                     fontSize: 'var(--pc-text-xs)',
-                    color: active ? 'rgba(232,237,227,0.7)' : 'var(--pc-fg-3)',
+                    color: active ? 'var(--pc-sage-on-tint-2)' : 'var(--pc-fg-3)',
                     lineHeight: 'var(--pc-lh-snug)',
                   }}>{s.desc}</div>
                 </button>
@@ -661,7 +664,7 @@ export default function BookingFlow() {
                       padding: 'var(--pc-space-2) var(--pc-space-4)',
                       borderRadius: 'var(--pc-radius-sm)',
                       border: `1px solid ${active ? 'var(--pc-sage-hi)' : 'var(--pc-line)'}`,
-                      background: active ? 'rgba(91,111,82,0.15)' : 'var(--pc-card)',
+                      background: active ? 'var(--pc-sage-subtle)' : 'var(--pc-card)',
                       cursor: 'pointer',
                       textAlign: 'center',
                       minWidth: 60,
@@ -671,7 +674,7 @@ export default function BookingFlow() {
                     <div style={{
                       fontFamily: 'var(--pc-mono)',
                       fontSize: 'var(--pc-text-xs)',
-                      color: active ? 'var(--pc-sage-ink)' : 'var(--pc-fg-3)',
+                      color: active ? 'var(--pc-sage-on-tint)' : 'var(--pc-fg-3)',
                       letterSpacing: 'var(--pc-track-mono)',
                       marginBottom: 'var(--pc-space-1)',
                     }}>
@@ -681,7 +684,7 @@ export default function BookingFlow() {
                       fontFamily: 'var(--pc-sans)',
                       fontSize: 'var(--pc-text-lg)',
                       fontWeight: 600,
-                      color: active ? 'var(--pc-sage-ink)' : 'var(--pc-fg)',
+                      color: active ? 'var(--pc-sage-on-tint)' : 'var(--pc-fg)',
                       lineHeight: 1,
                     }}>
                       {d.dayNum}
@@ -689,7 +692,7 @@ export default function BookingFlow() {
                     <div style={{
                       fontFamily: 'var(--pc-sans)',
                       fontSize: 'var(--pc-text-xs)',
-                      color: active ? 'rgba(232,237,227,0.7)' : 'var(--pc-fg-3)',
+                      color: active ? 'var(--pc-sage-on-tint-2)' : 'var(--pc-fg-3)',
                       marginTop: 'var(--pc-space-1)',
                     }}>
                       {d.dayName}
@@ -716,7 +719,7 @@ export default function BookingFlow() {
                       : 'var(--pc-line)'
                   }`,
                   background: selDate.id === 'custom'
-                    ? 'rgba(91,111,82,0.15)'
+                    ? 'var(--pc-sage-subtle)'
                     : showCalendar
                     ? 'var(--pc-card-hi)'
                     : 'var(--pc-card)',
@@ -733,7 +736,7 @@ export default function BookingFlow() {
                     <div style={{
                       fontFamily: 'var(--pc-mono)',
                       fontSize: 'var(--pc-text-xs)',
-                      color: 'var(--pc-sage-ink)',
+                      color: 'var(--pc-sage-on-tint)',
                       letterSpacing: 'var(--pc-track-mono)',
                     }}>
                       {selDate.monthName.toUpperCase()}
@@ -742,7 +745,7 @@ export default function BookingFlow() {
                       fontFamily: 'var(--pc-sans)',
                       fontSize: 'var(--pc-text-lg)',
                       fontWeight: 600,
-                      color: 'var(--pc-sage-ink)',
+                      color: 'var(--pc-sage-on-tint)',
                       lineHeight: 1,
                     }}>
                       {selDate.dayNum}
@@ -750,7 +753,7 @@ export default function BookingFlow() {
                     <div style={{
                       fontFamily: 'var(--pc-sans)',
                       fontSize: 'var(--pc-text-xs)',
-                      color: 'rgba(232,237,227,0.7)',
+                      color: 'var(--pc-sage-on-tint-2)',
                     }}>
                       {selDate.dayName}
                     </div>
@@ -805,10 +808,10 @@ export default function BookingFlow() {
                     padding: 'var(--pc-space-2) var(--pc-space-4)',
                     borderRadius: 'var(--pc-radius-sm)',
                     border: `1px solid ${active ? 'var(--pc-sage-hi)' : 'var(--pc-line)'}`,
-                    background: active ? 'rgba(91,111,82,0.15)' : 'var(--pc-card)',
+                    background: active ? 'var(--pc-sage-subtle)' : 'var(--pc-card)',
                     fontFamily: 'var(--pc-mono)',
                     fontSize: 'var(--pc-text-xs)',
-                    color: active ? 'var(--pc-sage-ink)' : 'var(--pc-fg-2)',
+                    color: active ? 'var(--pc-sage-on-tint)' : 'var(--pc-fg-2)',
                     letterSpacing: 'var(--pc-track-snug)',
                     cursor: 'pointer',
                     transition: 'border-color var(--pc-dur-fast) var(--pc-ease), background var(--pc-dur-fast) var(--pc-ease)',

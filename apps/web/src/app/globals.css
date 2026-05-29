@@ -85,6 +85,12 @@
   --pc-radius-xl:   28px;
   --pc-radius-pill: 999px;
 
+  /* Sage-tinted selection state — text that reads on rgba(sage,0.15) bg */
+  --pc-sage-subtle:     rgba(91,111,82,0.15);  /* selected card / chip bg */
+  --pc-sage-active:     #4A5E44;               /* calendar selected day bg */
+  --pc-sage-on-tint:    #E8EDE3;               /* primary text ON sage tint  (dark mode) */
+  --pc-sage-on-tint-2:  rgba(232,237,227,0.7); /* secondary text ON sage tint (dark mode) */
+
   --pc-shadow-card:      0 1px 0 rgba(255,255,255,0.04) inset, 0 0 0 1px rgba(255,255,255,0.06);
   --pc-shadow-raised:    0 1px 0 rgba(255,255,255,0.06) inset, 0 0 0 1px rgba(255,255,255,0.10), 0 12px 40px -12px rgba(0,0,0,0.6);
   --pc-shadow-pop:       0 24px 60px -20px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.08);
@@ -135,6 +141,12 @@
   --pc-warm:   #0E0D0B;
   --pc-warm-2: #232220;
   --pc-warm-3: #3A3A36;
+
+  /* Sage-tinted selection state — light mode overrides */
+  --pc-sage-subtle:     rgba(74,94,68,0.10);
+  --pc-sage-active:     #4A5E44;
+  --pc-sage-on-tint:    #2A3D27;               /* dark sage, readable on warm parchment */
+  --pc-sage-on-tint-2:  rgba(42,61,39,0.65);
 
   /* Shadows — natural drop shadows instead of inset glows */
   --pc-shadow-card:      0 1px 0 rgba(255,255,255,0.55) inset, 0 0 0 1px rgba(0,0,0,0.06);
