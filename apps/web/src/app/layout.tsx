@@ -1,12 +1,11 @@
 import type { Metadata } from 'next';
-import { Instrument_Serif, Inter_Tight, JetBrains_Mono } from 'next/font/google';
+import { Instrument_Serif, Inter_Tight } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { I18nProvider } from '@/i18n';
 import { CustomerAuthProvider } from '@/lib/auth/CustomerAuthContext';
 import './globals.css';
 
-// Only load the three weights we actually use — 300 and 700 don't appear anywhere
 const serif = Instrument_Serif({
   subsets:  ['latin'],
   weight:   '400',
@@ -14,17 +13,11 @@ const serif = Instrument_Serif({
   display:  'swap',
 });
 
+// Load one extra weight (700) now that sans covers all label/mono contexts too
 const sans = Inter_Tight({
   subsets:  ['latin'],
-  weight:   ['400', '500', '600'],
+  weight:   ['400', '500', '600', '700'],
   variable: '--font-sans',
-  display:  'swap',
-});
-
-const mono = JetBrains_Mono({
-  subsets:  ['latin'],
-  weight:   ['400', '500'],
-  variable: '--font-mono',
   display:  'swap',
 });
 
@@ -101,7 +94,7 @@ export const viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="light" className={`${serif.variable} ${sans.variable} ${mono.variable}`}>
+    <html lang="en" data-theme="light" className={`${serif.variable} ${sans.variable}`}>
       <body>
         <ThemeProvider>
           <I18nProvider>

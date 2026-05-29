@@ -42,7 +42,8 @@
 
   --pc-serif: var(--font-serif), "PP Editorial New", Georgia, serif;
   --pc-sans:  var(--font-sans),  "Satoshi", -apple-system, sans-serif;
-  --pc-mono:  var(--font-mono),  "IBM Plex Mono", ui-monospace, monospace;
+  /* No separate mono typeface — use sans with wider tracking for label/code contexts */
+  --pc-mono:  var(--font-sans),  "Satoshi", -apple-system, sans-serif;
 
   --pc-text-xs:   12px;
   --pc-text-sm:   13px;
@@ -58,7 +59,7 @@
   --pc-track-snug:   -0.01em;
   --pc-track-normal:  0;
   --pc-track-wide:    0.06em;
-  --pc-track-mono:    0.08em;
+  --pc-track-mono:    0.05em;
 
   --pc-lh-tight: 1.05;
   --pc-lh-snug:  1.15;
