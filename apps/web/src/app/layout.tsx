@@ -3,6 +3,7 @@ import { Instrument_Serif, Inter_Tight, JetBrains_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { I18nProvider } from '@/i18n';
+import { CustomerAuthProvider } from '@/lib/auth/CustomerAuthContext';
 import './globals.css';
 
 // Only load the three weights we actually use — 300 and 700 don't appear anywhere
@@ -104,8 +105,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <ThemeProvider>
           <I18nProvider>
-            {children}
-            <Analytics />
+            <CustomerAuthProvider>
+              {children}
+              <Analytics />
+            </CustomerAuthProvider>
           </I18nProvider>
         </ThemeProvider>
       </body>

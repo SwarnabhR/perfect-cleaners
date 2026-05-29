@@ -1,128 +1,347 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Eyebrow from '@/components/ui/Eyebrow';
+import { collection, query, where, onSnapshot, type Unsubscribe } from 'firebase/firestore';
+import { db } from '@pc/firebase';
+import type { BookingStatus } from '@pc/firebase';
+import Nav from '@/components/marketing/Nav';
+import Footer from '@/components/marketing/Footer';
+import StatusPill from '@/components/ui/StatusPill';
+import { useCustomerAuth } from '@/lib/auth/CustomerAuthContext';
 
-/**
- * /account — placeholder page.
- *
- * Firebase Auth is not yet wired end-to-end. Once auth is live, replace
- * this page with a proper auth-gated profile/orders view. For now it
- * gives users a clear landing instead of a 404, and provides the Book
- * Now CTA so the session isn't a dead end.
- */
-export default function AccountPage() {
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface BookingRow {
+  id:          string;
+  bookingRef:  string;
+  status:      BookingStatus;
+  serviceName: string;
+  scheduledAt: Date;
+  total:       number;
+  address:     string;
+}
+
+// ─── Status label mapping ─────────────────────────────────────────────────────
+
+const STATUS_LABEL: Record<BookingStatus, string> = {
+  pending:    'Pending',
+  assigned:   'Confirmed',
+  enroute:    'En Route',
+  inprogress: 'In Progress',
+  done:       'Done',
+  cancelled:  'Cancelled',
+};
+
+// ─── Booking card ─────────────────────────────────────────────────────────────
+
+function BookingCard({ b }: { b: BookingRow }) {
+  const date = b.scheduledAt.toLocaleDateString('en-IN', {
+    day: 'numeric', month: 'short', year: 'numeric',
+  });
+  const time = b.scheduledAt.toLocaleTimeString('en-IN', {
+    hour: '2-digit', minute: '2-digit',
+  });
+
   return (
-    <main style={{
-      minHeight: '80vh',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: 'var(--pc-space-20) var(--pc-space-6)',
-      textAlign: 'center',
+    <div style={{
+      background:   'var(--pc-card)',
+      border:       '1px solid var(--pc-line)',
+      borderRadius: 'var(--pc-radius-md)',
+      padding:      'var(--pc-space-5)',
+      display:      'flex',
+      flexDirection:'column',
+      gap:          'var(--pc-space-3)',
     }}>
-      {/* Icon */}
-      <div style={{
-        width: 64,
-        height: 64,
-        borderRadius: 'var(--pc-radius-pill)',
-        border: '1px solid var(--pc-line-strong)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 'var(--pc-space-8)',
-      }}>
-        <svg
-          width="26"
-          height="26"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="var(--pc-fg-3)"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-          <circle cx="12" cy="7" r="4" />
-        </svg>
-      </div>
-
-      <Eyebrow style={{ display: 'block', marginBottom: 'var(--pc-space-3)' }}>
-        ACCOUNT
-      </Eyebrow>
-
-      <h1 style={{
-        fontFamily: 'var(--pc-serif)',
-        fontSize: 'var(--pc-text-2xl)',
-        fontWeight: 400,
-        color: 'var(--pc-fg)',
-        letterSpacing: 'var(--pc-track-tight)',
-        lineHeight: 'var(--pc-lh-tight)',
-        marginBottom: 'var(--pc-space-4)',
-      }}>
-        Coming soon.
-      </h1>
-
-      <p style={{
-        fontFamily: 'var(--pc-sans)',
-        fontSize: 'var(--pc-text-base)',
-        color: 'var(--pc-fg-2)',
-        lineHeight: 'var(--pc-lh-loose)',
-        maxWidth: 360,
-        marginBottom: 'var(--pc-space-10)',
-      }}>
-        Customer accounts — booking history, saved addresses, and subscription
-        management — are on their way. For now, all booking confirmations are
-        sent via WhatsApp.
-      </p>
-
-      <div style={{ display: 'flex', gap: 'var(--pc-space-3)', flexWrap: 'wrap', justifyContent: 'center' }}>
-        <Link
-          href="/book"
-          className="pc-hero-cta-primary"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 'var(--pc-space-3) var(--pc-space-8)',
-            borderRadius: 'var(--pc-radius-pill)',
-            background: 'var(--pc-warm)',
-            color: 'var(--pc-ink)',
-            fontFamily: 'var(--pc-sans)',
-            fontSize: 'var(--pc-text-sm)',
-            fontWeight: 600,
-            letterSpacing: 'var(--pc-track-wide)',
+      {/* Header row */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+        <div>
+          <p style={{
+            fontFamily: 'var(--pc-mono)',
+            fontSize:   10,
+            letterSpacing: '0.1em',
             textTransform: 'uppercase',
-            textDecoration: 'none',
-            transition: 'background var(--pc-dur-fast) var(--pc-ease)',
-          }}
-        >
-          Book a Service →
-        </Link>
-        <Link
-          href="/"
-          className="pc-hero-cta-ghost"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 'var(--pc-space-3) var(--pc-space-8)',
-            borderRadius: 'var(--pc-radius-pill)',
-            background: 'transparent',
-            color: 'var(--pc-fg)',
-            border: '1px solid var(--pc-line-strong)',
+            color:      'var(--pc-fg-3)',
+            margin:     0,
+          }}>
+            {b.bookingRef}
+          </p>
+          <p style={{
             fontFamily: 'var(--pc-sans)',
-            fontSize: 'var(--pc-text-sm)',
+            fontSize:   15,
             fontWeight: 500,
-            letterSpacing: 'var(--pc-track-wide)',
-            textTransform: 'uppercase',
-            textDecoration: 'none',
-            transition: 'background var(--pc-dur-fast) var(--pc-ease), border-color var(--pc-dur-fast) var(--pc-ease)',
-          }}
-        >
-          Back to Home
-        </Link>
+            color:      'var(--pc-fg)',
+            margin:     '4px 0 0',
+          }}>
+            {b.serviceName}
+          </p>
+        </div>
+        <StatusPill status={STATUS_LABEL[b.status] ?? b.status} />
       </div>
-    </main>
+
+      {/* Meta row */}
+      <div style={{
+        display:    'flex',
+        gap:        'var(--pc-space-6)',
+        flexWrap:   'wrap',
+        paddingTop: 'var(--pc-space-3)',
+        borderTop:  '1px solid var(--pc-line)',
+      }}>
+        {[
+          { label: 'Date',     val: `${date} · ${time}` },
+          { label: 'Location', val: b.address || '—'    },
+          { label: 'Total',    val: `₹${b.total.toLocaleString('en-IN')}` },
+        ].map(({ label, val }) => (
+          <div key={label}>
+            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--pc-fg-4)', margin: 0 }}>
+              {label}
+            </p>
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)', margin: '3px 0 0' }}>
+              {val}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
+
+function Skeleton({ h = 20, w = '100%' }: { h?: number; w?: string | number }) {
+  return (
+    <div style={{
+      height:       h,
+      width:        w,
+      background:   'var(--pc-card)',
+      borderRadius: 'var(--pc-radius-sm)',
+      animation:    'pc-pulse 1.6s ease-in-out infinite',
+    }} />
+  );
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
+
+export default function AccountPage() {
+  const { user, loading, signOut } = useCustomerAuth();
+  const router = useRouter();
+
+  const [bookings,  setBookings]  = useState<BookingRow[]>([]);
+  const [bLoading,  setBLoading]  = useState(true);
+  const [signOutBusy, setSignOutBusy] = useState(false);
+
+  // Auth guard
+  useEffect(() => {
+    if (!loading && !user) router.replace('/login?from=/account');
+  }, [user, loading, router]);
+
+  // Fetch bookings by phone number — matches bookings from both web + mobile
+  useEffect(() => {
+    if (!user?.phoneNumber) return;
+    setBLoading(true);
+
+    const q = query(
+      collection(db, 'bookings'),
+      where('customerPhone', '==', user.phoneNumber),
+    );
+
+    let unsub: Unsubscribe;
+    unsub = onSnapshot(q,
+      snap => {
+        const rows: BookingRow[] = snap.docs
+          .map(d => {
+            const data = d.data();
+            const scheduledAt = data.scheduledAt?.toDate?.() ?? new Date(data.scheduledAt ?? 0);
+            return {
+              id:          d.id,
+              bookingRef:  data.bookingRef ?? d.id.slice(0, 8).toUpperCase(),
+              status:      data.status as BookingStatus,
+              serviceName: data.serviceIds?.[0]?.replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()) ?? 'Service',
+              scheduledAt,
+              total:       data.priceBreakdown?.total ?? 0,
+              address:     [data.address?.line1, data.address?.city].filter(Boolean).join(', '),
+            };
+          })
+          .sort((a, b) => b.scheduledAt.getTime() - a.scheduledAt.getTime());
+
+        setBookings(rows);
+        setBLoading(false);
+      },
+      err => {
+        console.warn('[AccountPage] Firestore:', err.message);
+        setBLoading(false);
+      },
+    );
+    return () => unsub();
+  }, [user?.phoneNumber]);
+
+  async function handleSignOut() {
+    setSignOutBusy(true);
+    await signOut();
+    router.replace('/');
+  }
+
+  if (loading || !user) return null;
+
+  const displayPhone = user.phoneNumber?.replace('+91', '') ?? '';
+  const formattedPhone = displayPhone
+    ? `+91 ${displayPhone.slice(0, 5)} ${displayPhone.slice(5)}`
+    : '';
+
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--pc-ink)', display: 'flex', flexDirection: 'column' }}>
+      <Nav />
+
+      <main style={{
+        flex: 1,
+        maxWidth: 800,
+        width: '100%',
+        margin: '0 auto',
+        padding: 'var(--pc-space-12) var(--pc-space-6) var(--pc-space-20)',
+      }}>
+
+        {/* Header */}
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+          marginBottom: 'var(--pc-space-10)',
+          gap: 'var(--pc-space-4)',
+          flexWrap: 'wrap',
+        }}>
+          <div>
+            <p style={{
+              fontFamily: 'var(--pc-mono)', fontSize: 10, letterSpacing: '0.1em',
+              textTransform: 'uppercase', color: 'var(--pc-fg-3)', margin: '0 0 10px',
+            }}>
+              [ACCOUNT]
+            </p>
+            <h1 style={{
+              fontFamily: 'var(--pc-serif)', fontSize: 'clamp(28px, 5vw, 44px)',
+              fontWeight: 400, color: 'var(--pc-fg)',
+              letterSpacing: '-0.02em', lineHeight: 1.05, margin: 0,
+            }}>
+              Your bookings.
+            </h1>
+            {formattedPhone && (
+              <p style={{
+                fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)',
+                margin: '8px 0 0',
+              }}>
+                {formattedPhone}
+              </p>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', gap: 'var(--pc-space-3)', alignItems: 'center', flexShrink: 0 }}>
+            <Link
+              href="/book"
+              style={{
+                display: 'inline-flex', alignItems: 'center',
+                padding: '10px 20px',
+                background: 'var(--pc-warm)',
+                color: 'var(--pc-ink)',
+                border: 'none',
+                borderRadius: 999,
+                fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600,
+                letterSpacing: '0.06em', textTransform: 'uppercase',
+                textDecoration: 'none',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Book a service →
+            </Link>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              disabled={signOutBusy}
+              style={{
+                padding: '10px 16px',
+                background: 'transparent',
+                color: 'var(--pc-fg-3)',
+                border: '1px solid var(--pc-line-strong)',
+                borderRadius: 999,
+                fontFamily: 'var(--pc-sans)', fontSize: 12,
+                letterSpacing: '0.04em',
+                cursor: signOutBusy ? 'not-allowed' : 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {signOutBusy ? 'Signing out…' : 'Sign out'}
+            </button>
+          </div>
+        </div>
+
+        {/* Bookings */}
+        {bLoading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-4)' }}>
+            {[1, 2, 3].map(i => (
+              <div key={i} style={{
+                background: 'var(--pc-card)', border: '1px solid var(--pc-line)',
+                borderRadius: 'var(--pc-radius-md)', padding: 'var(--pc-space-5)',
+                display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-4)',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <Skeleton h={10} w={80} />
+                    <Skeleton h={16} w={160} />
+                  </div>
+                  <Skeleton h={24} w={90} />
+                </div>
+                <Skeleton h={1} />
+                <div style={{ display: 'flex', gap: 'var(--pc-space-6)' }}>
+                  <Skeleton h={32} w={140} />
+                  <Skeleton h={32} w={120} />
+                  <Skeleton h={32} w={80} />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : bookings.length === 0 ? (
+          <div style={{
+            textAlign: 'center',
+            padding: 'var(--pc-space-20) var(--pc-space-6)',
+            background: 'var(--pc-card)',
+            border: '1px solid var(--pc-line)',
+            borderRadius: 'var(--pc-radius-md)',
+          }}>
+            <p style={{
+              fontFamily: 'var(--pc-mono)', fontSize: 10, letterSpacing: '0.1em',
+              textTransform: 'uppercase', color: 'var(--pc-fg-4)', marginBottom: 12,
+            }}>
+              [NO BOOKINGS YET]
+            </p>
+            <p style={{
+              fontFamily: 'var(--pc-serif)', fontSize: 28, color: 'var(--pc-fg)',
+              letterSpacing: '-0.02em', marginBottom: 16,
+            }}>
+              Your first wash awaits.
+            </p>
+            <p style={{
+              fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg-3)',
+              lineHeight: 1.6, maxWidth: 360, margin: '0 auto 28px',
+            }}>
+              Book your first premium wash or detailing session — takes under two minutes.
+            </p>
+            <Link href="/book" style={{
+              display: 'inline-flex', alignItems: 'center',
+              padding: '12px 28px',
+              background: 'var(--pc-warm)', color: 'var(--pc-ink)',
+              borderRadius: 999,
+              fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600,
+              letterSpacing: '0.06em', textTransform: 'uppercase',
+              textDecoration: 'none',
+            }}>
+              Book now →
+            </Link>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-4)' }}>
+            {bookings.map(b => <BookingCard key={b.id} b={b} />)}
+          </div>
+        )}
+      </main>
+
+      <Footer />
+    </div>
   );
 }

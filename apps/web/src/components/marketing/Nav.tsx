@@ -7,6 +7,7 @@ import Icon from '@/components/ui/Icon';
 import Image from 'next/image';
 import { useTheme } from '@/components/ThemeProvider';
 import { useI18n } from '@/i18n';
+import { useCustomerAuth } from '@/lib/auth/CustomerAuthContext';
 
 const NAV_HREFS = ['/services', '/plans', '/gallery', '/about', '/journal', '/contact'] as const;
 
@@ -29,6 +30,9 @@ export default function Nav() {
 
   const triggerRef = useRef<HTMLButtonElement>(null); // hamburger
   const drawerRef  = useRef<HTMLDivElement>(null);    // drawer container
+  const { user }   = useCustomerAuth();
+  // Last digit of phone number as avatar initial (e.g. +91 98765 43210 → '0')
+  const userInitial = user?.phoneNumber?.slice(-2, -1)?.toUpperCase() ?? null;
 
   const NAV_LINKS = [
     { label: t.nav.services, href: NAV_HREFS[0] },
@@ -243,21 +247,29 @@ export default function Nav() {
             <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={14} color="currentColor" strokeWidth={1.5} />
           </button>
 
-          {/* Account icon — desktop */}
+          {/* Account icon / avatar — desktop */}
           <Link
-            href="/account"
-            aria-label="Account"
+            href={user ? '/account' : '/login'}
+            aria-label={user ? 'My account' : 'Sign in'}
             className="pc-nav-desktop"
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               width: 32, height: 32,
               borderRadius: '50%',
-              border: '1px solid var(--pc-line-strong)',
-              color: 'var(--pc-fg-3)',
-              transition: 'border-color 0.18s ease, color 0.18s ease',
+              border: `1px solid ${user ? 'var(--pc-sage-hi)' : 'var(--pc-line-strong)'}`,
+              background: user ? 'var(--pc-sage)' : 'transparent',
+              color: user ? 'var(--pc-sage-ink)' : 'var(--pc-fg-3)',
+              fontFamily: 'var(--pc-mono)',
+              fontSize: 12,
+              fontWeight: 600,
+              transition: 'border-color 0.18s ease, background 0.18s ease, color 0.18s ease',
+              textDecoration: 'none',
             }}
           >
-            <Icon name="user" size={14} color="currentColor" strokeWidth={1.5} />
+            {user
+              ? <span>{userInitial}</span>
+              : <Icon name="user" size={14} color="currentColor" strokeWidth={1.5} />
+            }
           </Link>
 
           {/* Hamburger — mobile */}

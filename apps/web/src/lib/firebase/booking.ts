@@ -1,4 +1,4 @@
-import { db } from '@pc/firebase';
+import { db, auth } from '@pc/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import type { Booking, BookingStatus, VehicleType } from '@pc/firebase';
 
@@ -45,8 +45,10 @@ export async function submitBooking(
   const subtotal = data.price;
   const total = subtotal + fee;
 
+  const currentUser = auth.currentUser;
+
   const newBooking: Omit<Booking, 'id' | 'createdAt' | 'updatedAt'> = {
-    customerId: `phone:${data.customerPhone}`, // temp ID until auth is live
+    customerId: currentUser?.uid ?? `phone:${data.customerPhone}`,
     serviceIds: [data.serviceId],
     vehicle: {
       id: 'web_booking_vehicle',
