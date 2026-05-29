@@ -7,7 +7,7 @@ import Link from 'next/link';
 
 type Cycle = 'weekly' | 'monthly' | 'yearly';
 
-// ─── Plan data ────────────────────────────────────────────────────────────────
+// ─── Plan data ──────────────────────────────────────────────────────────────────
 
 const PLANS = [
   {
@@ -16,7 +16,7 @@ const PLANS = [
     eyebrow: 'ESSENTIAL CARE',
     tagline: 'Consistent cleanliness, every week.',
     prices: { weekly: 899, monthly: 2999, yearly: 29999 },
-    yearlyPerMonth: 2500,   // 29999 / 12, rounded
+    yearlyPerMonth: 2500,
     popular: false,
     features: [
       'Weekly Exterior Wash',
@@ -62,7 +62,7 @@ const PLANS = [
   },
 ] as const;
 
-// ─── FAQ items ────────────────────────────────────────────────────────────────
+// ─── FAQ items ──────────────────────────────────────────────────────────────────
 
 const FAQS = [
   {
@@ -83,7 +83,7 @@ const FAQS = [
   },
 ] as const;
 
-// ─── FAQ accordion item ───────────────────────────────────────────────────────
+// ─── FAQ accordion item ────────────────────────────────────────────────────────────────
 
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
@@ -130,7 +130,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// ─── Main component ────────────────────────────────────────────────────────────────────
 
 export default function PlansSection() {
   const [cycle, setCycle] = useState<Cycle>('monthly');
@@ -142,10 +142,14 @@ export default function PlansSection() {
   };
 
   return (
-    <div style={{ padding: 'var(--pc-space-20) var(--pc-screen-pad-lg) var(--pc-space-20)', maxWidth: 1200, margin: '0 auto' }}>
+    <div style={{
+      padding: 'var(--pc-space-20) var(--pc-screen-pad-lg) var(--pc-space-20)',
+      maxWidth: 1200,
+      margin: '0 auto',
+    }}>
 
       {/* ── Hero header ── */}
-      <div style={{ textAlign: 'center', marginBottom: 56 }}>
+      <div style={{ textAlign: 'center', marginBottom: 48 }}>
         <div style={{
           display: 'inline-block',
           fontFamily: 'var(--pc-mono)', fontSize: 10, letterSpacing: 'var(--pc-track-wide)',
@@ -157,7 +161,8 @@ export default function PlansSection() {
         </div>
 
         <h1 style={{
-          fontFamily: 'var(--pc-serif)', fontSize: 'clamp(40px, 5vw, 64px)',
+          fontFamily: 'var(--pc-serif)',
+          fontSize: 'clamp(32px, 5vw, 64px)',
           color: 'var(--pc-fg)', letterSpacing: 'var(--pc-track-tight)',
           lineHeight: 'var(--pc-lh-tight)', margin: '0 0 16px',
         }}>
@@ -165,14 +170,14 @@ export default function PlansSection() {
         </h1>
 
         <p style={{
-          fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-lg)',
+          fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-base)',
           color: 'var(--pc-fg-2)', lineHeight: 'var(--pc-lh-body)',
-          maxWidth: 520, margin: '0 auto 40px',
+          maxWidth: 520, margin: '0 auto 36px',
         }}>
           Regular care, predictable pricing. Pick the frequency that fits your life — cancel or change anytime.
         </p>
 
-        {/* Billing cycle toggle — full-width on mobile so 3 buttons have room */}
+        {/* Billing cycle toggle */}
         <div style={{
           display: 'inline-flex', gap: 4, padding: 4,
           background: 'var(--pc-card)', borderRadius: 999,
@@ -185,18 +190,18 @@ export default function PlansSection() {
               type="button"
               onClick={() => setCycle(c)}
               style={{
-                padding: 'clamp(8px, 2vw, 9px) clamp(12px, 3vw, 20px)',
+                padding: 'clamp(7px, 2vw, 9px) clamp(10px, 3vw, 20px)',
                 borderRadius: 999,
                 background: cycle === c ? 'var(--pc-ink-raised)' : 'transparent',
                 color: cycle === c ? 'var(--pc-fg)' : 'var(--pc-fg-2)',
                 border: cycle === c ? '1px solid var(--pc-line-strong)' : '1px solid transparent',
                 fontFamily: 'var(--pc-sans)',
-                fontSize: 'clamp(12px, 3vw, var(--pc-text-sm))',
+                fontSize: 'clamp(11px, 3vw, var(--pc-text-sm))',
                 fontWeight: cycle === c ? 600 : 400,
                 letterSpacing: '0.03em',
                 cursor: 'pointer',
                 display: 'flex', alignItems: 'center',
-                gap: 'clamp(4px, 1vw, 7px)',
+                gap: 'clamp(3px, 1vw, 7px)',
                 whiteSpace: 'nowrap',
                 transition: 'background var(--pc-dur-fast) var(--pc-ease), color var(--pc-dur-fast) var(--pc-ease)',
               }}
@@ -230,13 +235,7 @@ export default function PlansSection() {
       </div>
 
       {/* ── Plan cards ── */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-        gap: 20,
-        alignItems: 'start',
-        marginBottom: 80,
-      }}>
+      <div className="pc-plans-grid" style={{ marginBottom: 64 }}>
         {PLANS.map(plan => {
           const price   = plan.prices[cycle];
           const popular = plan.popular;
@@ -248,7 +247,7 @@ export default function PlansSection() {
                 background: 'var(--pc-card)',
                 border: `1px solid ${popular ? 'rgba(91,111,82,0.55)' : 'var(--pc-line)'}`,
                 borderRadius: 20,
-                padding: 'clamp(24px, 5vw, 36px) clamp(20px, 5vw, 32px)',
+                padding: 'clamp(20px, 4vw, 36px) clamp(16px, 4vw, 32px)',
                 display: 'flex', flexDirection: 'column',
                 position: 'relative',
                 boxShadow: popular ? 'var(--pc-shadow-glow-sage)' : 'none',
@@ -279,7 +278,7 @@ export default function PlansSection() {
               {/* Plan name */}
               <h2 style={{
                 fontFamily: 'var(--pc-serif)',
-                fontSize: 'clamp(28px, 3vw, 36px)',
+                fontSize: 'clamp(24px, 3vw, 36px)',
                 color: 'var(--pc-fg)',
                 letterSpacing: 'var(--pc-track-tight)',
                 margin: '0 0 6px', lineHeight: 1,
@@ -289,15 +288,15 @@ export default function PlansSection() {
               <p style={{
                 fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)',
                 color: 'var(--pc-fg-2)', lineHeight: 'var(--pc-lh-body)',
-                margin: '0 0 28px',
+                margin: '0 0 24px',
               }}>{plan.tagline}</p>
 
               {/* Price */}
-              <div style={{ marginBottom: 28 }}>
+              <div style={{ marginBottom: 24 }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
                   <span style={{
                     fontFamily: 'var(--pc-serif)',
-                    fontSize: 'clamp(40px, 4vw, 52px)',
+                    fontSize: 'clamp(32px, 4vw, 52px)',
                     color: 'var(--pc-fg)',
                     letterSpacing: 'var(--pc-track-tight)',
                     lineHeight: 1,
@@ -321,12 +320,12 @@ export default function PlansSection() {
               </div>
 
               {/* Divider */}
-              <div style={{ borderTop: '1px solid var(--pc-line)', marginBottom: 24 }} />
+              <div style={{ borderTop: '1px solid var(--pc-line)', marginBottom: 20 }} />
 
               {/* Features */}
               <ul style={{
-                listStyle: 'none', padding: 0, margin: '0 0 32px',
-                display: 'flex', flexDirection: 'column', gap: 12, flex: 1,
+                listStyle: 'none', padding: 0, margin: '0 0 28px',
+                display: 'flex', flexDirection: 'column', gap: 10, flex: 1,
               }}>
                 {plan.features.map((f, i) => (
                   <li key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
@@ -351,7 +350,7 @@ export default function PlansSection() {
                 href={`/book?plan=${plan.id}&cycle=${cycle}`}
                 style={{
                   display: 'block', textAlign: 'center',
-                  padding: '14px 0', borderRadius: 999,
+                  padding: '13px 0', borderRadius: 999,
                   background: popular ? 'var(--pc-warm)' : 'transparent',
                   color: popular ? 'var(--pc-ink)' : 'var(--pc-fg)',
                   border: popular ? 'none' : '1px solid var(--pc-line-strong)',
@@ -371,26 +370,17 @@ export default function PlansSection() {
       </div>
 
       {/* ── Value comparison strip ── */}
-      <div style={{
-        background: 'var(--pc-card)',
-        border: '1px solid var(--pc-line)',
-        borderRadius: 16,
-        padding: '28px 36px',
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-        gap: 24,
-        marginBottom: 80,
-        textAlign: 'center',
-      }}>
+      <div className="pc-plans-value-strip" style={{ marginBottom: 64 }}>
         {[
           { num: '₹0',     label: 'Setup fee'              },
           { num: '48 hr',  label: 'Free reschedule window' },
           { num: '30-day', label: 'Cancellation notice'    },
           { num: '3 days', label: 'First visit turnaround' },
         ].map(({ num, label }) => (
-          <div key={label}>
+          <div key={label} style={{ textAlign: 'center' }}>
             <div style={{
-              fontFamily: 'var(--pc-serif)', fontSize: 'clamp(28px, 3vw, 36px)',
+              fontFamily: 'var(--pc-serif)',
+              fontSize: 'clamp(24px, 3vw, 36px)',
               color: 'var(--pc-fg)', letterSpacing: 'var(--pc-track-tight)',
               marginBottom: 6,
             }}>{num}</div>
@@ -415,7 +405,7 @@ export default function PlansSection() {
         {FAQS.map(faq => <FaqItem key={faq.q} q={faq.q} a={faq.a} />)}
       </div>
 
-      {/* ── Compare tiers link ── */}
+      {/* ── Bottom link ── */}
       <div style={{ textAlign: 'center', marginTop: 56 }}>
         <p style={{
           fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)',
