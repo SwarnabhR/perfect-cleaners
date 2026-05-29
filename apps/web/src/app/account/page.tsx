@@ -133,7 +133,7 @@ export default function AccountPage() {
 
   // Auth guard
   useEffect(() => {
-    if (!loading && !user) router.replace('/login?from=/account');
+    if (!loading && !user) router.replace('/signin?from=/account');
   }, [user, loading, router]);
 
   // Fetch bookings by phone number — matches bookings from both web + mobile

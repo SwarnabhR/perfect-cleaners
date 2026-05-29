@@ -1,63 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth, adminFirestore } from '@/lib/firebase/admin';
-
-const MAX_ATTEMPTS = 5;
+import { adminAuth } from '@/lib/firebase/admin';
 
 export async function POST(req: NextRequest) {
   try {
-    const { phone, otp } = await req.json();
+    const { phone, msg91Token } = await req.json();
 
-    if (!/^[6-9]\d{9}$/.test(phone) || !/^\d{6}$/.test(otp)) {
+    if (!/^[6-9]\d{9}$/.test(phone) || !msg91Token) {
       return NextResponse.json({ error: 'Invalid request.' }, { status: 400 });
     }
 
-    const db  = adminFirestore();
-    const ref = db.collection('otpVerifications').doc(phone);
-    const doc = await ref.get();
+    // Verify the MSG91 access token server-side
+    const verifyRes = await fetch(
+      'https://control.msg91.com/api/v5/widget/verifyAccessToken',
+      {
+        method:  'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          authkey: process.env.MSG91_AUTH_KEY!,
+        },
+        body: JSON.stringify({ 'access-token': msg91Token }),
+      },
+    );
+    const verifyData = await verifyRes.json();
 
-    if (!doc.exists) {
+    if (verifyData.type !== 'success') {
       return NextResponse.json(
-        { error: 'No code found for this number. Please request a new one.' },
+        { error: 'OTP verification failed. Please try again.' },
         { status: 400 },
       );
     }
 
-    const data = doc.data()!;
-
-    if (Date.now() > data.expiresAt) {
-      await ref.delete();
-      return NextResponse.json({ error: 'Code expired. Please request a new one.' }, { status: 400 });
-    }
-
-    if (data.attempts >= MAX_ATTEMPTS) {
-      await ref.delete();
-      return NextResponse.json(
-        { error: 'Too many incorrect attempts. Please request a new code.' },
-        { status: 429 },
-      );
-    }
-
-    if (data.otp !== otp) {
-      await ref.update({ attempts: data.attempts + 1 });
-      const left = MAX_ATTEMPTS - data.attempts - 1;
-      return NextResponse.json(
-        { error: `Incorrect code. ${left} attempt${left !== 1 ? 's' : ''} remaining.` },
-        { status: 400 },
-      );
-    }
-
-    // OTP correct — delete record
-    await ref.delete();
-
-    // Find or create Firebase user by phone number
+    // Find or create the Firebase Auth user for this phone number
     let uid: string;
     try {
       const existing = await adminAuth().getUserByPhoneNumber(`+91${phone}`);
       uid = existing.uid;
     } catch (e: any) {
       if (e.code === 'auth/user-not-found') {
-        const newUser = await adminAuth().createUser({ phoneNumber: `+91${phone}` });
-        uid = newUser.uid;
+        const created = await adminAuth().createUser({ phoneNumber: `+91${phone}` });
+        uid = created.uid;
       } else {
         throw e;
       }

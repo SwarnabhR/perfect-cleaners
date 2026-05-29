@@ -249,7 +249,7 @@ export default function Nav() {
 
           {/* Account icon / avatar — desktop */}
           <Link
-            href={user ? '/account' : '/login'}
+            href={user ? '/account' : '/signin'}
             aria-label={user ? 'My account' : 'Sign in'}
             className="pc-nav-desktop"
             style={{

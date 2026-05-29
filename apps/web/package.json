@@ -9,7 +9,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@marsidev/react-turnstile": "^1.5.2",
     "@pc/firebase": "*",
     "@vercel/analytics": "^2.0.1",
     "firebase": "^11.0.0",
