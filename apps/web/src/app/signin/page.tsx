@@ -1,26 +1,13 @@
 'use client';
 
-import { Suspense, useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signInWithCustomToken } from 'firebase/auth';
 import Image from 'next/image';
 import { auth } from '@pc/firebase';
 import OtpInput from '@/components/ui/OtpInput';
 import { useCustomerAuth } from '@/lib/auth/CustomerAuthContext';
-
-// ─── MSG91 window types ───────────────────────────────────────────────────────
-
-declare global {
-  interface Window {
-    initSendOTP?: (config: object) => void;
-    sendOtp?:     (id: string, onSuccess?: (d: any) => void, onError?: (e: any) => void) => void;
-    retryOtp?:    (channel: string | null, onSuccess?: (d: any) => void, onError?: (e: any) => void) => void;
-    verifyOtp?:   (otp: string, onSuccess?: (d: any) => void, onError?: (e: any) => void) => void;
-  }
-}
-
-const WIDGET_ID  = process.env.NEXT_PUBLIC_MSG91_WIDGET_ID    ?? '';
-const TOKEN_AUTH = process.env.NEXT_PUBLIC_MSG91_WIDGET_TOKEN ?? '';
+import { useMsg91 } from '@/lib/auth/useMsg91';
 
 type Step = 'phone' | 'otp';
 
@@ -65,37 +52,13 @@ function SignInContent() {
   const [error,     setError]     = useState('');
   const [countdown, setCountdown] = useState(0);
 
-  const sdkReady   = useRef(false);
+  const { ready }  = useMsg91();
   const redirectTo = searchParams.get('from') ?? '/account';
 
   // Skip login if already signed in
   useEffect(() => {
     if (!loading && user) router.replace(redirectTo);
   }, [user, loading, redirectTo, router]);
-
-  // Load MSG91 SDK once
-  useEffect(() => {
-    if (sdkReady.current || !WIDGET_ID) return;
-    const config = {
-      widgetId: WIDGET_ID, tokenAuth: TOKEN_AUTH,
-      exposeMethods: true,
-      success: () => {},
-      failure: (err: any) => console.warn('[MSG91]', err),
-    };
-    const urls = [
-      'https://verify.msg91.com/otp-provider.js',
-      'https://verify.phone91.com/otp-provider.js',
-    ];
-    let i = 0;
-    function attempt() {
-      const s = document.createElement('script');
-      s.src = urls[i]; s.async = true;
-      s.onload  = () => { sdkReady.current = true; window.initSendOTP?.(config); };
-      s.onerror = () => { if (++i < urls.length) attempt(); };
-      document.head.appendChild(s);
-    }
-    attempt();
-  }, []);
 
   // Resend countdown
   useEffect(() => {
@@ -106,7 +69,7 @@ function SignInContent() {
 
   function handleSendCode(e: React.FormEvent) {
     e.preventDefault();
-    if (!window.sendOtp) { setError('Verification loading. Please try again.'); return; }
+    if (!ready || !window.sendOtp) { setError('Verification service is loading. Please wait and try again.'); return; }
     setError(''); setBusy(true);
     window.sendOtp(
       `91${phone}`,

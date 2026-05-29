@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Card from '@/components/ui/Card';
 import PillSelect from '@/components/ui/PillSelect';
+import AuthBottomSheet from '@/components/auth/AuthBottomSheet';
+import { useCustomerAuth } from '@/lib/auth/CustomerAuthContext';
 import { submitBooking } from '@/lib/firebase/booking';
 import styles from './BookingFlow.module.css';
 
@@ -288,6 +290,9 @@ function FieldError({ msg }: { msg?: string }) {
 export default function BookingFlow() {
   const router       = useRouter();
   const searchParams = useSearchParams();
+  const { user }     = useCustomerAuth();
+  const [authSheetOpen,  setAuthSheetOpen]  = useState(false);
+  const [pendingSubmit,  setPendingSubmit]  = useState(false);
 
   const [dates]               = useState<DateOption[]>(buildUpcomingDates);
   const [selDate, setSelDate] = useState<DateOption>(() => buildUpcomingDates()[0]);
@@ -372,6 +377,14 @@ export default function BookingFlow() {
       document.querySelector('[data-error-anchor]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
+
+    // Require sign-in before submitting
+    if (!user) {
+      setPendingSubmit(true);
+      setAuthSheetOpen(true);
+      return;
+    }
+
     setErrors({});
     setSubmitError('');
     setIsSubmitting(true);
@@ -551,10 +564,52 @@ export default function BookingFlow() {
 
   // ─── Form ─────────────────────────────────────────────────────────────────────
   return (
+    <>
+    <AuthBottomSheet
+      open={authSheetOpen}
+      onClose={() => { setAuthSheetOpen(false); setPendingSubmit(false); }}
+      heading="Sign in to confirm your booking. Takes 10 seconds."
+      onSuccess={() => {
+        setAuthSheetOpen(false);
+        if (pendingSubmit) { setPendingSubmit(false); handleSubmit(); }
+      }}
+    />
+
     <div className={styles.layout}>
 
       {/* ── Left: form steps ── */}
       <div className={styles.formCol}>
+
+        {/* Auth notice — shown when not signed in */}
+        {!user && (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            gap: 12, flexWrap: 'wrap',
+            padding: 'var(--pc-space-3) var(--pc-space-4)',
+            background: 'var(--pc-card)',
+            border: '1px solid var(--pc-line-strong)',
+            borderRadius: 'var(--pc-radius-md)',
+          }}>
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)', margin: 0, lineHeight: 1.5 }}>
+              Sign in to confirm your booking.
+            </p>
+            <button
+              type="button"
+              onClick={() => setAuthSheetOpen(true)}
+              style={{
+                flexShrink: 0,
+                padding: '8px 18px',
+                background: 'var(--pc-warm)', color: 'var(--pc-ink)',
+                border: 'none', borderRadius: 999,
+                fontFamily: 'var(--pc-sans)', fontSize: 12, fontWeight: 600,
+                letterSpacing: '0.05em', textTransform: 'uppercase',
+                cursor: 'pointer',
+              }}
+            >
+              Sign in →
+            </button>
+          </div>
+        )}
 
         {/* Subscription context banner — shown when arriving from /plans */}
         {subscriptionBanner && (
@@ -977,5 +1032,6 @@ export default function BookingFlow() {
         </div>
       </div>
     </div>
+    </>
   );
 }
