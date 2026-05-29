@@ -116,6 +116,42 @@
   }
 }
 
+/* ── Scrollable date / time rows ── */
+
+/* Date pills — horizontal scroll on all sizes (5 pills + calendar = ~420px min) */
+.dateRow {
+  display: flex;
+  gap: var(--pc-space-2);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+.dateRow::-webkit-scrollbar { display: none; }
+
+/* Time chips — wrap on desktop, scroll on mobile */
+.timeRow {
+  display: flex;
+  gap: var(--pc-space-2);
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .timeRow {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .timeRow::-webkit-scrollbar { display: none; }
+
+  /* Tighter section spacing on mobile */
+  .formCol {
+    gap: var(--pc-space-8) !important;
+  }
+}
+
 /* ── Selection buttons (service cards, date pills, time chips) ── */
 /* These buttons already define transition inline; this rule provides
    the :hover target so the transition actually fires on unselected items. */

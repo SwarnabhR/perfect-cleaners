@@ -649,7 +649,7 @@ export default function BookingFlow() {
           <StepLabel n="02">Select Date &amp; Time</StepLabel>
 
           <div ref={calendarRef} style={{ position: 'relative', marginBottom: 'var(--pc-space-4)' }}>
-            <div style={{ display: 'flex', gap: 'var(--pc-space-2)', flexWrap: 'wrap' }}>
+            <div className={styles.dateRow}>
 
               {/* Quick-pick date pills */}
               {dates.map(d => {
@@ -795,7 +795,7 @@ export default function BookingFlow() {
           </div>
 
           {/* Time chips */}
-          <div style={{ display: 'flex', gap: 'var(--pc-space-2)', flexWrap: 'wrap' }}>
+          <div className={styles.timeRow}>
             {TIMES.map(t => {
               const active = selTime === t;
               return (

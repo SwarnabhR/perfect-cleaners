@@ -677,6 +677,54 @@ html {
 }
 
 /* ====================================================================
+   Plans page
+   ==================================================================== */
+
+.pc-plans-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  align-items: stretch;
+}
+
+.pc-plans-value-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  padding: 36px 0;
+  border-top: 1px solid var(--pc-line);
+  border-bottom: 1px solid var(--pc-line);
+}
+
+@media (max-width: 900px) {
+  .pc-plans-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .pc-plans-value-strip {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px 20px;
+  }
+}
+
+/* ====================================================================
+   /app page
+   ==================================================================== */
+
+@media (max-width: 768px) {
+  .pc-app-hero {
+    padding: var(--pc-space-10) var(--pc-screen-pad-lg) var(--pc-space-10) !important;
+  }
+  .pc-app-badges {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+}
+
+/* ====================================================================
    Footer — word-break for long email on narrow screens
    ==================================================================== */
 

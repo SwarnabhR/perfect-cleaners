@@ -81,7 +81,7 @@ export default function AppPage() {
         <section style={{
           maxWidth: 1100,
           margin: '0 auto',
-          padding: 'var(--pc-space-20) var(--pc-space-10) var(--pc-space-16)',
+          padding: 'var(--pc-space-20) var(--pc-screen-pad-lg) var(--pc-space-16)',
           display: 'grid',
           gridTemplateColumns: 'minmax(0,1fr) auto',
           gap: 'clamp(40px, 6vw, 96px)',
@@ -135,7 +135,7 @@ export default function AppPage() {
             </div>
 
             {/* Store badges */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 48 }}>
+            <div className="pc-app-badges" style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginBottom: 48 }}>
               <StoreBadge
                 store="App Store"
                 sub="Download on the"
