@@ -242,7 +242,7 @@ export default function Hero() {
             <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)', color: 'rgba(255,255,255,0.45)', letterSpacing: 'var(--pc-track-mono)', marginBottom: 'var(--pc-space-1)', marginTop: 0 }}>
               {h.tileExtLabel}
             </p>
-            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg)', fontWeight: 500, margin: 0 }}>
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'rgba(255,255,255,0.92)', fontWeight: 500, margin: 0 }}>
               {h.tileExtDesc}
             </p>
           </div>
@@ -262,7 +262,7 @@ export default function Hero() {
             <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)', color: 'rgba(255,255,255,0.45)', letterSpacing: 'var(--pc-track-mono)', marginBottom: 'var(--pc-space-1)', marginTop: 0 }}>
               {h.tileCoatLabel}
             </p>
-            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg)', fontWeight: 500, margin: 0 }}>
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'rgba(255,255,255,0.92)', fontWeight: 500, margin: 0 }}>
               {h.tileCoatDesc}
             </p>
           </div>
@@ -282,7 +282,7 @@ export default function Hero() {
             <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)', color: 'rgba(255,255,255,0.45)', letterSpacing: 'var(--pc-track-mono)', marginBottom: 'var(--pc-space-1)', marginTop: 0 }}>
               {h.tileIntLabel}
             </p>
-            <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 'var(--pc-text-2xl)', color: 'var(--pc-fg)', letterSpacing: 'var(--pc-track-tight)', lineHeight: 1.05, margin: 0 }}>
+            <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 'var(--pc-text-2xl)', color: 'rgba(255,255,255,0.95)', letterSpacing: 'var(--pc-track-tight)', lineHeight: 1.05, margin: 0 }}>
               {h.tileIntDesc.split('\n').map((line, i, arr) => (
                 <span key={i}>{line}{i < arr.length - 1 ? <br /> : null}</span>
               ))}

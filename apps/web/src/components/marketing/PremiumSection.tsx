@@ -66,7 +66,7 @@ export default function PremiumSection() {
           fontFamily: 'var(--pc-serif)',
           fontSize: 'var(--pc-text-2xl)',
           lineHeight: 'var(--pc-lh-tight)',
-          color: 'var(--pc-fg)',
+          color: 'var(--pc-sage-ink)',
           maxWidth: 520,
           letterSpacing: 'var(--pc-track-tight)',
         }}>
@@ -91,22 +91,21 @@ export default function PremiumSection() {
               letterSpacing: 'var(--pc-track-wide)',
               textTransform: 'uppercase',
               textDecoration: 'none',
-              transition: 'background var(--pc-dur-fast) var(--pc-ease), box-shadow var(--pc-dur-fast) var(--pc-ease)',
+              transition: 'background var(--pc-dur-fast) var(--pc-ease)',
             }}
           >
             Book Now
           </Link>
           <Link
             href="/services"
-            className="pc-hero-cta-ghost"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
               padding: 'var(--pc-space-3) var(--pc-space-6)',
               background: 'transparent',
-              color: 'var(--pc-fg)',
-              border: '1px solid var(--pc-line-strong)',
+              color: 'var(--pc-sage-ink)',
+              border: '1px solid rgba(232,237,227,0.30)',
               borderRadius: 'var(--pc-radius-pill)',
               fontFamily: 'var(--pc-sans)',
               fontSize: 'var(--pc-text-sm)',
@@ -156,7 +155,7 @@ export default function PremiumSection() {
               padding: 'var(--pc-space-4) var(--pc-space-4) 0',
               fontFamily: 'var(--pc-mono)',
               fontSize: 'var(--pc-text-xs)',
-              color: 'var(--pc-fg-dim)',
+              color: 'rgba(255,255,255,0.5)',
               letterSpacing: 'var(--pc-track-mono)',
             }}>
               [{String(i + 1).padStart(2, '0')}] {svc.label}
@@ -167,7 +166,8 @@ export default function PremiumSection() {
               padding: '0 var(--pc-space-4) var(--pc-space-4)',
               fontFamily: 'var(--pc-sans)',
               fontSize: 'var(--pc-text-sm)',
-              color: 'var(--pc-fg)',
+              fontWeight: 500,
+              color: 'rgba(255,255,255,0.92)',
               lineHeight: 'var(--pc-lh-snug)',
             }}>
               {svc.title.split('\n').map((line, j, arr) => (
