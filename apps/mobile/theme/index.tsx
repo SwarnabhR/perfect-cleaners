@@ -6,24 +6,25 @@ export type AppTheme = 'light' | 'dark';
 export type ColorPalette = typeof colors | typeof colorsLight;
 type ThemeCtx = { theme: AppTheme; toggleTheme: () => void; colors: ColorPalette };
 
-// v2: busts any stale 'dark' value written when userInterfaceStyle was locked to dark.
-const STORAGE_KEY = '@pc/theme/v2';
+const STORAGE_KEY = '@pc/theme/v3';
+// All previous keys — wiped on mount so stale 'dark' values can never resurface.
+const LEGACY_KEYS = ['@pc/theme', '@pc/theme/v2'];
+
 const Ctx = createContext<ThemeCtx>({ theme: 'light', toggleTheme: () => {}, colors: colorsLight });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  // Always starts light. AsyncStorage only overrides if the user has
-  // explicitly toggled after this version was deployed.
   const [theme, setTheme] = useState<AppTheme>('light');
 
   useEffect(() => {
+    // Purge every legacy key so stale 'dark' values never come back.
+    void AsyncStorage.multiRemove(LEGACY_KEYS).catch(() => {});
+
+    // Then read the current key — null means first run, stay light.
     AsyncStorage.getItem(STORAGE_KEY)
       .then(saved => {
         if (saved === 'dark' || saved === 'light') setTheme(saved);
-        // null / missing → stay on 'light' default
       })
-      .catch(() => {
-        // Storage unavailable → stay on 'light'
-      });
+      .catch(() => {});
   }, []);
 
   function toggleTheme() {
