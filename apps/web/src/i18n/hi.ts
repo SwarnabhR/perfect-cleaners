@@ -6,7 +6,6 @@ const hi: Translations = {
     plans:        'प्लान',
     gallery:      'गैलरी',
     about:        'हमारे बारे में',
-    journal:      'जर्नल',
     contact:      'संपर्क',
     home:         'होम',
     bookNow:      'बुक करें',

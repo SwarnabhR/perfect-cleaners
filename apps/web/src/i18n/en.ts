@@ -4,7 +4,6 @@ const en = {
     plans:        'Plans',
     gallery:      'Gallery',
     about:        'About',
-    journal:      'Journal',
     contact:      'Contact',
     home:         'Home',
     bookNow:      'Book Now',
