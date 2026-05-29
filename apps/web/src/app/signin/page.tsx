@@ -192,11 +192,14 @@ function SignInContent() {
         {step === 'phone' ? (
           <form onSubmit={handleSendCode}>
             <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--pc-fg-3)', marginBottom: 12 }}>
-              [ACCOUNT] / SIGN IN
+              [ACCOUNT] / SIGN IN OR CREATE
             </p>
-            <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 32, fontWeight: 400, color: 'var(--pc-fg)', letterSpacing: '-0.02em', lineHeight: 1.05, marginBottom: 32 }}>
-              Welcome back.
+            <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 32, fontWeight: 400, color: 'var(--pc-fg)', letterSpacing: '-0.02em', lineHeight: 1.05, marginBottom: 10 }}>
+              Sign in or create{' '}account.
             </h1>
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', marginBottom: 28, lineHeight: 1.6 }}>
+              Enter your mobile number. We'll send a one-time code — no password needed. New here? Your account is created automatically.
+            </p>
 
             <FieldLabel>Mobile number</FieldLabel>
             <div style={{ display: 'flex' }}>

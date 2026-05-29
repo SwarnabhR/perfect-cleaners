@@ -247,30 +247,48 @@ export default function Nav() {
             <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={14} color="currentColor" strokeWidth={1.5} />
           </button>
 
-          {/* Account icon / avatar — desktop */}
-          <Link
-            href={user ? '/account' : '/signin'}
-            aria-label={user ? 'My account' : 'Sign in'}
-            className="pc-nav-desktop"
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              width: 32, height: 32,
-              borderRadius: '50%',
-              border: `1px solid ${user ? 'var(--pc-sage-hi)' : 'var(--pc-line-strong)'}`,
-              background: user ? 'var(--pc-sage)' : 'transparent',
-              color: user ? 'var(--pc-sage-ink)' : 'var(--pc-fg-3)',
-              fontFamily: 'var(--pc-mono)',
-              fontSize: 12,
-              fontWeight: 600,
-              transition: 'border-color 0.18s ease, background 0.18s ease, color 0.18s ease',
-              textDecoration: 'none',
-            }}
-          >
-            {user
-              ? <span>{userInitial}</span>
-              : <Icon name="user" size={14} color="currentColor" strokeWidth={1.5} />
-            }
-          </Link>
+          {/* Account / sign-in — desktop */}
+          {user ? (
+            <Link
+              href="/account"
+              aria-label="My account"
+              className="pc-nav-desktop"
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 32, height: 32,
+                borderRadius: '50%',
+                border: '1px solid var(--pc-sage-hi)',
+                background: 'var(--pc-sage)',
+                color: 'var(--pc-sage-on-tint)',
+                fontFamily: 'var(--pc-mono)',
+                fontSize: 12, fontWeight: 600,
+                transition: 'border-color 0.18s ease, background 0.18s ease',
+                textDecoration: 'none',
+              }}
+            >
+              {userInitial}
+            </Link>
+          ) : (
+            <Link
+              href="/signin"
+              className="pc-nav-desktop pc-nav-book-now"
+              style={{
+                fontFamily: 'var(--pc-mono)',
+                fontSize: 'var(--pc-text-xs)',
+                letterSpacing: '0.14em',
+                textTransform: 'uppercase',
+                color: 'var(--pc-fg-2)',
+                border: '1px solid var(--pc-line-strong)',
+                borderRadius: '999px',
+                padding: 'var(--pc-space-2) var(--pc-space-5)',
+                whiteSpace: 'nowrap',
+                textDecoration: 'none',
+                transition: 'border-color var(--pc-dur-fast) var(--pc-ease), background var(--pc-dur-fast) var(--pc-ease)',
+              }}
+            >
+              Sign in
+            </Link>
+          )}
 
           {/* Hamburger — mobile */}
           <button
@@ -376,23 +394,39 @@ export default function Nav() {
           }}>
             {t.nav.location}
           </p>
-          <div style={{ paddingTop: 0 }}>
-          <Link
-            href="/book"
-            onClick={() => setMenuOpen(false)}
-            className="pc-nav-drawer-cta"
-            style={{
-              display: 'block', textAlign: 'center',
-              padding: 'var(--pc-space-4) 0', borderRadius: '999px',
-              background: 'var(--pc-warm)', color: 'var(--pc-ink)',
-              fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)',
-              letterSpacing: '0.16em', textTransform: 'uppercase',
-              textDecoration: 'none',
-              transition: 'background var(--pc-dur-fast) var(--pc-ease), transform var(--pc-dur-fast) var(--pc-ease)',
-            }}
-          >
-            {t.nav.bookNow}
-          </Link>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-3)' }}>
+            <Link
+              href="/book"
+              onClick={() => setMenuOpen(false)}
+              className="pc-nav-drawer-cta"
+              style={{
+                display: 'block', textAlign: 'center',
+                padding: 'var(--pc-space-4) 0', borderRadius: '999px',
+                background: 'var(--pc-warm)', color: 'var(--pc-ink)',
+                fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)',
+                letterSpacing: '0.16em', textTransform: 'uppercase',
+                textDecoration: 'none',
+                transition: 'background var(--pc-dur-fast) var(--pc-ease), transform var(--pc-dur-fast) var(--pc-ease)',
+              }}
+            >
+              {t.nav.bookNow}
+            </Link>
+            <Link
+              href={user ? '/account' : '/signin'}
+              onClick={() => setMenuOpen(false)}
+              style={{
+                display: 'block', textAlign: 'center',
+                padding: 'var(--pc-space-4) 0', borderRadius: '999px',
+                background: 'transparent',
+                border: '1px solid var(--pc-line-strong)',
+                color: 'var(--pc-fg-2)',
+                fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)',
+                letterSpacing: '0.16em', textTransform: 'uppercase',
+                textDecoration: 'none',
+              }}
+            >
+              {user ? 'My Account' : 'Sign In / Sign Up'}
+            </Link>
           </div>
         </div>
       </div>
