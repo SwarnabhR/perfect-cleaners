@@ -1,31 +1,65 @@
+'use client';
+import { useEffect, useState } from 'react';
+import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { db } from '@pc/firebase';
+import type { Booking, Worker, BookingStatus } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
 import StatusPill from '@/components/ui/StatusPill';
 
-const KPIS = [
-  { label: 'Revenue (MTD)',  value: '₹38,420', delta: '+14.2%', icon: 'trending-up',  positive: true  },
-  { label: 'Jobs Today',     value: '24',       delta: '+3',     icon: 'calendar',     positive: true  },
-  { label: 'Active Workers', value: '18',       delta: '-1',     icon: 'users',        positive: false },
-  { label: 'Customer NPS',   value: '72',       delta: '+5 pts', icon: 'heart',        positive: true  },
-];
+type LiveBooking = Booking & { id: string };
+type LiveWorker  = Worker  & { id: string };
 
-const RECENT_BOOKINGS = [
-  { id: '#B-1048', customer: 'Priya Sharma',  service: 'Deep Clean',    time: '09:00', status: 'In Progress', worker: 'Rajan K.'  },
-  { id: '#B-1049', customer: 'Arjun Mehta',   service: 'Regular',       time: '10:30', status: 'Confirmed',   worker: 'Sunita D.' },
-  { id: '#B-1050', customer: 'Kavya Iyer',    service: 'Move-in Clean', time: '12:00', status: 'Confirmed',   worker: 'Mohan R.'  },
-  { id: '#B-1051', customer: 'Ravi Gupta',    service: 'Office Clean',  time: '14:00', status: 'Pending',     worker: 'Unassigned'},
-  { id: '#B-1052', customer: 'Sneha Pillai',  service: 'Post-reno',     time: '15:30', status: 'Confirmed',   worker: 'Deepa S.'  },
-];
+const STATUS_LABEL: Record<BookingStatus, string> = {
+  pending:    'Pending',
+  assigned:   'Assigned',
+  enroute:    'En Route',
+  inprogress: 'In Progress',
+  done:       'Done',
+  cancelled:  'Cancelled',
+};
 
-const TOP_WORKERS = [
-  { name: 'Rajan Kumar', jobs: 48, rating: 4.97, revenue: '₹12,400' },
-  { name: 'Sunita Devi', jobs: 42, rating: 4.94, revenue: '₹10,800' },
-  { name: 'Mohan Rao',   jobs: 39, rating: 4.91, revenue: '₹9,750'  },
-  { name: 'Deepa Singh', jobs: 36, rating: 4.88, revenue: '₹9,100'  },
-];
+function formatTime(ts: any): string {
+  if (!ts) return '—';
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+}
 
 export default function DashboardPage() {
+  const [bookings, setBookings] = useState<LiveBooking[]>([]);
+  const [workers,  setWorkers]  = useState<LiveWorker[]>([]);
+  const [loading,  setLoading]  = useState(true);
+
+  useEffect(() => {
+    const q = query(collection(db, 'bookings'), orderBy('createdAt', 'desc'), limit(50));
+    return onSnapshot(q, snap => {
+      setBookings(snap.docs.map(d => ({ id: d.id, ...d.data() } as LiveBooking)));
+      setLoading(false);
+    }, err => { console.warn('[Dashboard] bookings:', err.message); setLoading(false); });
+  }, []);
+
+  useEffect(() => {
+    return onSnapshot(collection(db, 'workers'), snap => {
+      setWorkers(snap.docs.map(d => ({ id: d.id, ...d.data() } as LiveWorker)));
+    });
+  }, []);
+
+  const revenue   = bookings
+    .filter(b => b.status === 'done')
+    .reduce((s, b) => s + (b.priceBreakdown?.total ?? 0), 0);
+  const activeJobs    = bookings.filter(b => ['inprogress', 'enroute'].includes(b.status)).length;
+  const workersOnline = workers.filter(w => w.isOnline).length;
+  const topWorkers    = [...workers].sort((a, b) => (b.totalJobs ?? 0) - (a.totalJobs ?? 0)).slice(0, 4);
+  const recentBookings= bookings.slice(0, 5);
+
+  const kpis = [
+    { label: 'Revenue (All)',   value: loading ? '—' : `₹${revenue.toLocaleString('en-IN')}`,       delta: 'completed jobs',  icon: 'trending-up',  positive: true  },
+    { label: 'Active Jobs',     value: loading ? '—' : String(activeJobs),                          delta: 'en route / active', icon: 'activity',   positive: true  },
+    { label: 'Workers Online',  value: loading ? '—' : String(workersOnline),                       delta: `of ${workers.length} total`, icon: 'users', positive: true },
+    { label: 'Total Bookings',  value: loading ? '—' : String(bookings.length),                     delta: 'last 50',         icon: 'calendar',     positive: true  },
+  ];
+
   return (
     <div style={{ padding: 'var(--pc-space-8)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-8)' }}>
 
@@ -37,23 +71,18 @@ export default function DashboardPage() {
 
       {/* KPI cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--pc-space-3)' }}>
-        {KPIS.map(({ label, value, delta, icon, positive }) => (
+        {kpis.map(({ label, value, delta, icon, positive }) => (
           <Card key={label} style={{ padding: 'var(--pc-space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-3)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              {/* fontSize:12 → --pc-text-xs (12px floor). Previously 11px which was below the floor. */}
               <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)', textTransform: 'uppercase', letterSpacing: 'var(--pc-track-wide)', margin: 0 }}>{label}</p>
               <Icon name={icon} size={14} color="var(--pc-fg-4)" />
             </div>
             <div>
               <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 'var(--pc-text-2xl)', color: 'var(--pc-fg)', margin: '0 0 var(--pc-space-1)' }}>{value}</p>
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pc-space-2)' }}>
-                <Icon
-                  name={positive ? 'arrow-up-right' : 'arrow-down-right'}
-                  size={12}
-                  color={positive ? 'var(--pc-sage)' : 'var(--pc-danger)'}
-                />
+                <Icon name={positive ? 'arrow-up-right' : 'arrow-down-right'} size={12} color={positive ? 'var(--pc-sage)' : 'var(--pc-danger)'} />
                 <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: positive ? 'var(--pc-sage)' : 'var(--pc-danger)' }}>
-                  {delta} vs last month
+                  {delta}
                 </span>
               </div>
             </div>
@@ -64,18 +93,10 @@ export default function DashboardPage() {
       {/* Charts row */}
       <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 'var(--pc-space-3)' }}>
 
-        {/* Revenue chart */}
+        {/* Revenue chart (static sparkline — real chart needs charting library) */}
         <Card style={{ padding: 0, overflow: 'hidden' }}>
           <div style={{ padding: 'var(--pc-space-5) var(--pc-space-5) 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <Eyebrow>REVENUE — LAST 30 DAYS</Eyebrow>
-          </div>
-          <div style={{ padding: 'var(--pc-space-3) var(--pc-space-5) 0', display: 'flex', gap: 'var(--pc-space-3)', alignItems: 'center' }}>
-            {[{ label: 'Revenue', c: 'var(--pc-sage)' }, { label: 'Target', c: 'var(--pc-warning)' }].map(({ label, c }) => (
-              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 'var(--pc-space-2)' }}>
-                <span style={{ width: 8, height: 8, borderRadius: 'var(--pc-radius-pill)', background: c }} />
-                <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)' }}>{label}</span>
-              </div>
-            ))}
+            <Eyebrow>BOOKING VOLUME — RECENT</Eyebrow>
           </div>
           <svg aria-hidden="true" viewBox="0 0 800 320" width="100%" height="320" style={{ display: 'block' }}>
             <g style={{ stroke: 'var(--pc-line-faint)' }} fill="none">
@@ -94,82 +115,85 @@ export default function DashboardPage() {
               points="40,280 110,240 180,260 250,180 320,220 390,150 460,190 530,120 600,160 670,90 740,110 780,80"
               fill="none" stroke="var(--pc-sage)" strokeWidth="2"
             />
-            <polyline
-              points="40,260 110,250 180,240 250,220 320,230 390,200 460,210 530,180 600,190 670,160 740,155 780,140"
-              fill="none" stroke="var(--pc-warning)" strokeWidth="1.5" strokeDasharray="6 3"
-            />
           </svg>
         </Card>
 
-        {/* Worker utilisation */}
+        {/* Worker utilisation — live */}
         <Card style={{ padding: 'var(--pc-space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-3)' }}>
-          <Eyebrow>WORKER UTILISATION</Eyebrow>
-          {TOP_WORKERS.map(w => (
-            <div key={w.name} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-2)' }}>
+          <Eyebrow>TOP WORKERS · JOBS</Eyebrow>
+          {topWorkers.length === 0 ? (
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: 0 }}>
+              {loading ? 'Loading…' : 'No workers yet.'}
+            </p>
+          ) : topWorkers.map(w => (
+            <div key={w.id} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-2)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg)' }}>{w.name}</span>
-                <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)' }}>{w.jobs} jobs</span>
+                <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)' }}>{w.totalJobs ?? 0} jobs</span>
               </div>
               <div style={{ height: 4, background: 'var(--pc-line-strong)', borderRadius: 'var(--pc-radius-pill)', overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${(w.jobs / 50) * 100}%`, background: 'var(--pc-sage)', borderRadius: 'var(--pc-radius-pill)' }} />
+                <div style={{ height: '100%', width: `${Math.min(((w.totalJobs ?? 0) / Math.max(topWorkers[0]?.totalJobs ?? 1, 1)) * 100, 100)}%`, background: 'var(--pc-sage)', borderRadius: 'var(--pc-radius-pill)' }} />
               </div>
             </div>
           ))}
         </Card>
       </div>
 
-      {/* Recent bookings */}
+      {/* Recent bookings — live */}
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{ padding: 'var(--pc-space-4) var(--pc-space-5)', borderBottom: '1px solid var(--pc-line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Eyebrow>RECENT BOOKINGS</Eyebrow>
-          <Icon name="sliders-horizontal" size={14} color="var(--pc-fg-3)" />
         </div>
-        {/* Sparkline */}
-        <svg aria-hidden="true" viewBox="0 0 100 100" preserveAspectRatio="none" width="100%" height="120" style={{ display: 'block', overflow: 'visible' }}>
-          {[0, 25, 50, 75].map(y => (
-            <line key={y} x1="0" y1={y} x2="100" y2={y} style={{ stroke: 'var(--pc-line-faint)' }} strokeWidth="0.2" vectorEffect="non-scaling-stroke" />
-          ))}
-          <polygon
-            points="0,100 0,80 10,75 20,65 30,70 40,50 50,60 60,40 70,45 80,30 90,35 100,20 100,100"
-            fill="var(--pc-sage)" opacity="0.1"
-          />
-          <polyline
-            points="0,80 10,75 20,65 30,70 40,50 50,60 60,40 70,45 80,30 90,35 100,20"
-            fill="none" stroke="var(--pc-sage)" strokeWidth="0.5"
-          />
-        </svg>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid var(--pc-line)' }}>
-              {['Booking', 'Customer', 'Service', 'Time', 'Worker', 'Status'].map(h => (
-                <th key={h} style={{ padding: 'var(--pc-space-3) var(--pc-space-5)', textAlign: 'left', fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: 'var(--pc-track-wide)' }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {RECENT_BOOKINGS.map(b => (
-              <tr key={b.id} className="pc-table-row" style={{ borderBottom: '1px solid var(--pc-line)' }}>
-                <td style={{ padding: 'var(--pc-space-3) var(--pc-space-5)', fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)', fontWeight: 400 }}>{b.id}</td>
-                <td style={{ padding: 'var(--pc-space-3) var(--pc-space-5)', fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg)' }}>{b.customer}</td>
-                <td style={{ padding: 'var(--pc-space-3) var(--pc-space-5)', fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg-2)' }}>{b.service}</td>
-                <td style={{ padding: 'var(--pc-space-3) var(--pc-space-5)', fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg-2)' }}>{b.time}</td>
-                <td style={{ padding: 'var(--pc-space-3) var(--pc-space-5)', fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg-2)' }}>{b.worker}</td>
-                <td style={{ padding: 'var(--pc-space-3) var(--pc-space-5)' }}><StatusPill status={b.status} /></td>
+        {loading ? (
+          <p style={{ padding: 24, fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: 0 }}>Loading…</p>
+        ) : recentBookings.length === 0 ? (
+          <p style={{ padding: 24, fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: 0 }}>No bookings yet.</p>
+        ) : (
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid var(--pc-line)' }}>
+                {['Ref', 'Customer', 'Service', 'Time', 'Worker', 'Status'].map(h => (
+                  <th key={h} style={{ padding: 'var(--pc-space-3) var(--pc-space-5)', textAlign: 'left', fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: 'var(--pc-track-wide)' }}>{h}</th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {recentBookings.map(b => (
+                <tr key={b.id} style={{ borderBottom: '1px solid var(--pc-line)' }}>
+                  <td style={{ padding: 'var(--pc-space-3) var(--pc-space-5)', fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)' }}>
+                    #{b.id.slice(0, 8).toUpperCase()}
+                  </td>
+                  <td style={{ padding: 'var(--pc-space-3) var(--pc-space-5)', fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg)' }}>
+                    {(b as any).customerName ?? b.customerId.slice(0, 10)}
+                  </td>
+                  <td style={{ padding: 'var(--pc-space-3) var(--pc-space-5)', fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg-2)' }}>
+                    {b.serviceIds?.[0]?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) ?? '—'}
+                  </td>
+                  <td style={{ padding: 'var(--pc-space-3) var(--pc-space-5)', fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg-2)' }}>
+                    {formatTime((b as any).scheduledAt)}
+                  </td>
+                  <td style={{ padding: 'var(--pc-space-3) var(--pc-space-5)', fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg-2)' }}>
+                    {(b as any).workerName ?? 'Unassigned'}
+                  </td>
+                  <td style={{ padding: 'var(--pc-space-3) var(--pc-space-5)' }}>
+                    <StatusPill status={STATUS_LABEL[b.status] ?? b.status} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </Card>
 
-      {/* Top workers */}
+      {/* Top workers table — live */}
       <Card style={{ padding: 0 }}>
         <div style={{ padding: 'var(--pc-space-4) var(--pc-space-5)', borderBottom: '1px solid var(--pc-line)' }}>
-          <Eyebrow>TOP PERFORMERS THIS MONTH</Eyebrow>
+          <Eyebrow>TOP PERFORMERS</Eyebrow>
         </div>
-        {TOP_WORKERS.map((w, i) => (
-          <div key={w.name} style={{
+        {topWorkers.map((w, i) => (
+          <div key={w.id} style={{
             padding: 'var(--pc-space-4) var(--pc-space-5)',
-            borderBottom: i < TOP_WORKERS.length - 1 ? '1px solid var(--pc-line)' : 'none',
+            borderBottom: i < topWorkers.length - 1 ? '1px solid var(--pc-line)' : 'none',
             display: 'flex', alignItems: 'center', gap: 'var(--pc-space-3)',
           }}>
             <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg-4)', minWidth: 24 }}>
@@ -177,12 +201,13 @@ export default function DashboardPage() {
             </span>
             <div style={{ flex: 1 }}>
               <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', fontWeight: 600, color: 'var(--pc-fg)', margin: '0 0 var(--pc-space-1)' }}>{w.name}</p>
-              <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)', margin: 0 }}>{w.jobs} jobs · ★ {w.rating}</p>
+              <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)', margin: 0 }}>
+                {w.totalJobs ?? 0} jobs · ★ {w.rating?.toFixed(2) ?? '—'}
+              </p>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pc-space-1)' }}>
-              <Icon name="indian-rupee" size={12} color="var(--pc-sage)" />
-              <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', fontWeight: 600, color: 'var(--pc-fg)' }}>{w.revenue}</span>
-            </div>
+            <span style={{ fontFamily: 'var(--pc-serif)', fontSize: 'var(--pc-text-lg)', color: 'var(--pc-fg)' }}>
+              {w.earnings?.week ? `₹${w.earnings.week.toLocaleString('en-IN')}` : '—'}
+            </span>
           </div>
         ))}
       </Card>

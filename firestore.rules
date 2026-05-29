@@ -2,37 +2,77 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Customers: own data only
+    // ── Helpers ────────────────────────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Admin = any UID listed in the /admins/{uid} collection.
+    // Add UIDs via Firebase Console; no code deploy needed.
+    function isAdmin() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // ── Admins ─────────────────────────────────────────────────────────────
+    match /admins/{uid} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow write: if false; // managed via Firebase Console / Admin SDK only
+    }
+
+    // ── Customers ──────────────────────────────────────────────────────────
     match /customers/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if isSignedIn() && request.auth.uid == userId;
+      allow read:  if isAdmin();
+      allow write: if isAdmin();
+
+      // Addresses subcollection
+      match /addresses/{addressId} {
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
+        allow read, write: if isAdmin();
+      }
     }
 
-    // Bookings: customer or assigned worker can read; customer creates; either party updates
+    // ── Bookings ────────────────────────────────────────────────────────────
     match /bookings/{bookingId} {
-      allow read: if request.auth != null &&
-        (resource.data.customerId == request.auth.uid ||
-         resource.data.workerId  == request.auth.uid);
-      allow create: if request.auth != null;
-      allow update: if request.auth != null &&
-        (resource.data.customerId == request.auth.uid ||
-         resource.data.workerId  == request.auth.uid);
+      // Customer reads/writes their own booking
+      allow read: if isSignedIn() && (
+        resource.data.customerId == request.auth.uid ||
+        resource.data.workerId  == request.auth.uid
+      );
+      allow create: if isSignedIn() &&
+        request.resource.data.customerId == request.auth.uid;
+      allow update: if isSignedIn() && (
+        resource.data.customerId == request.auth.uid ||
+        resource.data.workerId  == request.auth.uid
+      );
+
+      // Admin has full access
+      allow read, write: if isAdmin();
     }
 
-    // Workers: own profile only; location updates handled here
+    // ── Workers ─────────────────────────────────────────────────────────────
     match /workers/{workerId} {
-      allow read, write: if request.auth != null && request.auth.uid == workerId;
+      // Workers read/update their own document
+      allow read, write: if isSignedIn() && request.auth.uid == workerId;
+
+      // Any authenticated user can list workers (needed for booking assignment UI)
+      allow read: if isSignedIn();
+
+      // Admin has full access
+      allow write: if isAdmin();
     }
 
-    // Services: public read; writes via Admin SDK / Cloud Functions only
+    // ── Services (catalogue) ───────────────────────────────────────────────
     match /services/{serviceId} {
       allow read: if true;
-      allow write: if false;
+      allow write: if isAdmin();
     }
 
-    // Promotions: public read; writes via Admin SDK / Cloud Functions only
+    // ── Promotions ─────────────────────────────────────────────────────────
     match /promotions/{promoId} {
       allow read: if true;
-      allow write: if false;
+      allow write: if isAdmin();
     }
   }
 }

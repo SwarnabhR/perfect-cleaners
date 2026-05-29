@@ -1,12 +1,17 @@
+import { useEffect, useState } from 'react';
 import { ScrollView, View, Text, TouchableOpacity, StyleSheet, Alert, Share } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { typography, spacing, radii } from '@pc/tokens';
 import { useThemeColors } from '../../theme';
 import { useSharedStyles } from '../../theme/sharedStyles';
 import { ScreenHeader, Group, Row } from '../../components/RowGroup';
 
-const REFERRAL_CODE = 'AARAV-PC';
+function makeReferralCode(name: string): string {
+  const first = name.split(' ')[0]?.slice(0, 5).toUpperCase() ?? 'USER';
+  return `${first}-PC`;
+}
 
 interface Friend {
   initials: string;
@@ -26,6 +31,16 @@ export default function ReferralScreen() {
   const insets = useSafeAreaInsets();
   const c = useThemeColors();
   const ss = useSharedStyles();
+  const [referralCode, setReferralCode] = useState('YOURNAME-PC');
+
+  useEffect(() => {
+    AsyncStorage.getItem('@pc/profile').then(raw => {
+      if (raw) {
+        const profile = JSON.parse(raw);
+        setReferralCode(makeReferralCode(profile.name ?? ''));
+      }
+    });
+  }, []);
 
   const s = StyleSheet.create({
     root: { flex: 1, backgroundColor: c.ink },
@@ -66,14 +81,14 @@ export default function ReferralScreen() {
   async function handleShare() {
     try {
       await Share.share({
-        message: `Use my code ${REFERRAL_CODE} to get ₹200 off your first Perfect Cleaners wash. Book at perfectcleaners.in`,
+        message: `Use my code ${referralCode} to get ₹200 off your first Perfect Cleaners wash. Book at perfectcleaners.in`,
       });
     } catch {}
   }
 
   async function handleCopy() {
-    await Clipboard.setStringAsync(REFERRAL_CODE);
-    Alert.alert('Copied!', `${REFERRAL_CODE} is now in your clipboard.`);
+    await Clipboard.setStringAsync(referralCode);
+    Alert.alert('Copied!', `${referralCode} is now in your clipboard.`);
   }
 
   return (
@@ -96,7 +111,7 @@ export default function ReferralScreen() {
       </View>
 
       <View style={s.codeCard}>
-        <Text style={s.codeText}>{REFERRAL_CODE}</Text>
+        <Text style={s.codeText}>{referralCode}</Text>
         <View style={s.codeActions}>
           <TouchableOpacity style={s.shareBtn} onPress={handleShare} activeOpacity={0.8}>
             <Text style={s.shareBtnText}>Share</Text>

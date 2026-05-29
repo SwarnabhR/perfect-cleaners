@@ -1,4 +1,4 @@
-export { firebaseApp, db } from './config';
+export { firebaseApp, db, auth } from './config';
 export type {
   Booking,
   BookingAddress,

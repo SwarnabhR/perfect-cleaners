@@ -1,6 +1,9 @@
+import { useEffect, useState } from 'react';
 import { ScrollView, View, Text, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowDown, ArrowUp } from 'lucide-react-native';
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
 import { typography, spacing, radii } from '@pc/tokens';
 import { useThemeColors } from '../../theme';
 import { useSharedStyles } from '../../theme/sharedStyles';
@@ -24,12 +27,25 @@ const TRANSACTIONS: Transaction[] = [
   { type: 'out', amt: 300, label: 'Applied · Booking #PC-1992',  date: '14 May' },
 ];
 
-const BALANCE = 600;
-
 export default function WalletScreen() {
   const insets = useSafeAreaInsets();
   const c  = useThemeColors();
   const ss = useSharedStyles();
+  const [balance, setBalance] = useState(0);
+
+  useEffect(() => {
+    const user = auth().currentUser;
+    if (!user) return;
+    return firestore()
+      .collection('customers')
+      .doc(user.uid)
+      .onSnapshot(
+        snap => {
+          if (Boolean(snap.exists)) setBalance(snap.data()?.walletBalance ?? 0);
+        },
+        err => console.warn('[Wallet] Firestore:', err.message),
+      );
+  }, []);
 
   const s = StyleSheet.create({
     cardWrap: { paddingHorizontal: spacing[5], paddingBottom: spacing[1] },
@@ -61,7 +77,7 @@ export default function WalletScreen() {
       <View style={s.cardWrap}>
         <View style={s.balanceCard}>
           <Text style={ss.eyebrow}>[YOUR BALANCE]</Text>
-          <Text style={s.balanceAmount}>₹{BALANCE.toLocaleString('en-IN')}</Text>
+          <Text style={s.balanceAmount}>₹{balance.toLocaleString('en-IN')}</Text>
           <Text style={s.balanceSub}>Auto-applies to your next booking · No expiry</Text>
           <View style={s.cardActions}>
             <TouchableOpacity style={s.primaryAction} activeOpacity={0.8}>

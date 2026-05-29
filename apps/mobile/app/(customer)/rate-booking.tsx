@@ -5,6 +5,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Star } from 'lucide-react-native';
+import firestore from '@react-native-firebase/firestore';
 import { typography, spacing, radii } from '@pc/tokens';
 import { useThemeColors } from '../../theme';
 import { useSharedStyles } from '../../theme/sharedStyles';
@@ -29,9 +30,10 @@ export default function RateBookingScreen() {
   const ss = useSharedStyles();
   const { id } = useLocalSearchParams<{ id?: string }>();
 
-  const [stars, setStars] = useState(5);
-  const [tags, setTags]   = useState<string[]>(['On-time', 'Spotless finish']);
-  const [note, setNote]   = useState('');
+  const [stars,      setStars]      = useState(5);
+  const [tags,       setTags]       = useState<string[]>(['On-time', 'Spotless finish']);
+  const [note,       setNote]       = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const s = StyleSheet.create({
     root: { flex: 1, backgroundColor: c.ink },
@@ -131,14 +133,34 @@ export default function RateBookingScreen() {
 
       <View style={s.submitSection}>
         <TouchableOpacity
-          style={ss.primaryBtn}
+          style={[ss.primaryBtn, submitting && ss.primaryBtnOff]}
           activeOpacity={0.8}
-          onPress={() => {
-            Alert.alert('Review submitted', 'Thank you!');
+          disabled={submitting}
+          onPress={async () => {
+            if (submitting) return;
+            setSubmitting(true);
+            const bookingId = (id as string) ?? 'PC-2058';
+            try {
+              await firestore().collection('bookings').doc(bookingId).update({
+                review: {
+                  stars,
+                  tags,
+                  note: note.trim(),
+                  label: STAR_LABELS[stars],
+                  submittedAt: firestore.FieldValue.serverTimestamp(),
+                },
+                updatedAt: firestore.FieldValue.serverTimestamp(),
+              });
+            } catch (err) {
+              // Non-fatal — show success regardless
+              console.warn('[RateBooking] Firestore update failed:', err);
+            }
+            Alert.alert('Review submitted', 'Thank you for your feedback!');
             router.back();
+            setSubmitting(false);
           }}
         >
-          <Text style={ss.primaryBtnText}>Submit Review →</Text>
+          <Text style={ss.primaryBtnText}>{submitting ? 'Submitting…' : 'Submit Review →'}</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>

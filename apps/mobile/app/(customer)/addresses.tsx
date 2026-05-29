@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ScrollView, View, Text, TextInput, TouchableOpacity,
-  Modal, KeyboardAvoidingView, Platform, StyleSheet,
+  Modal, KeyboardAvoidingView, Platform, StyleSheet, Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Home, Building2, MapPin, Plus } from 'lucide-react-native';
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
 import { typography, spacing, radii } from '@pc/tokens';
 import { useThemeColors } from '../../theme';
 import { useSharedStyles } from '../../theme/sharedStyles';
@@ -13,19 +15,15 @@ import { ScreenHeader, Group, Row, SegCtrl } from '../../components/RowGroup';
 type AddressTag = 'home' | 'office' | 'other';
 
 interface Address {
-  id: string;
-  label: string;
-  line1: string;
-  line2: string;
-  tag: AddressTag;
+  id:      string;
+  label:   string;
+  line1:   string;
+  line2:   string;
+  city:    string;
+  pincode: string;
+  tag:     AddressTag;
   primary: boolean;
 }
-
-const ADDRESSES: Address[] = [
-  { id: 'a1', label: 'Home',           line1: 'B-204, Kavi Nagar',        line2: 'Ghaziabad, UP 201002',          tag: 'home',   primary: true  },
-  { id: 'a2', label: 'Office',         line1: 'Tower B, Logix Park',      line2: 'Sector 16, Noida 201301',       tag: 'office', primary: false },
-  { id: 'a3', label: "Parent's house", line1: '14 Greenfield Apts',        line2: 'Indirapuram, Ghaziabad 201014', tag: 'other',  primary: false },
-];
 
 const TAG_OPTIONS = [
   { value: 'home',   label: 'Home'   },
@@ -33,29 +31,38 @@ const TAG_OPTIONS = [
   { value: 'other',  label: 'Other'  },
 ];
 
+const TAG_BG: Record<AddressTag, string> = {
+  home:   '#2D7D6F',
+  office: '#4B8CF5',
+  other:  '#9E9E9E',
+};
+
 function TagIcon({ tag }: { tag: AddressTag }) {
-  const props = { size: 15, color: '#fff', strokeWidth: 1.5 } as const;
+  const p = { size: 15, color: '#fff', strokeWidth: 1.5 } as const;
   switch (tag) {
-    case 'home':   return <Home      {...props} />;
-    case 'office': return <Building2 {...props} />;
-    default:       return <MapPin    {...props} />;
+    case 'home':   return <Home      {...p} />;
+    case 'office': return <Building2 {...p} />;
+    default:       return <MapPin    {...p} />;
   }
 }
 
+// ─── Controlled form field ────────────────────────────────────────────────────
 function SheetField({
-  label, placeholder, keyboardType, isLast,
+  label, placeholder, value, onChangeText, keyboardType, isLast,
 }: {
-  label: string;
-  placeholder: string;
-  keyboardType?: 'default' | 'numeric';
-  isLast?: boolean;
+  label:          string;
+  placeholder:    string;
+  value:          string;
+  onChangeText:   (v: string) => void;
+  keyboardType?:  'default' | 'numeric';
+  isLast?:        boolean;
 }) {
-  const c = useThemeColors();
+  const c  = useThemeColors();
   const ss = useSharedStyles();
-  const s = StyleSheet.create({
-    field: { paddingHorizontal: spacing[4], paddingVertical: 11 },
+  const s  = StyleSheet.create({
+    field:       { paddingHorizontal: spacing[4], paddingVertical: 11 },
     fieldBorder: { borderBottomWidth: 1, borderBottomColor: c.line },
-    fieldInput: { fontFamily: typography.sans, fontSize: 14, color: c.fg, padding: 0 },
+    fieldInput:  { fontFamily: typography.sans, fontSize: 14, color: c.fg, padding: 0 },
   });
   return (
     <View style={[s.field, !isLast && s.fieldBorder]}>
@@ -64,6 +71,8 @@ function SheetField({
         style={s.fieldInput}
         placeholder={placeholder}
         placeholderTextColor={c.fg3}
+        value={value}
+        onChangeText={onChangeText}
         keyboardType={keyboardType ?? 'default'}
         returnKeyType={isLast ? 'done' : 'next'}
       />
@@ -71,47 +80,73 @@ function SheetField({
   );
 }
 
-function AddAddressSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+// ─── Add Address Sheet ────────────────────────────────────────────────────────
+function AddAddressSheet({
+  visible, onClose, onSaved,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onSaved: (addr: Address) => void;
+}) {
   const insets = useSafeAreaInsets();
-  const c = useThemeColors();
-  const [tag, setTag] = useState<AddressTag>('home');
+  const c      = useThemeColors();
+
+  const [labelText, setLabelText] = useState('');
+  const [line1,     setLine1]     = useState('');
+  const [line2,     setLine2]     = useState('');
+  const [city,      setCity]      = useState('Ghaziabad');
+  const [pincode,   setPincode]   = useState('');
+  const [tag,       setTag]       = useState<AddressTag>('home');
+  const [saving,    setSaving]    = useState(false);
+
+  function reset() {
+    setLabelText(''); setLine1(''); setLine2('');
+    setCity('Ghaziabad'); setPincode(''); setTag('home');
+  }
+
+  async function handleSave() {
+    if (!line1.trim() || saving) return;
+    setSaving(true);
+    try {
+      const user = auth().currentUser;
+      if (!user) throw new Error('Not signed in');
+      const ref = firestore()
+        .collection('customers').doc(user.uid)
+        .collection('addresses').doc();
+      const addr: Address = {
+        id:      ref.id,
+        label:   labelText.trim() || (tag === 'home' ? 'Home' : tag === 'office' ? 'Office' : 'Other'),
+        line1:   line1.trim(),
+        line2:   line2.trim(),
+        city:    city.trim() || 'Ghaziabad',
+        pincode: pincode.trim(),
+        tag,
+        primary: false,
+      };
+      await ref.set(addr);
+      onSaved(addr);
+      reset();
+      onClose();
+    } catch (err: any) {
+      Alert.alert('Error', err?.message ?? 'Failed to save address.');
+    } finally {
+      setSaving(false);
+    }
+  }
 
   const sheet = StyleSheet.create({
-    root: { flex: 1, backgroundColor: c.inkRaised },
-    handle: {
-      width: 40, height: 4, borderRadius: 999,
-      backgroundColor: c.lineStrong,
-      alignSelf: 'center',
-      marginTop: 10, marginBottom: 6,
-    },
-    header: {
-      flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-      paddingHorizontal: spacing[5], paddingVertical: spacing[3],
-    },
-    cancel: { fontFamily: typography.sans, fontSize: 15, color: c.fg2 },
+    root:       { flex: 1, backgroundColor: c.inkRaised },
+    handle:     { width: 40, height: 4, borderRadius: 999, backgroundColor: c.lineStrong, alignSelf: 'center', marginTop: 10, marginBottom: 6 },
+    header:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing[5], paddingVertical: spacing[3] },
+    cancel:     { fontFamily: typography.sans, fontSize: 15, color: c.fg2 },
     sheetTitle: { fontFamily: typography.sansSemiBold, fontSize: 16, color: c.fg },
-    save: { fontFamily: typography.sansSemiBold, fontSize: 15, color: c.sageHi },
-    mapPreview: {
-      marginHorizontal: spacing[5], height: 120, borderRadius: radii.md,
-      backgroundColor: c.card, borderWidth: 1, borderColor: c.line,
-      alignItems: 'center', justifyContent: 'center',
-      marginBottom: spacing[4], gap: spacing[2],
-    },
-    mapDot: {
-      width: 14, height: 14, borderRadius: 999,
-      backgroundColor: c.success, borderWidth: 2, borderColor: c.successBorder,
-    },
-    mapLabel: { fontFamily: typography.mono, fontSize: 9.5, color: c.fg3, letterSpacing: 0.8 },
-    form: {
-      marginHorizontal: spacing[5], backgroundColor: c.card, borderRadius: radii.md,
-      borderWidth: 1, borderColor: c.line, overflow: 'hidden', marginBottom: spacing[3],
-    },
-    segLabel: {
-      fontFamily: typography.mono, fontSize: 9.5, color: c.fg3,
-      letterSpacing: 0.8, textTransform: 'uppercase',
-      paddingHorizontal: spacing[5] + 4, marginBottom: spacing[1],
-    },
-    segWrap: { paddingHorizontal: spacing[5] },
+    save:       { fontFamily: typography.sansSemiBold, fontSize: 15, color: saving ? c.fg3 : c.sageHi },
+    mapPreview: { marginHorizontal: spacing[5], height: 100, borderRadius: radii.md, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, alignItems: 'center', justifyContent: 'center', marginBottom: spacing[4], gap: spacing[2] },
+    mapDot:     { width: 14, height: 14, borderRadius: 999, backgroundColor: c.success, borderWidth: 2, borderColor: c.successBorder },
+    mapLabel:   { fontFamily: typography.mono, fontSize: 9.5, color: c.fg3, letterSpacing: 0.8 },
+    form:       { marginHorizontal: spacing[5], backgroundColor: c.card, borderRadius: radii.md, borderWidth: 1, borderColor: c.line, overflow: 'hidden', marginBottom: spacing[3] },
+    segLabel:   { fontFamily: typography.mono, fontSize: 9.5, color: c.fg3, letterSpacing: 0.8, textTransform: 'uppercase', paddingHorizontal: spacing[5] + 4, marginBottom: spacing[1] },
+    segWrap:    { paddingHorizontal: spacing[5] },
   });
 
   return (
@@ -122,12 +157,12 @@ function AddAddressSheet({ visible, onClose }: { visible: boolean; onClose: () =
       >
         <View style={sheet.handle} />
         <View style={sheet.header}>
-          <TouchableOpacity onPress={onClose} activeOpacity={0.7}>
+          <TouchableOpacity onPress={() => { reset(); onClose(); }} activeOpacity={0.7}>
             <Text style={sheet.cancel}>Cancel</Text>
           </TouchableOpacity>
           <Text style={sheet.sheetTitle}>Add Address</Text>
-          <TouchableOpacity onPress={onClose} activeOpacity={0.7}>
-            <Text style={sheet.save}>Save</Text>
+          <TouchableOpacity onPress={handleSave} activeOpacity={0.7} disabled={saving}>
+            <Text style={sheet.save}>{saving ? 'Saving…' : 'Save'}</Text>
           </TouchableOpacity>
         </View>
 
@@ -137,11 +172,11 @@ function AddAddressSheet({ visible, onClose }: { visible: boolean; onClose: () =
         </View>
 
         <View style={sheet.form}>
-          <SheetField label="Label"     placeholder="Home, Office, Studio…" />
-          <SheetField label="Address 1" placeholder="House / building / street" />
-          <SheetField label="Address 2" placeholder="Landmark, sector, society" />
-          <SheetField label="City"      placeholder="Ghaziabad" />
-          <SheetField label="Pincode"   placeholder="201002" keyboardType="numeric" isLast />
+          <SheetField label="Label"     placeholder="Home, Office, Studio…"   value={labelText} onChangeText={setLabelText} />
+          <SheetField label="Address 1" placeholder="House / building / street" value={line1}     onChangeText={setLine1} />
+          <SheetField label="Address 2" placeholder="Landmark, sector, society" value={line2}     onChangeText={setLine2} />
+          <SheetField label="City"      placeholder="Ghaziabad"                 value={city}      onChangeText={setCity} />
+          <SheetField label="Pincode"   placeholder="201002" keyboardType="numeric" value={pincode} onChangeText={setPincode} isLast />
         </View>
 
         <Text style={sheet.segLabel}>TAG</Text>
@@ -153,25 +188,32 @@ function AddAddressSheet({ visible, onClose }: { visible: boolean; onClose: () =
   );
 }
 
+// ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function AddressesScreen() {
   const insets = useSafeAreaInsets();
-  const c = useThemeColors();
-  const ss = useSharedStyles();
-  const [sheetVisible, setSheetVisible] = useState(false);
+  const c      = useThemeColors();
+  const ss     = useSharedStyles();
+  const [addresses,     setAddresses]     = useState<Address[]>([]);
+  const [sheetVisible,  setSheetVisible]  = useState(false);
+
+  useEffect(() => {
+    const user = auth().currentUser;
+    if (!user) return;
+    return firestore()
+      .collection('customers').doc(user.uid)
+      .collection('addresses')
+      .onSnapshot(
+        snap => setAddresses(snap.docs.map(d => d.data() as Address)),
+        err  => console.warn('[Addresses] Firestore:', err.message),
+      );
+  }, []);
 
   const s = StyleSheet.create({
-    addBtn: {
-      width: 36, height: 36, borderRadius: radii.pill,
-      backgroundColor: c.card, borderWidth: 1, borderColor: c.line,
-      alignItems: 'center', justifyContent: 'center',
-    },
-    addWrap: { paddingHorizontal: spacing[5], paddingTop: spacing[3] },
-    addNewBtn: {
-      flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-      gap: 8, backgroundColor: c.card, borderRadius: radii.md,
-      borderWidth: 1, borderColor: c.line, paddingVertical: 14,
-    },
-    addNewText: { fontFamily: typography.sansMedium, fontSize: 13, color: c.fg2, letterSpacing: 0.4 },
+    addBtn:    { width: 36, height: 36, borderRadius: radii.pill, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, alignItems: 'center', justifyContent: 'center' },
+    addWrap:   { paddingHorizontal: spacing[5], paddingTop: spacing[3] },
+    addNewBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: c.card, borderRadius: radii.md, borderWidth: 1, borderColor: c.line, paddingVertical: 14 },
+    addNewText:{ fontFamily: typography.sansMedium, fontSize: 13, color: c.fg2, letterSpacing: 0.4 },
+    emptyText: { fontFamily: typography.sans, fontSize: 14, color: c.fg3, textAlign: 'center', paddingVertical: spacing[5] },
   });
 
   return (
@@ -196,20 +238,24 @@ export default function AddressesScreen() {
           <Text style={ss.pageTitle}>Your addresses.</Text>
         </View>
 
-        <Group>
-          {ADDRESSES.map((addr, i) => (
-            <Row
-              key={addr.id}
-              icon={<TagIcon tag={addr.tag} />}
-              iconBg={addr.tag === 'home' ? '#2D7D6F' : addr.tag === 'office' ? '#4B8CF5' : '#9E9E9E'}
-              title={addr.label}
-              sub={`${addr.line1} · ${addr.line2}`}
-              value={addr.primary ? 'Primary' : undefined}
-              onPress={() => {}}
-              isLast={i === ADDRESSES.length - 1}
-            />
-          ))}
-        </Group>
+        {addresses.length === 0 ? (
+          <Text style={s.emptyText}>No saved addresses yet.</Text>
+        ) : (
+          <Group>
+            {addresses.map((addr, i) => (
+              <Row
+                key={addr.id}
+                icon={<TagIcon tag={addr.tag} />}
+                iconBg={TAG_BG[addr.tag]}
+                title={addr.label}
+                sub={[addr.line1, addr.line2, addr.city].filter(Boolean).join(' · ')}
+                value={addr.primary ? 'Primary' : undefined}
+                onPress={() => {}}
+                isLast={i === addresses.length - 1}
+              />
+            ))}
+          </Group>
+        )}
 
         <View style={s.addWrap}>
           <TouchableOpacity style={s.addNewBtn} onPress={() => setSheetVisible(true)} activeOpacity={0.8}>
@@ -219,7 +265,11 @@ export default function AddressesScreen() {
         </View>
       </ScrollView>
 
-      <AddAddressSheet visible={sheetVisible} onClose={() => setSheetVisible(false)} />
+      <AddAddressSheet
+        visible={sheetVisible}
+        onClose={() => setSheetVisible(false)}
+        onSaved={addr => setAddresses(prev => [...prev, addr])}
+      />
     </>
   );
 }

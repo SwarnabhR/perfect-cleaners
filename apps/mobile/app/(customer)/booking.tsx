@@ -73,6 +73,7 @@ export default function BookingScreen() {
       await bookingRef.set({
         id:            bookingId,
         customerId:    user?.uid ?? 'demo',
+        customerName:  profile?.name ?? '',
         status:        'pending',
         paymentStatus: 'pending',
         serviceIds:    [pack.toLowerCase()],

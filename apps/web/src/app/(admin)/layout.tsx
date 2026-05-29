@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import Icon from '@/components/ui/Icon';
 import { useTheme } from '@/components/ThemeProvider';
+import { AdminAuthProvider, useAdminAuth } from '@/components/AdminAuthProvider';
 
 const NAV = [
   { label: 'Dashboard',  href: '/dashboard',     icon: 'layout-dashboard' },
@@ -17,9 +18,18 @@ const NAV = [
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <AdminAuthProvider>
+      <AdminShell>{children}</AdminShell>
+    </AdminAuthProvider>
+  );
+}
+
+function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { theme, toggle } = useTheme();
+  const { user, signOut } = useAdminAuth();
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--pc-ink)' }}>
@@ -80,8 +90,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Icon name="user" size={14} color="var(--pc-fg-2)" />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg)', margin: 0, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Admin</p>
-            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)', margin: 0 }}>ops@perfectcleaners.in</p>
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg)', margin: 0, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {user?.displayName ?? 'Admin'}
+            </p>
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {user?.email ?? 'ops@perfectcleaners.in'}
+            </p>
           </div>
           {/*
             Log-out: was a bare <Icon> with cursor:pointer — not keyboard
@@ -91,7 +105,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <button
             type="button"
             aria-label="Sign out"
-            onClick={() => { /* TODO: wire Firebase Auth signOut() */ }}
+            onClick={signOut}
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               width: 28, height: 28,
