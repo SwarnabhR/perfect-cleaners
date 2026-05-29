@@ -19,8 +19,8 @@ declare global {
   }
 }
 
-const WIDGET_ID  = process.env.NEXT_PUBLIC_MSG91_WIDGET_ID  ?? '';
-const TOKEN_AUTH = process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH ?? '';
+const WIDGET_ID  = process.env.NEXT_PUBLIC_MSG91_WIDGET_ID    ?? '';
+const TOKEN_AUTH = process.env.NEXT_PUBLIC_MSG91_WIDGET_TOKEN ?? '';
 
 type Step = 'phone' | 'otp';
 
