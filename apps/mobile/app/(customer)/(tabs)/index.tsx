@@ -64,8 +64,7 @@ export default function CustomerHome() {
         <ImageBackground source={BRAND_HERO} style={s.heroBg} imageStyle={s.heroImg}>
           <View style={s.heroOverlay}>
             <Text style={ss.eyebrow}>[PERFECT CLEANERS] · DELHI NCR</Text>
-            <Text style={s.heroTitle}>Your car,{'
-'}showroom clean.</Text>
+            <Text style={s.heroTitle}>Your car,{'\n'}showroom clean.</Text>
             <Text style={s.heroSub}>At-home car wash & detailing · Book in 30 seconds.</Text>
             <TouchableOpacity
               style={ss.primaryBtn}

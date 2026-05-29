@@ -96,7 +96,7 @@ export default function TrackerScreen() {
         <TouchableOpacity style={ss.backBtn} onPress={() => router.back()}>
           <ChevronLeft size={16} color={c.fg} strokeWidth={1.5} />
         </TouchableOpacity>
-        <Text style={ss.eyebrow}>[BOOKING] #PC-2058 / LIVE</Text>
+        <Text style={ss.eyebrow}>[BOOKING] #{bookingId.slice(0, 8).toUpperCase()} / LIVE</Text>
       </View>
 
       {/* Map */}
@@ -143,31 +143,53 @@ export default function TrackerScreen() {
         </View>
       </View>
 
-      {/* Technician card */}
-      <View style={s.techCard}>
-        <View style={s.techAvatar}>
-          <Text style={s.techAvatarText}>RS</Text>
+      {/* Technician card — only shown once a worker is assigned */}
+      {booking?.workerId && (
+        <View style={s.techCard}>
+          <View style={s.techAvatar}>
+            <Text style={s.techAvatarText}>RS</Text>
+          </View>
+          <View style={s.techInfo}>
+            <Text style={ss.eyebrow}>YOUR TECHNICIAN</Text>
+            <Text style={s.techName}>Rahul Sharma</Text>
+            <Text style={s.techRating}>4.9 · 312 jobs</Text>
+          </View>
+          <TouchableOpacity style={s.techCall}>
+            <Phone size={16} color="#fff" strokeWidth={1.5} />
+          </TouchableOpacity>
         </View>
-        <View style={s.techInfo}>
-          <Text style={ss.eyebrow}>YOUR TECHNICIAN</Text>
-          <Text style={s.techName}>Rahul Sharma</Text>
-          <Text style={s.techRating}>4.9 · 312 jobs</Text>
-        </View>
-        <TouchableOpacity style={s.techCall}>
-          <Phone size={16} color="#fff" strokeWidth={1.5} />
-        </TouchableOpacity>
-      </View>
+      )}
 
       {/* Order summary */}
       <View style={s.orderCard}>
         <Text style={ss.eyebrow}>[ORDER]</Text>
         <View style={s.orderRow}>
-          <Text style={s.orderTitle}>Premium Wash + Interior</Text>
-          <Text style={s.orderPrice}>₹1,200</Text>
+          <Text style={s.orderTitle}>
+            {booking?.serviceIds?.[0]
+              ? booking.serviceIds[0].replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+              : 'Wash Service'}
+          </Text>
+          <Text style={s.orderPrice}>
+            {booking?.priceBreakdown?.total
+              ? `₹${booking.priceBreakdown.total.toLocaleString('en-IN')}`
+              : '—'}
+          </Text>
         </View>
+        {booking?.vehicle && (
+          <View style={s.orderAddress}>
+            <Text style={[s.orderAddressText, { color: c.fg3 }]}>
+              {booking.vehicle.make} {booking.vehicle.model}
+              {booking.vehicle.registration ? ` · ${booking.vehicle.registration}` : ''}
+            </Text>
+          </View>
+        )}
         <View style={s.orderAddress}>
           <MapPin size={12} color={c.fg3} strokeWidth={1.5} />
-          <Text style={s.orderAddressText}>B-204, Kavi Nagar, Ghaziabad 201002</Text>
+          <Text style={s.orderAddressText}>
+            {booking?.address?.line1
+              ? `${booking.address.line1}, ${booking.address.city}`
+              : 'Loading…'}
+          </Text>
         </View>
       </View>
     </ScrollView>

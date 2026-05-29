@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import {
-  ScrollView, View, Text, TouchableOpacity, StyleSheet,
+  ScrollView, View, Text, TouchableOpacity, StyleSheet, Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft, Check, Car, MapPin, ChevronRight } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
 import { typography, spacing, radii } from '@pc/tokens';
 import { useThemeColors } from '../../theme';
 import { useSharedStyles } from '../../theme/sharedStyles';
@@ -19,41 +21,101 @@ const TABS     = ['All', 'Exterior', 'Interior', 'Detailing', 'Coating'];
 const SLOTS    = ['9:00 AM', '10:30 AM', '12:00 PM', '2:00 PM', '4:30 PM'];
 const PACKAGES = [
   {
-    name: 'Basic',   price: '₹500',
+    name: 'Basic',   price: '₹500',   amount: 500,
     features: ['Hand wash', 'Tyre dressing', 'Interior vacuum'],
   },
   {
-    name: 'Premium', price: '₹1,200',
+    name: 'Premium', price: '₹1,200', amount: 1200,
     features: ['Everything in Basic', 'Wax & shine', 'Dashboard polish', 'Glass treatment'],
   },
   {
-    name: 'Elite',   price: '₹2,400',
+    name: 'Elite',   price: '₹2,400', amount: 2400,
     features: ['Everything in Premium', 'Leather conditioning', 'Engine bay clean', 'Odor elimination'],
   },
 ];
 
 interface Profile {
-  name: string;
-  car:     { make: string; model: string; plate: string; color: string };
-  address: { line1: string; area: string; city: string };
+  name:     string;
+  phone?:   string;
+  car:      { make: string; model: string; plate: string; color: string };
+  address:  { line1: string; area: string; city: string };
 }
 
 export default function BookingScreen() {
   const { service } = useLocalSearchParams<{ service?: string }>();
-  const [tab,     setTab]     = useState(SERVICE_TAB_MAP[service ?? ''] ?? 'All');
-  const [pack,    setPack]    = useState('Premium');
-  const [slot,    setSlot]    = useState('2:00 PM');
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [tab,        setTab]        = useState(SERVICE_TAB_MAP[service ?? ''] ?? 'All');
+  const [pack,       setPack]       = useState('Premium');
+  const [slot,       setSlot]       = useState('2:00 PM');
+  const [profile,    setProfile]    = useState<Profile | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const c      = useThemeColors();
   const ss     = useSharedStyles();
 
   useEffect(() => {
-    AsyncStorage.getItem('@pc/onboarding').then(raw => {
+    AsyncStorage.getItem('@pc/profile').then(raw => {
       if (raw) setProfile(JSON.parse(raw));
     });
   }, []);
+
+  async function handleConfirm() {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const user = auth().currentUser;
+      const activePkg = PACKAGES.find(p => p.name === pack)!;
+
+      // Create Booking document in Firestore
+      const bookingRef = firestore().collection('bookings').doc();
+      const bookingId  = bookingRef.id;
+
+      await bookingRef.set({
+        id:            bookingId,
+        customerId:    user?.uid ?? 'demo',
+        status:        'pending',
+        paymentStatus: 'pending',
+        serviceIds:    [pack.toLowerCase()],
+        vehicle: {
+          id:           'v1',
+          make:         profile?.car?.make  ?? 'Unknown',
+          model:        profile?.car?.model ?? '',
+          year:         2022,
+          type:         'sedan',
+          registration: profile?.car?.plate ?? '',
+          color:        profile?.car?.color ?? '',
+        },
+        address: {
+          line1:       profile?.address?.line1 ?? '',
+          city:        profile?.address?.city  ?? 'Ghaziabad',
+          pincode:     '201002',
+          coordinates: { latitude: 28.6735, longitude: 77.4449 },
+        },
+        priceBreakdown: { subtotal: activePkg.amount, tax: 0, total: activePkg.amount },
+        photos:         { before: [], after: [] },
+        scheduledAt:    firestore.FieldValue.serverTimestamp(),
+        createdAt:      firestore.FieldValue.serverTimestamp(),
+        updatedAt:      firestore.FieldValue.serverTimestamp(),
+      });
+
+      router.push({
+        pathname: '/(customer)/payment',
+        params: {
+          bookingId,
+          bookingRef: bookingId.slice(0, 8).toUpperCase(),
+          amount:     String(activePkg.amount),
+          label:      `${pack} Wash`,
+          slot,
+          name:       profile?.name  ?? '',
+          phone:      profile?.phone ?? '',
+        },
+      });
+    } catch (err: any) {
+      Alert.alert('Error', err?.message ?? 'Failed to create booking. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   const activePkg = PACKAGES.find(p => p.name === pack)!;
 
@@ -216,11 +278,12 @@ export default function BookingScreen() {
         </View>
         <HapticButton
           haptic="medium"
-          style={[ss.primaryBtn, { flex: 1 }]}
-          onPress={() => router.push('/(customer)/payment')}
+          style={[ss.primaryBtn, { flex: 1 }, submitting && ss.primaryBtnOff]}
+          onPress={handleConfirm}
           activeOpacity={0.85}
+          disabled={submitting}
         >
-          <Text style={ss.primaryBtnText}>Confirm Booking →</Text>
+          <Text style={ss.primaryBtnText}>{submitting ? 'Booking…' : 'Confirm Booking →'}</Text>
         </HapticButton>
       </View>
     </View>

@@ -45,14 +45,17 @@ export default function PaymentSheet() {
   const c = useThemeColors();
 
   const params = useLocalSearchParams<{
+    bookingId?:  string;
     bookingRef?: string;
     amount?:     string;
     label?:      string;
+    slot?:       string;
     orderId?:    string;
     phone?:      string;
     name?:       string;
   }>();
 
+  const bookingId     = params.bookingId  ?? '';
   const bookingRef    = params.bookingRef ?? 'PC-0000';
   const amountRs      = Number(params.amount ?? 1080);
   const label         = params.label    ?? 'Premium Wash + Interior';
@@ -87,7 +90,14 @@ export default function PaymentSheet() {
       const data = await RazorpayCheckout.open(options);
       router.push({
         pathname: '/(customer)/payment-success',
-        params: { paymentId: data.razorpay_payment_id, bookingRef },
+        params: {
+          paymentId:  data.razorpay_payment_id,
+          bookingId,
+          bookingRef,
+          amount:     String(totalRs),
+          label:      params.label ?? 'Premium Wash',
+          slot:       params.slot  ?? '',
+        },
       });
     } catch (err: unknown) {
       const e = err as Partial<ErrorResponse>;

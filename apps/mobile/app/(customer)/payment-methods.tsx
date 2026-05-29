@@ -134,9 +134,7 @@ export default function PaymentMethodsScreen() {
                         name={card.name}
                         expiry={card.expiry}
                         gradientIndex={card.gradientIndex}
-                        isDefault={card.id === defaultId}
-                        isFlipped={isCvvFocused && card.id === cards[0].id}
-                        cvv={newCardCVV}
+                        flipped={isCvvFocused && card.id === cards[0].id}
                       />
                     </TouchableOpacity>
                   </Animated.View>

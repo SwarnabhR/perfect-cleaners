@@ -1,8 +1,11 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
 import { spacing, typography } from '@pc/tokens';
+import type { Vehicle } from '@pc/firebase';
 import { useThemeColors } from '../../theme';
 import { useSharedStyles } from '../../theme/sharedStyles';
 import AuthScreenShell from '../../components/AuthScreenShell';
@@ -13,9 +16,10 @@ export default function OnboardingAddress() {
   const params = useLocalSearchParams<{
     name?: string; make?: string; model?: string; plate?: string; color?: string;
   }>();
-  const [line1, setLine1] = useState('');
-  const [area,  setArea]  = useState('');
-  const [city,  setCity]  = useState('Ghaziabad');
+  const [line1,  setLine1]  = useState('');
+  const [area,   setArea]   = useState('');
+  const [city,   setCity]   = useState('Ghaziabad');
+  const [saving, setSaving] = useState(false);
   const router = useRouter();
   const c  = useThemeColors();
   const ss = useSharedStyles();
@@ -23,20 +27,63 @@ export default function OnboardingAddress() {
   const ready = line1.trim().length > 0 && area.trim().length > 0;
 
   async function handleFinish() {
-    if (!ready) return;
-    const profile = {
-      name:    params.name    ?? '',
-      phone:   '',
-      car: {
-        make:  params.make  ?? '',
-        model: params.model ?? '',
-        plate: params.plate ?? '',
-        color: params.color ?? '',
-      },
-      address: { line1, area, city },
-    };
-    await AsyncStorage.setItem('@pc/onboarding', JSON.stringify(profile));
-    router.replace('/(customer)/(tabs)');
+    if (!ready || saving) return;
+    setSaving(true);
+    try {
+      const user = auth().currentUser;
+
+      const profileData = {
+        name:  params.name ?? '',
+        phone: user?.phoneNumber ?? '',
+        car: {
+          make:  params.make  ?? '',
+          model: params.model ?? '',
+          plate: params.plate ?? '',
+          color: params.color ?? '',
+        },
+        address: { line1, area, city },
+      };
+
+      // Local cache — used by booking screen, profile tab, etc.
+      await AsyncStorage.setItem('@pc/profile', JSON.stringify(profileData));
+      // Auth-gate cache — index.tsx checks this === 'done'
+      await AsyncStorage.setItem('@pc/onboarding', 'done');
+      await AsyncStorage.setItem('@pc/role', 'customer');
+
+      // Write Customer document to Firestore (authoritative onboarding gate)
+      if (user) {
+        const vehicle: Vehicle | undefined = params.make ? {
+          id:           'v1',
+          make:         params.make,
+          model:        params.model ?? '',
+          year:         new Date().getFullYear(),
+          type:         'sedan',
+          registration: params.plate ?? '',
+          color:        params.color ?? '',
+        } : undefined;
+
+        await firestore()
+          .collection('customers')
+          .doc(user.uid)
+          .set({
+            id:                user.uid,
+            name:              params.name ?? '',
+            phone:             user.phoneNumber ?? '',
+            vehicles:          vehicle ? [vehicle] : [],
+            defaultAddress:    { line1, area, city },
+            onboardingComplete: true,
+            role:              'customer',
+            walletBalance:     0,
+            createdAt:         firestore.FieldValue.serverTimestamp(),
+          }, { merge: true });
+      }
+
+      router.replace('/(customer)/(tabs)');
+    } catch (err: any) {
+      Alert.alert('Setup failed', err?.message ?? 'Something went wrong. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -90,12 +137,12 @@ export default function OnboardingAddress() {
       </View>
 
       <TouchableOpacity
-        style={[ss.primaryBtn, !ready && ss.primaryBtnOff]}
+        style={[ss.primaryBtn, (!ready || saving) && ss.primaryBtnOff]}
         onPress={handleFinish}
         activeOpacity={0.8}
-        disabled={!ready}
+        disabled={!ready || saving}
       >
-        <Text style={ss.primaryBtnText}>FINISH SETUP →</Text>
+        <Text style={ss.primaryBtnText}>{saving ? 'SAVING…' : 'FINISH SETUP →'}</Text>
       </TouchableOpacity>
     </AuthScreenShell>
   );

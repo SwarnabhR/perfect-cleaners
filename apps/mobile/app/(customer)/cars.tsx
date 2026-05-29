@@ -94,7 +94,7 @@ function CarCard({ car, onEdit }: { car: Car; onEdit: () => void }) {
   return (
     <View style={s.carCard}>
       <View style={s.heroWrap}>
-        <CarImage make={car.make} model={car.model} tone={car.tone} style={s.carHero} />
+        <CarImage tone={car.tone} label={`${car.make} ${car.model}`} style={s.carHero} />
         {car.primary && (
           <View style={s.primaryBadge}>
             <Text style={s.primaryBadgeText}>PRIMARY</Text>
@@ -166,7 +166,7 @@ function AddCarSheet({ visible, onClose }: { visible: boolean; onClose: () => vo
         </View>
 
         <View style={sheet.preview}>
-          <CarImage make="BMW" model="3 Series" tone={tone} style={{ width: '100%', height: 130, borderRadius: 0 }} />
+          <CarImage tone={tone} style={{ width: '100%', height: 130, borderRadius: 0 }} />
         </View>
 
         <View style={sheet.form}>
