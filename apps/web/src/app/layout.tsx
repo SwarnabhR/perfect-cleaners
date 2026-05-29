@@ -51,7 +51,7 @@ export const metadata: Metadata = {
     description: 'Certified specialists, professional-grade products. At your driveway or our centre in Ghaziabad — booked in under 2 minutes.',
     images: [
       {
-        url:    '/og-default.png',
+        url:    '/opengraph-image',
         width:  1200,
         height: 630,
         alt:    'Perfect Cleaners — Premium Car Detailing',
@@ -63,7 +63,7 @@ export const metadata: Metadata = {
     card:        'summary_large_image',
     title:       'Perfect Cleaners — Premium Car Detailing, Delhi NCR',
     description: 'Certified specialists, professional-grade products. Booked in under 2 minutes.',
-    images:      ['/og-default.png'],
+    images:      ['/opengraph-image'],
   },
 
   robots: {

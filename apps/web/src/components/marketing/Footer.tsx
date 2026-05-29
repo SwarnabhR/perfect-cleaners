@@ -6,7 +6,7 @@ import Icon from '@/components/ui/Icon';
 import { useI18n } from '@/i18n';
 import styles from './Footer.module.css';
 
-const QUICK_LINKS_HREFS  = ['/services', '/services', '/services', '/services', '/terms', '/privacy'];
+const QUICK_LINKS_HREFS  = ['/services', '/services/exterior', '/services/interior', '/services/coating', '/terms', '/privacy'];
 const OFFICIAL_HREFS     = [undefined, 'tel:+919876543210', undefined] as (string | undefined)[];
 const BOOKING_HREFS      = ['/book', '/plans', '/membership'];
 
