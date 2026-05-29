@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+
+# Block admin routes from indexing
+Disallow: /dashboard
+Disallow: /bookings
+Disallow: /workers
+Disallow: /customers
+Disallow: /services-mgmt
+Disallow: /promotions
+Disallow: /analytics
+Disallow: /settings
+Disallow: /api/
+
+Sitemap: https://perfectcleaners.in/sitemap.xml

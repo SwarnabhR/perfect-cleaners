@@ -91,6 +91,13 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // ── Contact inquiries ───────────────────────────────────────────────────
+    match /contactInquiries/{docId} {
+      allow create: if request.resource.data.name is string &&
+                       request.resource.data.message is string;
+      allow read, write: if isAdmin();
+    }
+
     // ── App waitlist ────────────────────────────────────────────────────────
     // Public write — anyone can join the waitlist; no read except admins
     match /appWaitlist/{docId} {

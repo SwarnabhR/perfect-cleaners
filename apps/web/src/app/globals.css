@@ -626,6 +626,13 @@ html {
   }
 }
 
+/* Contact form field row */
+@media (max-width: 480px) {
+  .pc-contact-field-row {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 /* Contact page */
 @media (max-width: 768px) {
   .pc-contact-layout {
