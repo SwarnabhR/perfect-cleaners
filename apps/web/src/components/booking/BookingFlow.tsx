@@ -494,6 +494,8 @@ export default function BookingFlow() {
                 fontSize: 'var(--pc-text-sm)',
                 color: 'var(--pc-fg)',
                 textAlign: 'right',
+                minWidth: 0, overflow: 'hidden',
+                textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
               }}>{v}</span>
             </div>
           ))}
@@ -1063,8 +1065,8 @@ export default function BookingFlow() {
                 padding: 'var(--pc-space-2) 0',
                 borderBottom: '1px solid var(--pc-line)',
               }}>
-                <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)' }}>{k}</span>
-                <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg)', textAlign: 'right', maxWidth: '60%' }}>{v}</span>
+                <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)', flexShrink: 0 }}>{k}</span>
+                <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg)', textAlign: 'right', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{v}</span>
               </div>
             ))}
 

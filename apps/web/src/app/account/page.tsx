@@ -56,7 +56,7 @@ function BookingCard({ b }: { b: BookingRow }) {
     }}>
       {/* Header row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-        <div>
+        <div style={{ minWidth: 0, flex: 1 }}>
           <p style={{
             fontFamily: 'var(--pc-mono)',
             fontSize:   10,

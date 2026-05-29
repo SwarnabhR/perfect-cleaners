@@ -73,7 +73,13 @@
 /* Right: sticky summary card */
 .summaryCol {
   flex: 0 0 300px;
-  min-width: 260px;
+  min-width: 0;
+  width: 300px;
+  max-width: 100%;
+}
+
+.summaryCol > div {
+  width: 100%;
 }
 
 /* Two-field horizontal row (city+pincode, brand+model, name+phone) */

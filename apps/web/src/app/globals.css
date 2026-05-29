@@ -279,6 +279,16 @@
   margin: 0;
 }
 
+/* Prevent any element from causing horizontal page overflow */
+html {
+  overflow-x: clip;
+}
+
+/* Flex/grid children that hold text must be able to shrink below content size */
+main, section, article, aside, header, footer, nav, div {
+  min-width: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
