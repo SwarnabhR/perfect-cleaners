@@ -43,7 +43,7 @@ export default function CTASection() {
           fontFamily: 'var(--pc-serif)',
           fontSize: 'var(--pc-text-3xl)',
           lineHeight: 'var(--pc-lh-tight)',
-          color: 'var(--pc-fg)',
+          color: 'rgba(255,255,255,0.95)',
           letterSpacing: 'var(--pc-track-tight)',
         }}>
           At your driveway<br />or ours. Your call.
@@ -51,14 +51,14 @@ export default function CTASection() {
         <p style={{
           fontFamily: 'var(--pc-sans)',
           fontSize: 'var(--pc-text-base)',
-          color: 'var(--pc-fg-2)',
+          color: 'rgba(255,255,255,0.65)',
           lineHeight: 'var(--pc-lh-loose)',
           maxWidth: 360,
           margin: 0,
         }}>
           Pick a date, choose a service, confirm. We handle the rest — products, equipment, and a trained specialist at your door.
         </p>
-        <div style={{ display: 'flex', gap: 'var(--pc-space-2)', flexWrap: 'wrap' }}>
+        <div className="pc-cta-btns" style={{ display: 'flex', gap: 'var(--pc-space-2)', flexWrap: 'wrap' }}>
           <Link
             href="/book"
             className="pc-hero-cta-primary"

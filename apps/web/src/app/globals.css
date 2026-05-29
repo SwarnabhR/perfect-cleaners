@@ -509,6 +509,7 @@ html {
   .pc-hero-bento {
     grid-column: 1 / -1 !important;
     grid-template-columns: 1fr 1fr !important;
+    min-height: unset !important;
   }
 }
 @media (max-width: 480px) {
@@ -517,6 +518,16 @@ html {
   }
   .pc-hero-bento > *:nth-child(3) {
     display: none !important;
+  }
+  /* Stack hero CTAs vertically on narrow phones */
+  .pc-hero-ctas {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .pc-hero-ctas a,
+  .pc-hero-ctas button {
+    justify-content: center !important;
+    text-align: center !important;
   }
 }
 
@@ -529,12 +540,18 @@ html {
     height: 200px !important;
   }
 }
+@media (max-width: 480px) {
+  .pc-sf-portrait {
+    height: 160px !important;
+  }
+}
 
 /* PremiumSection */
 @media (max-width: 768px) {
   .pc-premium-header {
     flex-direction: column !important;
     align-items: flex-start !important;
+    gap: 20px !important;
   }
   .pc-premium-tiles {
     grid-template-columns: 1fr 1fr !important;
@@ -545,6 +562,7 @@ html {
     grid-template-columns: 1fr !important;
   }
   .pc-premium-root {
+    margin: var(--pc-space-5) var(--pc-screen-pad-lg) 0 !important;
     padding: var(--pc-space-6) var(--pc-space-4) var(--pc-space-4) !important;
   }
 }
@@ -573,6 +591,14 @@ html {
   .pc-cta-inner {
     padding: var(--pc-space-8) var(--pc-space-6) !important;
     max-width: 100% !important;
+  }
+  .pc-cta-btns {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .pc-cta-btns a {
+    text-align: center !important;
+    justify-content: center !important;
   }
 }
 
@@ -606,6 +632,10 @@ html {
 
 @media (max-width: 768px) {
   .pc-about-grid   { grid-template-columns: 1fr !important; }
+  .pc-about-values { grid-template-columns: 1fr 1fr !important; }
+  .pc-about-main   { padding: var(--pc-space-10) var(--pc-screen-pad-lg) !important; }
+}
+@media (max-width: 480px) {
   .pc-about-values { grid-template-columns: 1fr !important; }
 }
 
@@ -614,7 +644,10 @@ html {
    ==================================================================== */
 
 @media (max-width: 640px) {
-  .pc-gallery-grid { grid-template-columns: 1fr !important; }
+  .pc-gallery-grid {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
 }
 
 /* ====================================================================
@@ -626,11 +659,20 @@ html {
     width: calc(100vw - 2 * var(--pc-screen-pad-lg)) !important;
     max-width: 292px;
   }
-}
-
-@media (max-width: 480px) {
   .pc-service-grid {
     grid-template-columns: 1fr !important;
+  }
+}
+
+/* ====================================================================
+   Account page
+   ==================================================================== */
+
+@media (max-width: 640px) {
+  .pc-account-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 16px !important;
   }
 }
 

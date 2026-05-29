@@ -67,7 +67,7 @@ export default function Hero() {
           Nesting a <button> inside an <a> is invalid HTML.
           Button appearance is applied directly to the anchor.
         */}
-        <div style={{ display: 'flex', gap: 'var(--pc-space-2)', flexWrap: 'wrap' }}>
+        <div className="pc-hero-ctas" style={{ display: 'flex', gap: 'var(--pc-space-2)', flexWrap: 'wrap' }}>
           <Link
             href="/book"
             className="pc-hero-cta-primary"

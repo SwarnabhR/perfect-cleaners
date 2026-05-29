@@ -101,7 +101,7 @@ export const viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${serif.variable} ${sans.variable} ${mono.variable}`}>
+    <html lang="en" data-theme="light" className={`${serif.variable} ${sans.variable} ${mono.variable}`}>
       <body>
         <ThemeProvider>
           <I18nProvider>

@@ -9,11 +9,11 @@ const Ctx = createContext<{ theme: Theme; toggle: () => void }>({
 });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('dark');
+  const [theme, setTheme] = useState<Theme>('light');
 
   useEffect(() => {
     const saved = localStorage.getItem('pc-theme') as Theme | null;
-    if (saved === 'light' || saved === 'dark') apply(saved);
+    apply(saved === 'light' || saved === 'dark' ? saved : 'light');
   }, []);
 
   function apply(t: Theme) {

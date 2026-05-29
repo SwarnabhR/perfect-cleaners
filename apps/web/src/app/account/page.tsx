@@ -202,7 +202,7 @@ export default function AccountPage() {
       }}>
 
         {/* Header */}
-        <div style={{
+        <div className="pc-account-header" style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
           marginBottom: 'var(--pc-space-10)',
           gap: 'var(--pc-space-4)',

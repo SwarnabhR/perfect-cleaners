@@ -15,7 +15,7 @@ export default function AboutPage() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--pc-ink)', display: 'flex', flexDirection: 'column' }}>
       <Nav />
-      <main style={{ flex: 1, padding: 'var(--pc-space-20) var(--pc-screen-pad-lg) var(--pc-space-20)' }}>
+      <main className="pc-about-main" style={{ flex: 1, padding: 'var(--pc-space-20) var(--pc-screen-pad-lg) var(--pc-space-20)' }}>
 
         {/* Hero text */}
         <div style={{ maxWidth: 800, margin: '0 auto', textAlign: 'center', marginBottom: 'var(--pc-space-20)' }}>
