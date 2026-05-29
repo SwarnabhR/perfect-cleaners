@@ -1,20 +1,18 @@
 import { useState, useRef, useEffect } from 'react';
 import { ScrollView, View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, Animated, Alert, TextInput } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
 import { typography, spacing, radii } from '@pc/tokens';
 import { useThemeColors } from '../../theme';
 import { useSharedStyles } from '../../theme/sharedStyles';
 import { CreditCard, CreditCardProps } from '../../components/CreditCard';
 
-const DEMO_CARDS: (CreditCardProps & { id: string })[] = [
-  { id: '1', last4: '4242', brand: 'visa',       name: 'AARAV MEHTA', expiry: '12/27', gradientIndex: 0 },
-  { id: '2', last4: '5678', brand: 'mastercard', name: 'AARAV MEHTA', expiry: '08/26', gradientIndex: 1 },
-  { id: '3', last4: '9012', brand: 'rupay',      name: 'AARAV MEHTA', expiry: '03/28', gradientIndex: 2 },
-];
-
 export default function PaymentMethodsScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const c = useThemeColors();
   const ss = useSharedStyles();
   const { width: screenWidth } = useWindowDimensions();
@@ -23,10 +21,10 @@ export default function PaymentMethodsScreen() {
   const STACK_OFFSET = 16;
   const FAN_GAP = 12;
 
-  const [cards, setCards]         = useState(DEMO_CARDS);
+  const [cards, setCards]         = useState<(CreditCardProps & { id: string })[]>([]);
   const [expanded, setExpanded]   = useState(false);
   const [addSheetOpen, setAddSheetOpen] = useState(false);
-  const [defaultId, setDefaultId] = useState('1');
+  const [defaultId, setDefaultId] = useState('');
 
   const [newCardNumber, setNewCardNumber] = useState('');
   const [newCardName,   setNewCardName]   = useState('');
@@ -35,6 +33,30 @@ export default function PaymentMethodsScreen() {
   const [isCvvFocused,  setIsCvvFocused]  = useState(false);
 
   const expandAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const user = auth().currentUser;
+    if (!user) return;
+    return firestore()
+      .collection('customers').doc(user.uid)
+      .collection('paymentMethods')
+      .orderBy('createdAt', 'asc')
+      .onSnapshot(
+        snap => {
+          const loaded = snap.docs.map((d, i) => ({
+            id:            d.id,
+            last4:         d.data().last4,
+            brand:         d.data().brand,
+            name:          d.data().name,
+            expiry:        d.data().expiry,
+            gradientIndex: i % 3,
+          }));
+          setCards(loaded);
+          if (loaded.length && !defaultId) setDefaultId(loaded[0].id);
+        },
+        err => console.warn('[PaymentMethods] Firestore:', err.message),
+      );
+  }, []);
 
   const s = StyleSheet.create({
     root: { flex: 1, backgroundColor: c.ink },
@@ -52,7 +74,7 @@ export default function PaymentMethodsScreen() {
     menuItemText: { fontFamily: typography.sans, fontSize: 15, color: c.fg, textAlign: 'center' },
     menuItemDestructive: { color: c.danger },
     overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)' },
-    emptyCard: { backgroundColor: c.card, borderRadius: radii.xl, borderWidth: 1, borderStyle: 'dashed', borderColor: c.line, alignItems: 'center', justifyContent: 'center', height: cardHeight, marginHorizontal: spacing[5] },
+    emptyCard: { backgroundColor: c.card, borderRadius: radii.xl, borderWidth: 1, borderColor: c.lineStrong, alignItems: 'center', justifyContent: 'center', height: cardHeight, marginHorizontal: spacing[5] },
     emptyCardText: { fontFamily: typography.sans, fontSize: 14, color: c.fg3 },
   });
 
@@ -65,17 +87,29 @@ export default function PaymentMethodsScreen() {
     setExpanded(!expanded);
   }
 
-  function handleAddCard() {
+  async function handleAddCard() {
     if (!newCardNumber || !newCardName || !newCardExpiry || !newCardCVV) {
       Alert.alert('Missing fields', 'Please fill in all card details.');
       return;
     }
+    const user = auth().currentUser;
+    if (!user) return;
     const last4 = newCardNumber.replace(/\s/g, '').slice(-4);
-    const newCard = {
-      id: Date.now().toString(), last4, brand: 'visa' as const,
-      name: newCardName.toUpperCase(), expiry: newCardExpiry, gradientIndex: cards.length % 3,
-    };
-    setCards(prev => [...prev, newCard]);
+    try {
+      await firestore()
+        .collection('customers').doc(user.uid)
+        .collection('paymentMethods')
+        .add({
+          last4,
+          brand:     'visa',
+          name:      newCardName.toUpperCase(),
+          expiry:    newCardExpiry,
+          createdAt: firestore.FieldValue.serverTimestamp(),
+        });
+    } catch (err: any) {
+      Alert.alert('Error', err?.message ?? 'Failed to save card.');
+      return;
+    }
     setNewCardNumber(''); setNewCardName(''); setNewCardExpiry(''); setNewCardCVV('');
     setAddSheetOpen(false);
   }
@@ -91,7 +125,7 @@ export default function PaymentMethodsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={s.header}>
-          <TouchableOpacity style={ss.backBtn}>
+          <TouchableOpacity style={ss.backBtn} onPress={() => router.back()}>
             <ChevronLeft size={16} color={c.fg} strokeWidth={1.5} />
           </TouchableOpacity>
           <Text style={ss.eyebrow}>[PAYMENT] / METHODS</Text>
@@ -190,7 +224,19 @@ export default function PaymentMethodsScreen() {
             <TouchableOpacity style={s.menuItem} onPress={() => { setDefaultId(selectedCardId); setShowCardMenu(false); }}>
               <Text style={s.menuItemText}>Set as default</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={s.menuItem} onPress={() => { setCards(prev => prev.filter(c => c.id !== selectedCardId)); setShowCardMenu(false); }}>
+            <TouchableOpacity style={s.menuItem} onPress={async () => {
+                setShowCardMenu(false);
+                const user = auth().currentUser;
+                if (!user || !selectedCardId) return;
+                try {
+                  await firestore()
+                    .collection('customers').doc(user.uid)
+                    .collection('paymentMethods').doc(selectedCardId)
+                    .delete();
+                } catch (err: any) {
+                  Alert.alert('Error', err?.message ?? 'Failed to remove card.');
+                }
+              }}>
               <Text style={[s.menuItemText, s.menuItemDestructive]}>Remove card</Text>
             </TouchableOpacity>
           </View>
