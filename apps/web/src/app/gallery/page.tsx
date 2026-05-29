@@ -36,9 +36,6 @@ export default function GalleryPage() {
             padding: '24px var(--pc-screen-pad-lg) 80px',
             maxWidth: 1200,
             margin: '0 auto',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: 'clamp(16px, 3vw, 32px)',
           }}
         >
           {GALLERY_ITEMS.map((item, i) => (
@@ -56,7 +53,7 @@ export default function GalleryPage() {
                   src={item.img}
                   alt={item.title}
                   fill
-                  sizes="(max-width: 768px) 100vw, 50vw"
+                  sizes="(max-width: 480px) 100vw, (max-width: 768px) 50vw, 600px"
                   style={{ objectFit: 'cover' }}
                 />
               </div>

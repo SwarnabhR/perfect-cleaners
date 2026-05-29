@@ -498,128 +498,79 @@ html {
   }
 }
 
-/* ServiceFeature */
+/* Services */
 @media (max-width: 768px) {
-  .pc-sf-grid {
-    grid-template-columns: 1fr !important;
-  }
-  .pc-sf-portrait {
-    height: 200px !important;
-  }
-}
-
-/* PremiumSection */
-@media (max-width: 768px) {
-  .pc-premium-header {
-    flex-direction: column !important;
-    align-items: flex-start !important;
-  }
-  .pc-premium-tiles {
-    grid-template-columns: 1fr 1fr !important;
-  }
-}
-@media (max-width: 480px) {
-  .pc-premium-tiles {
-    grid-template-columns: 1fr !important;
-  }
-  .pc-premium-root {
-    padding: var(--pc-space-6) var(--pc-space-4) var(--pc-space-4) !important;
-  }
-}
-
-/* USP */
-@media (max-width: 768px) {
-  .pc-usp-root {
-    grid-template-columns: 1fr !important;
-    gap: 24px !important;
-  }
-  .pc-usp-cards {
-    grid-template-columns: 1fr 1fr !important;
-  }
-}
-@media (max-width: 480px) {
-  .pc-usp-cards {
-    grid-template-columns: 1fr !important;
-  }
-  .pc-usp-car {
-    display: none !important;
-  }
-}
-
-/* CTASection */
-@media (max-width: 768px) {
-  .pc-cta-inner {
-    padding: var(--pc-space-8) var(--pc-space-6) !important;
-    max-width: 100% !important;
-  }
-}
-
-/* Footer */
-@media (max-width: 768px) {
-  .pc-footer-grid {
-    grid-template-columns: 1fr 1fr !important;
-    gap: 32px !important;
-  }
-}
-@media (max-width: 480px) {
-  .pc-footer-grid {
-    grid-template-columns: 1fr !important;
-  }
-}
-
-/* Contact page */
-@media (max-width: 768px) {
-  .pc-contact-layout {
-    flex-direction: column !important;
-    gap: 40px !important;
-  }
-  .pc-contact-main {
-    padding: var(--pc-space-12) var(--pc-screen-pad-lg) !important;
-  }
-}
-
-/* ====================================================================
-   About page
-   ==================================================================== */
-
-@media (max-width: 768px) {
-  .pc-about-grid   { grid-template-columns: 1fr !important; }
-  .pc-about-values { grid-template-columns: 1fr !important; }
-}
-
-/* ====================================================================
-   Gallery page
-   ==================================================================== */
-
-@media (max-width: 640px) {
-  .pc-gallery-grid { grid-template-columns: 1fr !important; }
-}
-
-/* ====================================================================
-   Booking page
-   ==================================================================== */
-
-@media (max-width: 480px) {
-  .pc-calendar-popover {
-    width: calc(100vw - 2 * var(--pc-screen-pad-lg)) !important;
-    max-width: 292px;
-  }
-}
-
-@media (max-width: 480px) {
-  .pc-service-grid {
+  .pc-services-grid {
     grid-template-columns: 1fr !important;
   }
 }
 
 /* ====================================================================
-   Footer — word-break for long email on narrow screens
+   Plans section — responsive grid
    ==================================================================== */
 
+/* Desktop: 3 equal columns */
+.pc-plans-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(16px, 2vw, 28px);
+  align-items: start;
+}
+
+/* Tablet: 2 columns, last card full-width */
+@media (max-width: 900px) {
+  .pc-plans-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .pc-plans-grid > *:last-child {
+    grid-column: 1 / -1;
+    max-width: 480px;
+    margin-inline: auto;
+    width: 100%;
+  }
+}
+
+/* Mobile: single column, full width */
+@media (max-width: 600px) {
+  .pc-plans-grid {
+    grid-template-columns: 1fr;
+  }
+  .pc-plans-grid > *:last-child {
+    grid-column: auto;
+    max-width: none;
+    margin-inline: 0;
+  }
+}
+
+/* Value strip — 4 stats in a row */
+.pc-plans-value-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: clamp(16px, 3vw, 32px);
+  border: 1px solid var(--pc-line);
+  border-radius: var(--pc-radius-lg);
+  padding: clamp(24px, 4vw, 40px);
+}
+
+@media (max-width: 600px) {
+  .pc-plans-value-strip {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px 16px;
+  }
+}
+
+/* ====================================================================
+   Gallery grid — responsive
+   ==================================================================== */
+
+.pc-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: clamp(16px, 3vw, 32px);
+}
+
 @media (max-width: 480px) {
-  .pc-footer-email {
-    font-size: var(--pc-text-lg) !important;
-    overflow-wrap: break-word;
-    word-break: break-all;
+  .pc-gallery-grid {
+    grid-template-columns: 1fr;
   }
 }
