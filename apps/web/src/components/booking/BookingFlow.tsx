@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Card from '@/components/ui/Card';
+import PillSelect from '@/components/ui/PillSelect';
 import { submitBooking } from '@/lib/firebase/booking';
 import styles from './BookingFlow.module.css';
 
@@ -825,19 +826,26 @@ export default function BookingFlow() {
         {/* Step 3 — Location & Vehicle */}
         <section data-error-anchor>
           <StepLabel n="03">Location &amp; Vehicle</StepLabel>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-3)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-5)' }}>
 
+            {/* City */}
+            <div>
+              <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--pc-fg-4)', marginBottom: 10 }}>City</p>
+              <PillSelect options={CITIES} value={city} onChange={setCity} scrollRow />
+            </div>
+
+            {/* Address + Pincode */}
             <div className={styles.fieldRow}>
-              <select
-                value={city}
-                onChange={e => setCity(e.target.value)}
-                aria-label="Select city"
-                className={`${styles.input} ${styles.select}`}
-                style={{ flex: 1 }}
-              >
-                {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
               <div style={{ flex: 1 }}>
+                <input
+                  placeholder="Full address (flat / house no., street, locality)"
+                  value={address}
+                  onChange={e => setAddress(e.target.value)}
+                  className={`${styles.input}${errors.address ? ` ${styles.inputError}` : ''}`}
+                />
+                <FieldError msg={errors.address} />
+              </div>
+              <div style={{ flex: '0 0 120px' }}>
                 <input
                   placeholder="Pincode"
                   value={pincode}
@@ -850,36 +858,23 @@ export default function BookingFlow() {
               </div>
             </div>
 
+            {/* Brand */}
             <div>
-              <input
-                placeholder="Full address (flat / house no., street, locality)"
-                value={address}
-                onChange={e => setAddress(e.target.value)}
-                className={`${styles.input}${errors.address ? ` ${styles.inputError}` : ''}`}
-              />
-              <FieldError msg={errors.address} />
+              <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--pc-fg-4)', marginBottom: 10 }}>Vehicle brand</p>
+              <PillSelect options={BRANDS} value={brand} onChange={setBrand} />
             </div>
 
-            <div className={styles.fieldRow}>
-              <select
-                value={brand}
-                onChange={e => setBrand(e.target.value)}
-                aria-label="Select vehicle brand"
-                className={`${styles.input} ${styles.select}`}
-                style={{ flex: 1 }}
-              >
-                {BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
-              </select>
-              <div style={{ flex: 1 }}>
-                <input
-                  placeholder="Model (e.g. Creta, Nexon)"
-                  value={model}
-                  onChange={e => setModel(e.target.value)}
-                  className={`${styles.input}${errors.model ? ` ${styles.inputError}` : ''}`}
-                />
-                <FieldError msg={errors.model} />
-              </div>
+            {/* Model */}
+            <div>
+              <input
+                placeholder="Model (e.g. Creta, Nexon)"
+                value={model}
+                onChange={e => setModel(e.target.value)}
+                className={`${styles.input}${errors.model ? ` ${styles.inputError}` : ''}`}
+              />
+              <FieldError msg={errors.model} />
             </div>
+
           </div>
         </section>
 
