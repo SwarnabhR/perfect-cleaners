@@ -472,8 +472,44 @@ export default function BookingFlow() {
             name:    name,
             contact: `+91${phone.replace(/\D/g, '')}`,
           },
-          theme:    { color: '#4A5E44' },
-          modal:    { backdropclose: false, escape: false },
+          theme:  { color: '#4A5E44' },
+          modal:  { backdropclose: false, escape: false },
+
+          // Explicitly enable all payment methods —
+          // UPI covers GPay, PhonePe, BHIM, Paytm UPI, etc.
+          method: {
+            upi:        true,
+            card:       true,
+            netbanking: true,
+            wallet:     true,
+            emi:        false,
+            paylater:   false,
+          },
+
+          // Surface UPI apps at the top of the checkout
+          config: {
+            display: {
+              blocks: {
+                upi_apps: {
+                  name: 'Pay via UPI App',
+                  instruments: [
+                    { method: 'upi', flows: ['intent'], apps: ['google_pay', 'phonepe', 'paytm', 'bhim'] },
+                  ],
+                },
+                other: {
+                  name: 'Other payment methods',
+                  instruments: [
+                    { method: 'upi',        flows: ['collect', 'qr'] },
+                    { method: 'card'        },
+                    { method: 'netbanking'  },
+                    { method: 'wallet'      },
+                  ],
+                },
+              },
+              sequence:    ['block.upi_apps', 'block.other'],
+              preferences: { show_default_blocks: false },
+            },
+          },
 
           handler: async (response: {
             razorpay_payment_id: string;
