@@ -2,112 +2,132 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ── Helpers ────────────────────────────────────────────────────────────
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
     function isSignedIn() {
       return request.auth != null;
     }
 
+    // Each user can check their own admin status (read own /admins/{uid} doc).
+    // Because the admins/{uid} rule allows `request.auth.uid == uid`, this
+    // exists() call succeeds for self-checks without a circular dependency.
     function isAdmin() {
       return isSignedIn() &&
         exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
-    // Guest booking — customerId set to 'phone:<10-digit>' by the web form
-    function isGuestBooking() {
-      return request.resource.data.customerId is string &&
-             request.resource.data.customerId.matches('^phone:[6-9][0-9]{9}$') &&
-             request.resource.data.customerPhone is string;
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
     }
 
-    // ── Admins ─────────────────────────────────────────────────────────────
+    // Matches bookings created by authenticated users (uid) or the legacy
+    // guest path (phone:<digits>) written by the web form before full auth.
+    function isBookingCustomer() {
+      return isSignedIn() && (
+        resource.data.customerId    == request.auth.uid ||
+        resource.data.customerPhone == request.auth.token.phone_number
+      );
+    }
+
+    function isAssignedWorker() {
+      return isSignedIn() && resource.data.workerId == request.auth.uid;
+    }
+
+    // ── Admins ────────────────────────────────────────────────────────────────
+    // Each user may read their own admin doc so isAdmin() works via exists().
+    // No client-side writes — managed via Firebase Console / Admin SDK only.
     match /admins/{uid} {
-      allow read:  if isSignedIn() && request.auth.uid == uid;
-      allow write: if false; // managed via Firebase Console / Admin SDK only
+      allow read:  if isOwner(uid);
+      allow write: if false;
     }
 
-    // ── Customers ──────────────────────────────────────────────────────────
+    // ── Customers ─────────────────────────────────────────────────────────────
     match /customers/{userId} {
-      allow read, write: if isSignedIn() && request.auth.uid == userId;
-      allow read, write: if isAdmin();
+      allow read, write: if isOwner(userId) || isAdmin();
 
       match /addresses/{addressId} {
-        allow read, write: if isSignedIn() && request.auth.uid == userId;
-        allow read, write: if isAdmin();
+        allow read, write: if isOwner(userId) || isAdmin();
       }
 
       match /paymentMethods/{methodId} {
-        allow read, write: if isSignedIn() && request.auth.uid == userId;
-        allow read, write: if isAdmin();
+        allow read, write: if isOwner(userId) || isAdmin();
       }
     }
 
-    // ── Bookings ────────────────────────────────────────────────────────────
-    match /bookings/{bookingId} {
-      // Authenticated customers read/update their own booking
-      allow read: if isSignedIn() && (
-        resource.data.customerId == request.auth.uid ||
-        resource.data.workerId   == request.auth.uid
-      );
-
-      // Authenticated create — customerId must match caller's uid
-      allow create: if isSignedIn() &&
-        request.resource.data.customerId == request.auth.uid;
-
-      // Guest create — web booking form without an account
-      allow create: if isGuestBooking();
-
-      // Customer updates their own booking (e.g. promo applied on success)
-      allow update: if isSignedIn() && (
-        resource.data.customerId == request.auth.uid ||
-        resource.data.workerId   == request.auth.uid
-      );
-
-      // Admin full access
-      allow read, write: if isAdmin();
-    }
-
-    // ── Workers ─────────────────────────────────────────────────────────────
+    // ── Workers ───────────────────────────────────────────────────────────────
+    // Only the worker themselves or an admin may read worker profiles.
+    // (Worker name / rating shown to customers comes from denormalized fields
+    //  on the booking doc — customers never query this collection directly.)
     match /workers/{workerId} {
-      allow read, write: if isSignedIn() && request.auth.uid == workerId;
-      allow read:        if isSignedIn();
-      allow write:       if isAdmin();
+      allow read:          if isOwner(workerId) || isAdmin();
+      allow create, delete: if isAdmin();
+      // Workers update their own isOnline / name; admins update everything.
+      allow update:        if isOwner(workerId) || isAdmin();
     }
 
-    // ── Services (catalogue) ───────────────────────────────────────────────
+    // ── Bookings ──────────────────────────────────────────────────────────────
+    match /bookings/{bookingId} {
+      // Customers see their own bookings (matched by UID or phone number).
+      // The phone-number path supports the web account page + mobile bookings
+      // tab, which both query  where('customerPhone', '==', user.phoneNumber).
+      allow read: if isBookingCustomer() || isAssignedWorker() || isAdmin();
+
+      // Any signed-in user may create a booking (the booking flow requires auth).
+      allow create: if isSignedIn();
+
+      // Customers may cancel their own booking (status → cancelled only).
+      // Workers may advance status and write checklist / photos / notes.
+      // Admins may update anything.
+      allow update: if isAdmin()
+        || isAssignedWorker()
+        || (isBookingCustomer()
+            && request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['status', 'updatedAt'])
+            && request.resource.data.status == 'cancelled');
+
+      allow delete: if isAdmin();
+    }
+
+    // ── Services (catalogue) ──────────────────────────────────────────────────
+    // Public read — shown on the marketing site without auth.
     match /services/{serviceId} {
       allow read:  if true;
       allow write: if isAdmin();
     }
 
-    // ── Promotions ─────────────────────────────────────────────────────────
+    // ── Promotions ────────────────────────────────────────────────────────────
+    // Any authenticated user can read (booking flow + offers tab).
     match /promotions/{promoId} {
-      allow read:  if true;
+      allow read:  if isSignedIn();
       allow write: if isAdmin();
     }
 
-    // ── Support chat ────────────────────────────────────────────────────────
+    // ── Operator settings ─────────────────────────────────────────────────────
+    match /settings/{docId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ── Support chat ──────────────────────────────────────────────────────────
     match /support/{userId}/messages/{msgId} {
-      allow read, write: if isSignedIn() && request.auth.uid == userId;
-      allow read, write: if isAdmin();
+      allow read, write: if isOwner(userId) || isAdmin();
     }
 
-    // ── Contact inquiries ───────────────────────────────────────────────────
+    // ── Contact inquiries ─────────────────────────────────────────────────────
+    // Public write so the contact form works without auth; admin-only read.
     match /contactInquiries/{docId} {
-      allow create: if request.resource.data.name is string &&
-                       request.resource.data.message is string;
+      allow create:      if request.resource.data.name    is string
+                         && request.resource.data.message is string;
       allow read, write: if isAdmin();
     }
 
-    // ── App waitlist ────────────────────────────────────────────────────────
-    // Public write — anyone can join the waitlist; no read except admins
+    // ── App waitlist ──────────────────────────────────────────────────────────
     match /appWaitlist/{docId} {
-      allow create: if request.resource.data.phone is string &&
-                       request.resource.data.platform is string;
+      allow create:      if request.resource.data.phone    is string
+                         && request.resource.data.platform is string;
       allow read, write: if isAdmin();
     }
 
-    // ── OTP verifications (server-side only via Admin SDK) ──────────────────
-    // Client never reads/writes these directly — deny all client access
+    // ── OTP verifications (server-side only) ──────────────────────────────────
     match /otpVerifications/{phone} {
       allow read, write: if false;
     }
