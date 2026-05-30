@@ -923,7 +923,15 @@ export default function BookingFlow() {
             {/* Brand */}
             <div>
               <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--pc-fg-4)', marginBottom: 10 }}>Vehicle brand</p>
-              <PillSelect options={BRANDS} value={brand} onChange={setBrand} />
+              <select
+                value={brand}
+                onChange={e => setBrand(e.target.value)}
+                className={`${styles.input} ${styles.select}`}
+              >
+                {BRANDS.map(b => (
+                  <option key={b} value={b}>{b}</option>
+                ))}
+              </select>
             </div>
 
             {/* Model + Plate */}
