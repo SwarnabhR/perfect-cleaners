@@ -13,7 +13,7 @@
     "newArchEnabled": false,
 
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#F5F2EE"
     },
@@ -52,7 +52,7 @@
     },
 
     "notification": {
-      "icon": "./assets/notification-icon.png",
+      "icon": "./assets/android-icon-monochrome.png",
       "color": "#4A5E44",
       "androidMode": "collapse",
       "androidCollapsedTitle": "Perfect Cleaners",
@@ -69,14 +69,14 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#F5F2EE",
-          "image": "./assets/splash.png",
+          "image": "./assets/splash-icon.png",
           "imageWidth": 200
         }
       ],
       [
         "expo-notifications",
         {
-          "icon": "./assets/notification-icon.png",
+          "icon": "./assets/android-icon-monochrome.png",
           "color": "#4A5E44",
           "defaultChannel": "default",
           "sounds": [],
