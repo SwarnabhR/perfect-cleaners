@@ -8,18 +8,7 @@ import CustomSelect from '@/components/ui/CustomSelect';
 import type { VehicleType } from '@pc/firebase';
 import AuthBottomSheet from '@/components/auth/AuthBottomSheet';
 import { useCustomerAuth } from '@/lib/auth/CustomerAuthContext';
-// Razorpay checkout script loader
-declare global { interface Window { Razorpay: any } }
-function loadRazorpay(): Promise<boolean> {
-  return new Promise(resolve => {
-    if (typeof window.Razorpay === 'function') { resolve(true); return; }
-    const s = document.createElement('script');
-    s.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    s.onload  = () => resolve(true);
-    s.onerror = () => resolve(false);
-    document.head.appendChild(s);
-  });
-}
+import { submitBooking } from '@/lib/firebase/booking';
 import styles from './BookingFlow.module.css';
 
 // ─── Static data ──────────────────────────────────────────────────────────────
@@ -423,30 +412,14 @@ export default function BookingFlow() {
     setErrors({});
     setSubmitError('');
     setIsSubmitting(true);
-
     try {
-      // 1. Create Razorpay order server-side
-      const orderRes  = await fetch('/api/payment/create-order', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ amount: total, receipt: `pc_${Date.now()}` }),
-      });
-      const orderData = await orderRes.json();
-      if (!orderRes.ok) throw new Error(orderData.error ?? 'Could not create payment order.');
-
-      // 2. Load Razorpay checkout script
-      const loaded = await loadRazorpay();
-      if (!loaded) throw new Error('Could not load payment gateway. Check your connection.');
-
-      // 3. Prepare booking payload for the verify endpoint
       const scheduledAt = buildScheduledAt(selDate, selTime);
-      const bookingPayload = {
-        customerId:    user.uid,
+      const res = await submitBooking({
         serviceId:     service.id,
         serviceName:   service.name,
         price:         service.price,
         platformFee:   PLATFORM_FEE,
-        scheduledAt:   scheduledAt.toISOString(),
+        scheduledAt,
         city,
         pincode,
         addressLine1:  address,
@@ -456,106 +429,11 @@ export default function BookingFlow() {
         vehicleType:   VEHICLE_TYPES.find(t => t.label === vehicleTypeLabel)?.value ?? 'sedan',
         customerName:  name,
         customerPhone: phone.replace(/\D/g, ''),
-      };
-
-      // 4. Open Razorpay checkout
-      await new Promise<void>((resolve, reject) => {
-        const rzp = new window.Razorpay({
-          key:         orderData.keyId,
-          order_id:    orderData.orderId,
-          amount:      orderData.amount,
-          currency:    orderData.currency ?? 'INR',
-          name:        'Perfect Cleaners',
-          description: service.name,
-          image:       '/logo-pc-monogram.svg',
-          prefill: {
-            name:    name,
-            contact: `+91${phone.replace(/\D/g, '')}`,
-          },
-          theme:  { color: '#4A5E44' },
-          modal:  { backdropclose: false, escape: false },
-
-          // Explicitly enable all payment methods —
-          // UPI covers GPay, PhonePe, BHIM, Paytm UPI, etc.
-          method: {
-            upi:        true,
-            card:       true,
-            netbanking: true,
-            wallet:     true,
-            emi:        false,
-            paylater:   false,
-          },
-
-          // Surface UPI apps at the top of the checkout
-          config: {
-            display: {
-              blocks: {
-                upi_apps: {
-                  name: 'Pay via UPI App',
-                  instruments: [
-                    { method: 'upi', flows: ['intent'], apps: ['google_pay', 'phonepe', 'paytm', 'bhim'] },
-                  ],
-                },
-                other: {
-                  name: 'Other payment methods',
-                  instruments: [
-                    { method: 'upi',        flows: ['collect', 'qr'] },
-                    { method: 'card'        },
-                    { method: 'netbanking'  },
-                    { method: 'wallet'      },
-                  ],
-                },
-              },
-              sequence:    ['block.upi_apps', 'block.other'],
-              preferences: { show_default_blocks: false },
-            },
-          },
-
-          handler: async (response: {
-            razorpay_payment_id: string;
-            razorpay_order_id:   string;
-            razorpay_signature:  string;
-          }) => {
-            try {
-              // 5. Verify payment + create booking
-              const verifyRes  = await fetch('/api/payment/verify', {
-                method:  'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body:    JSON.stringify({
-                  razorpay_order_id:   response.razorpay_order_id,
-                  razorpay_payment_id: response.razorpay_payment_id,
-                  razorpay_signature:  response.razorpay_signature,
-                  booking:             bookingPayload,
-                }),
-              });
-              const verifyData = await verifyRes.json();
-              if (!verifyRes.ok) throw new Error(verifyData.error ?? 'Payment verification failed.');
-              setResult({ bookingRef: verifyData.bookingRef });
-              resolve();
-            } catch (err: any) {
-              reject(err);
-            }
-          },
-        });
-
-        rzp.on('payment.failed', (resp: any) => {
-          reject(new Error(resp.error?.description ?? 'Payment failed. Please try again.'));
-        });
-
-        // When the user closes the modal without paying
-        const origClose = rzp.close?.bind(rzp);
-        rzp.on?.('payment.cancel', () => {
-          reject(new Error('CANCELLED'));
-        });
-
-        setIsSubmitting(false); // allow UI to reflect "waiting for payment"
-        rzp.open();
       });
-
-    } catch (err: any) {
-      if (err?.message !== 'CANCELLED') {
-        setSubmitError(err?.message ?? 'Something went wrong. Please try again or call +91 98765 43210.');
-      }
+      setResult({ bookingRef: res.bookingRef });
+    } catch (err) {
+      console.error('[BookingFlow] submitBooking error:', err);
+      setSubmitError('Something went wrong. Please try again or call +91 98765 43210.');
     } finally {
       setIsSubmitting(false);
     }
@@ -652,7 +530,7 @@ export default function BookingFlow() {
               color: 'var(--pc-fg-3)',
               letterSpacing: 'var(--pc-track-mono)',
               textTransform: 'uppercase',
-            }}>Total paid</span>
+            }}>Amount due</span>
             <span style={{
               fontFamily: 'var(--pc-serif)',
               fontSize: 'var(--pc-text-2xl)',
@@ -660,6 +538,49 @@ export default function BookingFlow() {
             }}>₹{total.toLocaleString('en-IN')}</span>
           </div>
         </Card>
+
+        {/* Pay at service instructions */}
+        <div style={{
+          background: 'rgba(74,94,68,0.10)',
+          border: '1px solid rgba(74,94,68,0.30)',
+          borderRadius: 'var(--pc-radius-md)',
+          padding: 'var(--pc-space-5)',
+          marginBottom: 'var(--pc-space-8)',
+          textAlign: 'left',
+        }}>
+          <p style={{
+            fontFamily: 'var(--pc-mono)', fontSize: 10, letterSpacing: '0.1em',
+            textTransform: 'uppercase', color: 'var(--pc-sage-hi)',
+            margin: '0 0 10px',
+          }}>
+            [PAYMENT] / PAY AT SERVICE
+          </p>
+          <p style={{
+            fontFamily: 'var(--pc-sans)', fontSize: 14,
+            color: 'var(--pc-fg)', fontWeight: 500, margin: '0 0 6px',
+          }}>
+            Pay ₹{total.toLocaleString('en-IN')} when our detailer arrives.
+          </p>
+          <p style={{
+            fontFamily: 'var(--pc-sans)', fontSize: 13,
+            color: 'var(--pc-fg-2)', lineHeight: 1.6, margin: '0 0 14px',
+          }}>
+            We accept cash and all UPI apps — GPay, PhonePe, Paytm, BHIM.
+            No card machine required.
+          </p>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {['GPay', 'PhonePe', 'Paytm', 'Cash'].map(m => (
+              <span key={m} style={{
+                padding: '4px 12px',
+                background: 'var(--pc-sage-subtle)',
+                border: '1px solid rgba(74,94,68,0.25)',
+                borderRadius: 999,
+                fontFamily: 'var(--pc-sans)', fontSize: 12,
+                color: 'var(--pc-sage-on-tint)',
+              }}>{m}</span>
+            ))}
+          </div>
+        </div>
 
         {/*
           Success screen CTAs.
@@ -1186,7 +1107,7 @@ export default function BookingFlow() {
           disabled={isSubmitting || !termsAccepted}
           className={styles.submitBtn}
         >
-          {isSubmitting ? 'Opening payment…' : `Confirm & Pay ₹${total.toLocaleString('en-IN')} →`}
+          {isSubmitting ? 'Confirming…' : 'Confirm Booking →'}
         </button>
       </div>
 
