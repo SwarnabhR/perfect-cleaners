@@ -1,8 +1,14 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
 import Eyebrow from '@/components/ui/Eyebrow';
+import { useI18n } from '@/i18n';
 
 export default function CTASection() {
+  const { t } = useI18n();
+  const c = t.cta;
+
   return (
     <div style={{
       margin: 'var(--pc-space-20) var(--pc-screen-pad-lg) 0',
@@ -12,7 +18,6 @@ export default function CTASection() {
       minHeight: 300,
       border: '1px solid var(--pc-line)',
     }}>
-      {/* Background photo — water beading on waxed paint */}
       <Image
         src="/service-exterior-b.png"
         alt=""
@@ -21,12 +26,10 @@ export default function CTASection() {
         sizes="100vw"
         style={{ objectFit: 'cover' }}
       />
-      {/* Left-side gradient */}
       <div style={{
         position: 'absolute', inset: 0,
         background: 'linear-gradient(90deg, rgba(14,13,11,0.97) 30%, rgba(14,13,11,0.6) 60%, rgba(14,13,11,0.1) 100%)',
       }} />
-      {/* Content */}
       <div
         className="pc-cta-inner"
         style={{
@@ -38,7 +41,7 @@ export default function CTASection() {
           gap: 'var(--pc-space-5)',
         }}
       >
-        <Eyebrow>[READY IN 2 MINUTES]</Eyebrow>
+        <Eyebrow>{c.eyebrow}</Eyebrow>
         <div style={{
           fontFamily: 'var(--pc-serif)',
           fontSize: 'var(--pc-text-3xl)',
@@ -46,7 +49,7 @@ export default function CTASection() {
           color: 'rgba(255,255,255,0.95)',
           letterSpacing: 'var(--pc-track-tight)',
         }}>
-          At your driveway<br />or ours. Your call.
+          {c.headline1}<br />{c.headline2}
         </div>
         <p style={{
           fontFamily: 'var(--pc-sans)',
@@ -56,54 +59,40 @@ export default function CTASection() {
           maxWidth: 360,
           margin: 0,
         }}>
-          Pick a date, choose a service, confirm. We handle the rest — products, equipment, and a trained specialist at your door.
+          {c.body}
         </p>
         <div className="pc-cta-btns" style={{ display: 'flex', gap: 'var(--pc-space-2)', flexWrap: 'wrap' }}>
           <Link
             href="/book"
             className="pc-hero-cta-primary"
             style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               padding: 'var(--pc-space-4) var(--pc-space-6)',
-              background: 'var(--pc-warm)',
-              color: 'var(--pc-ink)',
-              border: 'none',
-              borderRadius: 'var(--pc-radius-pill)',
-              fontFamily: 'var(--pc-sans)',
-              fontSize: 'var(--pc-text-sm)',
-              fontWeight: 600,
-              letterSpacing: 'var(--pc-track-wide)',
-              textTransform: 'uppercase',
-              textDecoration: 'none',
+              background: 'var(--pc-warm)', color: 'var(--pc-ink)',
+              border: 'none', borderRadius: 'var(--pc-radius-pill)',
+              fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)',
+              fontWeight: 600, letterSpacing: 'var(--pc-track-wide)',
+              textTransform: 'uppercase', textDecoration: 'none',
               transition: 'background var(--pc-dur-fast) var(--pc-ease), box-shadow var(--pc-dur-fast) var(--pc-ease)',
             }}
           >
-            Book Now
+            {c.bookNow}
           </Link>
           <Link
             href="/contact"
             className="pc-hero-cta-ghost"
             style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               padding: 'var(--pc-space-4) var(--pc-space-6)',
-              background: 'transparent',
-              color: 'var(--pc-fg)',
-              border: '1px solid var(--pc-line-strong)',
-              borderRadius: 'var(--pc-radius-pill)',
-              fontFamily: 'var(--pc-sans)',
-              fontSize: 'var(--pc-text-sm)',
-              fontWeight: 500,
-              letterSpacing: 'var(--pc-track-wide)',
-              textTransform: 'uppercase',
-              textDecoration: 'none',
+              background: 'transparent', color: 'var(--pc-fg)',
+              border: '1px solid var(--pc-line-strong)', borderRadius: 'var(--pc-radius-pill)',
+              fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)',
+              fontWeight: 500, letterSpacing: 'var(--pc-track-wide)',
+              textTransform: 'uppercase', textDecoration: 'none',
               transition: 'background var(--pc-dur-fast) var(--pc-ease), border-color var(--pc-dur-fast) var(--pc-ease)',
             }}
           >
-            Get in Touch
+            {c.getInTouch}
           </Link>
         </div>
       </div>
