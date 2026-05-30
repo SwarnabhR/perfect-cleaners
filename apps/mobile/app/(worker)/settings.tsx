@@ -11,7 +11,7 @@ import { useSharedStyles } from '../../theme/sharedStyles';
 export default function WorkerSettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { theme, toggleTheme, colors: c } = useTheme();
+  const { colors: c } = useTheme();
   const ss = useSharedStyles();
 
   const handleLogout = () => {
@@ -50,15 +50,6 @@ export default function WorkerSettingsScreen() {
           iconBg={c.cardHi}
           title="Push Notifications"
           onPress={() => {}}
-          isLast
-        />
-      </Group>
-
-      <Group header="PREFERENCES">
-        <Row
-          title="Appearance"
-          value={theme === 'light' ? 'Light' : 'Dark'}
-          onPress={toggleTheme}
           isLast
         />
       </Group>

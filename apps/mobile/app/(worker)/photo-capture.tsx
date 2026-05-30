@@ -112,7 +112,7 @@ export default function PhotoCapture() {
                   </View>
                 ) : uri ? (
                   <View style={s.angleCaptured}>
-                    <Image source={{ uri }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+                    <Image source={{ uri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
                     <View style={s.angleCheck}>
                       <Check size={11} color="#fff" strokeWidth={2.5} />
                     </View>

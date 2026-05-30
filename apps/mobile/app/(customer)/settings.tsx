@@ -14,7 +14,7 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { lang, t, setLang } = useI18n();
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
   const ss = useSharedStyles();
   const s18n = t.settings;
 
@@ -81,13 +81,7 @@ export default function SettingsScreen() {
         <Row title={s18n.language}     value={t.common.langLabel} onPress={() => setLang(lang === 'en' ? 'hi' : 'en')} />
         <Row title={s18n.currency}     value={s18n.inr}           onPress={() => {}} />
         <Row title={s18n.distanceUnit} value={s18n.kilometres}    onPress={() => {}} />
-        <SwitchRow title={s18n.haptics} switchOn={haptics} onToggle={setHaptics} />
-        <Row
-          title={s18n.appearance}
-          value={theme === 'light' ? 'Light' : 'Dark'}
-          onPress={toggleTheme}
-          isLast
-        />
+        <SwitchRow title={s18n.haptics} switchOn={haptics} onToggle={setHaptics} isLast />
       </Group>
 
       <Group header={s18n.account}>
