@@ -279,9 +279,11 @@
   margin: 0;
 }
 
-/* Prevent any element from causing horizontal page overflow */
+/* Prevent any element from causing horizontal page overflow.
+   overflow-x:hidden (not clip) so child overflow-x:auto scroll
+   containers still work on iOS Safari. */
 html {
-  overflow-x: clip;
+  overflow-x: hidden;
 }
 
 /* Flex/grid children that hold text must be able to shrink below content size */
