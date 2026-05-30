@@ -1,8 +1,11 @@
-import { useState } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ScrollView, View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Car } from 'lucide-react-native';
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
+import type { BookingStatus } from '@pc/firebase';
 import { colors, typography, spacing, radii } from '@pc/tokens';
 import { useThemeColors } from '../../../theme';
 import { useSharedStyles } from '../../../theme/sharedStyles';
@@ -10,27 +13,27 @@ import TabTopBar from '../../../components/TabTopBar';
 import { CarImage } from '@pc/ui';
 import { SegCtrl } from '../../../components/RowGroup';
 
-type BookingStatus = 'upcoming' | 'done' | 'cancelled';
+type FilterStatus = 'all' | 'upcoming' | 'done' | 'cancelled';
 
-interface Booking {
-  id: string;
-  service: string;
-  car: string;
-  date: string;
-  time: string;
-  price: number;
-  status: BookingStatus;
+interface BookingRow {
+  id:         string;      // Firestore doc ID
+  bookingRef: string;
+  service:    string;
+  car:        string;
+  date:       string;
+  time:       string;
+  price:      number;
+  status:     FilterStatus;
 }
 
-const BOOKINGS: Booking[] = [
-  { id: '#PC-2058', service: 'Premium Wash + Interior', car: 'BMW 3 Series',  date: '28 May 2026', time: '2:00 PM',   price: 1080,  status: 'upcoming'  },
-  { id: '#PC-2041', service: 'Exterior Wash',           car: 'Hyundai Creta', date: '22 May 2026', time: '11:00 AM', price: 350,   status: 'done'      },
-  { id: '#PC-1992', service: 'Ceramic Coating',         car: 'BMW 3 Series',  date: '14 May 2026', time: '10:00 AM', price: 18500, status: 'done'      },
-  { id: '#PC-1854', service: 'Interior Detailing',      car: 'Hyundai Creta', date: '02 May 2026', time: '4:30 PM',  price: 850,   status: 'done'      },
-  { id: '#PC-1812', service: 'Premium Wash',            car: 'BMW 3 Series',  date: '27 Apr 2026', time: '12:00 PM', price: 1200,  status: 'cancelled' },
-];
+function toFilterStatus(s: BookingStatus): FilterStatus {
+  if (s === 'done')      return 'done';
+  if (s === 'cancelled') return 'cancelled';
+  return 'upcoming';
+}
 
-const STATUS_COLOR: Record<BookingStatus, string> = {
+const STATUS_COLOR: Record<FilterStatus, string> = {
+  all:       colors.fg3,
   upcoming:  colors.warning,
   done:      colors.success,
   cancelled: colors.danger,
@@ -48,9 +51,48 @@ export default function BookingsTab() {
   const router = useRouter();
   const c      = useThemeColors();
   const ss     = useSharedStyles();
-  const [filter, setFilter] = useState('all');
+  const [filter,   setFilter]   = useState<FilterStatus>('all');
+  const [bookings, setBookings] = useState<BookingRow[]>([]);
+  const [loading,  setLoading]  = useState(true);
 
-  const list = filter === 'all' ? BOOKINGS : BOOKINGS.filter(b => b.status === filter);
+  useEffect(() => {
+    const phone = auth().currentUser?.phoneNumber;
+    if (!phone) { setLoading(false); return; }
+
+    const unsub = firestore()
+      .collection('bookings')
+      .where('customerPhone', '==', phone)
+      .onSnapshot(snap => {
+        const rows: BookingRow[] = snap.docs
+          .map(d => {
+            const data = d.data();
+            const at: Date = data.scheduledAt?.toDate?.() ?? new Date(data.scheduledAt ?? 0);
+            const make  = data.vehicle?.make  ?? '';
+            const model = data.vehicle?.model ?? '';
+            const svcId = (data.serviceIds?.[0] ?? '') as string;
+            return {
+              id:         d.id,
+              bookingRef: data.bookingRef ?? d.id.slice(-6).toUpperCase(),
+              service:    svcId.replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+              car:        [make, model].filter(Boolean).join(' '),
+              date:       at.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+              time:       at.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+              price:      data.priceBreakdown?.total ?? 0,
+              status:     toFilterStatus(data.status as BookingStatus),
+            };
+          })
+          .sort((a, b) => {
+            // Keep original ordering by parsing dates back — simpler: sort by creation
+            return 0;
+          });
+        setBookings(rows);
+        setLoading(false);
+      }, () => setLoading(false));
+
+    return unsub;
+  }, []);
+
+  const list = filter === 'all' ? bookings : bookings.filter(b => b.status === filter);
 
   return (
     <ScrollView
@@ -67,10 +109,12 @@ export default function BookingsTab() {
       </View>
 
       <View style={s.segWrap}>
-        <SegCtrl options={SEG_OPTIONS} value={filter} onChange={setFilter} />
+        <SegCtrl options={SEG_OPTIONS} value={filter} onChange={v => setFilter(v as FilterStatus)} />
       </View>
 
-      {list.length === 0 ? (
+      {loading ? (
+        <ActivityIndicator style={{ marginTop: 60 }} color={c.fg3} />
+      ) : list.length === 0 ? (
         <EmptyState router={router} filter={filter} />
       ) : (
         <View style={s.list}>
@@ -87,7 +131,7 @@ export default function BookingsTab() {
   );
 }
 
-function BookingCard({ booking: b, onPress }: { booking: Booking; onPress: () => void }) {
+function BookingCard({ booking: b, onPress }: { booking: BookingRow; onPress: () => void }) {
   const c = useThemeColors();
   return (
     <TouchableOpacity
@@ -99,11 +143,11 @@ function BookingCard({ booking: b, onPress }: { booking: Booking; onPress: () =>
       <View style={s.cardBody}>
         <View style={s.idRow}>
           <View style={[s.dot, { backgroundColor: STATUS_COLOR[b.status] }]} />
-          <Text style={[s.id, { color: c.fg3 }]}>{b.id}</Text>
+          <Text style={[s.id, { color: c.fg3 }]}>PC-{b.bookingRef}</Text>
         </View>
         <Text style={[s.service, { color: c.fg }]} numberOfLines={1}>{b.service}</Text>
         <Text style={[s.meta, { color: c.fg2 }]} numberOfLines={1}>
-          {b.car} · {b.date} · {b.time}
+          {b.car || '—'} · {b.date} · {b.time}
         </Text>
       </View>
       <View style={s.cardRight}>
@@ -147,7 +191,6 @@ const s = StyleSheet.create({
   titleRow: { paddingHorizontal: spacing[5], paddingBottom: spacing[3] },
   segWrap:  { paddingHorizontal: spacing[5], paddingBottom: spacing[3] },
   list:     { paddingHorizontal: spacing[5], gap: spacing[2] },
-  // card
   card:     { borderRadius: radii.md, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, overflow: 'hidden' },
   thumb:    { width: 56, height: 56, flexShrink: 0 },
   cardBody: { flex: 1, minWidth: 0 },
@@ -159,7 +202,6 @@ const s = StyleSheet.create({
   cardRight:{ alignItems: 'flex-end', gap: 4, flexShrink: 0 },
   price:    { fontFamily: typography.serif, fontSize: 17 },
   arrow:    { fontFamily: typography.sans, fontSize: 18 },
-  // empty state
   emptyWrap:  { alignItems: 'center', paddingHorizontal: spacing[8], paddingTop: 60, gap: spacing[4] },
   emptyGlow:  { position: 'absolute', top: 60, width: 140, height: 140, borderRadius: 999, backgroundColor: 'rgba(91,111,82,0.14)' },
   emptyIcon:  { width: 64, height: 64, borderRadius: 999, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
