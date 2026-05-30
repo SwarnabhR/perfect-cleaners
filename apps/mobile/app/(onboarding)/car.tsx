@@ -11,7 +11,7 @@ import OnboardingProgress from '../../components/OnboardingProgress';
 const CAR_COLORS = ['White', 'Black', 'Silver', 'Grey', 'Blue', 'Red', 'Other'] as const;
 
 export default function OnboardingCar() {
-  const { name } = useLocalSearchParams<{ name?: string }>();
+  const { firstName, lastName, email } = useLocalSearchParams<{ firstName?: string; lastName?: string; email?: string }>();
   const [make,  setMake]  = useState('');
   const [model, setModel] = useState('');
   const [plate, setPlate] = useState('');
@@ -101,7 +101,7 @@ export default function OnboardingCar() {
           ready &&
           router.push({
             pathname: '/(onboarding)/address',
-            params: { name, make, model, plate, color },
+            params: { firstName, lastName, email, make, model, plate, color },
           })
         }
         activeOpacity={0.8}

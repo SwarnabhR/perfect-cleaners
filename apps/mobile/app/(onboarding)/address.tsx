@@ -14,8 +14,10 @@ import OnboardingProgress from '../../components/OnboardingProgress';
 
 export default function OnboardingAddress() {
   const params = useLocalSearchParams<{
-    name?: string; make?: string; model?: string; plate?: string; color?: string;
+    firstName?: string; lastName?: string; email?: string;
+    make?: string; model?: string; plate?: string; color?: string;
   }>();
+  const fullName = `${params.firstName ?? ''} ${params.lastName ?? ''}`.trim();
   const [line1,  setLine1]  = useState('');
   const [area,   setArea]   = useState('');
   const [city,   setCity]   = useState('Ghaziabad');
@@ -33,7 +35,8 @@ export default function OnboardingAddress() {
       const user = auth().currentUser;
 
       const profileData = {
-        name:  params.name ?? '',
+        name:  fullName,
+        email: params.email ?? '',
         phone: user?.phoneNumber ?? '',
         car: {
           make:  params.make  ?? '',
@@ -67,7 +70,8 @@ export default function OnboardingAddress() {
           .doc(user.uid)
           .set({
             id:                user.uid,
-            name:              params.name ?? '',
+            name:              fullName,
+            email:             params.email ?? '',
             phone:             user.phoneNumber ?? '',
             vehicles:          vehicle ? [vehicle] : [],
             defaultAddress:    { line1, area, city },
