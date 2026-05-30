@@ -35,9 +35,12 @@ const PLAN_TO_SERVICE: Record<string, string> = {
 const CITIES = ['Delhi', 'Noida', 'Gurgaon', 'Ghaziabad', 'Faridabad'];
 
 const BRANDS = [
-  'Audi', 'BMW', 'Ferrari', 'Honda', 'Hyundai', 'Kia',
-  'Mahindra', 'Maruti Suzuki', 'Mercedes-Benz', 'MG', 'Tata',
-  'Toyota', 'Volkswagen', 'Volvo',
+  'Audi', 'Bentley', 'BMW', 'Citroën', 'Ferrari', 'Force Motors',
+  'Honda', 'Hyundai', 'Isuzu', 'Jaguar', 'Jeep', 'Kia',
+  'Lamborghini', 'Land Rover', 'Lexus', 'Mahindra', 'Maruti Suzuki',
+  'Mercedes-Benz', 'MG', 'MINI', 'Nissan', 'Porsche', 'Renault',
+  'Rolls-Royce', 'Skoda', 'Tata', 'Toyota', 'Volkswagen', 'Volvo',
+  'Other',
 ];
 
 // Calendar constants
