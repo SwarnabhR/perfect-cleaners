@@ -8,7 +8,18 @@ import CustomSelect from '@/components/ui/CustomSelect';
 import type { VehicleType } from '@pc/firebase';
 import AuthBottomSheet from '@/components/auth/AuthBottomSheet';
 import { useCustomerAuth } from '@/lib/auth/CustomerAuthContext';
-import { submitBooking } from '@/lib/firebase/booking';
+// Razorpay checkout script loader
+declare global { interface Window { Razorpay: any } }
+function loadRazorpay(): Promise<boolean> {
+  return new Promise(resolve => {
+    if (typeof window.Razorpay === 'function') { resolve(true); return; }
+    const s = document.createElement('script');
+    s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    s.onload  = () => resolve(true);
+    s.onerror = () => resolve(false);
+    document.head.appendChild(s);
+  });
+}
 import styles from './BookingFlow.module.css';
 
 // ─── Static data ──────────────────────────────────────────────────────────────
@@ -403,7 +414,6 @@ export default function BookingFlow() {
       return;
     }
 
-    // Require sign-in before submitting
     if (!user) {
       setPendingSubmit(true);
       setAuthSheetOpen(true);
@@ -413,14 +423,30 @@ export default function BookingFlow() {
     setErrors({});
     setSubmitError('');
     setIsSubmitting(true);
+
     try {
+      // 1. Create Razorpay order server-side
+      const orderRes  = await fetch('/api/payment/create-order', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ amount: total, receipt: `pc_${Date.now()}` }),
+      });
+      const orderData = await orderRes.json();
+      if (!orderRes.ok) throw new Error(orderData.error ?? 'Could not create payment order.');
+
+      // 2. Load Razorpay checkout script
+      const loaded = await loadRazorpay();
+      if (!loaded) throw new Error('Could not load payment gateway. Check your connection.');
+
+      // 3. Prepare booking payload for the verify endpoint
       const scheduledAt = buildScheduledAt(selDate, selTime);
-      const res = await submitBooking({
+      const bookingPayload = {
+        customerId:    user.uid,
         serviceId:     service.id,
         serviceName:   service.name,
         price:         service.price,
         platformFee:   PLATFORM_FEE,
-        scheduledAt,
+        scheduledAt:   scheduledAt.toISOString(),
         city,
         pincode,
         addressLine1:  address,
@@ -430,11 +456,70 @@ export default function BookingFlow() {
         vehicleType:   VEHICLE_TYPES.find(t => t.label === vehicleTypeLabel)?.value ?? 'sedan',
         customerName:  name,
         customerPhone: phone.replace(/\D/g, ''),
+      };
+
+      // 4. Open Razorpay checkout
+      await new Promise<void>((resolve, reject) => {
+        const rzp = new window.Razorpay({
+          key:         orderData.keyId,
+          order_id:    orderData.orderId,
+          amount:      orderData.amount,
+          currency:    orderData.currency ?? 'INR',
+          name:        'Perfect Cleaners',
+          description: service.name,
+          image:       '/logo-pc-monogram.svg',
+          prefill: {
+            name:    name,
+            contact: `+91${phone.replace(/\D/g, '')}`,
+          },
+          theme:    { color: '#4A5E44' },
+          modal:    { backdropclose: false, escape: false },
+
+          handler: async (response: {
+            razorpay_payment_id: string;
+            razorpay_order_id:   string;
+            razorpay_signature:  string;
+          }) => {
+            try {
+              // 5. Verify payment + create booking
+              const verifyRes  = await fetch('/api/payment/verify', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({
+                  razorpay_order_id:   response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature:  response.razorpay_signature,
+                  booking:             bookingPayload,
+                }),
+              });
+              const verifyData = await verifyRes.json();
+              if (!verifyRes.ok) throw new Error(verifyData.error ?? 'Payment verification failed.');
+              setResult({ bookingRef: verifyData.bookingRef });
+              resolve();
+            } catch (err: any) {
+              reject(err);
+            }
+          },
+        });
+
+        rzp.on('payment.failed', (resp: any) => {
+          reject(new Error(resp.error?.description ?? 'Payment failed. Please try again.'));
+        });
+
+        // When the user closes the modal without paying
+        const origClose = rzp.close?.bind(rzp);
+        rzp.on?.('payment.cancel', () => {
+          reject(new Error('CANCELLED'));
+        });
+
+        setIsSubmitting(false); // allow UI to reflect "waiting for payment"
+        rzp.open();
       });
-      setResult({ bookingRef: res.bookingRef });
-    } catch (err) {
-      console.error('[BookingFlow] submitBooking error:', err);
-      setSubmitError('Something went wrong. Please try again or call +91 98765 43210.');
+
+    } catch (err: any) {
+      if (err?.message !== 'CANCELLED') {
+        setSubmitError(err?.message ?? 'Something went wrong. Please try again or call +91 98765 43210.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -1065,7 +1150,7 @@ export default function BookingFlow() {
           disabled={isSubmitting || !termsAccepted}
           className={styles.submitBtn}
         >
-          {isSubmitting ? 'Confirming…' : 'Confirm Booking →'}
+          {isSubmitting ? 'Opening payment…' : `Confirm & Pay ₹${total.toLocaleString('en-IN')} →`}
         </button>
       </div>
 
