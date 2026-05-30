@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Card from '@/components/ui/Card';
-import PillSelect from '@/components/ui/PillSelect';
+import CustomSelect from '@/components/ui/CustomSelect';
 import AuthBottomSheet from '@/components/auth/AuthBottomSheet';
 import { useCustomerAuth } from '@/lib/auth/CustomerAuthContext';
 import { submitBooking } from '@/lib/firebase/booking';
@@ -893,7 +893,7 @@ export default function BookingFlow() {
             {/* City */}
             <div>
               <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--pc-fg-4)', marginBottom: 10 }}>City</p>
-              <PillSelect options={CITIES} value={city} onChange={setCity} scrollRow />
+              <CustomSelect options={CITIES} value={city} onChange={setCity} />
             </div>
 
             {/* Address + Pincode */}
@@ -923,15 +923,7 @@ export default function BookingFlow() {
             {/* Brand */}
             <div>
               <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--pc-fg-4)', marginBottom: 10 }}>Vehicle brand</p>
-              <select
-                value={brand}
-                onChange={e => setBrand(e.target.value)}
-                className={`${styles.input} ${styles.select}`}
-              >
-                {BRANDS.map(b => (
-                  <option key={b} value={b}>{b}</option>
-                ))}
-              </select>
+              <CustomSelect options={BRANDS} value={brand} onChange={setBrand} />
             </div>
 
             {/* Model + Plate */}
