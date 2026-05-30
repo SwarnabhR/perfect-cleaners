@@ -10,23 +10,29 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify the MSG91 access token server-side
-    const verifyRes = await fetch(
-      'https://api.msg91.com/api/v5/widget/verifyAccessToken',
-      {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          authkey:        process.env.MSG91_AUTH_KEY!,
-          'access-token': msg91Token,
-        }),
-      },
-    );
-    const verifyData = await verifyRes.json();
+    let verifyData: any;
+    try {
+      const verifyRes = await fetch(
+        'https://control.msg91.com/api/v5/widget/verifyAccessToken',
+        {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            authkey:        process.env.MSG91_AUTH_KEY,
+            'access-token': msg91Token,
+          }),
+        },
+      );
+      verifyData = await verifyRes.json();
+    } catch (fetchErr) {
+      console.error('[verify-otp] MSG91 fetch failed:', fetchErr);
+      return NextResponse.json({ error: 'Could not reach verification service.' }, { status: 502 });
+    }
 
-    if (verifyData.type !== 'success') {
-      console.error('[verify-otp] MSG91 rejected token:', verifyData);
+    if (verifyData?.type !== 'success') {
+      console.error('[verify-otp] MSG91 rejected token:', JSON.stringify(verifyData));
       return NextResponse.json(
-        { error: 'OTP verification failed. Please try again.' },
+        { error: `OTP check failed: ${verifyData?.message ?? verifyData?.type ?? 'unknown'}` },
         { status: 400 },
       );
     }
@@ -41,14 +47,16 @@ export async function POST(req: NextRequest) {
         const created = await adminAuth().createUser({ phoneNumber: `+91${phone}` });
         uid = created.uid;
       } else {
-        throw e;
+        console.error('[verify-otp] Firebase Admin user lookup/create failed:', e);
+        return NextResponse.json({ error: `Firebase user error: ${e.message}` }, { status: 500 });
       }
     }
 
     const customToken = await adminAuth().createCustomToken(uid, { phone: `+91${phone}` });
     return NextResponse.json({ token: customToken });
+
   } catch (err: any) {
-    console.error('[verify-otp]', err);
-    return NextResponse.json({ error: 'Server error. Please try again.' }, { status: 500 });
+    console.error('[verify-otp] Unhandled error:', err);
+    return NextResponse.json({ error: err?.message ?? 'Server error. Please try again.' }, { status: 500 });
   }
 }
