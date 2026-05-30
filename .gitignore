@@ -35,6 +35,12 @@ ios/
 .env.test.local
 .env.production.local
 
+# ─── Firebase native config (contain API keys — never commit) ─────────────────
+apps/mobile/google-services.json
+apps/mobile/GoogleService-Info.plist
+# Play Store service account key (used by eas submit)
+apps/mobile/google-play-service-account.json
+
 # ─── Signing & certificates ───────────────────────────────────────────────────
 *.jks
 *.keystore
