@@ -312,7 +312,7 @@ function FieldError({ msg }: { msg?: string }) {
 export default function BookingFlow() {
   const router       = useRouter();
   const searchParams = useSearchParams();
-  const { user }     = useCustomerAuth();
+  const { user, profileName } = useCustomerAuth();
   const [authSheetOpen,  setAuthSheetOpen]  = useState(false);
   const [pendingSubmit,  setPendingSubmit]  = useState(false);
 
@@ -357,12 +357,21 @@ export default function BookingFlow() {
   const [phone, setPhone] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
 
+  // Pre-populate contact details from signed-in account
+  useEffect(() => {
+    if (!user) return;
+    if (profileName) setName(profileName);
+    const digits = (user.phoneNumber ?? '').replace('+91', '').replace(/\D/g, '');
+    if (digits) setPhone(digits);
+  }, [user?.uid, profileName]);
+
   const [errors,       setErrors]       = useState<FieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result,       setResult]       = useState<{ bookingRef: string } | null>(null);
   const [submitError,  setSubmitError]  = useState('');
 
-  const total = service.price + PLATFORM_FEE;
+  const gst   = Math.round(service.price * 0.18);
+  const total = service.price + gst + PLATFORM_FEE;
 
   // ─── Outside-click dismiss for calendar popover ───────────────────────────
   useEffect(() => {
@@ -1028,13 +1037,20 @@ export default function BookingFlow() {
         {/* Step 4 — Contact */}
         <section>
           <StepLabel n="04">Your Details</StepLabel>
+          {user && (
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)', marginBottom: 'var(--pc-space-3)' }}>
+              Pre-filled from your account.
+            </p>
+          )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-3)' }}>
             <div>
               <input
                 placeholder="Full name"
                 value={name}
                 onChange={e => setName(e.target.value)}
+                readOnly={!!user}
                 className={`${styles.input}${errors.name ? ` ${styles.inputError}` : ''}`}
+                style={user ? { opacity: 0.7, cursor: 'default' } : undefined}
               />
               <FieldError msg={errors.name} />
             </div>
@@ -1045,7 +1061,9 @@ export default function BookingFlow() {
                 onChange={e => setPhone(e.target.value)}
                 inputMode="tel"
                 maxLength={10}
+                readOnly={!!user}
                 className={`${styles.input}${errors.phone ? ` ${styles.inputError}` : ''}`}
+                style={user ? { opacity: 0.7, cursor: 'default', fontFamily: 'var(--pc-mono)' } : undefined}
               />
               <FieldError msg={errors.phone} />
             </div>
@@ -1145,6 +1163,7 @@ export default function BookingFlow() {
             <div style={{ marginTop: 'var(--pc-space-4)', paddingTop: 'var(--pc-space-4)', borderTop: '1px solid var(--pc-line-strong)' }}>
               {[
                 ['Base price',    `₹${service.price.toLocaleString('en-IN')}`],
+                ['GST (18%)',     `₹${gst.toLocaleString('en-IN')}`],
                 ['Platform fee',  `₹${PLATFORM_FEE}`],
               ].map(([k, v]) => (
                 <div key={k} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--pc-space-2)' }}>

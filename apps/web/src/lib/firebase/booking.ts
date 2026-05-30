@@ -1,6 +1,8 @@
 import { db, auth } from '@pc/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import type { Booking, BookingStatus, VehicleType } from '@pc/firebase';
+
+const GST_RATE = 0.18; // 18 % GST on services (standard rate for car wash / detailing)
 
 export interface SubmitBookingInput {
   serviceId: string;
@@ -42,9 +44,10 @@ export interface SubmitBookingResult {
 export async function submitBooking(
   data: SubmitBookingInput,
 ): Promise<SubmitBookingResult> {
-  const fee = data.platformFee ?? 50;
+  const fee      = data.platformFee ?? 50;
   const subtotal = data.price;
-  const total = subtotal + fee;
+  const tax      = Math.round(subtotal * GST_RATE);
+  const total    = subtotal + tax + fee;
 
   const currentUser = auth.currentUser;
 
@@ -68,22 +71,22 @@ export async function submitBooking(
       pincode: data.pincode,
       coordinates: { latitude: 0, longitude: 0 },
     },
-    priceBreakdown: { subtotal, tax: 0, total },
+    priceBreakdown: { subtotal, tax, total },
     paymentStatus: 'pending',
     photos: { before: [], after: [] },
   };
 
-  // Random 4-digit suffix for a display-friendly booking ref
-  const suffix = String(Math.floor(1000 + Math.random() * 9000));
-  const bookingRef = `PC-${suffix}`;
+  // Use the Firestore doc ID as the booking ref — guaranteed unique
+  const docRef    = doc(collection(db, 'bookings'));
+  const bookingRef = `PC-${docRef.id.slice(-6).toUpperCase()}`;
 
-  const docRef = await addDoc(collection(db, 'bookings'), {
+  await setDoc(docRef, {
     ...newBooking,
     bookingRef,
-    customerName: data.customerName,
+    customerName:  data.customerName,
     customerPhone: `+91${data.customerPhone}`,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+    createdAt:     serverTimestamp(),
+    updatedAt:     serverTimestamp(),
   });
 
   return { docId: docRef.id, bookingRef };
