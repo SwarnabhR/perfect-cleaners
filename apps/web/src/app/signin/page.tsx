@@ -184,8 +184,8 @@ function SignInContent() {
               />
             </div>
             <ErrorMsg msg={error} />
-            <button type="submit" disabled={busy || phone.length < 10} style={primaryBtn}>
-              {busy ? 'Sending…' : 'Send Code →'}
+            <button type="submit" disabled={busy || phone.length < 10 || !ready} style={primaryBtn}>
+              {busy ? 'Sending…' : !ready ? 'Loading…' : 'Send Code →'}
             </button>
           </form>
 

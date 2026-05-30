@@ -45,7 +45,17 @@ export function useMsg91() {
 
     function init() {
       window.initSendOTP?.(config);
-      setReady(true);
+      // initSendOTP exposes window.sendOtp asynchronously; poll until it's available
+      const start = Date.now();
+      const poll  = setInterval(() => {
+        if (typeof window.sendOtp === 'function') {
+          clearInterval(poll);
+          setReady(true);
+        } else if (Date.now() - start > 10_000) {
+          clearInterval(poll);
+          console.warn('[MSG91] sendOtp not available after 10 s');
+        }
+      }, 100);
     }
 
     if (scriptLoaded) { init(); return; }

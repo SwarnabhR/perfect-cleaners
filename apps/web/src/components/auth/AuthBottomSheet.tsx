@@ -263,8 +263,8 @@ export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: A
                 />
               </div>
               <Err msg={error} />
-              <button type="submit" disabled={busy || phone.length < 10} style={primaryBtn}>
-                {busy ? 'Sending…' : 'Send Code →'}
+              <button type="submit" disabled={busy || phone.length < 10 || !ready} style={primaryBtn}>
+                {busy ? 'Sending…' : !ready ? 'Loading…' : 'Send Code →'}
               </button>
               <p style={{
                 fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-4)',
