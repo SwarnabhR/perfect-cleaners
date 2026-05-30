@@ -5,6 +5,7 @@ import {
   onDocumentCreated,
   onDocumentUpdated,
 } from 'firebase-functions/v2/firestore';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { defineSecret } from 'firebase-functions/params';
 
 initializeApp();
@@ -212,3 +213,44 @@ export const onWorkerAssigned = onDocumentUpdated('bookings/{bookingId}', async 
 
   await Promise.all(writes);
 });
+
+// ─── 4. Earnings reset — runs daily at midnight IST ───────────────────────────
+//
+// Resets worker earnings counters on the correct cadence:
+//   • earnings.today  → reset every day
+//   • earnings.week   → reset every Monday
+//   • earnings.month  → reset on the 1st of each month
+//
+// Firestore batch writes are capped at 500 docs; the loop handles larger
+// worker rosters by flushing a new batch every 499 ops.
+
+export const resetEarnings = onSchedule(
+  {
+    schedule: '0 0 * * *',   // midnight every day
+    timeZone: 'Asia/Kolkata',
+  },
+  async () => {
+    const now            = new Date();
+    const isMonday       = now.getDay()  === 1;
+    const isFirstOfMonth = now.getDate() === 1;
+
+    const fields: Record<string, unknown> = { 'earnings.today': 0 };
+    if (isMonday)       fields['earnings.week']  = 0;
+    if (isFirstOfMonth) fields['earnings.month'] = 0;
+
+    console.log('[resetEarnings] resetting:', Object.keys(fields).join(', '));
+
+    const snap = await db.collection('workers').get();
+    if (snap.empty) { console.log('[resetEarnings] no workers'); return; }
+
+    // Chunk into batches of 499 (Firestore limit is 500 ops per batch)
+    const CHUNK = 499;
+    for (let i = 0; i < snap.docs.length; i += CHUNK) {
+      const batch = db.batch();
+      snap.docs.slice(i, i + CHUNK).forEach(doc => batch.update(doc.ref, fields));
+      await batch.commit();
+    }
+
+    console.log(`[resetEarnings] done — ${snap.docs.length} workers reset`);
+  },
+);

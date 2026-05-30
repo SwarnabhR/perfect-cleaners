@@ -1,10 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onWorkerAssigned = exports.onBookingCreated = exports.onJobComplete = void 0;
+exports.resetEarnings = exports.onWorkerAssigned = exports.onBookingCreated = exports.onJobComplete = void 0;
 const app_1 = require("firebase-admin/app");
 const firestore_1 = require("firebase-admin/firestore");
 const messaging_1 = require("firebase-admin/messaging");
 const firestore_2 = require("firebase-functions/v2/firestore");
+const scheduler_1 = require("firebase-functions/v2/scheduler");
 const params_1 = require("firebase-functions/params");
 (0, app_1.initializeApp)();
 const db = (0, firestore_1.getFirestore)();
@@ -156,5 +157,41 @@ exports.onWorkerAssigned = (0, firestore_2.onDocumentUpdated)('bookings/{booking
         console.log(`[onWorkerAssigned] worker ${workerId} has no FCM token`);
     }
     await Promise.all(writes);
+});
+// ─── 4. Earnings reset — runs daily at midnight IST ───────────────────────────
+//
+// Resets worker earnings counters on the correct cadence:
+//   • earnings.today  → reset every day
+//   • earnings.week   → reset every Monday
+//   • earnings.month  → reset on the 1st of each month
+//
+// Firestore batch writes are capped at 500 docs; the loop handles larger
+// worker rosters by flushing a new batch every 499 ops.
+exports.resetEarnings = (0, scheduler_1.onSchedule)({
+    schedule: '0 0 * * *', // midnight every day
+    timeZone: 'Asia/Kolkata',
+}, async () => {
+    const now = new Date();
+    const isMonday = now.getDay() === 1;
+    const isFirstOfMonth = now.getDate() === 1;
+    const fields = { 'earnings.today': 0 };
+    if (isMonday)
+        fields['earnings.week'] = 0;
+    if (isFirstOfMonth)
+        fields['earnings.month'] = 0;
+    console.log('[resetEarnings] resetting:', Object.keys(fields).join(', '));
+    const snap = await db.collection('workers').get();
+    if (snap.empty) {
+        console.log('[resetEarnings] no workers');
+        return;
+    }
+    // Chunk into batches of 499 (Firestore limit is 500 ops per batch)
+    const CHUNK = 499;
+    for (let i = 0; i < snap.docs.length; i += CHUNK) {
+        const batch = db.batch();
+        snap.docs.slice(i, i + CHUNK).forEach(doc => batch.update(doc.ref, fields));
+        await batch.commit();
+    }
+    console.log(`[resetEarnings] done — ${snap.docs.length} workers reset`);
 });
 //# sourceMappingURL=index.js.map
