@@ -52,6 +52,13 @@ service cloud.firestore {
       match /paymentMethods/{methodId} {
         allow read, write: if isOwner(userId) || isAdmin();
       }
+
+      match /notifications/{notifId} {
+        allow read:   if isOwner(userId) || isAdmin();
+        allow update: if isOwner(userId) || isAdmin(); // mark read / clear
+        allow create: if isAdmin();                    // written by Cloud Functions only
+        allow delete: if isOwner(userId) || isAdmin();
+      }
     }
 
     // ── Workers ───────────────────────────────────────────────────────────────
@@ -59,10 +66,16 @@ service cloud.firestore {
     // (Worker name / rating shown to customers comes from denormalized fields
     //  on the booking doc — customers never query this collection directly.)
     match /workers/{workerId} {
-      allow read:          if isOwner(workerId) || isAdmin();
+      allow read:           if isOwner(workerId) || isAdmin();
       allow create, delete: if isAdmin();
-      // Workers update their own isOnline / name; admins update everything.
-      allow update:        if isOwner(workerId) || isAdmin();
+      allow update:         if isOwner(workerId) || isAdmin();
+
+      match /notifications/{notifId} {
+        allow read:   if isOwner(workerId) || isAdmin();
+        allow update: if isOwner(workerId) || isAdmin();
+        allow create: if isAdmin();
+        allow delete: if isOwner(workerId) || isAdmin();
+      }
     }
 
     // ── Bookings ──────────────────────────────────────────────────────────────
