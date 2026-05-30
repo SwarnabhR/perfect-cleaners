@@ -4,31 +4,85 @@
     "slug": "perfect-cleaners",
     "scheme": "perfectcleaners",
     "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.perfectcleaners.app",
-      "googleServicesFile": "./GoogleService-Info.plist"
+    "newArchEnabled": false,
+
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F5F2EE"
     },
+
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.perfectcleaners.app",
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Perfect Cleaners needs camera access to capture before and after photos of your vehicle.",
+        "NSPhotoLibraryUsageDescription": "Perfect Cleaners needs photo library access to add before and after photos of your vehicle.",
+        "NSPhotoLibraryAddUsageDescription": "Perfect Cleaners saves before and after vehicle photos to your photo library.",
+        "NSLocationWhenInUseUsageDescription": "Perfect Cleaners uses your location to show your detailer's ETA on the live tracker.",
+        "UIBackgroundModes": ["remote-notification"]
+      }
+    },
+
     "android": {
       "package": "com.perfectcleaners.app",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#F5F2EE",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
+        "android.permission.POST_NOTIFICATIONS"
+      ],
       "predictiveBackGestureEnabled": false
     },
+
+    "notification": {
+      "icon": "./assets/notification-icon.png",
+      "color": "#4A5E44",
+      "androidMode": "collapse",
+      "androidCollapsedTitle": "Perfect Cleaners",
+      "iosDisplayInForeground": true
+    },
+
     "web": {
       "favicon": "./assets/favicon.png"
     },
+
     "plugins": [
       "expo-router",
-      "expo-splash-screen",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#F5F2EE",
+          "image": "./assets/splash.png",
+          "imageWidth": 200
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#4A5E44",
+          "defaultChannel": "default",
+          "sounds": [],
+          "androidImportance": "max"
+        }
+      ],
       "@react-native-firebase/app",
       "@react-native-firebase/auth",
       [
@@ -47,11 +101,19 @@
         }
       ]
     ],
+
     "extra": {
       "router": {},
       "eas": {
         "projectId": "ebd6727f-92a4-407f-ab09-a282525c3958"
       }
+    },
+
+    "updates": {
+      "url": "https://u.expo.dev/ebd6727f-92a4-407f-ab09-a282525c3958",
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
     }
   }
 }

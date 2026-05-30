@@ -4,18 +4,71 @@
     "appVersionSource": "remote"
   },
   "build": {
+    "base": {
+      "node": "20.x",
+      "cache": {
+        "key": "pc-v1",
+        "paths": ["node_modules", "../../node_modules"]
+      }
+    },
     "development": {
+      "extends": "base",
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "ios": {
+        "resourceClass": "m-medium",
+        "simulator": true
+      },
+      "android": {
+        "buildType": "apk",
+        "resourceClass": "medium"
+      },
+      "env": {
+        "APP_ENV": "development"
+      }
     },
     "preview": {
-      "distribution": "internal"
+      "extends": "base",
+      "distribution": "internal",
+      "channel": "preview",
+      "ios": {
+        "resourceClass": "m-medium"
+      },
+      "android": {
+        "buildType": "apk",
+        "resourceClass": "medium"
+      },
+      "env": {
+        "APP_ENV": "preview"
+      }
     },
     "production": {
-      "autoIncrement": true
+      "extends": "base",
+      "autoIncrement": true,
+      "channel": "production",
+      "ios": {
+        "resourceClass": "m-large"
+      },
+      "android": {
+        "buildType": "app-bundle",
+        "resourceClass": "large"
+      },
+      "env": {
+        "APP_ENV": "production"
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "appleId": "ops@perfectcleaners.in",
+        "ascAppId": "REPLACE_WITH_APP_STORE_CONNECT_APP_ID",
+        "appleTeamId": "REPLACE_WITH_APPLE_TEAM_ID"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./google-play-service-account.json",
+        "track": "internal"
+      }
+    }
   }
 }
