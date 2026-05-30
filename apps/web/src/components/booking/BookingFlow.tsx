@@ -40,8 +40,7 @@ const BRANDS = [
   'Lamborghini', 'Land Rover', 'Lexus', 'Mahindra', 'Maruti Suzuki',
   'Mercedes-Benz', 'MG', 'MINI', 'Nissan', 'Porsche', 'Renault',
   'Rolls-Royce', 'Skoda', 'Tata', 'Toyota', 'Volkswagen', 'Volvo',
-  'Other',
-];
+].sort((a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' })).concat(['Other']);
 
 // Calendar constants
 const CAL_DAY_LABELS  = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
