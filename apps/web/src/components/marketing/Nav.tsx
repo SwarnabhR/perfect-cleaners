@@ -30,9 +30,13 @@ export default function Nav() {
 
   const triggerRef = useRef<HTMLButtonElement>(null); // hamburger
   const drawerRef  = useRef<HTMLDivElement>(null);    // drawer container
-  const { user }   = useCustomerAuth();
-  // Last digit of phone number as avatar initial (e.g. +91 98765 43210 → '0')
-  const userInitial = user?.phoneNumber?.slice(-2, -1)?.toUpperCase() ?? null;
+  const { user, profileName } = useCustomerAuth();
+  // Name initials if profile filled in, else last digit of phone
+  const userInitial = user
+    ? (profileName.trim()
+        ? profileName.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()
+        : user.phoneNumber?.slice(-2, -1)?.toUpperCase() ?? '?')
+    : null;
 
   const NAV_LINKS = [
     { label: t.nav.services, href: NAV_HREFS[0] },

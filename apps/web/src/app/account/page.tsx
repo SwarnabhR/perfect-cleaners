@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { collection, query, where, onSnapshot, type Unsubscribe } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, getDoc, type Unsubscribe } from 'firebase/firestore';
 import { db } from '@pc/firebase';
 import type { BookingStatus } from '@pc/firebase';
 import Nav from '@/components/marketing/Nav';
@@ -127,14 +127,23 @@ export default function AccountPage() {
   const { user, loading, signOut } = useCustomerAuth();
   const router = useRouter();
 
-  const [bookings,  setBookings]  = useState<BookingRow[]>([]);
-  const [bLoading,  setBLoading]  = useState(true);
+  const [bookings,    setBookings]    = useState<BookingRow[]>([]);
+  const [bLoading,    setBLoading]    = useState(true);
   const [signOutBusy, setSignOutBusy] = useState(false);
+  const [profileName, setProfileName] = useState('');
 
   // Auth guard
   useEffect(() => {
     if (!loading && !user) router.replace('/signin?from=/account');
   }, [user, loading, router]);
+
+  // Load profile name for greeting
+  useEffect(() => {
+    if (!user) return;
+    getDoc(doc(db, 'customers', user.uid)).then(snap => {
+      if (snap.exists()) setProfileName(snap.data().name ?? '');
+    });
+  }, [user]);
 
   // Fetch bookings by phone number — matches bookings from both web + mobile
   useEffect(() => {
@@ -204,7 +213,7 @@ export default function AccountPage() {
         {/* Header */}
         <div className="pc-account-header" style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-          marginBottom: 'var(--pc-space-10)',
+          marginBottom: 'var(--pc-space-6)',
           gap: 'var(--pc-space-4)',
           flexWrap: 'wrap',
         }}>
@@ -220,7 +229,7 @@ export default function AccountPage() {
               fontWeight: 400, color: 'var(--pc-fg)',
               letterSpacing: '-0.02em', lineHeight: 1.05, margin: 0,
             }}>
-              Your bookings.
+              {profileName ? `Hi, ${profileName.split(' ')[0]}.` : 'Your account.'}
             </h1>
             {formattedPhone && (
               <p style={{
@@ -238,14 +247,11 @@ export default function AccountPage() {
               style={{
                 display: 'inline-flex', alignItems: 'center',
                 padding: '10px 20px',
-                background: 'var(--pc-warm)',
-                color: 'var(--pc-ink)',
-                border: 'none',
-                borderRadius: 999,
+                background: 'var(--pc-warm)', color: 'var(--pc-ink)',
+                border: 'none', borderRadius: 999,
                 fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600,
                 letterSpacing: '0.06em', textTransform: 'uppercase',
-                textDecoration: 'none',
-                whiteSpace: 'nowrap',
+                textDecoration: 'none', whiteSpace: 'nowrap',
               }}
             >
               Book a service →
@@ -256,19 +262,47 @@ export default function AccountPage() {
               disabled={signOutBusy}
               style={{
                 padding: '10px 16px',
-                background: 'transparent',
-                color: 'var(--pc-fg-3)',
-                border: '1px solid var(--pc-line-strong)',
-                borderRadius: 999,
-                fontFamily: 'var(--pc-sans)', fontSize: 12,
-                letterSpacing: '0.04em',
-                cursor: signOutBusy ? 'not-allowed' : 'pointer',
-                whiteSpace: 'nowrap',
+                background: 'transparent', color: 'var(--pc-fg-3)',
+                border: '1px solid var(--pc-line-strong)', borderRadius: 999,
+                fontFamily: 'var(--pc-sans)', fontSize: 12, letterSpacing: '0.04em',
+                cursor: signOutBusy ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap',
               }}
             >
               {signOutBusy ? 'Signing out…' : 'Sign out'}
             </button>
           </div>
+        </div>
+
+        {/* Tab bar */}
+        <div style={{
+          display: 'flex', gap: 'var(--pc-space-1)',
+          borderBottom: '1px solid var(--pc-line)',
+          marginBottom: 'var(--pc-space-8)',
+        }}>
+          {[
+            { label: 'Bookings', href: '/account'         },
+            { label: 'Profile',  href: '/account/profile' },
+          ].map(tab => {
+            const active = tab.href === '/account';
+            return (
+              <a
+                key={tab.href}
+                href={tab.href}
+                style={{
+                  padding: 'var(--pc-space-3) var(--pc-space-4)',
+                  fontFamily: 'var(--pc-sans)', fontSize: 13,
+                  fontWeight: active ? 600 : 400,
+                  color: active ? 'var(--pc-fg)' : 'var(--pc-fg-3)',
+                  textDecoration: 'none',
+                  borderBottom: active ? '2px solid var(--pc-fg)' : '2px solid transparent',
+                  marginBottom: -1,
+                  transition: 'color 0.15s ease',
+                }}
+              >
+                {tab.label}
+              </a>
+            );
+          })}
         </div>
 
         {/* Bookings */}
