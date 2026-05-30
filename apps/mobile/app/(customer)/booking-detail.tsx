@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { ScrollView, View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import firestore from '@react-native-firebase/firestore';
@@ -20,8 +20,43 @@ export default function BookingDetailScreen() {
   const ss     = useSharedStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const [booking, setBooking] = useState<(Booking & { id: string; bookingRef?: string; customerName?: string; workerName?: string }) | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [booking,    setBooking]    = useState<(Booking & { id: string; bookingRef?: string; customerName?: string; workerName?: string }) | null>(null);
+  const [loading,    setLoading]    = useState(true);
+  const [cancelling, setCancelling] = useState(false);
+
+  function handleCancel() {
+    if (!booking || cancelling) return;
+    const hasWorker = booking.status === 'assigned';
+    Alert.alert(
+      'Cancel booking?',
+      hasWorker
+        ? 'A technician has already been assigned. Are you sure you want to cancel?'
+        : 'This booking will be cancelled and cannot be undone.',
+      [
+        { text: 'Keep booking', style: 'cancel' },
+        {
+          text: 'Cancel booking',
+          style: 'destructive',
+          onPress: async () => {
+            setCancelling(true);
+            try {
+              await firestore()
+                .collection('bookings')
+                .doc(id)
+                .update({
+                  status:    'cancelled',
+                  updatedAt: firestore.FieldValue.serverTimestamp(),
+                });
+              router.back();
+            } catch (err: any) {
+              Alert.alert('Error', err?.message ?? 'Could not cancel. Please try again.');
+              setCancelling(false);
+            }
+          },
+        },
+      ],
+    );
+  }
 
   useEffect(() => {
     if (!id) return;
@@ -167,9 +202,14 @@ export default function BookingDetailScreen() {
             <Text style={ss.primaryBtnText}>Track Booking →</Text>
           </TouchableOpacity>
         )}
-        {!isCompleted && !isCancelled && (
-          <TouchableOpacity style={ss.ghostBtn} activeOpacity={0.75}>
-            <Text style={ss.ghostBtnText}>Cancel Booking</Text>
+        {(status === 'pending' || status === 'assigned') && (
+          <TouchableOpacity
+            style={[ss.ghostBtn, cancelling && { opacity: 0.5 }]}
+            activeOpacity={0.75}
+            onPress={handleCancel}
+            disabled={cancelling}
+          >
+            <Text style={ss.ghostBtnText}>{cancelling ? 'Cancelling…' : 'Cancel Booking'}</Text>
           </TouchableOpacity>
         )}
       </View>
