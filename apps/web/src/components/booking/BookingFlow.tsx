@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Card from '@/components/ui/Card';
 import CustomSelect from '@/components/ui/CustomSelect';
+import type { VehicleType } from '@pc/firebase';
 import AuthBottomSheet from '@/components/auth/AuthBottomSheet';
 import { useCustomerAuth } from '@/lib/auth/CustomerAuthContext';
 import { submitBooking } from '@/lib/firebase/booking';
@@ -35,12 +36,29 @@ const PLAN_TO_SERVICE: Record<string, string> = {
 const CITIES = ['Delhi', 'Noida', 'Gurgaon', 'Ghaziabad', 'Faridabad'];
 
 const BRANDS = [
-  'Audi', 'Bentley', 'BMW', 'Citroën', 'Ferrari', 'Force Motors',
-  'Honda', 'Hyundai', 'Isuzu', 'Jaguar', 'Jeep', 'Kia',
-  'Lamborghini', 'Land Rover', 'Lexus', 'Mahindra', 'Maruti Suzuki',
-  'Mercedes-Benz', 'MG', 'MINI', 'Nissan', 'Porsche', 'Renault',
-  'Rolls-Royce', 'Skoda', 'Tata', 'Toyota', 'Volkswagen', 'Volvo',
+  // Indian / India-market brands
+  'Datsun', 'Force Motors', 'Hindustan Motors', 'Isuzu', 'Kia',
+  'Mahindra', 'Maruti Suzuki', 'MG', 'OLA Electric', 'Tata',
+  // Global mass-market (sold / sold in India)
+  'Chevrolet', 'Citroën', 'Fiat', 'Ford', 'Honda', 'Hyundai',
+  'Jeep', 'Nissan', 'Renault', 'Skoda', 'Toyota', 'Volkswagen',
+  // Premium / near-luxury
+  'Audi', 'BMW', 'BYD', 'Haval', 'Lexus', 'MINI', 'Volvo',
+  // Ultra-luxury & exotic
+  'Aston Martin', 'Bentley', 'Ferrari', 'Jaguar', 'Lamborghini',
+  'Land Rover', 'Maserati', 'McLaren', 'Mercedes-Benz',
+  'Porsche', 'Rolls-Royce',
 ].sort((a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' })).concat(['Other']);
+
+const VEHICLE_TYPES: { label: string; value: VehicleType }[] = [
+  { label: 'Hatchback',        value: 'hatchback' },
+  { label: 'Sedan',            value: 'sedan'     },
+  { label: 'SUV / Crossover',  value: 'suv'       },
+  { label: 'Luxury / Sports',  value: 'luxury'    },
+  { label: 'Van / MPV',        value: 'van'       },
+  { label: 'Pickup Truck',     value: 'pickup'    },
+];
+const VEHICLE_TYPE_LABELS = VEHICLE_TYPES.map(t => t.label);
 
 // Calendar constants
 const CAL_DAY_LABELS  = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
@@ -330,9 +348,10 @@ export default function BookingFlow() {
   const [city,    setCity]    = useState(CITIES[0]);
   const [address, setAddress] = useState('');
   const [pincode, setPincode] = useState('');
-  const [brand,   setBrand]   = useState(BRANDS[4]);
-  const [model,   setModel]   = useState('');
-  const [plate,   setPlate]   = useState('');
+  const [brand,            setBrand]            = useState(BRANDS[4]);
+  const [vehicleTypeLabel, setVehicleTypeLabel] = useState(VEHICLE_TYPE_LABELS[0]);
+  const [model,            setModel]            = useState('');
+  const [plate,            setPlate]            = useState('');
 
   const [name,  setName]  = useState('');
   const [phone, setPhone] = useState('');
@@ -408,6 +427,7 @@ export default function BookingFlow() {
         vehicleMake:   brand,
         vehicleModel:  model,
         vehiclePlate:  plate.toUpperCase(),
+        vehicleType:   VEHICLE_TYPES.find(t => t.label === vehicleTypeLabel)?.value ?? 'sedan',
         customerName:  name,
         customerPhone: phone.replace(/\D/g, ''),
       });
@@ -474,7 +494,7 @@ export default function BookingFlow() {
             ['Booking ref',  result.bookingRef],
             ['Service',      service.name],
             ['Scheduled',    `${selDate.dayName} ${selDate.dayNum} ${selDate.monthName} · ${selTime}`],
-            ['Vehicle',      `${brand} ${model}`],
+            ['Vehicle',      `${brand} ${model} · ${vehicleTypeLabel}`],
             ['Location',     `${address}, ${city} – ${pincode}`],
           ].map(([k, v]) => (
             <div key={k} style={{
@@ -928,6 +948,14 @@ export default function BookingFlow() {
               <CustomSelect options={BRANDS} value={brand} onChange={setBrand} />
             </div>
 
+            {/* Brand + Type row */}
+            <div className={styles.fieldRow}>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--pc-fg-4)', marginBottom: 10 }}>Vehicle type</p>
+                <CustomSelect options={VEHICLE_TYPE_LABELS} value={vehicleTypeLabel} onChange={setVehicleTypeLabel} />
+              </div>
+            </div>
+
             {/* Model + Plate */}
             <div className={styles.fieldRow}>
               <div style={{ flex: 1 }}>
@@ -1059,7 +1087,7 @@ export default function BookingFlow() {
               ['Service',      service.name],
               ['Date',         `${selDate.dayName} ${selDate.dayNum} ${selDate.monthName}`],
               ['Time',         selTime],
-              ['Vehicle',      `${brand} ${model || '—'}${plate ? ` · ${plate}` : ''}`],
+              ['Vehicle',      `${brand} ${model || '—'} · ${vehicleTypeLabel}${plate ? ` · ${plate}` : ''}`],
               ['City',         city],
             ].map(([k, v]) => (
               <div key={k} style={{
