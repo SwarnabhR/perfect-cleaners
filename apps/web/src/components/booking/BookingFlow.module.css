@@ -52,6 +52,7 @@
 
 /* Outer wrapper — form + summary side by side on desktop, stacked on mobile */
 .layout {
+  width: 100%;
   max-width: var(--pc-maxw-content);
   margin: 0 auto;
   padding: var(--pc-space-20) var(--pc-space-10) var(--pc-space-32);
