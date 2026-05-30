@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
 
     // Verify the MSG91 access token server-side
     const verifyRes = await fetch(
-      'https://control.msg91.com/api/v5/widget/verifyAccessToken',
+      'https://api.msg91.com/api/v5/widget/verifyAccessToken',
       {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
     const verifyData = await verifyRes.json();
 
     if (verifyData.type !== 'success') {
+      console.error('[verify-otp] MSG91 rejected token:', verifyData);
       return NextResponse.json(
         { error: 'OTP verification failed. Please try again.' },
         { status: 400 },
