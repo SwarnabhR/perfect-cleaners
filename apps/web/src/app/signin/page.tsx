@@ -3,13 +3,14 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signInWithCustomToken } from 'firebase/auth';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import Image from 'next/image';
-import { auth } from '@pc/firebase';
+import { auth, db } from '@pc/firebase';
 import OtpInput from '@/components/ui/OtpInput';
 import { useCustomerAuth } from '@/lib/auth/CustomerAuthContext';
 import { useMsg91 } from '@/lib/auth/useMsg91';
 
-type Step = 'phone' | 'otp';
+type Step = 'phone' | 'otp' | 'profile';
 
 // ─── Shared UI atoms ──────────────────────────────────────────────────────────
 
@@ -48,6 +49,9 @@ function SignInContent() {
   const [step,      setStep]      = useState<Step>('phone');
   const [phone,     setPhone]     = useState('');
   const [otp,       setOtp]       = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName,  setLastName]  = useState('');
+  const [email,     setEmail]     = useState('');
   const [busy,      setBusy]      = useState(false);
   const [error,     setError]     = useState('');
   const [countdown, setCountdown] = useState(0);
@@ -55,10 +59,10 @@ function SignInContent() {
   const { ready }  = useMsg91();
   const redirectTo = searchParams.get('from') ?? '/account';
 
-  // Skip login if already signed in
+  // Skip login if already signed in (and profile is complete)
   useEffect(() => {
-    if (!loading && user) router.replace(redirectTo);
-  }, [user, loading, redirectTo, router]);
+    if (!loading && user && step !== 'profile') router.replace(redirectTo);
+  }, [user, loading, redirectTo, router, step]);
 
   // Resend countdown
   useEffect(() => {
@@ -73,8 +77,8 @@ function SignInContent() {
     setError(''); setBusy(true);
     window.sendOtp(
       `91${phone}`,
-      ()          => { setStep('otp'); setCountdown(60); setBusy(false); },
-      (err: any)  => { setError(err?.message ?? 'Failed to send code.'); setBusy(false); },
+      ()         => { setStep('otp'); setCountdown(60); setBusy(false); },
+      (err: any) => { setError(err?.message ?? 'Failed to send code.'); setBusy(false); },
     );
   }
 
@@ -94,8 +98,16 @@ function SignInContent() {
           });
           const json = await res.json();
           if (!res.ok) throw new Error(json.error);
-          await signInWithCustomToken(auth, json.token);
-          router.replace(redirectTo);
+          const cred = await signInWithCustomToken(auth, json.token);
+
+          // Check if customer doc already exists with name + email
+          const snap = await getDoc(doc(db, 'customers', cred.user.uid));
+          if (snap.exists() && snap.data().name && snap.data().email) {
+            router.replace(redirectTo);
+          } else {
+            setBusy(false);
+            setStep('profile');
+          }
         } catch (err: any) {
           setError(err?.message ?? 'Sign-in failed. Please try again.');
           setBusy(false);
@@ -103,6 +115,30 @@ function SignInContent() {
       },
       (err: any) => { setError(err?.message ?? 'Incorrect code.'); setOtp(''); setBusy(false); },
     );
+  }
+
+  async function handleProfile(e: React.FormEvent) {
+    e.preventDefault();
+    if (!user) return;
+    const trimFirst = firstName.trim();
+    const trimLast  = lastName.trim();
+    const trimEmail = email.trim();
+    if (!trimFirst || !trimLast || !trimEmail) { setError('All fields are required.'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimEmail)) { setError('Enter a valid email address.'); return; }
+    setError(''); setBusy(true);
+    try {
+      await setDoc(doc(db, 'customers', user.uid), {
+        name:      `${trimFirst} ${trimLast}`,
+        email:     trimEmail,
+        phone:     `+91${phone}`,
+        vehicles:  [],
+        createdAt: serverTimestamp(),
+      }, { merge: true });
+      router.replace(redirectTo);
+    } catch (err: any) {
+      setError(err?.message ?? 'Could not save profile. Please try again.');
+      setBusy(false);
+    }
   }
 
   function handleResend() {
@@ -152,13 +188,13 @@ function SignInContent() {
           </span>
         </div>
 
-        {step === 'phone' ? (
+        {step === 'phone' && (
           <form onSubmit={handleSendCode}>
             <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--pc-fg-3)', marginBottom: 12 }}>
               [ACCOUNT] / SIGN IN OR CREATE
             </p>
             <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 32, fontWeight: 400, color: 'var(--pc-fg)', letterSpacing: '-0.02em', lineHeight: 1.05, marginBottom: 10 }}>
-              Sign in or create{' '}account.
+              Sign in or create{' '}account.
             </h1>
             <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', marginBottom: 28, lineHeight: 1.6 }}>
               Enter your mobile number. We'll send a one-time code — no password needed. New here? Your account is created automatically.
@@ -188,8 +224,9 @@ function SignInContent() {
               {busy ? 'Sending…' : !ready ? 'Loading…' : 'Send Code →'}
             </button>
           </form>
+        )}
 
-        ) : (
+        {step === 'otp' && (
           <form onSubmit={handleVerify}>
             <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--pc-fg-3)', marginBottom: 12 }}>
               [ACCOUNT] / VERIFY
@@ -223,6 +260,58 @@ function SignInContent() {
                 Change number
               </button>
             </div>
+          </form>
+        )}
+
+        {step === 'profile' && (
+          <form onSubmit={handleProfile}>
+            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--pc-fg-3)', marginBottom: 12 }}>
+              [ACCOUNT] / CREATE PROFILE
+            </p>
+            <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 32, fontWeight: 400, color: 'var(--pc-fg)', letterSpacing: '-0.02em', lineHeight: 1.05, marginBottom: 10 }}>
+              One last step.
+            </h1>
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', marginBottom: 28, lineHeight: 1.6 }}>
+              Tell us your name and email to complete your account.
+            </p>
+
+            <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+              <div style={{ flex: 1 }}>
+                <FieldLabel>First name</FieldLabel>
+                <input
+                  type="text" autoComplete="given-name" autoFocus
+                  placeholder="Rahul" value={firstName}
+                  onChange={e => { setFirstName(e.target.value); setError(''); }}
+                  required style={inputBase}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <FieldLabel>Last name</FieldLabel>
+                <input
+                  type="text" autoComplete="family-name"
+                  placeholder="Sharma" value={lastName}
+                  onChange={e => { setLastName(e.target.value); setError(''); }}
+                  required style={inputBase}
+                />
+              </div>
+            </div>
+
+            <FieldLabel>Email address</FieldLabel>
+            <input
+              type="email" autoComplete="email" inputMode="email"
+              placeholder="rahul@example.com" value={email}
+              onChange={e => { setEmail(e.target.value); setError(''); }}
+              required style={{ ...inputBase, marginBottom: 0 }}
+            />
+
+            <ErrorMsg msg={error} />
+            <button
+              type="submit"
+              disabled={busy || !firstName.trim() || !lastName.trim() || !email.trim()}
+              style={primaryBtn}
+            >
+              {busy ? 'Saving…' : 'Create Account →'}
+            </button>
           </form>
         )}
 

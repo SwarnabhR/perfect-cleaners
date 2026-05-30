@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { signInWithCustomToken } from 'firebase/auth';
-import { auth } from '@pc/firebase';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, db } from '@pc/firebase';
 import OtpInput from '@/components/ui/OtpInput';
 import { useMsg91 } from '@/lib/auth/useMsg91';
 
@@ -16,7 +17,7 @@ interface AuthBottomSheetProps {
   heading?:   string;
 }
 
-type Step = 'phone' | 'otp';
+type Step = 'phone' | 'otp' | 'profile';
 
 // ─── Sub-atoms ────────────────────────────────────────────────────────────────
 
@@ -45,6 +46,10 @@ export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: A
   const [step,      setStep]      = useState<Step>('phone');
   const [phone,     setPhone]     = useState('');
   const [otp,       setOtp]       = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName,  setLastName]  = useState('');
+  const [email,     setEmail]     = useState('');
+  const [uid,       setUid]       = useState('');
   const [busy,      setBusy]      = useState(false);
   const [error,     setError]     = useState('');
   const [countdown, setCountdown] = useState(0);
@@ -52,7 +57,7 @@ export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: A
 
   // Reset state when sheet opens
   useEffect(() => {
-    if (open) { setStep('phone'); setPhone(''); setOtp(''); setError(''); setBusy(false); setCountdown(0); }
+    if (open) { setStep('phone'); setPhone(''); setOtp(''); setFirstName(''); setLastName(''); setEmail(''); setUid(''); setError(''); setBusy(false); setCountdown(0); }
   }, [open]);
 
   // Body scroll lock while open
@@ -110,8 +115,17 @@ export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: A
           const json = await res.json();
           if (!res.ok) throw new Error(json.error);
           const cred = await signInWithCustomToken(auth, json.token);
-          onSuccess?.(cred.user.uid);
-          onClose();
+
+          // New user → collect profile before proceeding
+          const snap = await getDoc(doc(db, 'customers', cred.user.uid));
+          if (snap.exists() && snap.data().name && snap.data().email) {
+            onSuccess?.(cred.user.uid);
+            onClose();
+          } else {
+            setUid(cred.user.uid);
+            setBusy(false);
+            setStep('profile');
+          }
         } catch (err: any) {
           setError(err?.message ?? 'Sign-in failed. Please try again.');
           setBusy(false);
@@ -128,6 +142,31 @@ export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: A
       ()         => setCountdown(60),
       (err: any) => setError(err?.message ?? 'Could not resend.'),
     );
+  }
+
+  async function handleProfile(e: React.FormEvent) {
+    e.preventDefault();
+    if (!uid) return;
+    const trimFirst = firstName.trim();
+    const trimLast  = lastName.trim();
+    const trimEmail = email.trim();
+    if (!trimFirst || !trimLast || !trimEmail) { setError('All fields are required.'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimEmail)) { setError('Enter a valid email address.'); return; }
+    setError(''); setBusy(true);
+    try {
+      await setDoc(doc(db, 'customers', uid), {
+        name:      `${trimFirst} ${trimLast}`,
+        email:     trimEmail,
+        phone:     `+91${phone}`,
+        vehicles:  [],
+        createdAt: serverTimestamp(),
+      }, { merge: true });
+      onSuccess?.(uid);
+      onClose();
+    } catch (err: any) {
+      setError(err?.message ?? 'Could not save profile. Please try again.');
+      setBusy(false);
+    }
   }
 
   const inputStyle: React.CSSProperties = {
@@ -216,14 +255,14 @@ export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: A
             fontFamily: 'var(--pc-mono)', fontSize: 10, letterSpacing: '0.1em',
             textTransform: 'uppercase', color: 'var(--pc-fg-3)', marginBottom: 10,
           }}>
-            {step === 'phone' ? '[ACCOUNT] / SIGN IN OR CREATE' : '[ACCOUNT] / VERIFY'}
+            {step === 'phone' ? '[ACCOUNT] / SIGN IN OR CREATE' : step === 'otp' ? '[ACCOUNT] / VERIFY' : '[ACCOUNT] / CREATE PROFILE'}
           </p>
           <h2 style={{
             fontFamily: 'var(--pc-serif)', fontSize: 'clamp(22px, 5vw, 30px)',
             fontWeight: 400, color: 'var(--pc-fg)',
             letterSpacing: '-0.02em', lineHeight: 1.1, marginBottom: heading ? 8 : 20,
           }}>
-            {step === 'phone' ? 'Sign in or create account.' : 'Enter your code.'}
+            {step === 'phone' ? 'Sign in or create account.' : step === 'otp' ? 'Enter your code.' : 'One last step.'}
           </h2>
           {heading && step === 'phone' && (
             <p style={{
@@ -241,8 +280,16 @@ export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: A
               Sent to +91 {phone.slice(0, 5)} {phone.slice(5)}
             </p>
           )}
+          {step === 'profile' && (
+            <p style={{
+              fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)',
+              marginBottom: 20, lineHeight: 1.5,
+            }}>
+              Tell us your name and email to complete your account.
+            </p>
+          )}
 
-          {step === 'phone' ? (
+          {step === 'phone' && (
             <form onSubmit={handleSendCode}>
               <FieldLabel>Mobile number</FieldLabel>
               <div style={{ display: 'flex' }}>
@@ -273,7 +320,9 @@ export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: A
                 No password. New users are registered automatically.
               </p>
             </form>
-          ) : (
+          )}
+
+          {step === 'otp' && (
             <form onSubmit={handleVerify}>
               <FieldLabel>6-digit code</FieldLabel>
               <OtpInput value={otp} onChange={v => { setOtp(v); setError(''); }} disabled={busy} />
@@ -299,6 +348,46 @@ export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: A
                   textDecoration: 'underline', textUnderlineOffset: 3,
                 }}>Change number</button>
               </div>
+            </form>
+          )}
+
+          {step === 'profile' && (
+            <form onSubmit={handleProfile}>
+              <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+                <div style={{ flex: 1 }}>
+                  <FieldLabel>First name</FieldLabel>
+                  <input
+                    type="text" autoComplete="given-name" autoFocus
+                    placeholder="Rahul" value={firstName}
+                    onChange={e => { setFirstName(e.target.value); setError(''); }}
+                    required style={inputStyle}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <FieldLabel>Last name</FieldLabel>
+                  <input
+                    type="text" autoComplete="family-name"
+                    placeholder="Sharma" value={lastName}
+                    onChange={e => { setLastName(e.target.value); setError(''); }}
+                    required style={inputStyle}
+                  />
+                </div>
+              </div>
+              <FieldLabel>Email address</FieldLabel>
+              <input
+                type="email" autoComplete="email" inputMode="email"
+                placeholder="rahul@example.com" value={email}
+                onChange={e => { setEmail(e.target.value); setError(''); }}
+                required style={{ ...inputStyle, marginBottom: 0 }}
+              />
+              <Err msg={error} />
+              <button
+                type="submit"
+                disabled={busy || !firstName.trim() || !lastName.trim() || !email.trim()}
+                style={primaryBtn}
+              >
+                {busy ? 'Saving…' : 'Create Account →'}
+              </button>
             </form>
           )}
         </div>
