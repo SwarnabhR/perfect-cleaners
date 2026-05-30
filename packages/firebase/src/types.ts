@@ -120,12 +120,18 @@ export interface Booking {
   address: BookingAddress;
   priceBreakdown: PriceBreakdown;
   paymentStatus: 'pending' | 'paid' | 'refunded';
-  paymentId?: string;    // Razorpay order/payment ID
+  paymentId?: string;       // Razorpay order/payment ID
   photos: BookingPhotos;
-  otpCode?: string;      // 4-digit OTP for job completion sign-off
+  otpCode?: string;         // 4-digit OTP for job completion sign-off
   workerNotes?: string;
   createdAt: Date;
   updatedAt: Date;
+  completedAt?: Date;       // set when status transitions to 'done'
+  // Denormalized fields written at booking creation for display & queries
+  bookingRef?: string;      // human-readable ref, e.g. "PC-4A2B3C"
+  customerName?: string;    // from customers/{uid}.name at booking time
+  customerPhone?: string;   // E.164 format, e.g. "+919876543210"
+  workerName?: string;      // from workers/{uid}.name at assignment time
 }
 
 export interface Promotion {
