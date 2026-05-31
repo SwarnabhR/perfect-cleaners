@@ -52,7 +52,7 @@ export default function OtpInput({ length = 6, value, onChange, disabled }: OtpI
   const digits = value.split('').concat(Array(length).fill('')).slice(0, length);
 
   return (
-    <div style={{ display: 'flex', gap: 10 }}>
+    <div style={{ display: 'flex', gap: 12 }}>
       {digits.map((d, i) => (
         <input
           key={i}
@@ -68,10 +68,13 @@ export default function OtpInput({ length = 6, value, onChange, disabled }: OtpI
           onPaste={i === 0 ? handlePaste : undefined}
           onFocus={e => e.target.select()}
           style={{
-            width: 48, height: 56,
+            flex: 1,
+            minWidth: 0,
+            maxWidth: 80,
+            height: 64,
             textAlign: 'center',
             fontFamily: 'var(--pc-serif)',
-            fontSize: 26,
+            fontSize: 28,
             color: 'var(--pc-fg)',
             background: d ? 'var(--pc-card-hi)' : 'var(--pc-card)',
             border: `1px solid ${d ? 'var(--pc-line-strong)' : 'var(--pc-line)'}`,
