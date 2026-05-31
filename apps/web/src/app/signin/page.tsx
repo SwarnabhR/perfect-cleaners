@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -12,7 +12,7 @@ import { useMsg91 } from '@/lib/auth/useMsg91';
 
 type Step = 'phone' | 'otp' | 'profile';
 
-// ─── Shared UI atoms ──────────────────────────────────────────────────────────
+// â”€â”€â”€ Shared UI atoms â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function FieldLabel({ children }: { children: string }) {
   return (
@@ -39,7 +39,7 @@ function ErrorMsg({ msg }: { msg: string }) {
   );
 }
 
-// ─── Inner component — uses useSearchParams, must be inside Suspense ─────────
+// â”€â”€â”€ Inner component â€” uses useSearchParams, must be inside Suspense â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function SignInContent() {
   const router       = useRouter();
@@ -84,7 +84,7 @@ function SignInContent() {
 
   function handleVerify(e: React.FormEvent) {
     e.preventDefault();
-    if (otp.length < 6 || !window.verifyOtp) return;
+    if (otp.length < 4 || !window.verifyOtp) return;
     setError(''); setBusy(true);
     window.verifyOtp(
       otp,
@@ -197,7 +197,7 @@ function SignInContent() {
               Sign in or create{' '}account.
             </h1>
             <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', marginBottom: 28, lineHeight: 1.6 }}>
-              Enter your mobile number. We'll send a one-time code — no password needed. New here? Your account is created automatically.
+              Enter your mobile number. We'll send a one-time code â€” no password needed. New here? Your account is created automatically.
             </p>
 
             <FieldLabel>Mobile number</FieldLabel>
@@ -221,7 +221,7 @@ function SignInContent() {
             </div>
             <ErrorMsg msg={error} />
             <button type="submit" disabled={busy || phone.length < 10 || !ready} style={primaryBtn}>
-              {busy ? 'Sending…' : !ready ? 'Loading…' : 'Send Code →'}
+              {busy ? 'Sendingâ€¦' : !ready ? 'Loadingâ€¦' : 'Send Code â†’'}
             </button>
           </form>
         )}
@@ -238,12 +238,12 @@ function SignInContent() {
               Sent to +91 {phone.slice(0, 5)} {phone.slice(5)}
             </p>
 
-            <FieldLabel>6-digit code</FieldLabel>
-            <OtpInput value={otp} onChange={v => { setOtp(v); setError(''); }} disabled={busy} />
+            <FieldLabel>4-digit code</FieldLabel>
+            <OtpInput length={4} value={otp} onChange={v => { setOtp(v); setError(''); }} disabled={busy} />
             <ErrorMsg msg={error} />
 
-            <button type="submit" disabled={busy || otp.length < 6} style={primaryBtn}>
-              {busy ? 'Verifying…' : 'Verify →'}
+            <button type="submit" disabled={busy || otp.length < 4} style={primaryBtn}>
+              {busy ? 'Verifyingâ€¦' : 'Verify â†’'}
             </button>
 
             <div style={{ marginTop: 20, textAlign: 'center' }}>
@@ -310,7 +310,7 @@ function SignInContent() {
               disabled={busy || !firstName.trim() || !lastName.trim() || !email.trim()}
               style={primaryBtn}
             >
-              {busy ? 'Saving…' : 'Create Account →'}
+              {busy ? 'Savingâ€¦' : 'Create Account â†’'}
             </button>
           </form>
         )}
@@ -323,7 +323,7 @@ function SignInContent() {
   );
 }
 
-// ─── Page export — Suspense required for useSearchParams with Turbopack ───────
+// â”€â”€â”€ Page export â€” Suspense required for useSearchParams with Turbopack â”€â”€â”€â”€â”€â”€â”€
 
 export default function SignInPage() {
   return (

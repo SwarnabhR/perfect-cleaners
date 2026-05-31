@@ -9,7 +9,7 @@ import { useSharedStyles } from '../../theme/sharedStyles';
 import AuthScreenShell from '../../components/AuthScreenShell';
 import BackButton from '../../components/BackButton';
 
-const OTP_LEN = 6;
+const OTP_LEN = 4;
 
 export default function OTPScreen() {
   const { phone, verificationId } = useLocalSearchParams<{ phone: string; verificationId: string }>();
@@ -66,7 +66,7 @@ export default function OTPScreen() {
 
       <View style={s.header}>
         <Text style={ss.onboardingTitle}>Verify Phone</Text>
-        <Text style={ss.subtitle}>6-digit code sent to +91 {phone}</Text>
+        <Text style={ss.subtitle}>4-digit code sent to +91 {phone}</Text>
       </View>
 
       <View style={s.otpRow}>

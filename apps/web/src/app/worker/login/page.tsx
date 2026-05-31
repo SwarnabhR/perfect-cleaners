@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -41,7 +41,7 @@ export default function WorkerLoginPage() {
 
   async function handleVerify(e: React.FormEvent) {
     e.preventDefault();
-    if (otp.length < 6 || !window.verifyOtp) return;
+    if (otp.length < 4 || !window.verifyOtp) return;
     setError(''); setBusy(true);
     window.verifyOtp(
       otp,
@@ -140,7 +140,7 @@ export default function WorkerLoginPage() {
               fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase',
               cursor: (busy || phone.length < 10 || !ready) ? 'not-allowed' : 'pointer',
             }}>
-              {busy ? 'Sending…' : !ready ? 'Loading…' : 'Send Code →'}
+              {busy ? 'Sendingâ€¦' : !ready ? 'Loadingâ€¦' : 'Send Code â†’'}
             </button>
           </form>
         ) : (
@@ -151,16 +151,16 @@ export default function WorkerLoginPage() {
             <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: '0 0 28px' }}>
               Sent to +91 {phone.slice(0, 5)} {phone.slice(5)}
             </p>
-            <OtpInput value={otp} onChange={v => { setOtp(v); setError(''); }} disabled={busy} />
+            <OtpInput length={4} value={otp} onChange={v => { setOtp(v); setError(''); }} disabled={busy} />
             {error && <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-danger)', marginTop: 8 }}>{error}</p>}
-            <button type="submit" disabled={busy || otp.length < 6} style={{
+            <button type="submit" disabled={busy || otp.length < 4} style={{
               width: '100%', marginTop: 20, padding: '13px 0', borderRadius: 999,
-              background: (busy || otp.length < 6) ? 'var(--pc-warm-3)' : 'var(--pc-warm)',
+              background: (busy || otp.length < 4) ? 'var(--pc-warm-3)' : 'var(--pc-warm)',
               color: 'var(--pc-ink)', border: 'none',
               fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase',
-              cursor: (busy || otp.length < 6) ? 'not-allowed' : 'pointer',
+              cursor: (busy || otp.length < 4) ? 'not-allowed' : 'pointer',
             }}>
-              {busy ? 'Verifying…' : 'Verify →'}
+              {busy ? 'Verifyingâ€¦' : 'Verify â†’'}
             </button>
             <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginTop: 16 }}>
               {countdown > 0 ? (

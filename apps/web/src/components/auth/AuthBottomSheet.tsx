@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useRef, useState } from 'react';
 import { signInWithCustomToken } from 'firebase/auth';
@@ -7,7 +7,7 @@ import { auth, db } from '@pc/firebase';
 import OtpInput from '@/components/ui/OtpInput';
 import { useMsg91 } from '@/lib/auth/useMsg91';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface AuthBottomSheetProps {
   open:       boolean;
@@ -19,7 +19,7 @@ interface AuthBottomSheetProps {
 
 type Step = 'phone' | 'otp' | 'profile';
 
-// ─── Sub-atoms ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Sub-atoms â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function FieldLabel({ children }: { children: string }) {
   return (
@@ -38,7 +38,7 @@ function Err({ msg }: { msg: string }) {
   return <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-danger)', marginTop: 8, lineHeight: 1.5 }}>{msg}</p>;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: AuthBottomSheetProps) {
   const { ready } = useMsg91();
@@ -97,7 +97,7 @@ export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: A
 
   async function handleVerify(e: React.FormEvent) {
     e.preventDefault();
-    if (otp.length < 6 || !window.verifyOtp) return;
+    if (otp.length < 4 || !window.verifyOtp) return;
     setError(''); setBusy(true);
     window.verifyOtp(
       otp,
@@ -116,7 +116,7 @@ export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: A
           if (!res.ok) throw new Error(json.error);
           const cred = await signInWithCustomToken(auth, json.token);
 
-          // New user → collect profile before proceeding
+          // New user â†’ collect profile before proceeding
           const snap = await getDoc(doc(db, 'customers', cred.user.uid));
           if (snap.exists() && snap.data().name && snap.data().email) {
             onSuccess?.(cred.user.uid);
@@ -178,7 +178,7 @@ export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: A
 
   const primaryBtn: React.CSSProperties = {
     width: '100%', marginTop: 20, padding: '14px 24px',
-    background: (busy || (step === 'phone' && phone.length < 10) || (step === 'otp' && otp.length < 6))
+    background: (busy || (step === 'phone' && phone.length < 10) || (step === 'otp' && otp.length < 4))
       ? 'var(--pc-warm-3)' : 'var(--pc-warm)',
     color: 'var(--pc-ink)', border: 'none', borderRadius: 999,
     fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600,
@@ -311,7 +311,7 @@ export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: A
               </div>
               <Err msg={error} />
               <button type="submit" disabled={busy || phone.length < 10 || !ready} style={primaryBtn}>
-                {busy ? 'Sending…' : !ready ? 'Loading…' : 'Send Code →'}
+                {busy ? 'Sendingâ€¦' : !ready ? 'Loadingâ€¦' : 'Send Code â†’'}
               </button>
               <p style={{
                 fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-4)',
@@ -324,11 +324,11 @@ export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: A
 
           {step === 'otp' && (
             <form onSubmit={handleVerify}>
-              <FieldLabel>6-digit code</FieldLabel>
-              <OtpInput value={otp} onChange={v => { setOtp(v); setError(''); }} disabled={busy} />
+              <FieldLabel>4-digit code</FieldLabel>
+              <OtpInput length={4} value={otp} onChange={v => { setOtp(v); setError(''); }} disabled={busy} />
               <Err msg={error} />
-              <button type="submit" disabled={busy || otp.length < 6} style={primaryBtn}>
-                {busy ? 'Verifying…' : 'Verify & Continue →'}
+              <button type="submit" disabled={busy || otp.length < 4} style={primaryBtn}>
+                {busy ? 'Verifyingâ€¦' : 'Verify & Continue â†’'}
               </button>
               <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginTop: 16 }}>
                 {countdown > 0 ? (
@@ -386,7 +386,7 @@ export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: A
                 disabled={busy || !firstName.trim() || !lastName.trim() || !email.trim()}
                 style={primaryBtn}
               >
-                {busy ? 'Saving…' : 'Create Account →'}
+                {busy ? 'Savingâ€¦' : 'Create Account â†’'}
               </button>
             </form>
           )}
