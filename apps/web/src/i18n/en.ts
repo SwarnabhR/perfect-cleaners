@@ -21,7 +21,7 @@ const en = {
     coverageLabel:    'COVERAGE',
     coverageDesc:     'Delhi, Noida,\nGurgaon & beyond',
     tileCertified:    'CERTIFIED DETAILERS',
-    tileBooking:      'BOOK IN 2 MINUTES',
+    tileBooking:      'SCHEDULED CLEAN',
     tileExtLabel:     'EXTERIOR WASH',
     tileExtDesc:      'Foam cannon to finish',
     tileCoatLabel:    'CERAMIC COATING',
@@ -32,21 +32,21 @@ const en = {
   usp: {
     eyebrow:      '[WHY PERFECT CLEANERS]',
     headline:     "The difference is in\nwhat you can't see.",
-    body:         'Anyone can wash a car. We decontaminate, protect, and restore — then hand it back in better condition than we found it.',
-    bookNow:      'Book Now',
-    viewServices: 'View Services',
+    body:         "Anyone can splash water on a car. We serve entire residential societies — scheduled, professional-grade, and managed end to end. Every resident wakes up to a notification, not a question mark.",
+    bookNow:      'For Societies',
+    viewServices: 'Our Services',
     cards: [
       {
         heading: 'Professional-grade\nproducts only',
-        body:    "Koch Chemie, Meguiar's, CarPro — we use what detailers use, not what supermarkets stock. Your paint deserves the difference.",
+        body:    "Koch Chemie, Meguiar's, CarPro — we use what detailers use, not what supermarkets stock. Every car in every society gets the same standard.",
       },
       {
         heading: 'Paint-safe\nthroughout',
-        body:    'Pre-rinse, decontamination, and a two-bucket hand-wash method. No automatic tunnels. No swirl marks. No compromises.',
+        body:    'Pre-rinse, decontamination, and a two-bucket hand-wash method. No automatic tunnels. No swirl marks. No compromises — whether it is 1 car or 500.',
       },
       {
-        heading: 'Doorstep or\nour centre',
-        body:    'We travel to your home or office across Delhi NCR. Or drop in to our full-service centre in Ghaziabad for in-depth detailing work.',
+        heading: 'At your society,\non schedule',
+        body:    'Assigned to your society on a fixed weekly schedule — no booking, no chasing. You get a push notification the moment your car is done.',
       },
     ],
   },
@@ -68,11 +68,11 @@ const en = {
   // ── Shared marketing components ──────────────────────────────────────────────
 
   cta: {
-    eyebrow:    '[READY IN 2 MINUTES]',
-    headline1:  'At your driveway',
-    headline2:  'or ours. Your call.',
-    body:       'Pick a date, choose a service, confirm. We handle the rest — products, equipment, and a trained specialist at your door.',
-    bookNow:    'Book Now',
+    eyebrow:    '[PARTNER YOUR SOCIETY]',
+    headline1:  'One contract.',
+    headline2:  'Every resident covered.',
+    body:       'We work directly with the RWA. One agreement covers every resident and their vehicles — fixed schedule, professional-grade products, and a push notification the moment each car is done.',
+    bookNow:    'Get a Quote',
     getInTouch: 'Get in Touch',
   },
 
@@ -96,13 +96,13 @@ const en = {
   faqPage: {
     eyebrow:  '[FAQ]',
     headline: 'Common Questions.',
-    sub:      'Everything you need to know about our services, process, and bookings.',
+    sub:      'Everything you need to know about our society partnerships, services, and process.',
     items: [
-      { q: 'How long does a premium wash take?',                   a: "A standard premium wash takes between 1.5 to 2 hours depending on the size and condition of the vehicle. We don't rush the process, ensuring a swirl-free finish." },
-      { q: "What's the difference between wax and a ceramic coating?", a: 'Wax sits on top of the paint and provides 1–3 months of protection. Ceramic coating bonds with the paint at a molecular level, providing a much harder, glossier, and hydrophobic layer that lasts for years.' },
-      { q: 'Do you need access to water and power for mobile detailing?', a: 'Yes, our current mobile units require access to a standard electrical outlet and a water spigot. We bring our own high-pressure washer and commercial vacuums.' },
-      { q: 'Can you remove scratches?',       a: 'We can remove light to medium scratches, swirl marks, and holograms through our paint correction (machine polishing) services. Deep scratches that have penetrated the clear coat cannot be polished out and require repainting.' },
-      { q: 'Do you clean the engine bay?',    a: 'Yes, we offer engine bay cleaning as a standalone service or as an add-on. We use specialized degreasers and low-pressure water to safely clean the area, followed by a dressing for plastics.' },
+      { q: 'How does the society contract work?', a: 'We sign a contract with the RWA or facility manager that covers a set number of cleaning visits per week — usually three. All registered residents and their vehicles are included. Residents download the app, add their car details and unit number once, and are automatically covered for the duration of the contract. There is no per-booking payment from residents.' },
+      { q: 'How are residents notified when their car is cleaned?', a: 'When our worker marks a vehicle as cleaned in their app, the resident receives an instant push notification. It includes the vehicle registration number, the exact time, and before/after photos of the car.' },
+      { q: 'What services are included in the society contract?', a: 'The standard society contract covers a thorough exterior wash — foam pre-wash, two-bucket hand wash with pH-neutral products, rinse, and blow-dry. Interior detailing, paint correction, and ceramic coating are available as premium add-on bookings at preferential rates for society residents.' },
+      { q: "What's the difference between wax and a ceramic coating?", a: 'Wax sits on top of the paint and provides 1–3 months of protection. Ceramic coating bonds with the paint at a molecular level, providing a much harder, glossier, and hydrophobic layer that lasts for years. We offer both as premium add-ons for society residents.' },
+      { q: 'Can you remove scratches and swirl marks?', a: 'Yes, through our paint correction (machine polishing) service available as a premium add-on. We can remove light to medium scratches, swirl marks, and holograms. Deep scratches that have penetrated the clear coat require repainting and are outside our scope.' },
     ],
   },
 
