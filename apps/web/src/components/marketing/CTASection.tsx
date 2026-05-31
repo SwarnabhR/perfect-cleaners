@@ -63,7 +63,7 @@ export default function CTASection() {
         </p>
         <div className="pc-cta-btns" style={{ display: 'flex', gap: 'var(--pc-space-2)', flexWrap: 'wrap' }}>
           <Link
-            href="/book"
+            href="/plans"
             className="pc-hero-cta-primary"
             style={{
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -79,7 +79,7 @@ export default function CTASection() {
             {c.bookNow}
           </Link>
           <Link
-            href="/contact"
+            href="/for-societies"
             className="pc-hero-cta-ghost"
             style={{
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',

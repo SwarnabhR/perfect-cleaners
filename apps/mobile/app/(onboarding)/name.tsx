@@ -46,7 +46,7 @@ export default function OnboardingName() {
       <View style={{ gap: spacing[2] }}>
         <Text style={ss.onboardingStep}>[STEP 01 OF 03]</Text>
         <Text style={ss.onboardingTitle}>Let's set up{'\n'}your account.</Text>
-        <Text style={ss.subtitle}>Your name and email appear on booking confirmations.</Text>
+        <Text style={ss.subtitle}>Your name and email are linked to your society account and cleaning notifications.</Text>
       </View>
 
       {/* First + last name row */}

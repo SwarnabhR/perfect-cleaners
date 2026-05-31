@@ -69,7 +69,7 @@ export default function Hero() {
         */}
         <div className="pc-hero-ctas" style={{ display: 'flex', gap: 'var(--pc-space-2)', flexWrap: 'wrap' }}>
           <Link
-            href="/book"
+            href="/plans"
             className="pc-hero-cta-primary"
             style={{
               display: 'inline-flex',
@@ -92,7 +92,7 @@ export default function Hero() {
             {h.bookNow}
           </Link>
           <Link
-            href="/services"
+            href="/for-societies"
             className="pc-hero-cta-ghost"
             style={{
               display: 'inline-flex',

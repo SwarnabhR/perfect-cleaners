@@ -167,18 +167,18 @@ function EmptyState({ router, filter }: { router: ReturnType<typeof useRouter>; 
         <Car size={26} color={c.fg2} strokeWidth={1.5} />
       </View>
       <Text style={[s.emptyTitle, { color: c.fg }]}>
-        {filter === 'all' ? 'No bookings yet.' : `No ${filter} bookings.`}
+        {filter === 'all' ? 'No activity yet.' : `No ${filter} bookings.`}
       </Text>
       {filter === 'all' && (
         <>
           <Text style={[s.emptyBody, { color: c.fg2 }]}>
-            Browse our services and book a slot — most washes available within 24 hours.
+            Your scheduled society cleans appear here automatically. For premium add-ons, tap below.
           </Text>
           <TouchableOpacity
             style={ss.primaryBtn}
             onPress={() => router.push('/(customer)/booking')}
           >
-            <Text style={ss.primaryBtnText}>Browse Services →</Text>
+            <Text style={ss.primaryBtnText}>Book a Premium Add-on →</Text>
           </TouchableOpacity>
         </>
       )}

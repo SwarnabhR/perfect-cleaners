@@ -4,27 +4,27 @@ import Eyebrow from '@/components/ui/Eyebrow';
 const STEPS = [
   {
     num: '01',
-    label: 'SOCIETY SIGNS UP',
-    title: 'One contract, whole campus',
-    body: 'The RWA or facility manager contacts us. We agree on a schedule, scope, and monthly fee — typically under 48 hours to set up.',
+    label: 'SOCIETY LISTS',
+    title: 'Free to list, zero cost to RWA',
+    body: 'The RWA contacts us, we agree on visit days, and the society appears in the app. No cost to the society — ever.',
   },
   {
     num: '02',
-    label: 'RESIDENTS REGISTER',
-    title: 'App install, unit + car added',
-    body: 'Residents download Perfect Cleaners, enter their unit number, and add their vehicles. No recurring booking required.',
+    label: 'RESIDENTS SUBSCRIBE',
+    title: 'Each resident pays their own plan',
+    body: 'Residents choose a weekly or monthly subscription in the app and add their car. They pay Perfect Cleaners directly — the RWA is never billed.',
   },
   {
     num: '03',
     label: 'WE CLEAN',
     title: 'Workers arrive on schedule',
-    body: 'Our certified team arrives at the society gate at the agreed time. Every registered vehicle is serviced before the team departs.',
+    body: 'Our certified team arrives at the gate on the agreed days and cleans every subscribed car with professional-grade products.',
   },
   {
     num: '04',
     label: 'INSTANT NOTIFY',
     title: 'Push notification when done',
-    body: 'The moment your car is marked clean, you get a notification with a timestamp, plate, and before/after photo.',
+    body: 'The moment a car is marked clean, the subscriber gets a notification with a timestamp, plate, and before/after photo.',
   },
 ] as const;
 
@@ -60,7 +60,7 @@ export default function SocietiesSection() {
           maxWidth: 400,
           margin: 0,
         }}>
-          We partner with residential societies across Delhi NCR. One contract with the RWA covers every resident — professional cleaning on a fixed schedule, with instant push notifications.
+          We operate inside residential societies across Delhi NCR. Listing is free for the RWA — residents subscribe individually and pay directly. No bulk contract, no cost to the society.
         </p>
       </div>
 

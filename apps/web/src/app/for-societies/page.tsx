@@ -6,46 +6,46 @@ import Eyebrow from '@/components/ui/Eyebrow';
 const STEPS = [
   {
     num: '01',
-    label: 'SOCIETY SIGNS UP',
-    title: 'One contract, whole campus',
-    body: 'The RWA or facility manager contacts us. We agree on a cleaning schedule, scope, and monthly fee. Typical setup takes under 48 hours from first call to first clean.',
+    label: 'SOCIETY LISTS',
+    title: 'Free to list, no commitment',
+    body: 'The RWA or facility manager contacts us. We agree on visit days (usually Mon/Wed/Fri) and add the society to the app. No cost to the society — ever.',
   },
   {
     num: '02',
-    label: 'RESIDENTS REGISTER',
-    title: 'App install, unit + car added',
-    body: "Residents download Perfect Cleaners and enter their unit number and vehicle details. No individual booking is ever required — they're covered automatically by the society contract.",
+    label: 'RESIDENTS SUBSCRIBE',
+    title: 'Each resident picks their plan',
+    body: 'Residents find the society in the app, choose a weekly or monthly subscription, and add their car. They pay Perfect Cleaners directly — the RWA is never billed.',
   },
   {
     num: '03',
     label: 'WE CLEAN',
-    title: 'Certified workers arrive on schedule',
-    body: 'Our trained team arrives at the society gate at the agreed time with professional-grade equipment. Every registered vehicle is serviced before the team departs.',
+    title: 'Workers arrive on schedule',
+    body: 'Our certified team arrives at the society gate on the agreed days. Every subscribed car is cleaned with professional-grade products before the team departs.',
   },
   {
     num: '04',
     label: 'INSTANT NOTIFY',
-    title: "Push notification the moment it's done",
-    body: 'As soon as a worker marks a car clean in their app, the resident receives a push notification with a timestamp, vehicle registration, and before/after photos.',
+    title: "Push notification when done",
+    body: 'The moment a car is marked clean, the subscriber gets a push notification — with the time, vehicle registration, and before/after photos.',
   },
 ] as const;
 
 const SOCIETY_BENEFITS = [
   {
-    title: 'Fixed monthly pricing',
-    body: 'One invoice for the entire society. No per-car complexity — a flat monthly fee agreed at contract time. Scales cleanly as new residents join.',
+    title: 'Zero cost to the RWA',
+    body: "Listing is completely free. Residents subscribe and pay individually — the society is never invoiced. You bring a premium service to your residents at no expense.",
   },
   {
     title: 'Zero admin overhead',
-    body: 'We handle scheduling, staffing, quality checks, and resident feedback collection. The RWA receives a monthly summary report.',
+    body: 'We handle scheduling, staffing, and quality checks. The RWA gets a monthly activity report — no coordination needed from your side.',
   },
   {
     title: 'Resident satisfaction lever',
-    body: 'Clean cars every morning translate directly into resident happiness scores. Every partner society has reported improved RWA feedback after onboarding us.',
+    body: 'A clean car every week is one of the most tangible quality-of-life improvements a society can offer. Every partner community has reported higher resident satisfaction scores after listing.',
   },
   {
     title: 'Premium products, always',
-    body: "We use Koch Chemie, Meguiar's, and CarPro across all society contracts — the same professional-grade products used in our individual premium bookings.",
+    body: "We use Koch Chemie, Meguiar's, and CarPro — the same professional-grade products used in our individual premium bookings. No diluted consumer alternatives.",
   },
 ] as const;
 
@@ -106,7 +106,7 @@ export default function ForSocietiesPage() {
             maxWidth: 520,
             margin: '0 0 var(--pc-space-8)',
           }}>
-            One contract with the RWA covers every resident. We clean on a fixed schedule — and every car owner gets a push notification the moment their vehicle is done.
+            List your society for free. Residents subscribe and pay individually — your premises get a professional car-care service at zero cost to the RWA.
           </p>
           <div style={{ display: 'flex', gap: 'var(--pc-space-3)', flexWrap: 'wrap' }}>
             <Link
@@ -121,7 +121,7 @@ export default function ForSocietiesPage() {
                 textDecoration: 'none',
               }}
             >
-              Get a Quote
+              List Your Society — Free
             </Link>
             <a
               href="#how-it-works"
@@ -258,10 +258,10 @@ export default function ForSocietiesPage() {
         <div style={{ padding: 'var(--pc-space-16) var(--pc-screen-pad-lg)', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 'var(--pc-space-6)', maxWidth: 600 }}>
           <Eyebrow>[READY TO PARTNER?]</Eyebrow>
           <h2 style={{ fontFamily: 'var(--pc-serif)', fontSize: 'clamp(28px, 4vw, 44px)', color: 'var(--pc-fg)', letterSpacing: 'var(--pc-track-tight)', lineHeight: 1.05, margin: 0 }}>
-            Partner your society.
+            List your society — free.
           </h2>
           <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-base)', color: 'var(--pc-fg-2)', lineHeight: 'var(--pc-lh-loose)', margin: 0 }}>
-            Send us your society name and contact details. We will come back within 24 hours with a quote tailored to your number of units and vehicles.
+            Send us your society name and contact details. Listing is free — no cost ever to the RWA. We will get back within 24 hours to schedule a visit and get you on the app.
           </p>
           <Link
             href="/contact"

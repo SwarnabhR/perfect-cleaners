@@ -6,10 +6,11 @@ import { db } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 
 const SERVICES = [
-  { value: 'interior',   label: 'Interior Detailing'          },
-  { value: 'exterior',   label: 'Exterior Wash'               },
+  { value: 'society',    label: 'List My Society'             },
+  { value: 'subscribe',  label: 'Subscribe as a Resident'     },
+  { value: 'interior',   label: 'Interior Detailing (Add-on)' },
+  { value: 'exterior',   label: 'Exterior Wash (Add-on)'      },
   { value: 'coating',    label: 'Paint Protection & Coating'  },
-  { value: 'membership', label: 'Membership Plan'             },
   { value: 'other',      label: 'Other / General Enquiry'     },
 ];
 
@@ -129,12 +130,12 @@ export default function ContactForm() {
         </div>
 
         <div>
-          <label style={label}>Service Interest</label>
+          <label style={label}>Enquiry Type</label>
           <select
             value={service} onChange={e => setService(e.target.value)}
             style={{ ...input, appearance: 'none', WebkitAppearance: 'none', cursor: 'pointer' }}
           >
-            <option value="">Select a service…</option>
+            <option value="">Select an enquiry type…</option>
             {SERVICES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
         </div>
@@ -143,7 +144,7 @@ export default function ContactForm() {
           <label style={label}>Message *</label>
           <textarea
             rows={5} value={message} onChange={e => setMessage(e.target.value)}
-            placeholder="Tell us about your car and what you need…"
+            placeholder="Tell us about your society, subscription query, or service requirement…"
             required style={{ ...input, resize: 'none' }}
           />
         </div>
