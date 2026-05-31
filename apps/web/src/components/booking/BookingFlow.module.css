@@ -95,10 +95,9 @@
     gap: var(--pc-space-8);
   }
 
-  /* Summary floats to the top on mobile so users see pricing upfront */
+  /* Summary appears after the form steps on mobile */
   .summaryCol {
     flex: 1 1 100%;
-    order: -1;
   }
 
   /* Unstick the summary — no viewport to scroll within on mobile */
