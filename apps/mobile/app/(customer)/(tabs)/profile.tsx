@@ -4,35 +4,55 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import auth from '@react-native-firebase/auth';
-import { ChevronRight, Car, MapPin, CreditCard, Bell, Shield, HelpCircle, LogOut } from 'lucide-react-native';
-import { typography, spacing, radii } from '@pc/tokens';
+import firestore from '@react-native-firebase/firestore';
+import {
+  Car, MapPin, CreditCard, Bell, Shield,
+  HelpCircle, LogOut, Clock, Gift, Gem, MessageSquare,
+} from 'lucide-react-native';
+import { typography, spacing } from '@pc/tokens';
 import { useThemeColors } from '../../../theme';
 import { useSharedStyles } from '../../../theme/sharedStyles';
 import TabTopBar from '../../../components/TabTopBar';
 import { Group, Row } from '../../../components/RowGroup';
-
-interface CachedProfile {
-  name:    string;
-  phone:   string;
-  car?:    { make: string; model: string; plate: string; color: string };
-  address?:{ line1: string; area: string; city: string };
-}
 
 function initials(name: string): string {
   return name.split(' ').map(w => w[0] ?? '').join('').slice(0, 2).toUpperCase() || '?';
 }
 
 export default function ProfileTab() {
-  const insets  = useSafeAreaInsets();
-  const router  = useRouter();
-  const c       = useThemeColors();
-  const ss      = useSharedStyles();
-  const [profile, setProfile] = useState<CachedProfile | null>(null);
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const c      = useThemeColors();
+  const ss     = useSharedStyles();
+
+  const [name,  setName]  = useState('Your Account');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
 
   useEffect(() => {
+    // Phone from Firebase Auth (immediate)
+    setPhone(auth().currentUser?.phoneNumber ?? '');
+
+    // Cached name from AsyncStorage (instant)
     AsyncStorage.getItem('@pc/profile').then(raw => {
-      if (raw) setProfile(JSON.parse(raw));
+      if (raw) {
+        const cached = JSON.parse(raw);
+        if (cached?.name) setName(cached.name);
+      }
     });
+
+    // Live from Firestore
+    const uid = auth().currentUser?.uid;
+    if (!uid) return;
+    const unsub = firestore().collection('customers').doc(uid).onSnapshot(snap => {
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data?.name)  setName(data.name);
+        if (data?.email) setEmail(data.email);
+        if (data?.phone) setPhone(data.phone);
+      }
+    }, () => {});
+    return () => unsub();
   }, []);
 
   async function handleSignOut() {
@@ -43,18 +63,10 @@ export default function ProfileTab() {
     router.replace('/(auth)/login');
   }
 
-  const displayName  = profile?.name  || 'Your Account';
-  const displayPhone = profile?.phone ? `+91 ${profile.phone.replace('+91', '')}` : '—';
-  const carLabel     = profile?.car
-    ? `${profile.car.make} ${profile.car.model}`.trim() || 'Your vehicle'
-    : 'Add a vehicle';
-  const carSub       = profile?.car
-    ? [profile.car.color, profile.car.plate].filter(Boolean).join(' · ') || 'Tap to update'
-    : 'Make, model, plate';
-  const addressLabel = profile?.address?.line1 || 'Add a service address';
-  const addressSub   = profile?.address
-    ? `${profile.address.area}, ${profile.address.city}`
-    : 'We come to you · Ghaziabad NCR';
+  const rawPhone = phone.replace('+91', '').replace(/\s/g, '');
+  const displayPhone = rawPhone
+    ? `+91 ${rawPhone.slice(0, 5)} ${rawPhone.slice(5)}`.trim()
+    : '—';
 
   return (
     <ScrollView
@@ -66,55 +78,100 @@ export default function ProfileTab() {
         <TabTopBar />
       </View>
 
-      {/* Avatar + name */}
+      {/* Avatar + identity */}
       <View style={s.avatarSection}>
         <View style={[s.avatar, { backgroundColor: c.sage }]}>
-          <Text style={s.avatarInitials}>{initials(displayName)}</Text>
+          <Text style={s.avatarInitials}>{initials(name)}</Text>
         </View>
         <View style={s.nameBlock}>
           <Text style={ss.eyebrow}>[CUSTOMER ACCOUNT]</Text>
-          <Text style={[ss.pageTitle, { fontSize: 26 }]}>{displayName}</Text>
-          <Text style={[s.phone, { color: c.fg2 }]}>{displayPhone}</Text>
+          <Text style={[ss.pageTitle, { fontSize: 24, lineHeight: 30 }]}>{name}</Text>
+          <Text style={[s.meta, { color: c.fg2 }]}>{displayPhone}</Text>
+          {email ? <Text style={[s.meta, { color: c.fg3 }]}>{email}</Text> : null}
         </View>
       </View>
 
-      <Group header="My Details">
+      {/* ORDERS */}
+      <Group header="ORDERS">
         <Row
-          icon={<Car size={14} color={c.fg2} strokeWidth={1.5} />}
-          title="Vehicles"
-          sub={carLabel}
-          value={carSub !== carLabel ? carSub : undefined}
-          onPress={() => router.push('/(customer)/cars')}
+          icon={<Clock size={14} color="#fff" strokeWidth={1.5} />}
+          iconBg={c.cardHi}
+          title="Order History"
+          sub="View past and upcoming bookings"
+          onPress={() => router.push('/(customer)/(tabs)/bookings')}
         />
         <Row
-          icon={<MapPin size={14} color={c.fg2} strokeWidth={1.5} />}
-          title="Saved Addresses"
-          sub={addressLabel}
-          value={addressSub !== addressLabel ? addressSub : undefined}
-          onPress={() => router.push('/(customer)/addresses')}
-        />
-        <Row
-          icon={<CreditCard size={14} color={c.fg2} strokeWidth={1.5} />}
-          title="Payment Methods"
-          sub="Manage cards & UPI"
-          onPress={() => router.push('/(customer)/payment-methods')}
+          icon={<MessageSquare size={14} color="#fff" strokeWidth={1.5} />}
+          iconBg={c.cardHi}
+          title="Raise a Complaint"
+          sub="We respond within 24 hours"
+          onPress={() => router.push('/(customer)/support-chat')}
           isLast
         />
       </Group>
 
-      <Group header="Preferences">
+      {/* MY ACCOUNT */}
+      <Group header="MY ACCOUNT">
         <Row
-          icon={<Bell size={14} color={c.fg2} strokeWidth={1.5} />}
+          icon={<MapPin size={14} color="#fff" strokeWidth={1.5} />}
+          iconBg={c.cardHi}
+          title="Saved Addresses"
+          sub="Manage your service locations"
+          onPress={() => router.push('/(customer)/addresses')}
+        />
+        <Row
+          icon={<Car size={14} color="#fff" strokeWidth={1.5} />}
+          iconBg={c.cardHi}
+          title="Vehicles"
+          sub="Manage your registered cars"
+          onPress={() => router.push('/(customer)/cars')}
+        />
+        <Row
+          icon={<CreditCard size={14} color="#fff" strokeWidth={1.5} />}
+          iconBg={c.cardHi}
+          title="Payment Methods"
+          sub="Cards, UPI, wallet"
+          onPress={() => router.push('/(customer)/payment-methods')}
+        />
+        <Row
+          icon={<Gift size={14} color="#fff" strokeWidth={1.5} />}
+          iconBg={c.cardHi}
+          title="Referral"
+          sub="Earn rewards for every friend you invite"
+          onPress={() => router.push('/(customer)/referral')}
+          isLast
+        />
+      </Group>
+
+      {/* SUBSCRIPTION */}
+      <Group header="SUBSCRIPTION">
+        <Row
+          icon={<Gem size={14} color="#fff" strokeWidth={1.5} />}
+          iconBg={c.sage}
+          title="Membership & Plans"
+          sub="Gold · Platinum — unlimited washes"
+          onPress={() => router.push('/(customer)/(tabs)/offers')}
+          isLast
+        />
+      </Group>
+
+      {/* SETTINGS */}
+      <Group header="SETTINGS">
+        <Row
+          icon={<Bell size={14} color="#fff" strokeWidth={1.5} />}
+          iconBg={c.cardHi}
           title="Notifications"
           onPress={() => router.push('/(customer)/notifications')}
         />
         <Row
-          icon={<Shield size={14} color={c.fg2} strokeWidth={1.5} />}
+          icon={<Shield size={14} color="#fff" strokeWidth={1.5} />}
+          iconBg={c.cardHi}
           title="Settings"
           onPress={() => router.push('/(customer)/settings')}
         />
         <Row
-          icon={<HelpCircle size={14} color={c.fg2} strokeWidth={1.5} />}
+          icon={<HelpCircle size={14} color="#fff" strokeWidth={1.5} />}
+          iconBg={c.cardHi}
           title="Help & Support"
           onPress={() => router.push('/(customer)/help')}
           isLast
@@ -132,10 +189,10 @@ export default function ProfileTab() {
 }
 
 const s = StyleSheet.create({
-  avatarSection:  { flexDirection: 'row', alignItems: 'center', gap: spacing[4], paddingHorizontal: spacing[5], paddingBottom: spacing[4] },
-  avatar:         { width: 64, height: 64, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  avatarSection:  { flexDirection: 'row', alignItems: 'flex-start', gap: spacing[4], paddingHorizontal: spacing[5], paddingBottom: spacing[4] },
+  avatar:         { width: 64, height: 64, borderRadius: 999, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   avatarInitials: { fontFamily: typography.sansSemiBold, fontSize: 22, color: '#fff' },
-  nameBlock:      { flex: 1, gap: 2 },
-  phone:          { fontFamily: typography.sans, fontSize: 13 },
+  nameBlock:      { flex: 1, gap: 2, paddingTop: 2 },
+  meta:           { fontFamily: typography.sans, fontSize: 13, marginTop: 2 },
   signOutWrap:    { paddingHorizontal: spacing[5], marginTop: spacing[2] },
 });

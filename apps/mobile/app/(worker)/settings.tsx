@@ -1,4 +1,4 @@
-import { ScrollView, View, Text, Alert } from 'react-native';
+import { ScrollView, View, Text, Alert, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -43,13 +43,13 @@ export default function WorkerSettingsScreen() {
           icon={<User size={15} color="#fff" />}
           iconBg={c.cardHi}
           title="Profile & Identity"
-          onPress={() => {}}
+          onPress={() => router.back()}
         />
         <Row
           icon={<Bell size={15} color="#fff" />}
           iconBg={c.cardHi}
           title="Push Notifications"
-          onPress={() => {}}
+          onPress={() => Linking.openSettings()}
           isLast
         />
       </Group>
@@ -59,13 +59,13 @@ export default function WorkerSettingsScreen() {
           icon={<Shield size={15} color="#fff" />}
           iconBg={c.cardHi}
           title="Privacy Policy"
-          onPress={() => {}}
+          onPress={() => Linking.openURL('https://perfectcleaners.in/privacy')}
         />
         <Row
           icon={<Shield size={15} color="#fff" />}
           iconBg={c.cardHi}
           title="Terms of Service"
-          onPress={() => {}}
+          onPress={() => Linking.openURL('https://perfectcleaners.in/terms')}
           isLast
         />
       </Group>

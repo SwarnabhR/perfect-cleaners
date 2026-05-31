@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { ScrollView, View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Bell, Shield, HelpCircle, Star } from 'lucide-react-native';
@@ -100,9 +100,9 @@ export default function WorkerProfileTab() {
           </View>
 
           <Group header="Account">
-            <Row icon={<Bell     size={14} color={c.fg2} strokeWidth={1.5} />} title="Notifications" value="On" />
-            <Row icon={<Shield   size={14} color={c.fg2} strokeWidth={1.5} />} title="Privacy" />
-            <Row icon={<HelpCircle size={14} color={c.fg2} strokeWidth={1.5} />} title="Help & Support" isLast />
+            <Row icon={<Bell     size={14} color={c.fg2} strokeWidth={1.5} />} title="Notifications" value="On" onPress={() => Linking.openSettings()} />
+            <Row icon={<Shield   size={14} color={c.fg2} strokeWidth={1.5} />} title="Privacy" onPress={() => Linking.openURL('https://perfectcleaners.in/privacy')} />
+            <Row icon={<HelpCircle size={14} color={c.fg2} strokeWidth={1.5} />} title="Help & Support" isLast onPress={() => router.push('/(worker)/settings')} />
           </Group>
 
           <View style={s.signOutWrap}>

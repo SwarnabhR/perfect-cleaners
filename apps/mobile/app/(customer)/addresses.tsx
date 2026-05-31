@@ -193,8 +193,8 @@ export default function AddressesScreen() {
   const insets = useSafeAreaInsets();
   const c      = useThemeColors();
   const ss     = useSharedStyles();
-  const [addresses,     setAddresses]     = useState<Address[]>([]);
-  const [sheetVisible,  setSheetVisible]  = useState(false);
+  const [addresses,    setAddresses]    = useState<Address[]>([]);
+  const [sheetVisible, setSheetVisible] = useState(false);
 
   useEffect(() => {
     const user = auth().currentUser;
@@ -207,6 +207,39 @@ export default function AddressesScreen() {
         err  => console.warn('[Addresses] Firestore:', err.message),
       );
   }, []);
+
+  async function setPrimaryAddress(id: string) {
+    const user = auth().currentUser;
+    if (!user) return;
+    const batch = firestore().batch();
+    addresses.forEach(addr => {
+      batch.update(
+        firestore().collection('customers').doc(user.uid).collection('addresses').doc(addr.id),
+        { primary: addr.id === id },
+      );
+    });
+    await batch.commit().catch(err => console.warn('[Addresses] setPrimary:', err.message));
+  }
+
+  async function deleteAddress(id: string) {
+    const user = auth().currentUser;
+    if (!user) return;
+    await firestore()
+      .collection('customers').doc(user.uid)
+      .collection('addresses').doc(id)
+      .delete()
+      .catch(err => console.warn('[Addresses] delete:', err.message));
+  }
+
+  function handleAddressPress(addr: Address) {
+    const buttons: any[] = [];
+    if (!addr.primary) {
+      buttons.push({ text: 'Set as Primary', onPress: () => setPrimaryAddress(addr.id) });
+    }
+    buttons.push({ text: 'Delete', style: 'destructive', onPress: () => deleteAddress(addr.id) });
+    buttons.push({ text: 'Cancel', style: 'cancel' });
+    Alert.alert(addr.label, [addr.line1, addr.line2, addr.city].filter(Boolean).join(', '), buttons);
+  }
 
   const s = StyleSheet.create({
     addBtn:    { width: 36, height: 36, borderRadius: radii.pill, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, alignItems: 'center', justifyContent: 'center' },
@@ -250,7 +283,7 @@ export default function AddressesScreen() {
                 title={addr.label}
                 sub={[addr.line1, addr.line2, addr.city].filter(Boolean).join(' · ')}
                 value={addr.primary ? 'Primary' : undefined}
-                onPress={() => {}}
+                onPress={() => handleAddressPress(addr)}
                 isLast={i === addresses.length - 1}
               />
             ))}

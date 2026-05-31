@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { ScrollView, View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Navigation, MapPin, Clock, ChevronRight } from 'lucide-react-native';
@@ -209,13 +209,19 @@ export default function WorkerHome() {
                   </Text>
                 </View>
                 <View style={s.activeJobActions}>
-                  <TouchableOpacity style={[ss.ghostBtn, { flex: 1, flexDirection: 'row', gap: 8 }]}>
+                  <TouchableOpacity
+                    style={[ss.ghostBtn, { flex: 1, flexDirection: 'row', gap: 8 }]}
+                    onPress={() => {
+                      const addr = encodeURIComponent(activeJob.address || '');
+                      Linking.openURL(`https://maps.google.com/?q=${addr}`).catch(() => {});
+                    }}
+                  >
                     <Navigation size={14} color={c.fg} strokeWidth={1.5} />
                     <Text style={ss.ghostBtnText}>Navigate</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[ss.primaryBtn, { flex: 2 }]}
-                    onPress={() => router.push({ pathname: '/(worker)/job-detail', params: { id: activeJob.id } })}
+                    onPress={() => router.push({ pathname: '/(worker)/job-detail', params: { bookingId: activeJob.id } })}
                   >
                     <Text style={ss.primaryBtnText}>Open Job →</Text>
                   </TouchableOpacity>
@@ -238,7 +244,7 @@ export default function WorkerHome() {
                     <TouchableOpacity
                       key={j.id}
                       style={s.upcomingCard}
-                      onPress={() => router.push({ pathname: '/(worker)/job-detail', params: { id: j.id } })}
+                      onPress={() => router.push({ pathname: '/(worker)/job-detail', params: { bookingId: j.id } })}
                     >
                       <View style={s.upcomingTime}>
                         <Text style={s.upcomingTimeAmPm}>{ampm}</Text>

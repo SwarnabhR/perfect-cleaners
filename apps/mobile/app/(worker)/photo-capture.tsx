@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Image, TextInput } from 'react-native';
 import { ScrollView } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,6 +23,7 @@ export default function PhotoCapture() {
 
   const [captured,  setCaptured]  = useState<Partial<Record<Angle, string>>>({});
   const [uploading, setUploading] = useState<Angle | null>(null);
+  const [notes,     setNotes]     = useState('');
 
   const captureCount = Object.keys(captured).length;
 
@@ -77,8 +78,8 @@ export default function PhotoCapture() {
     angleEmptyLabel: { fontFamily: typography.mono, fontSize: 10, color: c.fg3, letterSpacing: 0.8 },
     angleUploading:  { flex: 1, backgroundColor: c.cardHi, alignItems: 'center', justifyContent: 'center', gap: 8 },
     notesSection: { paddingHorizontal: spacing[5], paddingTop: spacing[5] },
-    notesBox: { marginTop: spacing[2], padding: spacing[3], backgroundColor: c.card, borderRadius: radii.sm, borderWidth: 1, borderColor: c.line, minHeight: 60, justifyContent: 'center' },
-    notesText:   { fontFamily: typography.sans, fontSize: 13, color: c.fg3 },
+    notesBox: { marginTop: spacing[2], padding: spacing[3], backgroundColor: c.card, borderRadius: radii.sm, borderWidth: 1, borderColor: c.line, minHeight: 60 },
+    notesInput: { fontFamily: typography.sans, fontSize: 13, color: c.fg },
     footerCount: { fontFamily: typography.mono, fontSize: 9.5, color: c.fg3, letterSpacing: 0.8 },
     captureBtn:  { marginLeft: 'auto', width: 64, height: 64, borderRadius: 999, backgroundColor: c.fg, borderWidth: 4, borderColor: c.lineStrong, alignItems: 'center', justifyContent: 'center' },
   });
@@ -132,9 +133,25 @@ export default function PhotoCapture() {
         {/* Notes */}
         <View style={s.notesSection}>
           <Text style={ss.eyebrow}>[CONDITION NOTES] · OPTIONAL</Text>
-          <View style={s.notesBox}>
-            <Text style={s.notesText}>Tap to add notes about vehicle condition…</Text>
-          </View>
+          <TextInput
+            style={[s.notesBox, s.notesInput]}
+            value={notes}
+            onChangeText={setNotes}
+            placeholder="Add notes about vehicle condition…"
+            placeholderTextColor={c.fg3}
+            multiline
+            numberOfLines={3}
+            textAlignVertical="top"
+            onBlur={async () => {
+              if (!notes.trim()) return;
+              try {
+                await firestore().collection('bookings').doc(bookingId).update({
+                  workerNotes: notes.trim(),
+                  updatedAt: firestore.FieldValue.serverTimestamp(),
+                });
+              } catch { /* silent — notes are non-critical */ }
+            }}
+          />
         </View>
       </ScrollView>
 

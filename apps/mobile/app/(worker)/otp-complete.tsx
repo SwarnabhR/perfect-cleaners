@@ -43,7 +43,7 @@ export default function OTPCompleteModal() {
     setVerifying(true);
     try {
       const snap = await firestore().collection('bookings').doc(bookingId).get();
-      if (!Boolean(snap.exists)) throw new Error('Booking not found');
+      if (!snap.exists()) throw new Error('Booking not found');
 
       const data = snap.data();
       const stored = data?.otpCode;

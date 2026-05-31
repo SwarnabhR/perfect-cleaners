@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { collection, query, orderBy, limit, onSnapshot, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@pc/firebase';
 import type { BookingStatus } from '@pc/firebase';
@@ -33,11 +34,17 @@ function serviceLabel(ids: string[]): string {
 }
 
 export default function BookingsPage() {
-  const [bookings,  setBookings]  = useState<LiveBooking[]>([]);
-  const [workers,   setWorkers]   = useState<LiveWorker[]>([]);
-  const [filter,    setFilter]    = useState('All');
-  const [assigning, setAssigning] = useState<string | null>(null);
-  const [loading,   setLoading]   = useState(true);
+  const searchParams = useSearchParams();
+  const [bookings,   setBookings]   = useState<LiveBooking[]>([]);
+  const [workers,    setWorkers]    = useState<LiveWorker[]>([]);
+  const [filter,     setFilter]     = useState('All');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [assigning,  setAssigning]  = useState<string | null>(null);
+  const [loading,    setLoading]    = useState(true);
+
+  useEffect(() => {
+    setSearchTerm(searchParams.get('search') ?? '');
+  }, [searchParams]);
 
   useEffect(() => {
     const q = query(collection(db, 'bookings'), orderBy('createdAt', 'desc'), limit(100));
@@ -60,7 +67,17 @@ export default function BookingsPage() {
     } catch (err: any) { console.error('[Bookings] assign failed:', err.message); }
   }
 
-  const filtered = filter === 'All' ? bookings : bookings.filter(b => STATUS_LABELS[b.status] === filter);
+  const filtered = bookings
+    .filter(b => filter === 'All' || STATUS_LABELS[b.status] === filter)
+    .filter(b => {
+      if (!searchTerm) return true;
+      const q = searchTerm.toLowerCase();
+      return (
+        (b.customerName ?? '').toLowerCase().includes(q) ||
+        b.id.toLowerCase().includes(q) ||
+        (b.workerName ?? '').toLowerCase().includes(q)
+      );
+    });
   const counts = {
     pending: bookings.filter(b => b.status === 'pending').length,
     active:  bookings.filter(b => ['assigned','enroute','inprogress'].includes(b.status)).length,
@@ -76,6 +93,12 @@ export default function BookingsPage() {
           <Eyebrow style={{ display: 'block', marginBottom: 4 }}>SCHEDULE</Eyebrow>
           <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 28, fontWeight: 400, color: 'var(--pc-fg)', margin: 0 }}>Bookings</h1>
         </div>
+        {searchTerm && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px', background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 999 }}>
+            <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)' }}>"{searchTerm}"</span>
+            <button type="button" onClick={() => setSearchTerm('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--pc-fg-4)', fontSize: 16, lineHeight: 1, padding: 0 }}>×</button>
+          </div>
+        )}
       </div>
 
       <div className="kpi-grid-4">

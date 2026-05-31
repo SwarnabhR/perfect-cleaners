@@ -2,7 +2,7 @@
 export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import Icon from '@/components/ui/Icon';
 import { useTheme } from '@/components/ThemeProvider';
@@ -32,9 +32,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
 function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname     = usePathname();
-  const [open, setOpen] = useState(false);
+  const [open,        setOpen]        = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [alertsOpen,  setAlertsOpen]  = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const { theme, toggle } = useTheme();
   const { user, signOut } = useAdminAuth();
+  const router = useRouter();
 
   const Sidebar = ({ onClose }: { onClose?: () => void }) => (
     <aside style={{
@@ -190,6 +194,11 @@ function AdminShell({ children }: { children: React.ReactNode }) {
           .kpi-grid-4 { grid-template-columns: 1fr 1fr; }
           .kpi-grid-3 { grid-template-columns: 1fr; }
         }
+
+        .admin-search-input::placeholder { color: var(--pc-fg-4); }
+        .admin-search-input::-webkit-search-cancel-button { display: none; }
+        .hide-xs { display: none; }
+        @media (min-width: 640px) { .hide-xs { display: inline; } }
       `}</style>
 
       {/* ── Mobile overlay ───────────────────────────────────────────────── */}
@@ -237,16 +246,22 @@ function AdminShell({ children }: { children: React.ReactNode }) {
             </button>
 
             {/* Search */}
-            <div style={{
-              flex: 1, maxWidth: 400,
-              display: 'flex', alignItems: 'center', gap: 'var(--pc-space-2)',
-              background: 'var(--pc-card)', border: '1px solid var(--pc-line)',
-              borderRadius: 'var(--pc-radius-pill)',
-              padding: 'var(--pc-space-2) var(--pc-space-4)',
-            }}>
-              <Icon name="search" size={14} color="var(--pc-fg-4)" />
-              <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg-4)' }}>Search…</span>
-            </div>
+            <form
+              onSubmit={e => { e.preventDefault(); if (searchQuery.trim()) { router.push(`/bookings?search=${encodeURIComponent(searchQuery.trim())}`); setSearchQuery(''); } }}
+              style={{ flex: 1, maxWidth: 400 }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pc-space-2)', background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 'var(--pc-radius-pill)', padding: 'var(--pc-space-2) var(--pc-space-4)' }}>
+                <Icon name="search" size={14} color="var(--pc-fg-4)" />
+                <input
+                  className="admin-search-input"
+                  type="search"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Search bookings…"
+                  style={{ border: 'none', background: 'transparent', outline: 'none', fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg)', flex: 1, minWidth: 0 }}
+                />
+              </div>
+            </form>
 
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 'var(--pc-space-2)' }}>
               <button
@@ -256,13 +271,38 @@ function AdminShell({ children }: { children: React.ReactNode }) {
               >
                 <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={14} color="var(--pc-fg-3)" />
               </button>
-              <button type="button" style={{ display: 'flex', alignItems: 'center', gap: 'var(--pc-space-2)', background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 'var(--pc-radius-pill)', padding: 'var(--pc-space-2) var(--pc-space-4)', cursor: 'pointer', fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg)' }}>
-                <Icon name="bell" size={14} color="var(--pc-fg-3)" />
-                <span style={{ display: 'none' }} className="hide-xs">Alerts</span>
-              </button>
-              <button type="button" style={{ width: 36, height: 36, borderRadius: 'var(--pc-radius-pill)', background: 'var(--pc-card-hi)', border: '1px solid var(--pc-line)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                <Icon name="user" size={14} color="var(--pc-fg-2)" />
-              </button>
+              <div style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  onClick={() => { setAlertsOpen(o => !o); setProfileOpen(false); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 'var(--pc-space-2)', background: alertsOpen ? 'var(--pc-card-hi)' : 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 'var(--pc-radius-pill)', padding: 'var(--pc-space-2) var(--pc-space-4)', cursor: 'pointer', fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg)' }}
+                >
+                  <Icon name="bell" size={14} color="var(--pc-fg-3)" />
+                  <span className="hide-xs">Alerts</span>
+                </button>
+                {alertsOpen && (
+                  <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 8px)', background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 10, padding: 16, minWidth: 240, boxShadow: '0 8px 24px rgba(0,0,0,0.3)', zIndex: 100 }}>
+                    <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>ALERTS</p>
+                    <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: 0, lineHeight: 1.5 }}>No new alerts.</p>
+                  </div>
+                )}
+              </div>
+              <div style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  onClick={() => { setProfileOpen(o => !o); setAlertsOpen(false); }}
+                  style={{ width: 36, height: 36, borderRadius: 'var(--pc-radius-pill)', background: profileOpen ? 'color-mix(in srgb, var(--pc-sage) 15%, transparent)' : 'var(--pc-card-hi)', border: '1px solid var(--pc-line)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                >
+                  <Icon name="user" size={14} color="var(--pc-fg-2)" />
+                </button>
+                {profileOpen && (
+                  <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 8px)', background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 10, padding: 16, minWidth: 220, boxShadow: '0 8px 24px rgba(0,0,0,0.3)', zIndex: 100 }}>
+                    <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 600, color: 'var(--pc-fg)', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.displayName ?? 'Admin'}</p>
+                    <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)', margin: '0 0 12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email ?? 'ops@perfectcleaners.in'}</p>
+                    <button type="button" onClick={signOut} style={{ width: '100%', padding: '9px 0', borderRadius: 6, background: 'transparent', border: '1px solid var(--pc-line)', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-danger)', cursor: 'pointer' }}>Sign out</button>
+                  </div>
+                )}
+              </div>
             </div>
           </header>
 
@@ -271,6 +311,11 @@ function AdminShell({ children }: { children: React.ReactNode }) {
           </main>
         </div>
       </div>
+
+      {/* Click-outside overlay to close dropdowns */}
+      {(alertsOpen || profileOpen) && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 49 }} onClick={() => { setAlertsOpen(false); setProfileOpen(false); }} />
+      )}
 
       {/* ── Bottom tab bar (mobile ≤639px) ───────────────────────────────── */}
       <nav className="bottom-nav" aria-label="Main navigation">

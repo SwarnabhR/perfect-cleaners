@@ -347,7 +347,7 @@ export default function PlansSection() {
 
               {/* CTA */}
               <Link
-                href={`/book?plan=${plan.id}&cycle=${cycle}`}
+                href={`/subscribe?plan=${plan.id}&cycle=${cycle}`}
                 style={{
                   display: 'block', textAlign: 'center',
                   padding: '13px 0', borderRadius: 999,

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { ScrollView, View, Text, TouchableOpacity, StyleSheet, Linking } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft, ChevronRight, Phone, Camera, Check } from 'lucide-react-native';
@@ -30,10 +30,14 @@ export default function JobDetail() {
   const ss = useSharedStyles();
   const { bookingId = 'PC-2058' } = useLocalSearchParams<{ bookingId?: string }>();
 
-  const [step,      setStep]      = useState(0);
-  const [checklist, setChecklist] = useState<Record<string, boolean>>(
+  const [step,          setStep]          = useState(0);
+  const [checklist,     setChecklist]     = useState<Record<string, boolean>>(
     Object.fromEntries(DEFAULT_CHECKLIST.map(item => [item, false])),
   );
+  const [customerName,  setCustomerName]  = useState('—');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [vehicleLabel,  setVehicleLabel]  = useState('—');
+  const [vehicleColor,  setVehicleColor]  = useState('');
 
   // Load booking state from Firestore
   useEffect(() => {
@@ -41,13 +45,21 @@ export default function JobDetail() {
       .collection('bookings')
       .doc(bookingId)
       .onSnapshot(snap => {
-        if (!Boolean(snap.exists)) return;
+        if (!snap.exists()) return;
         const data = snap.data();
         // Restore step from status
         const statusStep = STEP_STATUS.indexOf(data?.status ?? 'enroute');
         if (statusStep >= 0) setStep(statusStep);
         // Restore checklist (stored as Record<string, boolean> on the booking)
         if (data?.checklist) setChecklist(prev => ({ ...prev, ...data.checklist }));
+        // Customer & vehicle info (denormalized on booking doc)
+        if (data?.customerName)  setCustomerName(data.customerName);
+        if (data?.customerPhone) setCustomerPhone(data.customerPhone);
+        if (data?.vehicle) {
+          const v = data.vehicle;
+          setVehicleLabel([v.make, v.model, v.registration].filter(Boolean).join(' · '));
+          if (v.color) setVehicleColor(v.color.toUpperCase());
+        }
       },
       err => console.warn('[JobDetail]', err.message),
     );
@@ -192,11 +204,15 @@ export default function JobDetail() {
             <View style={s.carShape} />
           </View>
           <View style={s.customerInfo}>
-            <Text style={s.customerName}>Aarav Mehta</Text>
-            <Text style={s.customerCar}>BMW 3 Series · DL 4C AB 1234</Text>
-            <Text style={s.customerColor}>MINERAL GREY</Text>
+            <Text style={s.customerName}>{customerName}</Text>
+            <Text style={s.customerCar}>{vehicleLabel}</Text>
+            {vehicleColor ? <Text style={s.customerColor}>{vehicleColor}</Text> : null}
           </View>
-          <TouchableOpacity style={s.callBtn}>
+          <TouchableOpacity
+            style={[s.callBtn, !customerPhone && { opacity: 0.4 }]}
+            onPress={() => customerPhone && Linking.openURL(`tel:${customerPhone}`)}
+            disabled={!customerPhone}
+          >
             <Phone size={16} color="#fff" strokeWidth={1.5} />
           </TouchableOpacity>
         </View>
