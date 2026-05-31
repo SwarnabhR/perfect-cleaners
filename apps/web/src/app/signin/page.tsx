@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -12,7 +12,7 @@ import { useMsg91 } from '@/lib/auth/useMsg91';
 
 type Step = 'phone' | 'otp' | 'profile';
 
-// â”€â”€â”€ Shared UI atoms â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Shared UI atoms ──────────────────────────────────────────────────────────
 
 function FieldLabel({ children }: { children: string }) {
   return (
@@ -39,7 +39,7 @@ function ErrorMsg({ msg }: { msg: string }) {
   );
 }
 
-// â”€â”€â”€ Inner component â€” uses useSearchParams, must be inside Suspense â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Inner component — uses useSearchParams, must be inside Suspense ─────────
 
 function SignInContent() {
   const router       = useRouter();
@@ -197,7 +197,7 @@ function SignInContent() {
               Sign in or create{' '}account.
             </h1>
             <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', marginBottom: 28, lineHeight: 1.6 }}>
-              Enter your mobile number. We'll send a one-time code â€” no password needed. New here? Your account is created automatically.
+              Enter your mobile number. We'll send a one-time code — no password needed. New here? Your account is created automatically.
             </p>
 
             <FieldLabel>Mobile number</FieldLabel>
@@ -221,7 +221,7 @@ function SignInContent() {
             </div>
             <ErrorMsg msg={error} />
             <button type="submit" disabled={busy || phone.length < 10 || !ready} style={primaryBtn}>
-              {busy ? 'Sendingâ€¦' : !ready ? 'Loadingâ€¦' : 'Send Code â†’'}
+              {busy ? 'Sending…' : !ready ? 'Loading…' : 'Send Code →'}
             </button>
           </form>
         )}
@@ -243,7 +243,7 @@ function SignInContent() {
             <ErrorMsg msg={error} />
 
             <button type="submit" disabled={busy || otp.length < 4} style={primaryBtn}>
-              {busy ? 'Verifyingâ€¦' : 'Verify â†’'}
+              {busy ? 'Verifying…' : 'Verify →'}
             </button>
 
             <div style={{ marginTop: 20, textAlign: 'center' }}>
@@ -310,7 +310,7 @@ function SignInContent() {
               disabled={busy || !firstName.trim() || !lastName.trim() || !email.trim()}
               style={primaryBtn}
             >
-              {busy ? 'Savingâ€¦' : 'Create Account â†’'}
+              {busy ? 'Saving…' : 'Create Account →'}
             </button>
           </form>
         )}
@@ -323,7 +323,7 @@ function SignInContent() {
   );
 }
 
-// â”€â”€â”€ Page export â€” Suspense required for useSearchParams with Turbopack â”€â”€â”€â”€â”€â”€â”€
+// ─── Page export — Suspense required for useSearchParams with Turbopack ───────
 
 export default function SignInPage() {
   return (

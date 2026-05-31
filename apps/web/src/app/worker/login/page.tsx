@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -140,7 +140,7 @@ export default function WorkerLoginPage() {
               fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase',
               cursor: (busy || phone.length < 10 || !ready) ? 'not-allowed' : 'pointer',
             }}>
-              {busy ? 'Sendingâ€¦' : !ready ? 'Loadingâ€¦' : 'Send Code â†’'}
+              {busy ? 'Sending…' : !ready ? 'Loading…' : 'Send Code →'}
             </button>
           </form>
         ) : (
@@ -160,7 +160,7 @@ export default function WorkerLoginPage() {
               fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase',
               cursor: (busy || otp.length < 4) ? 'not-allowed' : 'pointer',
             }}>
-              {busy ? 'Verifyingâ€¦' : 'Verify â†’'}
+              {busy ? 'Verifying…' : 'Verify →'}
             </button>
             <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginTop: 16 }}>
               {countdown > 0 ? (

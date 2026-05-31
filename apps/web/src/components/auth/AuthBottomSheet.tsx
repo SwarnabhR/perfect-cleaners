@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useRef, useState } from 'react';
 import { signInWithCustomToken } from 'firebase/auth';
@@ -7,7 +7,7 @@ import { auth, db } from '@pc/firebase';
 import OtpInput from '@/components/ui/OtpInput';
 import { useMsg91 } from '@/lib/auth/useMsg91';
 
-// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface AuthBottomSheetProps {
   open:       boolean;
@@ -19,7 +19,7 @@ interface AuthBottomSheetProps {
 
 type Step = 'phone' | 'otp' | 'profile';
 
-// â”€â”€â”€ Sub-atoms â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Sub-atoms ────────────────────────────────────────────────────────────────
 
 function FieldLabel({ children }: { children: string }) {
   return (
@@ -38,7 +38,7 @@ function Err({ msg }: { msg: string }) {
   return <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-danger)', marginTop: 8, lineHeight: 1.5 }}>{msg}</p>;
 }
 
-// â”€â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: AuthBottomSheetProps) {
   const { ready } = useMsg91();
@@ -116,7 +116,7 @@ export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: A
           if (!res.ok) throw new Error(json.error);
           const cred = await signInWithCustomToken(auth, json.token);
 
-          // New user â†’ collect profile before proceeding
+          // New user → collect profile before proceeding
           const snap = await getDoc(doc(db, 'customers', cred.user.uid));
           if (snap.exists() && snap.data().name && snap.data().email) {
             onSuccess?.(cred.user.uid);
@@ -311,7 +311,7 @@ export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: A
               </div>
               <Err msg={error} />
               <button type="submit" disabled={busy || phone.length < 10 || !ready} style={primaryBtn}>
-                {busy ? 'Sendingâ€¦' : !ready ? 'Loadingâ€¦' : 'Send Code â†’'}
+                {busy ? 'Sending…' : !ready ? 'Loading…' : 'Send Code →'}
               </button>
               <p style={{
                 fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-4)',
@@ -328,7 +328,7 @@ export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: A
               <OtpInput length={4} value={otp} onChange={v => { setOtp(v); setError(''); }} disabled={busy} />
               <Err msg={error} />
               <button type="submit" disabled={busy || otp.length < 4} style={primaryBtn}>
-                {busy ? 'Verifyingâ€¦' : 'Verify & Continue â†’'}
+                {busy ? 'Verifying…' : 'Verify & Continue →'}
               </button>
               <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginTop: 16 }}>
                 {countdown > 0 ? (
@@ -386,7 +386,7 @@ export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: A
                 disabled={busy || !firstName.trim() || !lastName.trim() || !email.trim()}
                 style={primaryBtn}
               >
-                {busy ? 'Savingâ€¦' : 'Create Account â†’'}
+                {busy ? 'Saving…' : 'Create Account →'}
               </button>
             </form>
           )}
