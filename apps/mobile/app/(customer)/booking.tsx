@@ -76,6 +76,7 @@ export default function BookingScreen() {
         id:            bookingId,
         customerId:    user?.uid ?? 'demo',
         customerName:  profile?.name ?? '',
+        customerPhone: user?.phoneNumber ?? '',
         status:        'pending',
         paymentStatus: 'pending',
         otpCode,
@@ -221,7 +222,7 @@ export default function BookingScreen() {
 
         {/* Step 02 — Time slot */}
         <View style={s.section}>
-          <Text style={ss.eyebrow}>[STEP 02] · PICK A TIME · TUE, 28 MAY</Text>
+          <Text style={ss.eyebrow}>[STEP 02] · PICK A TIME · {new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase()}</Text>
           <View style={s.slotRow}>
             {SLOTS.map(time => {
               const active = slot === time;
@@ -252,7 +253,7 @@ export default function BookingScreen() {
                 ? `${profile.car.color ? profile.car.color + ' · ' : ''}${profile.car.plate || 'No plate added'}`
                 : 'Make, model and colour'
             }
-            onPress={() => router.push('/(onboarding)/car')}
+            onPress={() => router.push('/(customer)/cars')}
             c={c} s={s}
           />
         </View>
@@ -268,7 +269,7 @@ export default function BookingScreen() {
                 ? `${profile.address.area}, ${profile.address.city}`
                 : 'We come to you · Ghaziabad NCR'
             }
-            onPress={() => router.push('/(onboarding)/address')}
+            onPress={() => router.push('/(customer)/addresses')}
             c={c} s={s}
           />
         </View>

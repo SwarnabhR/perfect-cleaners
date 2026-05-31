@@ -237,6 +237,41 @@ export default function CarsScreen() {
   const [cars,         setCars]         = useState<Car[]>([]);
   const [sheetVisible, setSheetVisible] = useState(false);
 
+  async function setPrimaryCar(carId: string) {
+    const user = auth().currentUser;
+    if (!user) return;
+    const snap = await firestore().collection('customers').doc(user.uid).get();
+    if (!snap.exists()) return;
+    const vehicles = (snap.data()?.vehicles ?? []) as any[];
+    const updated  = vehicles.map(v => ({ ...v, primary: v.id === carId }));
+    await firestore().collection('customers').doc(user.uid).update({ vehicles: updated });
+  }
+
+  async function deleteCar(car: Car) {
+    const user = auth().currentUser;
+    if (!user) return;
+    await firestore().collection('customers').doc(user.uid).update({
+      vehicles: firestore.FieldValue.arrayRemove({
+        id: car.id, make: car.make, model: car.model, year: car.year,
+        type: 'sedan', registration: car.plate, color: car.color,
+      }),
+    });
+  }
+
+  function handleCarPress(car: Car) {
+    const buttons: any[] = [];
+    if (!car.primary) buttons.push({ text: 'Set as Primary', onPress: () => setPrimaryCar(car.id) });
+    buttons.push({
+      text: 'Delete Vehicle', style: 'destructive',
+      onPress: () => Alert.alert('Delete vehicle?', `Remove ${car.make} ${car.model} from your garage?`, [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => deleteCar(car) },
+      ]),
+    });
+    buttons.push({ text: 'Cancel', style: 'cancel' });
+    Alert.alert(`${car.make} ${car.model}`, car.plate || undefined, buttons);
+  }
+
   // Load vehicles from Firestore customer document
   useEffect(() => {
     const user = auth().currentUser;
@@ -246,7 +281,7 @@ export default function CarsScreen() {
       .doc(user.uid)
       .onSnapshot(
         snap => {
-          if (Boolean(snap.exists)) {
+          if (snap.exists()) {
             const vehicles = (snap.data()?.vehicles ?? []) as Array<{
               id: string; make: string; model: string; year: number;
               registration: string; color: string;
@@ -299,7 +334,7 @@ export default function CarsScreen() {
 
         <View style={s.carList}>
           {cars.map(car => (
-            <CarCard key={car.id} car={car} onEdit={() => {}} />
+            <CarCard key={car.id} car={car} onEdit={() => handleCarPress(car)} />
           ))}
           <TouchableOpacity style={s.addCarBtn} onPress={() => setSheetVisible(true)} activeOpacity={0.75}>
             <Plus size={16} color={c.fg2} strokeWidth={1.5} />

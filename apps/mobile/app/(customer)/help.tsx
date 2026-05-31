@@ -1,8 +1,8 @@
-import { ScrollView, View, Text, StyleSheet } from 'react-native';
+import { ScrollView, View, Text, StyleSheet, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MessageCircle, Phone, Mail, Search } from 'lucide-react-native';
-import { colors, spacing, radii } from '@pc/tokens';
+import { colors, spacing, radii, typography } from '@pc/tokens';
 import { useThemeColors } from '../../theme';
 import { useSharedStyles } from '../../theme/sharedStyles';
 import { ScreenHeader, Group, Row } from '../../components/RowGroup';
@@ -29,7 +29,7 @@ export default function HelpScreen() {
       paddingHorizontal: spacing[3], paddingVertical: 10,
       borderWidth: 1, borderColor: c.line,
     },
-    searchPlaceholder: { fontFamily: 'typography.sans', fontSize: 14, color: c.fg3 },
+    searchPlaceholder: { fontFamily: typography.sans, fontSize: 14, color: c.fg3 },
   });
 
   return (
@@ -66,14 +66,14 @@ export default function HelpScreen() {
           iconBg={colors.success}
           title="Call us"
           sub="+91 98765 43210 · 9 AM – 9 PM"
-          onPress={() => {}}
+          onPress={() => Linking.openURL('tel:+919876543210')}
         />
         <Row
           icon={<Mail size={15} color="#fff" strokeWidth={1.5} />}
           iconBg="#4B8CF5"
           title="Email us"
           sub="hello@perfectcleaners.in"
-          onPress={() => {}}
+          onPress={() => Linking.openURL('mailto:hello@perfectcleaners.in')}
           isLast
         />
       </Group>
@@ -83,17 +83,17 @@ export default function HelpScreen() {
           <Row
             key={i}
             title={q}
-            onPress={() => {}}
+            onPress={() => router.push('/(customer)/support-chat')}
             isLast={i === FAQ.length - 1}
           />
         ))}
       </Group>
 
       <Group header="About">
-        <Row title="Terms of Service"       onPress={() => {}} />
-        <Row title="Privacy Policy"         onPress={() => {}} />
-        <Row title="Open Source Licenses"   onPress={() => {}} />
-        <Row title="App Version"            value="2.4.1 (build 318)" isLast />
+        <Row title="Terms of Service"     onPress={() => Linking.openURL('https://perfectcleaners.in/terms')} />
+        <Row title="Privacy Policy"       onPress={() => Linking.openURL('https://perfectcleaners.in/privacy')} />
+        <Row title="Open Source Licenses" onPress={() => Linking.openURL('https://perfectcleaners.in/licenses')} />
+        <Row title="App Version"          value="2.4.1 (build 318)" isLast />
       </Group>
     </ScrollView>
   );

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { ScrollView, View, Text, TouchableOpacity, StyleSheet, Linking } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft, Clock, MapPin, Phone } from 'lucide-react-native';
@@ -21,8 +21,9 @@ export default function TrackerScreen() {
   const c       = useThemeColors();
   const ss      = useSharedStyles();
   const { bookingId = 'PC-2058' } = useLocalSearchParams<{ bookingId?: string }>();
-  const [currentStep, setCurrentStep] = useState(1);
-  const [booking, setBooking]         = useState<Partial<Booking> | null>(null);
+  const [currentStep,  setCurrentStep]  = useState(1);
+  const [booking,      setBooking]      = useState<Partial<Booking> | null>(null);
+  const [workerPhone,  setWorkerPhone]  = useState('');
 
   const s = StyleSheet.create({
     scrollContent: { paddingBottom: 100 },
@@ -86,6 +87,15 @@ export default function TrackerScreen() {
     return () => unsub();
   }, [bookingId]);
 
+  // Load worker phone once workerId is known
+  useEffect(() => {
+    const workerId = (booking as any)?.workerId;
+    if (!workerId) return;
+    firestore().collection('workers').doc(workerId).get().then(snap => {
+      if (snap.exists()) setWorkerPhone(snap.data()?.phone ?? '');
+    }).catch(() => {});
+  }, [(booking as any)?.workerId]);
+
   return (
     <ScrollView
       style={ss.screen}
@@ -144,17 +154,22 @@ export default function TrackerScreen() {
       </View>
 
       {/* Technician card — only shown once a worker is assigned */}
-      {booking?.workerId && (
+      {(booking as any)?.workerId && (
         <View style={s.techCard}>
           <View style={s.techAvatar}>
-            <Text style={s.techAvatarText}>RS</Text>
+            <Text style={s.techAvatarText}>
+              {((booking as any)?.workerName ?? 'W').split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase()}
+            </Text>
           </View>
           <View style={s.techInfo}>
             <Text style={ss.eyebrow}>YOUR TECHNICIAN</Text>
-            <Text style={s.techName}>Rahul Sharma</Text>
-            <Text style={s.techRating}>4.9 · 312 jobs</Text>
+            <Text style={s.techName}>{(booking as any)?.workerName ?? 'Assigned Technician'}</Text>
           </View>
-          <TouchableOpacity style={s.techCall}>
+          <TouchableOpacity
+            style={[s.techCall, !workerPhone && { opacity: 0.4 }]}
+            onPress={() => workerPhone && Linking.openURL(`tel:${workerPhone}`)}
+            disabled={!workerPhone}
+          >
             <Phone size={16} color="#fff" strokeWidth={1.5} />
           </TouchableOpacity>
         </View>

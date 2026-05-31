@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ScrollView, View, Text, TextInput, TouchableOpacity, StyleSheet, Alert,
 } from 'react-native';
@@ -31,9 +31,25 @@ export default function RateBookingScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
 
   const [stars,      setStars]      = useState(5);
-  const [tags,       setTags]       = useState<string[]>(['On-time', 'Spotless finish']);
+  const [tags,       setTags]       = useState<string[]>([]);
   const [note,       setNote]       = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [svcName,    setSvcName]    = useState('');
+  const [bookingMeta,setBookingMeta]= useState('');
+
+  useEffect(() => {
+    if (!id) return;
+    firestore().collection('bookings').doc(id as string).get().then(snap => {
+      if (!snap.exists()) return;
+      const data = snap.data()!;
+      const raw  = data.serviceIds?.[0] ?? '';
+      setSvcName(raw.replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()) || 'Wash Service');
+      const at = data.scheduledAt?.toDate?.() ?? new Date();
+      const dateStr = at.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+      const worker  = data.workerName ?? '';
+      setBookingMeta([dateStr, worker].filter(Boolean).join(' · '));
+    }).catch(() => {});
+  }, [id]);
 
   const s = StyleSheet.create({
     root: { flex: 1, backgroundColor: c.ink },
@@ -78,7 +94,7 @@ export default function RateBookingScreen() {
 
       <View style={s.hero}>
         <Text style={ss.heroTitle}>How was{"\n"}your wash?</Text>
-        <Text style={s.heroBmeta}>Exterior Wash · 22 May · Rahul Sharma</Text>
+        <Text style={s.heroBmeta}>{[svcName, bookingMeta].filter(Boolean).join(' · ') || 'Loading…'}</Text>
       </View>
 
       {/* Stars */}
