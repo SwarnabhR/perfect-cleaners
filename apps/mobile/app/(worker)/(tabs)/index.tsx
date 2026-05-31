@@ -1,53 +1,52 @@
-import { useEffect, useState } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Linking } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useEffect, useState, useCallback } from 'react';
+import {
+  ScrollView, View, Text, TouchableOpacity,
+  StyleSheet, ActivityIndicator, Alert,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Navigation, MapPin, Clock, ChevronRight } from 'lucide-react-native';
+import { Building2, CheckCircle2, Circle, Loader } from 'lucide-react-native';
 import auth from '@react-native-firebase/auth';
-import firestore, { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
-import type { BookingStatus, Worker } from '@pc/firebase';
+import firestore from '@react-native-firebase/firestore';
+import type { Worker } from '@pc/firebase';
 import { typography, spacing, radii } from '@pc/tokens';
 import { useThemeColors } from '../../../theme';
 import { useSharedStyles } from '../../../theme/sharedStyles';
 
-interface JobRow {
-  id:          string;
-  bookingRef:  string;
-  status:      BookingStatus;
-  customerName: string;
-  car:         string;
-  address:     string;
-  service:     string;
-  scheduledAt: Date;
-  total:       number;
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface ResidentCar {
+  customerId:          string;
+  customerName:        string;
+  unitNumber:          string;
+  vehicleRegistration: string;
+  vehicleMake:         string;
+  vehicleModel:        string;
+  status:              'pending' | 'cleaning' | 'done';
+  logId?:              string;
 }
 
-function toJobRow(d: FirebaseFirestoreTypes.QueryDocumentSnapshot): JobRow {
-  const data = d.data();
-  const at: Date = data.scheduledAt?.toDate?.() ?? new Date(data.scheduledAt ?? 0);
-  return {
-    id:           d.id,
-    bookingRef:   data.bookingRef ?? d.id.slice(-6).toUpperCase(),
-    status:       data.status as BookingStatus,
-    customerName: data.customerName ?? '—',
-    car:          [data.vehicle?.make, data.vehicle?.model].filter(Boolean).join(' '),
-    address:      [data.address?.line1, data.address?.city].filter(Boolean).join(', '),
-    service:      (data.serviceIds?.[0] ?? '').replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
-    scheduledAt:  at,
-    total:        data.priceBreakdown?.total ?? 0,
-  };
+function todayStart(): Date {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
 }
+
+function unitSort(a: ResidentCar, b: ResidentCar) {
+  return a.unitNumber.localeCompare(b.unitNumber, 'en', { numeric: true });
+}
+
+// ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function WorkerHome() {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
   const c      = useThemeColors();
   const ss     = useSharedStyles();
 
-  const [worker,    setWorker]    = useState<(Worker & { id: string }) | null>(null);
-  const [jobs,      setJobs]      = useState<JobRow[]>([]);
-  const [toggling,  setToggling]  = useState(false);
-  const [loading,   setLoading]   = useState(true);
+  const [worker,   setWorker]   = useState<(Worker & { id: string }) | null>(null);
+  const [cars,     setCars]     = useState<ResidentCar[]>([]);
+  const [loading,  setLoading]  = useState(true);
+  const [toggling, setToggling] = useState(false);
+  const [marking,  setMarking]  = useState<string | null>(null);
 
   const uid = auth().currentUser?.uid;
 
@@ -59,17 +58,53 @@ export default function WorkerHome() {
     });
   }, [uid]);
 
-  // Live jobs assigned to this worker
+  // Load residents + today's logs when society changes
   useEffect(() => {
-    if (!uid) { setLoading(false); return; }
-    return firestore()
-      .collection('bookings')
-      .where('workerId', '==', uid)
-      .onSnapshot(snap => {
-        setJobs([...snap.docs.map(toJobRow)].sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime()));
+    if (!worker?.assignedSocietyId) { setLoading(false); return; }
+    setLoading(true);
+    const societyId = worker.assignedSocietyId;
+    let residents: ResidentCar[] = [];
+
+    firestore()
+      .collection('customers')
+      .where('societyId', '==', societyId)
+      .get()
+      .then(snap => {
+        residents = snap.docs.flatMap(d => {
+          const data = d.data() as any;
+          return ((data.vehicles ?? []) as any[]).map((v: any) => ({
+            customerId:          d.id,
+            customerName:        data.name ?? '—',
+            unitNumber:          data.unitNumber ?? '—',
+            vehicleRegistration: v.registration ?? '—',
+            vehicleMake:         v.make ?? '',
+            vehicleModel:        v.model ?? '',
+            status:              'pending' as const,
+          }));
+        });
+        return firestore()
+          .collection('cleaningLogs')
+          .where('workerId',  '==', uid)
+          .where('societyId', '==', societyId)
+          .where('cleanedAt', '>=', firestore.Timestamp.fromDate(todayStart()))
+          .get();
+      })
+      .then(logsSnap => {
+        const doneMap = new Map<string, string>();
+        logsSnap.docs.forEach(d => doneMap.set(d.data().vehicleRegistration as string, d.id));
+        setCars(
+          residents
+            .map(r => ({
+              ...r,
+              status: doneMap.has(r.vehicleRegistration) ? ('done' as const) : r.status,
+              logId:  doneMap.get(r.vehicleRegistration),
+            }))
+            .sort(unitSort),
+        );
         setLoading(false);
-      }, () => setLoading(false));
-  }, [uid]);
+      })
+      .catch(err => { console.warn('[WorkerHome]', err.message); setLoading(false); });
+  }, [worker?.assignedSocietyId, uid]);
 
   async function toggleOnline() {
     if (!uid || !worker || toggling) return;
@@ -78,69 +113,65 @@ export default function WorkerHome() {
     setToggling(false);
   }
 
-  const activeJob    = jobs.find(j => j.status === 'inprogress' || j.status === 'enroute');
-  const upcomingJobs = jobs.filter(j => j.status === 'assigned');
-  const doneToday    = jobs.filter(j => j.status === 'done').length;
+  function markCleaning(reg: string) {
+    setCars(prev => prev.map(c => c.vehicleRegistration === reg ? { ...c, status: 'cleaning' } : c));
+  }
+
+  const markDone = useCallback(async (car: ResidentCar) => {
+    if (marking || !uid || !worker?.assignedSocietyId) return;
+    setMarking(car.vehicleRegistration);
+    try {
+      const ref = firestore().collection('cleaningLogs').doc();
+      await ref.set({
+        id:                  ref.id,
+        societyId:           worker.assignedSocietyId,
+        societyName:         worker.assignedSocietyName ?? '',
+        vehicleRegistration: car.vehicleRegistration,
+        vehicleMake:         car.vehicleMake,
+        vehicleModel:        car.vehicleModel,
+        customerId:          car.customerId,
+        customerName:        car.customerName,
+        unitNumber:          car.unitNumber,
+        workerId:            uid,
+        workerName:          worker.name,
+        cleanedAt:           firestore.FieldValue.serverTimestamp(),
+        serviceType:         'exterior',
+        photoUrls:           [],
+        notificationSent:    false,
+      });
+      setCars(prev =>
+        prev.map(c =>
+          c.vehicleRegistration === car.vehicleRegistration
+            ? { ...c, status: 'done', logId: ref.id }
+            : c,
+        ),
+      );
+    } catch (err: any) {
+      Alert.alert('Error', err?.message ?? 'Failed to mark car as done.');
+    } finally {
+      setMarking(null);
+    }
+  }, [marking, uid, worker]);
+
+  const total   = cars.length;
+  const done    = cars.filter(c => c.status === 'done').length;
+  const ongoing = cars.filter(c => c.status === 'cleaning').length;
+  const pct     = total > 0 ? Math.round((done / total) * 100) : 0;
 
   const now      = new Date();
   const hour     = now.getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   const firstName = (worker?.name ?? 'Worker').split(' ')[0];
+  const initials  = (worker?.name ?? '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
 
-  const initials = (worker?.name ?? '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
-
-  const s = StyleSheet.create({
-    root: { flex: 1, backgroundColor: c.ink },
-    topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing[5], paddingBottom: spacing[3] },
-    greeting: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    avatar: { width: 36, height: 36, borderRadius: 999, backgroundColor: c.sage, alignItems: 'center', justifyContent: 'center' },
-    avatarText: { fontFamily: typography.sansSemiBold, fontSize: 14, color: '#fff' },
-    greetingText: { fontFamily: typography.sansMedium, fontSize: typography.lg, color: c.fg, letterSpacing: -0.2 },
-    toggle: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999, backgroundColor: c.lineFaint, borderWidth: 1, borderColor: c.line },
-    toggleOn: { backgroundColor: c.sageFaint, borderColor: c.sageBorder },
-    dot: { width: 7, height: 7, borderRadius: 999 },
-    dotOn:  { backgroundColor: c.success },
-    dotOff: { backgroundColor: c.fg3 },
-    toggleText:   { fontFamily: typography.mono, fontSize: 10, letterSpacing: 0.8, color: c.fg2, textTransform: 'uppercase' },
-    toggleTextOn: { color: c.fg },
-    statsStrip: { flexDirection: 'row', paddingHorizontal: spacing[5], gap: 8, marginTop: spacing[3] },
-    statCard: { flex: 1, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, borderRadius: radii.md, padding: 12, gap: 6 },
-    statValue: { fontFamily: typography.sansSemiBold, fontSize: 22, color: c.fg, letterSpacing: -0.3 },
-    activeJob: { paddingHorizontal: spacing[5], marginTop: spacing[4] },
-    activeJobInner: { backgroundColor: c.card, borderWidth: 1, borderColor: c.lineStrong, borderRadius: radii.lg, padding: 18, gap: 16 },
-    activeJobHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-    badge: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999, backgroundColor: c.lineFaint, borderWidth: 1, borderColor: c.line },
-    badgeDot: { width: 6, height: 6, borderRadius: 999 },
-    badgeText: { fontFamily: typography.sans, fontSize: 11, color: c.fg2 },
-    activeJobBody: { flexDirection: 'row', gap: 12, alignItems: 'center' },
-    activeJobInfo: { flex: 1 },
-    activeJobName:    { fontFamily: typography.sansMedium, fontSize: 15, color: c.fg },
-    activeJobCar:     { fontFamily: typography.sans, fontSize: 12, color: c.fg2 },
-    activeJobService: { fontFamily: typography.mono, fontSize: 10, color: c.fg3, letterSpacing: 0.6, marginTop: 2 },
-    activeJobAddress: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, paddingHorizontal: 12, backgroundColor: c.lineFaint, borderRadius: 10, borderWidth: 1, borderColor: c.line },
-    activeJobAddressText: { flex: 1, fontFamily: typography.sans, fontSize: 12, color: c.fg2 },
-    activeJobTime: { fontFamily: typography.mono, fontSize: 11, color: c.fg },
-    activeJobActions: { flexDirection: 'row', gap: 8 },
-    sectionHead: { paddingHorizontal: spacing[5], paddingTop: spacing[5], paddingBottom: spacing[2] },
-    upcomingList: { paddingHorizontal: spacing[5], gap: 8 },
-    upcomingCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, borderRadius: radii.md, padding: 14 },
-    upcomingTime: { minWidth: 56, alignItems: 'center', paddingVertical: 4, borderRightWidth: 1, borderRightColor: c.line, marginRight: 4 },
-    upcomingTimeAmPm: { fontFamily: typography.mono, fontSize: 10, color: c.fg3 },
-    upcomingTimeHour: { fontFamily: typography.sansMedium, fontSize: typography.lg, color: c.fg },
-    upcomingInfo: { flex: 1 },
-    upcomingName:    { fontFamily: typography.sansMedium, fontSize: 13, color: c.fg },
-    upcomingCar:     { fontFamily: typography.sans, fontSize: 11, color: c.fg2 },
-    upcomingService: { fontFamily: typography.mono, fontSize: 10, color: c.fg3, letterSpacing: 0.6, marginTop: 2 },
-    emptyCard: { marginHorizontal: spacing[5], marginTop: spacing[4], backgroundColor: c.card, borderWidth: 1, borderColor: c.line, borderRadius: radii.md, padding: spacing[8], alignItems: 'center', gap: spacing[2] },
-    emptyTitle: { fontFamily: typography.serif, fontSize: 20, color: c.fg, letterSpacing: -0.2 },
-    emptyBody:  { fontFamily: typography.sans, fontSize: 13, color: c.fg2, textAlign: 'center', lineHeight: 20 },
-  });
-
-  const statusLabel = (status: BookingStatus) =>
-    status === 'enroute' ? 'EN ROUTE' : 'IN PROGRESS';
+  const s = makeStyles(c);
 
   return (
-    <ScrollView style={s.root} contentContainerStyle={{ paddingBottom: spacing[10] }} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={s.root}
+      contentContainerStyle={{ paddingBottom: spacing[10] }}
+      showsVerticalScrollIndicator={false}
+    >
       {/* Top bar */}
       <View style={[s.topBar, { paddingTop: insets.top + 12 }]}>
         <View style={s.greeting}>
@@ -148,7 +179,9 @@ export default function WorkerHome() {
             <Text style={s.avatarText}>{initials}</Text>
           </View>
           <View>
-            <Text style={ss.eyebrow}>{now.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase()}</Text>
+            <Text style={ss.eyebrow}>
+              {now.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase()}
+            </Text>
             <Text style={s.greetingText}>{greeting}, {firstName}. 👋</Text>
           </View>
         </View>
@@ -156,6 +189,7 @@ export default function WorkerHome() {
           style={[s.toggle, worker?.isOnline && s.toggleOn]}
           onPress={toggleOnline}
           disabled={toggling}
+          activeOpacity={0.75}
         >
           <View style={[s.dot, worker?.isOnline ? s.dotOn : s.dotOff]} />
           <Text style={[s.toggleText, worker?.isOnline && s.toggleTextOn]}>
@@ -164,118 +198,196 @@ export default function WorkerHome() {
         </TouchableOpacity>
       </View>
 
-      {/* Stats strip */}
-      <View style={s.statsStrip}>
-        {[
-          { label: 'JOBS TODAY',   value: String(upcomingJobs.length + (activeJob ? 1 : 0)) },
-          { label: 'COMPLETED',    value: String(doneToday) },
-          { label: 'EARNED TODAY', value: `₹${(worker?.earnings?.today ?? 0).toLocaleString('en-IN')}` },
-        ].map(({ label, value }) => (
-          <View key={label} style={s.statCard}>
-            <Text style={ss.eyebrow}>{label}</Text>
-            <Text style={s.statValue}>{value}</Text>
-          </View>
-        ))}
-      </View>
-
-      {loading ? (
-        <ActivityIndicator style={{ marginTop: 60 }} color={c.fg3} />
-      ) : (
-        <>
-          {/* Active job card */}
-          {activeJob && (
-            <View style={s.activeJob}>
-              <View style={s.activeJobInner}>
-                <View style={s.activeJobHead}>
-                  <Text style={ss.eyebrow}>[ACTIVE JOB] · PC-{activeJob.bookingRef}</Text>
-                  <View style={s.badge}>
-                    <View style={[s.badgeDot, { backgroundColor: c.statusEnroute }]} />
-                    <Text style={s.badgeText}>{statusLabel(activeJob.status)}</Text>
-                  </View>
-                </View>
-                <View style={s.activeJobBody}>
-                  <View style={s.activeJobInfo}>
-                    <Text style={s.activeJobName}>{activeJob.customerName}</Text>
-                    <Text style={s.activeJobCar}>{activeJob.car}</Text>
-                    <Text style={s.activeJobService}>{activeJob.service.toUpperCase()}</Text>
-                  </View>
-                </View>
-                <View style={s.activeJobAddress}>
-                  <MapPin size={14} color={c.fg2} strokeWidth={1.5} />
-                  <Text style={s.activeJobAddressText}>{activeJob.address || '—'}</Text>
-                  <Clock size={12} color={c.fg3} strokeWidth={1.5} />
-                  <Text style={s.activeJobTime}>
-                    {activeJob.scheduledAt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                  </Text>
-                </View>
-                <View style={s.activeJobActions}>
-                  <TouchableOpacity
-                    style={[ss.ghostBtn, { flex: 1, flexDirection: 'row', gap: 8 }]}
-                    onPress={() => {
-                      const addr = encodeURIComponent(activeJob.address || '');
-                      Linking.openURL(`https://maps.google.com/?q=${addr}`).catch(() => {});
-                    }}
-                  >
-                    <Navigation size={14} color={c.fg} strokeWidth={1.5} />
-                    <Text style={ss.ghostBtnText}>Navigate</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[ss.primaryBtn, { flex: 2 }]}
-                    onPress={() => router.push({ pathname: '/(worker)/job-detail', params: { bookingId: activeJob.id } })}
-                  >
-                    <Text style={ss.primaryBtnText}>Open Job →</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
+      {/* Society assignment card */}
+      {worker?.assignedSocietyId ? (
+        <View style={s.societyCard}>
+          <View style={s.societyRow}>
+            <View style={s.societyIcon}>
+              <Building2 size={18} color={c.sageInk} strokeWidth={1.5} />
             </View>
-          )}
-
-          {/* Upcoming jobs */}
-          {upcomingJobs.length > 0 && (
-            <>
-              <View style={s.sectionHead}>
-                <Text style={ss.eyebrow}>[UPCOMING TODAY] · {upcomingJobs.length} JOBS</Text>
-              </View>
-              <View style={s.upcomingList}>
-                {upcomingJobs.map(j => {
-                  const timeStr = j.scheduledAt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-                  const [hm, ampm] = timeStr.split(' ');
-                  return (
-                    <TouchableOpacity
-                      key={j.id}
-                      style={s.upcomingCard}
-                      onPress={() => router.push({ pathname: '/(worker)/job-detail', params: { bookingId: j.id } })}
-                    >
-                      <View style={s.upcomingTime}>
-                        <Text style={s.upcomingTimeAmPm}>{ampm}</Text>
-                        <Text style={s.upcomingTimeHour}>{hm}</Text>
-                      </View>
-                      <View style={s.upcomingInfo}>
-                        <Text style={s.upcomingName}>{j.customerName}</Text>
-                        <Text style={s.upcomingCar}>{j.car}</Text>
-                        <Text style={s.upcomingService}>{j.service.toUpperCase()}</Text>
-                      </View>
-                      <ChevronRight size={14} color={c.fg3} strokeWidth={1.5} />
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </>
-          )}
-
-          {/* Empty state */}
-          {!activeJob && upcomingJobs.length === 0 && (
-            <View style={s.emptyCard}>
-              <Text style={s.emptyTitle}>No jobs today.</Text>
-              <Text style={s.emptyBody}>
-                {worker?.isOnline
-                  ? 'You\'re on duty — jobs will appear here when assigned.'
-                  : 'Go on duty to receive job assignments.'}
+            <View style={{ flex: 1 }}>
+              <Text style={s.societyName}>{worker.assignedSocietyName ?? 'Society'}</Text>
+              <Text style={s.societyMeta}>TODAY'S ASSIGNMENT</Text>
+            </View>
+            <View style={[s.progressBadge, pct === 100 && s.progressBadgeDone]}>
+              <Text style={[s.progressBadgeText, pct === 100 && s.progressBadgeTextDone]}>
+                {done}/{total} done
               </Text>
             </View>
+          </View>
+
+          {total > 0 && (
+            <View style={s.progressTrack}>
+              <View style={[s.progressFill, { width: `${pct}%` as any }]} />
+            </View>
           )}
-        </>
+
+          <View style={s.statsRow}>
+            {[
+              { label: 'PENDING',  value: total - done - ongoing, color: c.fg3    },
+              { label: 'CLEANING', value: ongoing,                color: c.warning },
+              { label: 'DONE',     value: done,                   color: c.success },
+            ].map(({ label, value, color }) => (
+              <View key={label} style={s.statItem}>
+                <Text style={[s.statValue, { color }]}>{value}</Text>
+                <Text style={s.statLabel}>{label}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      ) : (
+        <View style={s.noSocietyCard}>
+          <Building2 size={28} color={c.fg3} strokeWidth={1.5} />
+          <Text style={s.noSocietyTitle}>No society assigned</Text>
+          <Text style={s.noSocietyBody}>
+            Contact your admin to get assigned to a society before starting your shift.
+          </Text>
+        </View>
+      )}
+
+      {/* Car list */}
+      {worker?.assignedSocietyId && (
+        <View style={s.listSection}>
+          <Text style={ss.eyebrow}>[CARS TO CLEAN] · {total} TOTAL</Text>
+
+          {loading ? (
+            <ActivityIndicator style={{ marginTop: spacing[8] }} color={c.fg3} />
+          ) : cars.length === 0 ? (
+            <View style={s.emptyList}>
+              <Text style={s.emptyListText}>
+                No subscribed residents found in this society yet.
+              </Text>
+            </View>
+          ) : (
+            <View style={s.carList}>
+              {cars.map(car => (
+                <CarRow
+                  key={car.vehicleRegistration}
+                  car={car}
+                  isMarking={marking === car.vehicleRegistration}
+                  onStartCleaning={() => markCleaning(car.vehicleRegistration)}
+                  onMarkDone={() => markDone(car)}
+                  c={c}
+                  s={s}
+                />
+              ))}
+            </View>
+          )}
+        </View>
       )}
     </ScrollView>
   );
+}
+
+// ─── Car Row ──────────────────────────────────────────────────────────────────
+
+function CarRow({
+  car, isMarking, onStartCleaning, onMarkDone, c, s,
+}: {
+  car: ResidentCar;
+  isMarking: boolean;
+  onStartCleaning: () => void;
+  onMarkDone: () => void;
+  c: ReturnType<typeof useThemeColors>;
+  s: ReturnType<typeof makeStyles>;
+}) {
+  const isDone     = car.status === 'done';
+  const isCleaning = car.status === 'cleaning';
+
+  return (
+    <View style={[s.carRow, isDone && s.carRowDone]}>
+      <View style={s.carStatusIcon}>
+        {isDone
+          ? <CheckCircle2 size={20} color={c.success} strokeWidth={2} />
+          : isCleaning
+            ? <Loader size={20} color={c.warning} strokeWidth={1.5} />
+            : <Circle size={20} color={c.fg3} strokeWidth={1.5} />
+        }
+      </View>
+
+      <View style={s.carInfo}>
+        <View style={s.carInfoTop}>
+          <Text style={[s.carUnit, isDone && s.textMuted]}>{car.unitNumber}</Text>
+          <Text style={[s.carName, isDone && s.textMuted]} numberOfLines={1}>
+            {car.customerName}
+          </Text>
+        </View>
+        <Text style={[s.carPlate, isDone && s.textMuted]}>
+          {car.vehicleRegistration}
+          {(car.vehicleMake || car.vehicleModel)
+            ? ` · ${[car.vehicleMake, car.vehicleModel].filter(Boolean).join(' ')}`
+            : ''}
+        </Text>
+      </View>
+
+      {!isDone && (
+        <TouchableOpacity
+          style={[s.carAction, isCleaning ? s.carActionDone : s.carActionStart]}
+          onPress={isCleaning ? onMarkDone : onStartCleaning}
+          disabled={isMarking}
+          activeOpacity={0.8}
+        >
+          {isMarking
+            ? <ActivityIndicator size="small" color="#fff" />
+            : <Text style={s.carActionText}>{isCleaning ? 'DONE ✓' : 'CLEAN →'}</Text>
+          }
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
+function makeStyles(c: ReturnType<typeof useThemeColors>) {
+  return StyleSheet.create({
+    root:                  { flex: 1, backgroundColor: c.ink },
+    topBar:                { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing[5], paddingBottom: spacing[3] },
+    greeting:              { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    avatar:                { width: 36, height: 36, borderRadius: 999, backgroundColor: c.sage, alignItems: 'center', justifyContent: 'center' },
+    avatarText:            { fontFamily: typography.sansSemiBold, fontSize: 14, color: c.sageInk },
+    greetingText:          { fontFamily: typography.sansMedium, fontSize: 17, color: c.fg, letterSpacing: -0.2 },
+    toggle:                { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 999, backgroundColor: c.lineFaint, borderWidth: 1, borderColor: c.line },
+    toggleOn:              { backgroundColor: c.sageFaint, borderColor: c.sageBorder },
+    dot:                   { width: 7, height: 7, borderRadius: 999 },
+    dotOn:                 { backgroundColor: c.success },
+    dotOff:                { backgroundColor: c.fg3 },
+    toggleText:            { fontFamily: typography.mono, fontSize: 10, letterSpacing: 0.8, color: c.fg2, textTransform: 'uppercase' },
+    toggleTextOn:          { color: c.fg },
+    societyCard:           { marginHorizontal: spacing[5], marginTop: spacing[3], backgroundColor: c.card, borderRadius: radii.lg, borderWidth: 1, borderColor: c.line, padding: spacing[4], gap: spacing[3] },
+    societyRow:            { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    societyIcon:           { width: 40, height: 40, borderRadius: 10, backgroundColor: c.sage, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+    societyName:           { fontFamily: typography.sansSemiBold, fontSize: 15, color: c.fg },
+    societyMeta:           { fontFamily: typography.mono, fontSize: 10, color: c.fg3, letterSpacing: 0.5, marginTop: 2 },
+    progressBadge:         { borderRadius: 999, paddingVertical: 4, paddingHorizontal: 10, backgroundColor: c.sageFaint },
+    progressBadgeDone:     { backgroundColor: c.successFaint },
+    progressBadgeText:     { fontFamily: typography.mono, fontSize: 11, letterSpacing: 0.5, color: c.sageHi },
+    progressBadgeTextDone: { color: c.success },
+    progressTrack:         { height: 4, backgroundColor: c.lineFaint, borderRadius: 999, overflow: 'hidden' },
+    progressFill:          { height: '100%', backgroundColor: c.sage, borderRadius: 999 },
+    statsRow:              { flexDirection: 'row', borderTopWidth: 1, borderTopColor: c.line, paddingTop: spacing[3] },
+    statItem:              { flex: 1, alignItems: 'center', gap: 3 },
+    statValue:             { fontFamily: typography.sansSemiBold, fontSize: 20 },
+    statLabel:             { fontFamily: typography.mono, fontSize: 9, color: c.fg3, letterSpacing: 0.6 },
+    noSocietyCard:         { marginHorizontal: spacing[5], marginTop: spacing[4], backgroundColor: c.card, borderRadius: radii.lg, borderWidth: 1, borderColor: c.line, padding: spacing[8], alignItems: 'center', gap: spacing[3] },
+    noSocietyTitle:        { fontFamily: typography.serif, fontSize: 18, color: c.fg, letterSpacing: -0.2 },
+    noSocietyBody:         { fontFamily: typography.sans, fontSize: 13, color: c.fg2, textAlign: 'center', lineHeight: 20 },
+    listSection:           { paddingHorizontal: spacing[5], paddingTop: spacing[5], gap: spacing[3] },
+    carList:               { gap: spacing[2] },
+    emptyList:             { paddingVertical: spacing[6] },
+    emptyListText:         { fontFamily: typography.sans, fontSize: 13, color: c.fg3, textAlign: 'center', lineHeight: 20 },
+    carRow:                { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, borderRadius: radii.md, padding: 12 },
+    carRowDone:            { opacity: 0.5 },
+    carStatusIcon:         { flexShrink: 0 },
+    carInfo:               { flex: 1, gap: 3 },
+    carInfoTop:            { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+    carUnit:               { fontFamily: typography.mono, fontSize: 11, color: c.sageHi, letterSpacing: 0.6 },
+    carName:               { fontFamily: typography.sansMedium, fontSize: 13, color: c.fg, flex: 1 },
+    carPlate:              { fontFamily: typography.mono, fontSize: 10.5, color: c.fg3, letterSpacing: 0.5 },
+    textMuted:             { color: c.fg4 },
+    carAction:             { borderRadius: radii.pill, borderWidth: 1, paddingVertical: 7, paddingHorizontal: 12, minWidth: 72, alignItems: 'center' },
+    carActionStart:        { backgroundColor: c.sage, borderColor: c.sage },
+    carActionDone:         { backgroundColor: c.success, borderColor: c.success },
+    carActionText:         { fontFamily: typography.mono, fontSize: 10.5, color: '#fff', letterSpacing: 0.6 },
+  });
 }

@@ -90,9 +90,31 @@ export interface Worker {
   location?: GeoPoint;
   isOnline: boolean;
   activeBookingId?: string;
+  // Society assignment — set by admin to indicate which society this worker services
+  assignedSocietyId?: string;
+  assignedSocietyName?: string;
   rating: number;
   totalJobs: number;
   earnings: WorkerEarnings;
+  createdAt: Date;
+}
+
+// A single day's cleaning assignment for a worker at a society.
+// Created by admin; worker marks it in-progress then done.
+export type CleaningSessionStatus = 'scheduled' | 'inprogress' | 'done';
+
+export interface CleaningSession {
+  id: string;
+  societyId: string;
+  societyName: string;
+  workerId: string;
+  workerName: string;
+  scheduledDate: Date;       // calendar day (time is start of day)
+  status: CleaningSessionStatus;
+  totalCars: number;         // set from subscribed resident count at session start
+  completedCars: number;     // incremented as cleaningLogs are written
+  startedAt?: Date;
+  completedAt?: Date;
   createdAt: Date;
 }
 

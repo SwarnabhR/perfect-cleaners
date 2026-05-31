@@ -5,6 +5,8 @@ export type {
   BookingPhotos,
   BookingStatus,
   CleaningLog,
+  CleaningSession,
+  CleaningSessionStatus,
   Customer,
   GeoPoint,
   PriceBreakdown,

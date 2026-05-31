@@ -29,12 +29,12 @@ export default function OnboardingCar() {
 
       <View style={s.heading}>
         <Text style={ss.onboardingStep}>[STEP 02 OF 03]</Text>
-        <Text style={ss.onboardingTitle}>Tell us about{'\n'}your car.</Text>
-        <Text style={ss.subtitle}>So we know what we’re working with.</Text>
+        <Text style={ss.onboardingTitle}>Tell us about{‘\n’}your car.</Text>
+        <Text style={ss.subtitle}>Saved once — used automatically for every clean. No re-entering details.</Text>
       </View>
 
       <View style={ss.fieldArea}>
-        <Text style={ss.fieldLabel}>MAKE</Text>
+        <Text style={ss.fieldLabel}>MAKE <Text style={[s.required, { color: c.danger }]}>*</Text></Text>
         <TextInput
           style={ss.formInput}
           value={make}
@@ -47,7 +47,7 @@ export default function OnboardingCar() {
       </View>
 
       <View style={ss.fieldArea}>
-        <Text style={ss.fieldLabel}>MODEL</Text>
+        <Text style={ss.fieldLabel}>MODEL <Text style={[s.required, { color: c.danger }]}>*</Text></Text>
         <TextInput
           style={ss.formInput}
           value={model}
@@ -117,6 +117,7 @@ export default function OnboardingCar() {
 const s = StyleSheet.create({
   heading:       { gap: spacing[2] },
   optional:      { fontFamily: typography.sans, fontSize: typography.xs, fontWeight: '400' },
+  required:      { fontFamily: typography.sans, fontSize: typography.xs, fontWeight: '400' },
   colorRow:      { flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2], marginTop: spacing[1] },
   colorChip:     { borderWidth: 1, borderRadius: radii.pill, paddingVertical: 7, paddingHorizontal: 14 },
   colorChipText: { fontFamily: typography.sansMedium, fontSize: typography.sm },
