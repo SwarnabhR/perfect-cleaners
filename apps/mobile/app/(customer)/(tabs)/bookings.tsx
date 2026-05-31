@@ -16,14 +16,15 @@ import { SegCtrl } from '../../../components/RowGroup';
 type FilterStatus = 'all' | 'upcoming' | 'done' | 'cancelled';
 
 interface BookingRow {
-  id:         string;      // Firestore doc ID
-  bookingRef: string;
-  service:    string;
-  car:        string;
-  date:       string;
-  time:       string;
-  price:      number;
-  status:     FilterStatus;
+  id:          string;
+  bookingRef:  string;
+  service:     string;
+  car:         string;
+  date:        string;
+  time:        string;
+  price:       number;
+  status:      FilterStatus;
+  scheduledAt: number; // ms timestamp for sorting
 }
 
 function toFilterStatus(s: BookingStatus): FilterStatus {
@@ -71,20 +72,18 @@ export default function BookingsTab() {
             const model = data.vehicle?.model ?? '';
             const svcId = (data.serviceIds?.[0] ?? '') as string;
             return {
-              id:         d.id,
-              bookingRef: data.bookingRef ?? d.id.slice(-6).toUpperCase(),
-              service:    svcId.replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
-              car:        [make, model].filter(Boolean).join(' '),
-              date:       at.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
-              time:       at.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
-              price:      data.priceBreakdown?.total ?? 0,
-              status:     toFilterStatus(data.status as BookingStatus),
+              id:          d.id,
+              bookingRef:  data.bookingRef ?? d.id.slice(-6).toUpperCase(),
+              service:     svcId.replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()),
+              car:         [make, model].filter(Boolean).join(' '),
+              date:        at.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+              time:        at.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+              price:       data.priceBreakdown?.total ?? 0,
+              status:      toFilterStatus(data.status as BookingStatus),
+              scheduledAt: at.getTime(),
             };
           })
-          .sort((a, b) => {
-            // Keep original ordering by parsing dates back — simpler: sort by creation
-            return 0;
-          });
+          .sort((a, b) => b.scheduledAt - a.scheduledAt);
         setBookings(rows);
         setLoading(false);
       }, () => setLoading(false));

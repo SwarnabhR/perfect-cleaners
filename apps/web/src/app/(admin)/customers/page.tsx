@@ -98,7 +98,7 @@ export default function CustomersPage() {
   ];
 
   return (
-    <div style={{ padding: 32, display: 'flex', flexDirection: 'column', gap: 28 }}>
+    <div className="admin-page-root">
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

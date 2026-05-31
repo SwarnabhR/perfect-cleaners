@@ -100,7 +100,7 @@ export default function ServicesMgmtPage() {
   const showForm = isNew || editing !== null;
 
   return (
-    <div style={{ padding: 32, display: 'flex', flexDirection: 'column', gap: 28 }}>
+    <div className="admin-page-root">
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -128,7 +128,7 @@ export default function ServicesMgmtPage() {
             No services yet. Click "Add Service" to create your first.
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div className="table-scroll-wrap"><table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--pc-line)' }}>
                 {['Service', 'Category', 'Price Range', 'Duration', 'Popular', 'Status', ''].map(h => (
@@ -179,7 +179,7 @@ export default function ServicesMgmtPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </Card>
 

@@ -91,7 +91,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div style={{ padding: 32, display: 'flex', flexDirection: 'column', gap: 28 }}>
+    <div className="admin-page-root">
 
       <div>
         <Eyebrow style={{ display: 'block', marginBottom: 4 }}>CONFIGURATION</Eyebrow>
