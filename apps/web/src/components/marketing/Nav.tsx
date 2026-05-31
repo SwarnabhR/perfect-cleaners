@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Icon from '@/components/ui/Icon';
 import Image from 'next/image';
+import LogoMark from '@/components/ui/LogoMark';
 import { useTheme } from '@/components/ThemeProvider';
 import { useI18n } from '@/i18n';
 import { useCustomerAuth } from '@/lib/auth/CustomerAuthContext';
@@ -140,12 +141,7 @@ export default function Nav() {
             flexShrink: 0, textDecoration: 'none',
           }}
         >
-          <Image
-            src="/logo-pc-monogram.svg"
-            width={18} height={22}
-            alt=""
-            aria-hidden="true"
-          />
+          <LogoMark width={18} height={22} color="var(--pc-fg)" />
           <span style={{
             fontFamily: 'var(--pc-mono)',
             fontSize: 'var(--pc-text-xs)',

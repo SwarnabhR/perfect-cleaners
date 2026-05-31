@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signInWithCustomToken } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import Image from 'next/image';
+import LogoMark from '@/components/ui/LogoMark';
 import { auth, db } from '@pc/firebase';
 import OtpInput from '@/components/ui/OtpInput';
 import { useCustomerAuth } from '@/lib/auth/CustomerAuthContext';
@@ -179,7 +179,7 @@ function SignInContent() {
       <div style={{ width: '100%', maxWidth: 400 }}>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 48 }}>
-          <Image src="/logo-pc-monogram.svg" width={18} height={22} alt="" aria-hidden />
+          <LogoMark width={18} height={22} color="var(--pc-fg)" />
           <span style={{
             fontFamily: 'var(--pc-mono)', fontSize: 11,
             letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--pc-fg)',

@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 import Image from 'next/image';
+import LogoMark from '@/components/ui/LogoMark';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
 import { useI18n } from '@/i18n';
@@ -36,12 +37,7 @@ export default function Footer() {
       {/* Brand */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-5)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pc-space-2)' }}>
-          <Image
-            src="/logo-pc-monogram.svg"
-            width={28}
-            height={32}
-            alt="Perfect Cleaners mark"
-          />
+          <LogoMark width={28} height={32} color="var(--pc-fg)" />
           <span style={{
             fontFamily: 'var(--pc-mono)',
             fontSize: 'var(--pc-text-sm)',
