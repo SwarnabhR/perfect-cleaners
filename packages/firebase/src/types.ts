@@ -62,12 +62,17 @@ export interface Customer {
    */
   role?: 'customer' | 'worker';
   defaultAddress?: {
-    line1: string;
-    area: string;
-    city: string;
+    societyId: string;
+    societyName: string;
+    tower?: string;    // e.g. "Tower A" — omitted for societies with no tower subdivision
+    unitNumber: string; // e.g. "1204"
   };
   walletBalance?: number;
   referralCode?: string;
+  // Society resident fields — set when the customer belongs to a partner society
+  societyId?: string;
+  unitNumber?: string;    // e.g. "B-1204"
+  societyName?: string;  // denormalized for quick display
   createdAt: Date;
 }
 
@@ -132,6 +137,53 @@ export interface Booking {
   customerName?: string;    // from customers/{uid}.name at booking time
   customerPhone?: string;   // E.164 format, e.g. "+919876543210"
   workerName?: string;      // from workers/{uid}.name at assignment time
+}
+
+export interface SocietyContact {
+  name: string;
+  phone: string;
+  email?: string;
+  role: string;   // e.g. "Facility Manager", "RWA President"
+}
+
+export interface Society {
+  id: string;
+  name: string;                // e.g. "Uniworld City"
+  address: string;             // e.g. "Sector 30, Noida"
+  city: string;
+  pincode: string;
+  towers: string[];            // e.g. ["Tower A", "Tower B", "Tower C"]
+  totalUnits: number;          // total flats/villas in the complex
+  activeResidents: number;     // residents with the app installed
+  vehicleCount: number;        // registered vehicles
+  isActive: boolean;
+  contractStart: Date;
+  contractEnd?: Date;
+  monthlyFee: number;          // ₹ per month for the whole society
+  cleaningSchedule: string;    // e.g. "Mon, Wed, Fri · 7:00 AM"
+  contactPerson: SocietyContact;
+  assignedWorkerIds: string[];
+  createdAt: Date;
+}
+
+// Written by the worker app when a car is marked clean;
+// triggers a push notification to the resident via Cloud Function.
+export interface CleaningLog {
+  id: string;
+  societyId: string;
+  societyName: string;          // denormalized
+  vehicleRegistration: string;  // e.g. "DL 01 AB 1234"
+  vehicleMake: string;
+  vehicleModel: string;
+  customerId: string;
+  customerName: string;         // denormalized
+  unitNumber: string;           // e.g. "B-1204"
+  workerId: string;
+  workerName: string;           // denormalized
+  cleanedAt: Date;
+  serviceType: 'exterior' | 'interior' | 'both';
+  photoUrls: string[];
+  notificationSent: boolean;
 }
 
 export interface Promotion {

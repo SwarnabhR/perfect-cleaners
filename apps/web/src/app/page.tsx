@@ -3,6 +3,7 @@ import Hero from '@/components/marketing/Hero';
 import SectionHeader from '@/components/marketing/SectionHeader';
 import ServiceFeature from '@/components/marketing/ServiceFeature';
 import PremiumSection from '@/components/marketing/PremiumSection';
+import SocietiesSection from '@/components/marketing/SocietiesSection';
 import USP from '@/components/marketing/USP';
 import CTASection from '@/components/marketing/CTASection';
 import Footer from '@/components/marketing/Footer';
@@ -41,6 +42,7 @@ export default function MarketingHome() {
         <ServiceFeature {...SERVICES[1]} />
         <div style={{ height: 'var(--pc-space-4)' }} />
         <ServiceFeature {...SERVICES[2]} />
+        <SocietiesSection />
         <USP />
         <CTASection />
         <Footer />
