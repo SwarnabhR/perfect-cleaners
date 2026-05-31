@@ -49,7 +49,7 @@ export default function WorkersPage() {
       </div>
 
       {/* KPI strip */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+      <div className="kpi-grid-4">
         {[
           { label: 'Total Workers', value: kpis.total,     icon: 'users'      },
           { label: 'On Duty Today', value: kpis.onDuty,    icon: 'user-check' },
@@ -80,7 +80,7 @@ export default function WorkersPage() {
           No workers found. Add workers via the Firebase console.
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
           {workers.map(w => (
             <Card key={w.id} style={{ padding: 18, cursor: 'pointer' }} onClick={() => setSelectedWorker(w)}>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>

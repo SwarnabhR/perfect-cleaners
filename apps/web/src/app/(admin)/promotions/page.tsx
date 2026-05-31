@@ -161,7 +161,7 @@ export default function PromotionsPage() {
       </div>
 
       {/* KPI strip */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+      <div className="kpi-grid-3">
         {[
           { label: 'Active Promos', value: loading ? '—' : String(activeCount),  icon: 'tag' },
           { label: 'Total Uses',    value: loading ? '—' : String(totalUses),     icon: 'bar-chart-2' },
@@ -189,6 +189,7 @@ export default function PromotionsPage() {
             No promos yet. Create your first promotion above.
           </div>
         ) : (
+          <div className="table-scroll-wrap">
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--pc-line)' }}>
@@ -246,6 +247,7 @@ export default function PromotionsPage() {
               })}
             </tbody>
           </table>
+          </div>
         )}
       </Card>
 
@@ -258,7 +260,7 @@ export default function PromotionsPage() {
               <Icon name="x" size={16} color="var(--pc-fg-2)" />
             </button>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 16 }}>
             <div>
               <label style={{ display: 'block', fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Promo Code</label>
               <div style={{ display: 'flex', gap: 8 }}>

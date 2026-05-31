@@ -109,7 +109,7 @@ export default function CustomersPage() {
       </div>
 
       {/* KPI strip */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+      <div className="kpi-grid-4">
         {kpis.map(({ label, value, icon }) => (
           <Card key={label} style={{ padding: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
             <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--pc-card-hi)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -158,6 +158,7 @@ export default function CustomersPage() {
         ) : filtered.length === 0 ? (
           <div style={{ padding: 48, textAlign: 'center', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)' }}>No customers found.</div>
         ) : (
+          <div className="table-scroll-wrap">
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--pc-line)' }}>
@@ -207,6 +208,7 @@ export default function CustomersPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </Card>
     </div>

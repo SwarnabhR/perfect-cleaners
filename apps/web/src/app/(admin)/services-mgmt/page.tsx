@@ -192,7 +192,7 @@ export default function ServicesMgmtPage() {
               <Icon name="x" size={16} color="var(--pc-fg-2)" />
             </button>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 16 }}>
             <FormField label="Service Name">
               <input value={form.name} onChange={e => f('name', e.target.value)} placeholder="e.g. Premium Exterior Wash" style={INPUT} />
             </FormField>

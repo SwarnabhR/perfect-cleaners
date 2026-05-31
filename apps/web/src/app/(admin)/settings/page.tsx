@@ -142,7 +142,7 @@ export default function SettingsPage() {
       {/* Business info */}
       <Card>
         <Eyebrow style={{ display: 'block', marginBottom: 20 }}>BUSINESS INFORMATION</Eyebrow>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 20 }}>
           {([
             { key: 'name',  label: 'Business Name'  },
             { key: 'email', label: 'Contact Email'  },
