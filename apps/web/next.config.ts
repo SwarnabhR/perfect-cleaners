@@ -18,6 +18,18 @@ const nextConfig: NextConfig = {
     unoptimized: false,
   },
 
+  // Redirect admin subdomain root → /dashboard
+  async redirects() {
+    return [
+      {
+        source:      '/',
+        has:         [{ type: 'host', value: 'admin.perfectcleaners.in' }],
+        destination: '/dashboard',
+        permanent:   false,
+      },
+    ];
+  },
+
   // Security headers — applied to every route
   async headers() {
     const base = [
