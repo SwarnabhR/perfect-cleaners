@@ -45,7 +45,6 @@ export function useMsg91() {
 
     function init() {
       window.initSendOTP?.(config);
-      // initSendOTP exposes window.sendOtp asynchronously; poll until it's available
       const start = Date.now();
       const poll  = setInterval(() => {
         if (typeof window.sendOtp === 'function') {
