@@ -193,10 +193,11 @@ export default function ForSocietiesPage() {
 
         {/* ── Benefits: two columns ─────────────────────────────────────────── */}
         <div
-          className="pc-societies-benefits"
           style={{
             padding: 'var(--pc-space-16) var(--pc-screen-pad-lg)',
-            display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--pc-space-10)',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: 'var(--pc-space-10)',
             borderBottom: '1px solid var(--pc-line)',
           }}
         >
@@ -279,12 +280,6 @@ export default function ForSocietiesPage() {
         </div>
 
       </main>
-
-      <style>{`
-        @media (max-width: 767px) {
-          .pc-societies-benefits { grid-template-columns: 1fr !important; }
-        }
-      `}</style>
 
       <Footer />
     </>

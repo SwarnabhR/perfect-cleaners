@@ -158,7 +158,7 @@ export default function WorkersPage() {
                   >
                     <td style={{ padding: '13px 18px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <Avatar name={w.name} size={32} />
+                        <Avatar name={w.name || '?'} size={32} />
                         <div>
                           <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg)', margin: '0 0 1px', fontWeight: 500 }}>{w.name || '—'}</p>
                           <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-4)', margin: 0 }}>{w.id.slice(0, 8)}</p>
@@ -214,7 +214,7 @@ export default function WorkersPage() {
           >
             {/* Worker identity */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
-              <Avatar name={selectedWorker.name} size={56} />
+              <Avatar name={selectedWorker.name || '?'} size={56} />
               <div style={{ flex: 1 }}>
                 <h2 style={{ fontFamily: 'var(--pc-sans)', fontSize: 16, fontWeight: 600, color: 'var(--pc-fg)', margin: '0 0 2px' }}>{selectedWorker.name}</h2>
                 <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: '0 0 6px' }}>{selectedWorker.phone}</p>
@@ -226,7 +226,7 @@ export default function WorkersPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
               {[
                 { label: 'Jobs Done',  value: selectedWorker.totalJobs ?? 0 },
-                { label: 'Rating',     value: selectedWorker.rating ? `${selectedWorker.rating.toFixed(1)} / 5.0` : '—' },
+                { label: 'Rating',     value: selectedWorker.rating != null ? `${selectedWorker.rating.toFixed(1)} / 5.0` : '—' },
                 { label: 'Today',      value: selectedWorker.earnings?.today  ? `₹${selectedWorker.earnings.today.toLocaleString('en-IN')}`  : '₹0' },
                 { label: 'This Week',  value: selectedWorker.earnings?.week   ? `₹${selectedWorker.earnings.week.toLocaleString('en-IN')}`   : '₹0' },
                 { label: 'This Month', value: selectedWorker.earnings?.month  ? `₹${selectedWorker.earnings.month.toLocaleString('en-IN')}` : '₹0' },

@@ -3,8 +3,7 @@ import { ImageBackground, ScrollView, View, Text, TouchableOpacity, StyleSheet, 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Bell, Phone, Star, Clock, Shield, Sparkles, ChevronRight, Building2, CheckCircle2 } from 'lucide-react-native';
-import { collection, query, where, orderBy, limit, getDocs, doc, getDoc } from 'firebase/firestore';
-import { db } from '@pc/firebase';
+import firestore from '@react-native-firebase/firestore';
 import type { CleaningLog } from '@pc/firebase';
 import auth from '@react-native-firebase/auth';
 import { typography, spacing, radii } from '@pc/tokens';
@@ -77,44 +76,51 @@ export default function CustomerHome() {
 
   // Fetch society info + last cleaning record for this customer
   useEffect(() => {
-    const uid = auth().currentUser?.uid;
-    if (!uid) return;
-
     let cancelled = false;
 
-    async function load() {
-      const snap = await getDoc(doc(db, 'customers', uid!));
-      if (cancelled || !snap.exists()) return;
+    async function load(uid: string) {
+      try {
+        const snap = await firestore().collection('customers').doc(uid).get();
+        if (cancelled || !snap.exists) return;
 
-      const data = snap.data() as any;
-      if (data.societyId && data.unitNumber) {
-        setSocietyInfo({ societyName: data.societyName ?? 'Your Society', unitNumber: data.unitNumber });
+        const data = snap.data() as any;
+        if (data.societyId && data.unitNumber) {
+          setSocietyInfo({ societyName: data.societyName ?? 'Your Society', unitNumber: data.unitNumber });
 
-        // Fetch the most recent cleaning log for this customer
-        const logsQ = query(
-          collection(db, 'cleaningLogs'),
-          where('customerId', '==', uid),
-          orderBy('cleanedAt', 'desc'),
-          limit(1),
-        );
-        const logsSnap = await getDocs(logsQ);
-        if (cancelled || logsSnap.empty) return;
+          const logsSnap = await firestore()
+            .collection('cleaningLogs')
+            .where('customerId', '==', uid)
+            .orderBy('cleanedAt', 'desc')
+            .limit(1)
+            .get();
 
-        const log = logsSnap.docs[0].data() as CleaningLog;
-        const cleanedAt = (log.cleanedAt as any).toDate
-          ? (log.cleanedAt as any).toDate()
-          : new Date(log.cleanedAt as any);
+          if (cancelled || logsSnap.empty) return;
 
-        setLastClean({
-          vehicleRegistration: log.vehicleRegistration,
-          cleanedAt,
-          serviceType: log.serviceType,
-        });
+          const log = logsSnap.docs[0].data() as CleaningLog;
+          const cleanedAt: Date = (log.cleanedAt as any)?.toDate?.() ?? new Date(log.cleanedAt as any);
+
+          setLastClean({
+            vehicleRegistration: log.vehicleRegistration,
+            cleanedAt,
+            serviceType: log.serviceType,
+          });
+        }
+      } catch {
+        // Society info is non-critical; silent failure is acceptable here
       }
     }
 
-    load().catch(() => {});
-    return () => { cancelled = true; };
+    // Use an auth state listener so the effect re-runs after cold-start
+    // token rehydration, not just at mount time.
+    const unsubscribe = auth().onAuthStateChanged(user => {
+      if (!user) return;
+      load(user.uid);
+    });
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
   }, []);
 
   const BellButton = (

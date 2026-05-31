@@ -78,12 +78,54 @@ export default function OnboardingAddress() {
     if (!ready || saving || !selectedSociety) return;
     setSaving(true);
     try {
+      // Auth must still be valid — if the session expired during onboarding,
+      // abort rather than writing AsyncStorage as "done" without a Firestore doc.
       const user = auth().currentUser;
+      if (!user) {
+        throw new Error('Session expired. Please sign in again.');
+      }
+
+      const vehicle: Vehicle | undefined = params.make ? {
+        id:           'v1',
+        make:         params.make,
+        model:        params.model ?? '',
+        year:         new Date().getFullYear(),
+        type:         'sedan',
+        registration: params.plate ?? '',
+        color:        params.color ?? '',
+      } : undefined;
+
+      // Write Firestore first — if this fails the AsyncStorage gate is never set,
+      // so onboarding can be retried rather than being permanently broken.
+      await firestore()
+        .collection('customers')
+        .doc(user.uid)
+        .set({
+          id:                user.uid,
+          name:              fullName,
+          email:             params.email ?? '',
+          phone:             user.phoneNumber ?? '',
+          vehicles:          vehicle ? [vehicle] : [],
+          societyId:         selectedSociety.id,
+          societyName:       selectedSociety.name,
+          unitNumber:        unitNumber.trim(),
+          ...(selectedTower ? { tower: selectedTower } : {}),
+          defaultAddress: {
+            societyId:   selectedSociety.id,
+            societyName: selectedSociety.name,
+            tower:       selectedTower || undefined,
+            unitNumber:  unitNumber.trim(),
+          },
+          onboardingComplete: true,
+          role:               'customer',
+          walletBalance:      0,
+          createdAt:          firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
 
       const profileData = {
         name:  fullName,
         email: params.email ?? '',
-        phone: user?.phoneNumber ?? '',
+        phone: user.phoneNumber ?? '',
         car: {
           make:  params.make  ?? '',
           model: params.model ?? '',
@@ -101,43 +143,6 @@ export default function OnboardingAddress() {
       await AsyncStorage.setItem('@pc/profile', JSON.stringify(profileData));
       await AsyncStorage.setItem('@pc/onboarding', 'done');
       await AsyncStorage.setItem('@pc/role', 'customer');
-
-      if (user) {
-        const vehicle: Vehicle | undefined = params.make ? {
-          id:           'v1',
-          make:         params.make,
-          model:        params.model ?? '',
-          year:         new Date().getFullYear(),
-          type:         'sedan',
-          registration: params.plate ?? '',
-          color:        params.color ?? '',
-        } : undefined;
-
-        await firestore()
-          .collection('customers')
-          .doc(user.uid)
-          .set({
-            id:                user.uid,
-            name:              fullName,
-            email:             params.email ?? '',
-            phone:             user.phoneNumber ?? '',
-            vehicles:          vehicle ? [vehicle] : [],
-            societyId:         selectedSociety.id,
-            societyName:       selectedSociety.name,
-            unitNumber:        unitNumber.trim(),
-            ...(selectedTower ? { tower: selectedTower } : {}),
-            defaultAddress: {
-              societyId:   selectedSociety.id,
-              societyName: selectedSociety.name,
-              tower:       selectedTower || undefined,
-              unitNumber:  unitNumber.trim(),
-            },
-            onboardingComplete: true,
-            role:               'customer',
-            walletBalance:      0,
-            createdAt:          firestore.FieldValue.serverTimestamp(),
-          }, { merge: true });
-      }
 
       router.replace('/(customer)/(tabs)');
     } catch (err: any) {

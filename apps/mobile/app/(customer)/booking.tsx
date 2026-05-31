@@ -34,11 +34,53 @@ const PACKAGES = [
   },
 ];
 
+interface ProfileAddress {
+  // Society-based (new shape written by onboarding/address screens)
+  societyId?:   string;
+  societyName?: string;
+  tower?:       string;
+  unitNumber?:  string;
+  // Legacy free-form (kept for backward compat with old AsyncStorage entries)
+  line1?: string;
+  area?:  string;
+  city?:  string;
+}
+
 interface Profile {
   name:     string;
   phone?:   string;
   car:      { make: string; model: string; plate: string; color: string };
-  address:  { line1: string; area: string; city: string };
+  address:  ProfileAddress;
+}
+
+function addressLine(a?: ProfileAddress): string {
+  if (!a) return '';
+  if (a.societyName) {
+    const parts = [a.tower, a.unitNumber ? `Unit ${a.unitNumber}` : undefined].filter(Boolean);
+    return parts.join(', ');
+  }
+  return a.line1 ?? '';
+}
+
+function addressSub(a?: ProfileAddress): string {
+  if (!a) return 'We come to you · Delhi NCR';
+  if (a.societyName) return a.societyName;
+  return [a.area, a.city].filter(Boolean).join(', ') || 'Delhi NCR';
+}
+
+function bookingAddressLine1(a?: ProfileAddress): string {
+  if (!a) return '';
+  if (a.societyName) {
+    const parts = [a.tower, a.unitNumber ? `Unit ${a.unitNumber}` : undefined].filter(Boolean);
+    return parts.length ? parts.join(', ') : a.societyName;
+  }
+  return a.line1 ?? '';
+}
+
+function bookingAddressCity(a?: ProfileAddress): string {
+  if (!a) return 'Delhi NCR';
+  if (a.societyName) return a.societyName;
+  return a.city ?? 'Delhi NCR';
 }
 
 export default function BookingScreen() {
@@ -91,8 +133,8 @@ export default function BookingScreen() {
           color:        profile?.car?.color ?? '',
         },
         address: {
-          line1:       profile?.address?.line1 ?? '',
-          city:        profile?.address?.city  ?? 'Ghaziabad',
+          line1:       bookingAddressLine1(profile?.address),
+          city:        bookingAddressCity(profile?.address),
           pincode:     '201002',
           coordinates: { latitude: 28.6735, longitude: 77.4449 },
         },
@@ -263,12 +305,8 @@ export default function BookingScreen() {
           <Text style={ss.eyebrow}>[STEP 04] · SERVICE ADDRESS</Text>
           <DetailCard
             icon={<MapPin size={16} color={c.fg2} strokeWidth={1.5} />}
-            primary={profile?.address ? profile.address.line1 : 'Add pickup address'}
-            sub={
-              profile?.address
-                ? `${profile.address.area}, ${profile.address.city}`
-                : 'We come to you · Ghaziabad NCR'
-            }
+            primary={profile?.address ? (addressLine(profile.address) || 'Add pickup address') : 'Add pickup address'}
+            sub={addressSub(profile?.address)}
             onPress={() => router.push('/(customer)/addresses')}
             c={c} s={s}
           />

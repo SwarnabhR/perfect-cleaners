@@ -27,6 +27,14 @@ const nextConfig: NextConfig = {
         destination: '/dashboard',
         permanent:   false,
       },
+      // /societies was split: public marketing → /for-societies, admin → /societies-mgmt.
+      // This config-level redirect fires before any page.tsx renders, preventing the
+      // route collision between app/(admin)/societies/page.tsx and app/societies/page.tsx.
+      {
+        source:      '/societies',
+        destination: '/for-societies',
+        permanent:   true,
+      },
     ];
   },
 

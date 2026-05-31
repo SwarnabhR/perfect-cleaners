@@ -164,7 +164,7 @@ export default function SocietiesMgmtPage() {
                       <StatusPill status={s.isActive ? 'Available' : 'Off Today'} />
                     </td>
                     <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)' }}>{s.cleaningSchedule || '—'}</td>
-                    <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)' }}>{formatDate((s as any).contractStart)}</td>
+                    <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)' }}>{formatDate(s.contractStart)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -201,7 +201,7 @@ export default function SocietiesMgmtPage() {
                 { label: 'Vehicles',       value: (selected.vehicleCount ?? 0).toLocaleString('en-IN') },
                 { label: 'Monthly Fee',    value: selected.monthlyFee ? `₹${selected.monthlyFee.toLocaleString('en-IN')}` : '—' },
                 { label: 'Schedule',       value: selected.cleaningSchedule || '—' },
-                { label: 'Contract Since', value: formatDate((selected as any).contractStart) },
+                { label: 'Contract Since', value: formatDate(selected.contractStart) },
               ].map(({ label, value }) => (
                 <div key={label} style={{ background: 'var(--pc-card-hi)', borderRadius: 8, padding: '10px 12px' }}>
                   <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, color: 'var(--pc-fg-3)', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
