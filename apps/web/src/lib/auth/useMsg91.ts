@@ -19,20 +19,30 @@ const SDK_URLS = [
   'https://verify.phone91.com/otp-provider.js',
 ];
 
-// Module-level flag so the script is only injected once per page
 let scriptLoaded = false;
 
 export function useMsg91() {
-  const [ready, setReady] = useState(
+  const configured = WIDGET_ID !== '';
+
+  const [ready,     setReady]     = useState(
     () => typeof window !== 'undefined' && typeof window.sendOtp === 'function',
   );
+  const [loadError, setLoadError] = useState(!configured);
   const initRef = useRef(false);
 
   useEffect(() => {
-    if (initRef.current || !WIDGET_ID) return;
+    // Missing env vars — surface the error immediately
+    if (!configured) {
+      console.error(
+        '[MSG91] NEXT_PUBLIC_MSG91_WIDGET_ID is not set. ' +
+        'Add it (and NEXT_PUBLIC_MSG91_WIDGET_TOKEN) to .env.local.',
+      );
+      return;
+    }
+
+    if (initRef.current) return;
     initRef.current = true;
 
-    // Already initialised in this browser session
     if (typeof window.sendOtp === 'function') { setReady(true); return; }
 
     const config = {
@@ -50,11 +60,13 @@ export function useMsg91() {
         if (typeof window.sendOtp === 'function') {
           clearInterval(poll);
           setReady(true);
-        } else if (Date.now() - start > 10_000) {
+          setLoadError(false);
+        } else if (Date.now() - start > 12_000) {
           clearInterval(poll);
-          console.warn('[MSG91] sendOtp not available after 10 s');
+          setLoadError(true);
+          console.error('[MSG91] sendOtp not available after 12 s — check Widget ID and network.');
         }
-      }, 100);
+      }, 150);
     }
 
     if (scriptLoaded) { init(); return; }
@@ -65,11 +77,18 @@ export function useMsg91() {
       s.src     = SDK_URLS[idx];
       s.async   = true;
       s.onload  = () => { scriptLoaded = true; init(); };
-      s.onerror = () => { if (++idx < SDK_URLS.length) attempt(); };
+      s.onerror = () => {
+        if (++idx < SDK_URLS.length) {
+          attempt();
+        } else {
+          setLoadError(true);
+          console.error('[MSG91] All SDK URLs failed to load.');
+        }
+      };
       document.head.appendChild(s);
     }
     attempt();
-  }, []);
+  }, [configured]);
 
-  return { ready };
+  return { ready, configured, loadError };
 }
