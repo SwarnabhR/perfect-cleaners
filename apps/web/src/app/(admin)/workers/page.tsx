@@ -1,8 +1,11 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import {
+  collection, query, orderBy, onSnapshot,
+  doc, updateDoc, getDocs, where,
+} from 'firebase/firestore';
 import { db } from '@pc/firebase';
-import type { Worker } from '@pc/firebase';
+import type { Worker, Society } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
@@ -10,6 +13,7 @@ import StatusPill from '@/components/ui/StatusPill';
 import Avatar from '@/components/ui/Avatar';
 
 type LiveWorker = Worker & { id: string };
+type LiveSociety = Society & { id: string };
 
 type StatusFilter = 'All' | 'Available' | 'On Job' | 'Off Today';
 
@@ -41,10 +45,20 @@ function StarRating({ value }: { value: number }) {
 
 export default function WorkersPage() {
   const [workers,        setWorkers]        = useState<LiveWorker[]>([]);
+  const [societies,      setSocieties]      = useState<LiveSociety[]>([]);
   const [selectedWorker, setSelectedWorker] = useState<LiveWorker | null>(null);
+  const [assignSociety,  setAssignSociety]  = useState('');
+  const [assigning,      setAssigning]      = useState(false);
   const [loading,        setLoading]        = useState(true);
   const [search,         setSearch]         = useState('');
   const [statusFilter,   setStatusFilter]   = useState<StatusFilter>('All');
+
+  // Fetch active societies once (for the assignment dropdown)
+  useEffect(() => {
+    getDocs(query(collection(db, 'societies'), where('isActive', '==', true)))
+      .then(snap => setSocieties(snap.docs.map(d => ({ id: d.id, ...d.data() } as LiveSociety))))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     return onSnapshot(
@@ -56,6 +70,33 @@ export default function WorkersPage() {
       err => { console.warn('[Workers] Firestore:', err.message); setLoading(false); },
     );
   }, []);
+
+  // Sync assignment dropdown when a worker is opened
+  useEffect(() => {
+    setAssignSociety(selectedWorker?.assignedSocietyId ?? '');
+  }, [selectedWorker?.id]);
+
+  async function handleAssignSociety() {
+    if (!selectedWorker || assigning) return;
+    setAssigning(true);
+    const society = societies.find(s => s.id === assignSociety) ?? null;
+    try {
+      await updateDoc(doc(db, 'workers', selectedWorker.id), {
+        assignedSocietyId:   society?.id   ?? null,
+        assignedSocietyName: society?.name ?? null,
+      });
+      // Optimistically update local selection
+      setSelectedWorker(prev => prev ? {
+        ...prev,
+        assignedSocietyId:   society?.id,
+        assignedSocietyName: society?.name,
+      } : prev);
+    } catch (err: any) {
+      console.warn('[WorkerAssign]', err.message);
+    } finally {
+      setAssigning(false);
+    }
+  }
 
   const kpis = {
     total:     workers.length,
@@ -237,6 +278,45 @@ export default function WorkersPage() {
                   <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 600, color: 'var(--pc-fg)', margin: 0 }}>{value}</p>
                 </div>
               ))}
+            </div>
+
+            {/* Society assignment */}
+            <div style={{ marginBottom: 20 }}>
+              <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, color: 'var(--pc-fg-3)', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Society Assignment
+              </p>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <select
+                  value={assignSociety}
+                  onChange={e => setAssignSociety(e.target.value)}
+                  style={{
+                    flex: 1, padding: '9px 12px',
+                    background: 'var(--pc-card-hi)', border: '1px solid var(--pc-line)',
+                    borderRadius: 8, color: 'var(--pc-fg)',
+                    fontFamily: 'var(--pc-sans)', fontSize: 13, outline: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <option value="">Unassigned</option>
+                  {societies.map(s => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={handleAssignSociety}
+                  disabled={assigning || assignSociety === (selectedWorker.assignedSocietyId ?? '')}
+                  style={{
+                    padding: '9px 16px', borderRadius: 8,
+                    background: 'var(--pc-sage)', border: 'none',
+                    fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600,
+                    color: 'var(--pc-sage-ink)', cursor: 'pointer',
+                    opacity: assigning || assignSociety === (selectedWorker.assignedSocietyId ?? '') ? 0.5 : 1,
+                  }}
+                >
+                  {assigning ? 'Saving…' : 'Save'}
+                </button>
+              </div>
             </div>
 
             {/* Worker ID */}
