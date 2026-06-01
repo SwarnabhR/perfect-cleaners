@@ -165,7 +165,7 @@ export default function WorkerDashboard() {
               </div>
             )}
 
-            <Link href="/cleaning-logs" style={{
+            <Link href="/worker/cleaning-logs" style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-sage-hi)',
               textDecoration: 'none',
