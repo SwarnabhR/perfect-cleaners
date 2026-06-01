@@ -43,11 +43,6 @@ export default function WorkerCleaningLogsPage() {
     if (!user) return;
     setLoading(true);
 
-    const base = [
-      collection(db, 'cleaningLogs'),
-      where('workerId', '==', user.uid),
-    ] as const;
-
     const q = dateFilter === 'today'
       ? query(
           collection(db, 'cleaningLogs'),
