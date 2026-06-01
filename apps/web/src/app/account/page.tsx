@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { collection, query, where, onSnapshot, doc, getDoc, type Unsubscribe } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, getDoc, updateDoc, serverTimestamp, type Unsubscribe } from 'firebase/firestore';
 import { db } from '@pc/firebase';
 import type { BookingStatus } from '@pc/firebase';
 import Nav from '@/components/marketing/Nav';
@@ -36,7 +36,19 @@ const STATUS_LABEL: Record<BookingStatus, string> = {
 
 // ─── Booking card ─────────────────────────────────────────────────────────────
 
-function BookingCard({ b }: { b: BookingRow }) {
+function BookingCard({ b, onCancel }: { b: BookingRow; onCancel: (id: string) => void }) {
+  const [confirming, setConfirming] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const canCancel = b.status === 'pending' || b.status === 'assigned';
+
+  async function handleCancel() {
+    if (!confirming) { setConfirming(true); return; }
+    setCancelling(true);
+    await onCancel(b.id);
+    setCancelling(false);
+    setConfirming(false);
+  }
+
   const date = b.scheduledAt.toLocaleDateString('en-IN', {
     day: 'numeric', month: 'short', year: 'numeric',
   });
@@ -103,6 +115,41 @@ function BookingCard({ b }: { b: BookingRow }) {
           </div>
         ))}
       </div>
+
+      {/* Cancel action — only for pending/assigned bookings */}
+      {canCancel && (
+        <div style={{ paddingTop: 'var(--pc-space-3)', borderTop: '1px solid var(--pc-line)' }}>
+          <button
+            type="button"
+            onClick={handleCancel}
+            disabled={cancelling}
+            style={{
+              padding:       '8px 18px',
+              borderRadius:   999,
+              background:    'transparent',
+              border:        `1px solid ${confirming ? 'var(--pc-danger)' : 'currentColor'}`,
+              fontFamily:    'var(--pc-sans)',
+              fontSize:       12,
+              color:          confirming ? 'var(--pc-danger)' : 'var(--pc-fg-3)',
+              cursor:         cancelling ? 'not-allowed' : 'pointer',
+              opacity:        cancelling ? 0.6 : 1,
+              letterSpacing: '0.04em',
+            }}
+          >
+            {cancelling ? 'Cancelling…' : confirming ? 'Tap again to confirm' : 'Cancel booking'}
+          </button>
+          {confirming && (
+            <button
+              type="button"
+              onClick={() => setConfirming(false)}
+              style={{ marginLeft: 8, background: 'none', border: 'none', cursor: 'pointer',
+                fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-4)' }}
+            >
+              Never mind
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -184,6 +231,13 @@ export default function AccountPage() {
     );
     return () => unsub();
   }, [user?.phoneNumber]);
+
+  async function handleCancelBooking(bookingId: string) {
+    await updateDoc(doc(db, 'bookings', bookingId), {
+      status:    'cancelled',
+      updatedAt: serverTimestamp(),
+    });
+  }
 
   async function handleSignOut() {
     setSignOutBusy(true);
@@ -371,7 +425,7 @@ export default function AccountPage() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-4)' }}>
-            {bookings.map(b => <BookingCard key={b.id} b={b} />)}
+            {bookings.map(b => <BookingCard key={b.id} b={b} onCancel={handleCancelBooking} />)}
           </div>
         )}
       </main>
