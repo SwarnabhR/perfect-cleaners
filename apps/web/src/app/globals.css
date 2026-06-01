@@ -763,6 +763,38 @@ html {
 }
 
 /* ====================================================================
+   For Societies page
+   ==================================================================== */
+
+@media (max-width: 900px) {
+  .pc-for-societies-steps {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .pc-for-societies-stats {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .pc-for-societies-stats > div:nth-child(2) {
+    border-right: none !important;
+  }
+  .pc-for-societies-benefits {
+    grid-template-columns: 1fr !important;
+    gap: var(--pc-space-16) !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .pc-for-societies-steps {
+    grid-template-columns: 1fr !important;
+  }
+  .pc-for-societies-stats {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+/* ====================================================================
    Footer — word-break for long email on narrow screens
    ==================================================================== */
 
