@@ -86,6 +86,7 @@ export default function Hero() {
               letterSpacing: 'var(--pc-track-wide)',
               textTransform: 'uppercase',
               textDecoration: 'none',
+              cursor: 'pointer',
               transition: 'background var(--pc-dur-fast) var(--pc-ease), box-shadow var(--pc-dur-fast) var(--pc-ease)',
             }}
           >
@@ -101,7 +102,7 @@ export default function Hero() {
               padding: 'var(--pc-space-4) var(--pc-space-6)',
               background: 'transparent',
               color: 'var(--pc-fg)',
-              border: '1px solid currentColor',
+              border: '1px solid var(--pc-line-warm)',
               borderRadius: 'var(--pc-radius-pill)',
               fontFamily: 'var(--pc-sans)',
               fontSize: 'var(--pc-text-sm)',
@@ -109,6 +110,7 @@ export default function Hero() {
               letterSpacing: 'var(--pc-track-wide)',
               textTransform: 'uppercase',
               textDecoration: 'none',
+              cursor: 'pointer',
               transition: 'background var(--pc-dur-fast) var(--pc-ease), border-color var(--pc-dur-fast) var(--pc-ease)',
             }}
           >
