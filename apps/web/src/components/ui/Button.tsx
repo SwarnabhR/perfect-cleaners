@@ -52,7 +52,7 @@ export function GhostButton({ children, full, style, className, ...props }: Butt
       style={{
         background: 'transparent',
         color: 'var(--pc-fg)',
-        border: '1px solid var(--pc-line-strong)',
+        border: '1px solid currentColor',
         borderRadius: 'var(--pc-radius-pill)',
         padding: 'var(--pc-space-3) var(--pc-space-6)',
         fontFamily: 'var(--pc-sans)',

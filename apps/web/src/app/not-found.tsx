@@ -51,7 +51,7 @@ export default function NotFound() {
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             padding: '12px 28px', borderRadius: 999,
             background: 'transparent', color: 'var(--pc-fg)',
-            border: '1px solid var(--pc-line-strong)',
+            border: '1px solid currentColor',
             fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 500,
             letterSpacing: '0.05em', textTransform: 'uppercase', textDecoration: 'none',
           }}>

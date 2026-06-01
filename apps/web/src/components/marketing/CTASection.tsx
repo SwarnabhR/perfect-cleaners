@@ -85,7 +85,7 @@ export default function CTASection() {
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               padding: 'var(--pc-space-4) var(--pc-space-6)',
               background: 'transparent', color: 'var(--pc-fg)',
-              border: '1px solid var(--pc-line-strong)', borderRadius: 'var(--pc-radius-pill)',
+              border: '1px solid currentColor', borderRadius: 'var(--pc-radius-pill)',
               fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)',
               fontWeight: 500, letterSpacing: 'var(--pc-track-wide)',
               textTransform: 'uppercase', textDecoration: 'none',

@@ -90,7 +90,7 @@ export default function GlobalError({
               padding:        '11px 24px',
               background:     'transparent',
               color:          'var(--pc-fg-3)',
-              border:         '1px solid var(--pc-line-strong)',
+              border:         '1px solid currentColor',
               borderRadius:    999,
               fontFamily:     'var(--pc-sans)',
               fontSize:        13,

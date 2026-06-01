@@ -263,7 +263,7 @@ export default function AccountPage() {
               style={{
                 padding: '10px 16px',
                 background: 'transparent', color: 'var(--pc-fg-3)',
-                border: '1px solid var(--pc-line-strong)', borderRadius: 999,
+                border: '1px solid currentColor', borderRadius: 999,
                 fontFamily: 'var(--pc-sans)', fontSize: 12, letterSpacing: '0.04em',
                 cursor: signOutBusy ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap',
               }}
