@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { signInWithCustomToken } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@pc/firebase';
@@ -11,9 +11,11 @@ import Icon from '@/components/ui/Icon';
 
 type Step = 'phone' | 'otp';
 
-export default function WorkerLoginPage() {
-  const router = useRouter();
-  const { ready } = useMsg91();
+function WorkerLoginContent() {
+  const router       = useRouter();
+  const searchParams = useSearchParams();
+  const { ready }    = useMsg91();
+  const redirectTo   = searchParams.get('from') ?? '/worker/dashboard';
 
   const [step,      setStep]      = useState<Step>('phone');
   const [phone,     setPhone]     = useState('');
@@ -65,7 +67,7 @@ export default function WorkerLoginPage() {
             setBusy(false);
             return;
           }
-          router.replace('/worker/dashboard');
+          router.replace(redirectTo);
         } catch (err: any) {
           setError(err?.message ?? 'Sign-in failed.');
           setBusy(false);
@@ -178,5 +180,13 @@ export default function WorkerLoginPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function WorkerLoginPage() {
+  return (
+    <Suspense>
+      <WorkerLoginContent />
+    </Suspense>
   );
 }

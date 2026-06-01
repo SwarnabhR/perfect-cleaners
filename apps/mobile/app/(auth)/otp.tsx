@@ -2,6 +2,8 @@ import { useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import firestore from '@react-native-firebase/firestore';
+import auth from '@react-native-firebase/auth';
 import { getPendingConfirmation } from '../../auth-state';
 import { spacing, radii } from '@pc/tokens';
 import { useThemeColors } from '../../theme';
@@ -50,6 +52,19 @@ export default function OTPScreen() {
         if (!conf) throw new Error('Session expired. Please go back and try again.');
         await conf.confirm(code);
       }
+
+      // Determine role: check workers collection first, then customers
+      const uid = auth().currentUser?.uid;
+      if (uid) {
+        const workerSnap = await firestore().collection('workers').doc(uid).get();
+        if (Boolean(workerSnap.exists)) {
+          await AsyncStorage.setItem('@pc/role', 'worker');
+          await AsyncStorage.setItem('@pc/onboarding', 'done');
+          router.replace('/(worker)/(tabs)');
+          return;
+        }
+      }
+
       const existing = await AsyncStorage.getItem('@pc/onboarding');
       await AsyncStorage.setItem('@pc/role', 'customer');
       router.replace(existing ? '/(customer)/' : '/(onboarding)/name');

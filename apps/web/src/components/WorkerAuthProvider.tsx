@@ -51,11 +51,11 @@ export function WorkerAuthProvider({ children }: { children: ReactNode }) {
     return unsub;
   }, [user?.uid]);
 
-  // Redirect unauthenticated users to login
+  // Redirect unauthenticated users to login, preserving the current path
   useEffect(() => {
     if (loading) return;
     if (!user && pathname !== '/worker/login') {
-      router.replace('/worker/login');
+      router.replace(`/worker/login?from=${encodeURIComponent(pathname)}`);
     }
   }, [user, loading, pathname]);
 
