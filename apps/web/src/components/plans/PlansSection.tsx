@@ -122,6 +122,7 @@ export default function PlansSection() {
               borderRadius: 'var(--pc-radius-pill)',
               fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', fontWeight: 600,
               textTransform: 'uppercase', letterSpacing: 'var(--pc-track-wide)', textDecoration: 'none',
+              cursor: 'pointer',
               transition: 'background var(--pc-dur-fast) var(--pc-ease)',
             }}
           >
@@ -134,9 +135,11 @@ export default function PlansSection() {
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               padding: 'var(--pc-space-4) var(--pc-space-7)',
               background: 'transparent', color: 'var(--pc-fg)',
-              border: '1px solid currentColor', borderRadius: 'var(--pc-radius-pill)',
+              border: '1px solid var(--pc-line-warm)',
+              borderRadius: 'var(--pc-radius-pill)',
               fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', fontWeight: 500,
               textTransform: 'uppercase', letterSpacing: 'var(--pc-track-wide)', textDecoration: 'none',
+              cursor: 'pointer',
               transition: 'background var(--pc-dur-fast) var(--pc-ease), border-color var(--pc-dur-fast) var(--pc-ease)',
             }}
           >
