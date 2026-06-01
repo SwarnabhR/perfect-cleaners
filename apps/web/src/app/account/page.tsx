@@ -282,6 +282,7 @@ export default function AccountPage() {
           {[
             { label: 'Bookings', href: '/account'         },
             { label: 'Profile',  href: '/account/profile' },
+            { label: 'Bill',     href: '/account/wallet'  },
           ].map(tab => {
             const active = tab.href === '/account';
             return (

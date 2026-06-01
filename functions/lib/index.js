@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.resetEarnings = exports.onWorkerAssigned = exports.onBookingCreated = exports.onJobComplete = void 0;
+exports.resetDailyEarnings = exports.onCleaningLogCreated = exports.onWorkerAssigned = exports.onBookingCreated = exports.onJobComplete = void 0;
 const app_1 = require("firebase-admin/app");
 const firestore_1 = require("firebase-admin/firestore");
 const messaging_1 = require("firebase-admin/messaging");
@@ -158,7 +158,88 @@ exports.onWorkerAssigned = (0, firestore_2.onDocumentUpdated)('bookings/{booking
     }
     await Promise.all(writes);
 });
-// ─── 4. Earnings reset — runs daily at midnight IST ───────────────────────────
+// ─── 4. Society cleaning → FCM push + in-app notification to resident ─────────
+//
+// Triggered when a worker writes a cleaningLog document (marks a society car
+// as done). Sends a push notification to the resident with:
+//   • vehicle registration + make/model
+//   • time of clean
+//   • society name
+//
+// The FCM token is stored on the customer document as `fcmToken` (written
+// by the useFCM hook in the mobile app when the user registers for push).
+exports.onCleaningLogCreated = (0, firestore_2.onDocumentCreated)('cleaningLogs/{logId}', async (event) => {
+    const log = event.data?.data();
+    if (!log)
+        return;
+    const customerId = log.customerId;
+    const logId = event.data?.id ?? '';
+    if (!customerId) {
+        console.warn('[onCleaningLogCreated] no customerId on log', logId);
+        return;
+    }
+    const reg = log.vehicleRegistration ?? 'your vehicle';
+    const make = log.vehicleMake ?? '';
+    const model = log.vehicleModel ?? '';
+    const society = log.societyName ?? 'your society';
+    const worker = log.workerName ?? 'our team';
+    const cleanedAt = log.cleanedAt?.toDate();
+    const timeStr = cleanedAt
+        ? cleanedAt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+        : 'just now';
+    const vehicleLabel = [make, model].filter(Boolean).join(' ') || reg;
+    const notifTitle = `${reg} is clean ✓`;
+    const notifBody = `${vehicleLabel} at ${society} was cleaned at ${timeStr} by ${worker}.`;
+    const servicePrice = log.servicePrice ?? 0;
+    const writes = [];
+    // In-app notification (always)
+    writes.push(pushNotif('customers', customerId, 'car_cleaned', notifTitle, notifBody, { logId, vehicleRegistration: reg }));
+    // Add service price to customer's outstanding balance and write a billing
+    // transaction so the customer can see an itemised history in the wallet screen.
+    if (servicePrice > 0) {
+        writes.push(db.doc(`customers/${customerId}`).update({
+            outstandingBalance: firestore_1.FieldValue.increment(servicePrice),
+        }));
+        writes.push(db
+            .collection('customers')
+            .doc(customerId)
+            .collection('transactions')
+            .add({
+            type: 'charge',
+            amount: servicePrice,
+            label: `${log.serviceType?.charAt(0).toUpperCase()}${log.serviceType?.slice(1)} wash · ${reg}`,
+            societyId: log.societyId,
+            logId,
+            createdAt: firestore_1.FieldValue.serverTimestamp(),
+        }));
+        writes.push(db.doc(`cleaningLogs/${logId}`).update({ billed: true }));
+    }
+    // FCM push to the resident's device
+    const customerSnap = await db.doc(`customers/${customerId}`).get();
+    const fcmToken = customerSnap.data()?.fcmToken;
+    if (fcmToken) {
+        writes.push(messaging.send({
+            token: fcmToken,
+            notification: { title: notifTitle, body: notifBody },
+            data: { logId, type: 'car_cleaned', vehicleRegistration: reg },
+            android: {
+                priority: 'high',
+                notification: { channelId: 'cleaning', sound: 'default' },
+            },
+            apns: { payload: { aps: { sound: 'default', badge: 1 } } },
+        })
+            .then(() => {
+            // Mark notification as sent on the log document
+            return db.doc(`cleaningLogs/${logId}`).update({ notificationSent: true });
+        })
+            .catch(err => console.error('[onCleaningLogCreated] FCM failed:', err)));
+    }
+    else {
+        console.log(`[onCleaningLogCreated] customer ${customerId} has no FCM token`);
+    }
+    await Promise.all(writes);
+});
+// ─── 5. Earnings reset — runs daily at midnight IST ───────────────────────────
 //
 // Resets worker earnings counters on the correct cadence:
 //   • earnings.today  → reset every day
@@ -167,7 +248,7 @@ exports.onWorkerAssigned = (0, firestore_2.onDocumentUpdated)('bookings/{booking
 //
 // Firestore batch writes are capped at 500 docs; the loop handles larger
 // worker rosters by flushing a new batch every 499 ops.
-exports.resetEarnings = (0, scheduler_1.onSchedule)({
+exports.resetDailyEarnings = (0, scheduler_1.onSchedule)({
     schedule: '0 0 * * *', // midnight every day
     timeZone: 'Asia/Kolkata',
 }, async () => {

@@ -59,6 +59,13 @@ service cloud.firestore {
         allow create: if isAdmin();                    // written by Cloud Functions only
         allow delete: if isOwner(userId) || isAdmin();
       }
+
+      // Billing transactions — written by Cloud Functions (Admin SDK bypasses
+      // rules); customers can read their own history but never write directly.
+      match /transactions/{txId} {
+        allow read:  if isOwner(userId) || isAdmin();
+        allow write: if isAdmin();
+      }
     }
 
     // ── Workers ───────────────────────────────────────────────────────────────
@@ -113,6 +120,39 @@ service cloud.firestore {
     match /promotions/{promoId} {
       allow read:  if isSignedIn();
       allow write: if isAdmin();
+    }
+
+    // ── Societies ─────────────────────────────────────────────────────────────
+    // Any authenticated user can read (residents look up their society; the
+    // mobile app and web portal need society details).  Only admins may write.
+    match /societies/{societyId} {
+      allow read:  if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // ── Cleaning sessions ─────────────────────────────────────────────────────
+    // Workers assigned to a session may read and update it (status, counts).
+    // Admins have full access.  No client-side creates — admin/backend only.
+    match /cleaningSessions/{sessionId} {
+      allow read:   if isAdmin()
+        || (isSignedIn() && resource.data.workerId == request.auth.uid);
+      allow update: if isAdmin()
+        || (isSignedIn() && resource.data.workerId == request.auth.uid);
+      allow create, delete: if isAdmin();
+    }
+
+    // ── Cleaning logs ─────────────────────────────────────────────────────────
+    // Workers may create logs for their own sessions.
+    // Customers may read logs that belong to them (by customerId field).
+    // Admins have full access.
+    match /cleaningLogs/{logId} {
+      allow read:   if isAdmin()
+        || (isSignedIn() && resource.data.customerId == request.auth.uid)
+        || (isSignedIn() && resource.data.workerId   == request.auth.uid);
+      allow create: if isSignedIn()
+        && request.resource.data.workerId == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
 
     // ── Operator settings ─────────────────────────────────────────────────────
