@@ -15,6 +15,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE}/services/coating`,     lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${BASE}/about`,                lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
     { url: `${BASE}/contact`,              lastModified: now, changeFrequency: 'yearly',  priority: 0.6 },
+    { url: `${BASE}/for-societies`,        lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${BASE}/app`,                  lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${BASE}/faq`,                  lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${BASE}/membership`,           lastModified: now, changeFrequency: 'monthly', priority: 0.5 },

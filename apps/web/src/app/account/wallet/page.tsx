@@ -1,16 +1,28 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import {
-  collection, doc, onSnapshot,
-  orderBy, query, limit,
-} from 'firebase/firestore';
+import { collection, doc, onSnapshot, orderBy, query, limit } from 'firebase/firestore';
 import { db } from '@pc/firebase';
 import Nav from '@/components/marketing/Nav';
 import Footer from '@/components/marketing/Footer';
 import { useCustomerAuth } from '@/lib/auth/CustomerAuthContext';
+
+// ─── Razorpay loader ──────────────────────────────────────────────────────────
+
+function loadRazorpay(): Promise<any> {
+  return new Promise(resolve => {
+    if (typeof window !== 'undefined' && (window as any).Razorpay) {
+      resolve((window as any).Razorpay);
+      return;
+    }
+    const script = document.createElement('script');
+    script.src   = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    script.onload = () => resolve((window as any).Razorpay);
+    document.body.appendChild(script);
+  });
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -55,6 +67,9 @@ export default function WalletPage() {
   const [outstanding, setOutstanding] = useState<number | null>(null);
   const [entries,     setEntries]     = useState<TxEntry[]>([]);
   const [txLoading,   setTxLoading]   = useState(true);
+  const [paying,      setPaying]      = useState(false);
+  const [payError,    setPayError]    = useState<string | null>(null);
+  const [payDone,     setPayDone]     = useState(false);
 
   // Auth guard
   useEffect(() => {
@@ -106,6 +121,61 @@ export default function WalletPage() {
     );
     return unsub;
   }, [user]);
+
+  const handlePayNow = useCallback(async () => {
+    if (!user || (outstanding ?? 0) <= 0) return;
+    setPayError(null);
+    setPaying(true);
+    try {
+      // 1. Create Razorpay order
+      const orderRes = await fetch('/api/payment/create-order', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          amount:  outstanding,
+          receipt: `settle_${user.uid}_${Date.now()}`,
+        }),
+      });
+      const { orderId, keyId, error: orderErr } = await orderRes.json();
+      if (orderErr || !orderId) throw new Error(orderErr ?? 'Could not create order.');
+
+      // 2. Load and open Razorpay checkout
+      const RazorpayCheckout = await loadRazorpay();
+      const rzp = new RazorpayCheckout({
+        key:         keyId,
+        amount:      Math.round((outstanding ?? 0) * 100),
+        currency:    'INR',
+        order_id:    orderId,
+        name:        'Perfect Cleaners',
+        description: 'Settle outstanding balance',
+        prefill:     { contact: user.phoneNumber ?? '' },
+        theme:       { color: '#4A5E44' },
+        modal:       { ondismiss: () => setPaying(false) },
+        handler: async (response: any) => {
+          // 3. Verify and record the payment
+          const verifyRes = await fetch('/api/payment/settle-balance', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({
+              razorpay_order_id:   response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature:  response.razorpay_signature,
+              customerId:          user.uid,
+              amount:              outstanding,
+            }),
+          });
+          const { ok, error: verifyErr } = await verifyRes.json();
+          if (!ok) throw new Error(verifyErr ?? 'Payment verification failed.');
+          setPayDone(true);
+          setPaying(false);
+        },
+      });
+      rzp.open();
+    } catch (err: any) {
+      setPayError(err.message ?? 'Payment failed.');
+      setPaying(false);
+    }
+  }, [user, outstanding]);
 
   if (loading || !user) return null;
 
@@ -209,28 +279,41 @@ export default function WalletPage() {
               : 'Added after each wash. Pay anytime — your car keeps getting cleaned.'}
           </p>
 
+          {payDone && (
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: '#fff', opacity: 0.9, margin: '0 0 16px' }}>
+              Payment received — balance updated.
+            </p>
+          )}
+          {payError && (
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-danger)', margin: '0 0 16px' }}>
+              {payError}
+            </p>
+          )}
+
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <Link
-              href={isPaid ? '#' : '/book'}
+            <button
+              type="button"
+              onClick={handlePayNow}
+              disabled={isPaid || paying}
               style={{
-                display:        'inline-flex',
-                alignItems:     'center',
-                padding:        '10px 24px',
-                background:     isPaid ? 'rgba(255,255,255,0.15)' : 'var(--pc-warm)',
-                color:          isPaid ? '#fff' : 'var(--pc-ink)',
-                borderRadius:    999,
-                fontFamily:     'var(--pc-sans)',
-                fontSize:        13,
-                fontWeight:      600,
-                letterSpacing:  '0.06em',
-                textTransform:  'uppercase',
-                textDecoration: 'none',
-                pointerEvents:   isPaid ? 'none' : 'auto',
-                opacity:         isPaid ? 0.5 : 1,
+                display:       'inline-flex',
+                alignItems:    'center',
+                padding:       '10px 24px',
+                background:    isPaid ? 'rgba(255,255,255,0.15)' : 'var(--pc-warm)',
+                color:         isPaid ? '#fff' : 'var(--pc-ink)',
+                borderRadius:   999,
+                fontFamily:    'var(--pc-sans)',
+                fontSize:       13,
+                fontWeight:     600,
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                border:        'none',
+                cursor:        isPaid || paying ? 'not-allowed' : 'pointer',
+                opacity:       isPaid || paying ? 0.5 : 1,
               }}
             >
-              {isPaid ? 'All clear ✓' : 'Pay now →'}
-            </Link>
+              {paying ? 'Opening checkout…' : isPaid ? 'All clear ✓' : 'Pay now →'}
+            </button>
 
             <button
               type="button"
