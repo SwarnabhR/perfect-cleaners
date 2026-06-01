@@ -113,19 +113,23 @@ export default function PlansSection() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
           <Link
             href="/for-societies"
+            className="pc-hero-cta-primary"
             style={{
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               padding: 'var(--pc-space-4) var(--pc-space-7)',
               background: 'var(--pc-warm)', color: 'var(--pc-ink)',
+              border: 'none',
               borderRadius: 'var(--pc-radius-pill)',
               fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', fontWeight: 600,
               textTransform: 'uppercase', letterSpacing: 'var(--pc-track-wide)', textDecoration: 'none',
+              transition: 'background var(--pc-dur-fast) var(--pc-ease)',
             }}
           >
             Is my society listed?
           </Link>
           <Link
             href="/contact"
+            className="pc-hero-cta-ghost"
             style={{
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               padding: 'var(--pc-space-4) var(--pc-space-7)',
@@ -133,6 +137,7 @@ export default function PlansSection() {
               border: '1px solid currentColor', borderRadius: 'var(--pc-radius-pill)',
               fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', fontWeight: 500,
               textTransform: 'uppercase', letterSpacing: 'var(--pc-track-wide)', textDecoration: 'none',
+              transition: 'background var(--pc-dur-fast) var(--pc-ease), border-color var(--pc-dur-fast) var(--pc-ease)',
             }}
           >
             Contact Us
