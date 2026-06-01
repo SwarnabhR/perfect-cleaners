@@ -27,8 +27,8 @@
     transform var(--pc-dur-fast) var(--pc-ease);
 }
 .ghost:hover {
-  background: rgba(255,255,255,0.06) !important;
-  border-color: rgba(255,255,255,0.28) !important;
+  background: var(--pc-line) !important;
+  border-color: var(--pc-fg-2) !important;
 }
 .ghost:active {
   transform: scale(0.97);

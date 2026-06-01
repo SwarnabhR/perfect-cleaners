@@ -53,6 +53,8 @@ exports.onJobComplete = (0, firestore_2.onDocumentUpdated)('bookings/{bookingId}
     const earned = (after.priceBreakdown?.total ?? 0);
     const svc = serviceLabel((after.serviceIds ?? []));
     const bookingId = event.params.bookingId;
+    if (!workerId && !customerId)
+        return; // nothing to update
     const writes = [];
     // Credit worker earnings
     if (workerId) {

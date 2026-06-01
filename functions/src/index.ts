@@ -67,6 +67,8 @@ export const onJobComplete = onDocumentUpdated('bookings/{bookingId}', async eve
   const svc        = serviceLabel((after.serviceIds ?? []) as string[]);
   const bookingId  = event.params.bookingId;
 
+  if (!workerId && !customerId) return; // nothing to update
+
   const writes: Promise<unknown>[] = [];
 
   // Credit worker earnings

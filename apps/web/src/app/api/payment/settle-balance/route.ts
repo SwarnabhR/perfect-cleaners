@@ -34,6 +34,17 @@ export async function POST(req: NextRequest) {
 
     const db = adminFirestore();
 
+    // Idempotency — if this paymentId was already recorded, return success without double-writing
+    const existing = await db
+      .collection('customers').doc(customerId)
+      .collection('transactions')
+      .where('paymentId', '==', razorpay_payment_id)
+      .limit(1)
+      .get();
+    if (!existing.empty) {
+      return NextResponse.json({ ok: true, paymentId: razorpay_payment_id });
+    }
+
     await Promise.all([
       db.doc(`customers/${customerId}`).update({
         outstandingBalance: FieldValue.increment(-Math.abs(amount)),

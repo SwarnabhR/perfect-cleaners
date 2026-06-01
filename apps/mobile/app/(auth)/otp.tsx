@@ -4,14 +4,14 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
-import { getPendingConfirmation } from '../../auth-state';
+import { getPendingConfirmation, setPendingConfirmation } from '../../auth-state';
 import { spacing, radii } from '@pc/tokens';
 import { useThemeColors } from '../../theme';
 import { useSharedStyles } from '../../theme/sharedStyles';
 import AuthScreenShell from '../../components/AuthScreenShell';
 import BackButton from '../../components/BackButton';
 
-const OTP_LEN = 4;
+const OTP_LEN = 6;
 
 export default function OTPScreen() {
   const { phone, verificationId } = useLocalSearchParams<{ phone: string; verificationId: string }>();
@@ -40,6 +40,18 @@ export default function OTPScreen() {
     }
   }
 
+  async function handleResend() {
+    if (loading || !phone) return;
+    try {
+      const confirmation = await auth().signInWithPhoneNumber(`+91${phone}`);
+      setPendingConfirmation(confirmation);
+      setDigits(Array(OTP_LEN).fill(''));
+      Alert.alert('Code Sent', 'A new code has been sent to your number.');
+    } catch (err: any) {
+      Alert.alert('Error', err?.message ?? 'Failed to resend. Please go back and try again.');
+    }
+  }
+
   async function handleVerify() {
     if (!complete || loading || !verificationId) return;
     setLoading(true);
@@ -53,7 +65,7 @@ export default function OTPScreen() {
         await conf.confirm(code);
       }
 
-      // Determine role: check workers collection first, then customers
+      // Use uid from the now-confirmed auth session
       const uid = auth().currentUser?.uid;
       if (uid) {
         const workerSnap = await firestore().collection('workers').doc(uid).get();
@@ -81,7 +93,7 @@ export default function OTPScreen() {
 
       <View style={s.header}>
         <Text style={ss.onboardingTitle}>Verify Phone</Text>
-        <Text style={ss.subtitle}>4-digit code sent to +91 {phone}</Text>
+        <Text style={ss.subtitle}>6-digit code sent to +91 {phone}</Text>
       </View>
 
       <View style={s.otpRow}>
@@ -115,7 +127,7 @@ export default function OTPScreen() {
         <Text style={ss.primaryBtnText}>{loading ? 'Verifying...' : 'Verify & Continue'}</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={s.resend}>
+      <TouchableOpacity style={s.resend} onPress={handleResend} activeOpacity={0.7}>
         <Text style={ss.subtitle}>Didn’t receive a code? Resend</Text>
       </TouchableOpacity>
     </AuthScreenShell>

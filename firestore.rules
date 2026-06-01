@@ -150,7 +150,10 @@ service cloud.firestore {
         || (isSignedIn() && resource.data.customerId == request.auth.uid)
         || (isSignedIn() && resource.data.workerId   == request.auth.uid);
       allow create: if isSignedIn()
-        && request.resource.data.workerId == request.auth.uid;
+        && request.resource.data.workerId   == request.auth.uid
+        && request.resource.data.societyId   is string
+        && request.resource.data.customerId  is string
+        && request.resource.data.cleanedAt   != null;
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }
