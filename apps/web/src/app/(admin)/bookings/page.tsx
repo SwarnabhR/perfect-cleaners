@@ -40,6 +40,7 @@ export default function BookingsPage() {
   const [filter,     setFilter]     = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [assigning,  setAssigning]  = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState<string | null>(null);
   const [loading,    setLoading]    = useState(true);
 
   useEffect(() => {
@@ -65,6 +66,13 @@ export default function BookingsPage() {
       await updateDoc(doc(db, 'bookings', bookingId), { workerId: worker.id, workerName: worker.name, status: 'assigned' as BookingStatus, updatedAt: serverTimestamp() });
       setAssigning(null);
     } catch (err: any) { console.error('[Bookings] assign failed:', err.message); }
+  }
+
+  async function cancelBooking(bookingId: string) {
+    try {
+      await updateDoc(doc(db, 'bookings', bookingId), { status: 'cancelled' as BookingStatus, updatedAt: serverTimestamp() });
+    } catch (err: any) { console.error('[Bookings] cancel failed:', err.message); }
+    setCancelling(null);
   }
 
   const filtered = bookings
@@ -143,7 +151,7 @@ export default function BookingsPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--pc-line)' }}>
-                  {['Booking ID', 'Customer', 'Service', 'Date & Time', 'Worker', 'Amount', 'Status'].map(h => (
+                  {['Booking ID', 'Customer', 'Service', 'Date & Time', 'Worker', 'Amount', 'Status', ''].map(h => (
                     <th key={h} style={{ padding: '13px 18px', textAlign: 'left', fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -189,6 +197,27 @@ export default function BookingsPage() {
                     </td>
                     <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg)', fontWeight: 600, whiteSpace: 'nowrap' }}>₹{b.priceBreakdown?.total?.toLocaleString('en-IN') ?? '—'}</td>
                     <td style={{ padding: '13px 18px' }}><StatusPill status={STATUS_LABELS[b.status] ?? b.status} /></td>
+                    <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
+                      {!['done', 'cancelled'].includes(b.status) && (
+                        cancelling === b.id ? (
+                          <span style={{ display: 'inline-flex', gap: 6 }}>
+                            <button type="button" onClick={() => cancelBooking(b.id)}
+                              style={{ padding: '4px 10px', borderRadius: 6, background: 'var(--pc-danger)', border: 'none', fontFamily: 'var(--pc-sans)', fontSize: 11, fontWeight: 600, color: '#fff', cursor: 'pointer' }}>
+                              Confirm
+                            </button>
+                            <button type="button" onClick={() => setCancelling(null)}
+                              style={{ padding: '4px 10px', borderRadius: 6, background: 'transparent', border: '1px solid var(--pc-line)', fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', cursor: 'pointer' }}>
+                              No
+                            </button>
+                          </span>
+                        ) : (
+                          <button type="button" onClick={() => { setAssigning(null); setCancelling(b.id); }}
+                            style={{ padding: '4px 10px', borderRadius: 6, background: 'transparent', border: '1px solid var(--pc-danger)', fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-danger)', cursor: 'pointer' }}>
+                            Cancel
+                          </button>
+                        )
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

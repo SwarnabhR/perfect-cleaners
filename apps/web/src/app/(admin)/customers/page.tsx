@@ -88,10 +88,12 @@ export default function CustomersPage() {
       .map(b => b.customerId),
   );
 
+  const totalOutstanding = customers.reduce((s, c) => s + (((c as any).outstandingBalance as number) ?? 0), 0);
+
   const kpis = [
     { label: 'Total Customers', value: loading ? '—' : enriched.length.toLocaleString(), icon: 'users' },
     { label: 'Active (30d)',    value: loading ? '—' : activeIds.size.toLocaleString(), icon: 'user-check' },
-    { label: 'Platinum',        value: loading ? '—' : enriched.filter(c => c.customerTier === 'Platinum').length.toString(), icon: 'award' },
+    { label: 'Outstanding',     value: loading ? '—' : totalOutstanding > 0 ? `₹${totalOutstanding.toLocaleString('en-IN')}` : '₹0', icon: 'indian-rupee' },
     { label: 'Avg Lifetime',    value: loading ? '—' : enriched.length
         ? `₹${Math.round(enriched.reduce((s, c) => s + c.spent, 0) / enriched.length).toLocaleString('en-IN')}`
         : '₹0', icon: 'trending-up' },
@@ -162,7 +164,7 @@ export default function CustomersPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--pc-line)' }}>
-                {['Customer', 'Phone', 'Vehicles', 'Jobs', 'Total Spent', 'Tier', 'Joined'].map(h => (
+                {['Customer', 'Phone', 'Vehicles', 'Jobs', 'Total Spent', 'Outstanding', 'Tier', 'Joined'].map(h => (
                   <th key={h} style={{ padding: '13px 18px', textAlign: 'left', fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
                 ))}
               </tr>
@@ -194,6 +196,17 @@ export default function CustomersPage() {
                   <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg-2)' }}>{c.jobs}</td>
                   <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg)', fontWeight: 600 }}>
                     {c.spent > 0 ? `₹${c.spent.toLocaleString('en-IN')}` : '₹0'}
+                  </td>
+                  <td style={{ padding: '13px 18px' }}>
+                    {(c as any).outstandingBalance > 0 ? (
+                      <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600,
+                        color: 'var(--pc-danger)', background: 'color-mix(in srgb, var(--pc-danger) 10%, transparent)',
+                        padding: '2px 8px', borderRadius: 4 }}>
+                        ₹{((c as any).outstandingBalance as number).toLocaleString('en-IN')}
+                      </span>
+                    ) : (
+                      <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-4)' }}>—</span>
+                    )}
                   </td>
                   <td style={{ padding: '13px 18px' }}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
