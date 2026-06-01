@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ScrollView, View, Text, TouchableOpacity, StyleSheet, Linking } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronLeft, ChevronRight, Phone, Camera, Check } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Phone, Check } from 'lucide-react-native';
 import firestore from '@react-native-firebase/firestore';
 import type { BookingStatus } from '@pc/firebase';
 import { typography, spacing, radii } from '@pc/tokens';
@@ -84,14 +84,15 @@ export default function JobDetail() {
     setStep(nextStep);
     try {
       await firestore().collection('bookings').doc(bookingId).update({
-        status:    STEP_STATUS[nextStep],
-        updatedAt: firestore.FieldValue.serverTimestamp(),
+        status:      STEP_STATUS[nextStep],
+        updatedAt:   firestore.FieldValue.serverTimestamp(),
+        ...(nextStep === 3 ? { completedAt: firestore.FieldValue.serverTimestamp() } : {}),
       });
     } catch (err) {
       console.warn('[JobDetail] step update failed:', err);
     }
     if (nextStep === 3) {
-      router.push({ pathname: '/(worker)/otp-complete', params: { bookingId } });
+      router.back();
     }
   }
 
@@ -168,11 +169,6 @@ export default function JobDetail() {
     checkLabel:     { flex: 1, fontFamily: typography.sans, fontSize: 13, color: c.fg },
     checkLabelDone: { color: c.fg3, textDecorationLine: 'line-through' },
 
-    photoRow:  { flexDirection: 'row', gap: 8, marginTop: spacing[2] },
-    photoBefore:{ flex: 1, height: 110, borderRadius: radii.md, overflow: 'hidden', backgroundColor: c.cardHi, borderWidth: 1, borderColor: c.line, justifyContent: 'flex-end', padding: spacing[2] },
-    photoLabel: { fontFamily: typography.mono, fontSize: 9, color: c.fg2, letterSpacing: 0.8, alignSelf: 'flex-start', backgroundColor: 'rgba(0,0,0,0.5)', paddingVertical: 3, paddingHorizontal: 7, borderRadius: 4 },
-    photoAdd:   { flex: 1, height: 110, borderRadius: radii.md, borderWidth: 1, borderColor: c.lineStrong, backgroundColor: c.lineFaint, alignItems: 'center', justifyContent: 'center', gap: 6 },
-    photoAddText:{ fontFamily: typography.mono, fontSize: 10, color: c.fg3, letterSpacing: 0.8 },
   });
 
   const currentStatus = STEP_STATUS[step];
@@ -256,27 +252,6 @@ export default function JobDetail() {
           </View>
         </View>
 
-        {/* Photos */}
-        <View style={s.section}>
-          <Text style={ss.eyebrow}>[PHOTOS] · BEFORE / AFTER</Text>
-          <View style={s.photoRow}>
-            <TouchableOpacity
-              style={s.photoBefore}
-              onPress={() => router.push({ pathname: '/(worker)/photo-capture', params: { bookingId, phase: 'before' } })}
-              activeOpacity={0.8}
-            >
-              <Text style={s.photoLabel}>BEFORE — TAP TO ADD</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={s.photoAdd}
-              onPress={() => router.push({ pathname: '/(worker)/photo-capture', params: { bookingId, phase: 'after' } })}
-              activeOpacity={0.8}
-            >
-              <Camera size={20} color={c.fg3} strokeWidth={1.5} />
-              <Text style={s.photoAddText}>ADD AFTER</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
       </ScrollView>
 
       {/* Footer actions */}
@@ -302,7 +277,7 @@ export default function JobDetail() {
           onPress={handleStepAdvance}
         >
           <Text style={ss.primaryBtnText}>
-            {step === 3 ? 'Awaiting OTP →' : 'Mark Step Complete →'}
+            {step === 3 ? 'Mark Complete →' : 'Next Step →'}
           </Text>
         </TouchableOpacity>
       </View>

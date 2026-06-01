@@ -45,8 +45,6 @@ export default function JobDetailPage() {
   const [booking,  setBooking]  = useState<(Booking & { id: string; customerName?: string; customerPhone?: string; bookingRef?: string }) | null>(null);
   const [loading,  setLoading]  = useState(true);
   const [updating, setUpdating] = useState(false);
-  const [otp,      setOtp]      = useState('');
-  const [otpError, setOtpError] = useState('');
 
   useEffect(() => {
     if (!id) return;
@@ -60,13 +58,6 @@ export default function JobDetailPage() {
     if (!booking || updating) return;
     const next = NEXT_STATUS[booking.status];
     if (!next) return;
-
-    // For completion, verify OTP
-    if (booking.status === 'inprogress') {
-      if (!otp || otp.length < 4) { setOtpError('Enter the 4-digit OTP from the customer.'); return; }
-      if (booking.otpCode && otp !== booking.otpCode) { setOtpError('Incorrect OTP. Ask the customer to check their booking.'); return; }
-    }
-
     setUpdating(true);
     await updateDoc(doc(db, 'bookings', id), {
       status:    next,
@@ -74,7 +65,6 @@ export default function JobDetailPage() {
       ...(next === 'done' ? { completedAt: serverTimestamp() } : {}),
     });
     setUpdating(false);
-    setOtpError('');
     if (next === 'done') router.replace('/worker/dashboard');
   }
 
@@ -194,30 +184,6 @@ export default function JobDetailPage() {
         ))}
       </Card>
 
-      {/* OTP input for completion */}
-      {status === 'inprogress' && (
-        <Card style={{ padding: 'var(--pc-space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-3)' }}>
-          <Eyebrow>COMPLETE JOB — GET OTP FROM CUSTOMER</Eyebrow>
-          <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)', margin: 0, lineHeight: 1.5 }}>
-            Ask the customer for their 4-digit booking OTP. It&apos;s shown on their booking confirmation.
-          </p>
-          <input
-            type="tel" inputMode="numeric" maxLength={4}
-            placeholder="1234"
-            value={otp}
-            onChange={e => { setOtp(e.target.value.replace(/\D/g, '')); setOtpError(''); }}
-            style={{
-              width: '100%', boxSizing: 'border-box',
-              padding: '14px 16px', textAlign: 'center',
-              background: 'var(--pc-card-hi)', border: `1px solid ${otpError ? 'var(--pc-danger)' : 'var(--pc-line-strong)'}`,
-              borderRadius: 'var(--pc-radius-sm)', color: 'var(--pc-fg)',
-              fontFamily: 'var(--pc-mono)', fontSize: 24, letterSpacing: '0.3em',
-              outline: 'none',
-            }}
-          />
-          {otpError && <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-danger)', margin: 0 }}>{otpError}</p>}
-        </Card>
-      )}
 
       {/* Action button */}
       {!isDone && actionLabel && (
