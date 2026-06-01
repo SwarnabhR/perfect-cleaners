@@ -40,6 +40,32 @@
         { "fieldPath": "status",       "order": "ASCENDING"  },
         { "fieldPath": "scheduledAt",  "order": "DESCENDING" }
       ]
+    },
+
+    {
+      "collectionGroup": "cleaningLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "workerId",  "order": "ASCENDING"  },
+        { "fieldPath": "cleanedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "cleaningLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "workerId",  "order": "ASCENDING" },
+        { "fieldPath": "societyId", "order": "ASCENDING" },
+        { "fieldPath": "cleanedAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "cleaningLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "customerId", "order": "ASCENDING"  },
+        { "fieldPath": "cleanedAt",  "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
