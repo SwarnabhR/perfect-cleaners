@@ -1,494 +1,346 @@
+import { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import Nav from '@/components/marketing/Nav';
 import Footer from '@/components/marketing/Footer';
 import Eyebrow from '@/components/ui/Eyebrow';
 
-const STEPS = [
-  {
-    num: '01',
-    label: 'SOCIETY LISTS',
-    title: 'Free to list, no commitment',
-    body: 'The RWA or facility manager contacts us. We agree on visit days (usually Mon / Wed / Fri) and add the society to the app. No cost to the society — ever.',
-  },
-  {
-    num: '02',
-    label: 'RESIDENTS SUBSCRIBE',
-    title: 'Each resident picks their plan',
-    body: 'Residents find the society in the app, choose a weekly or monthly subscription, and register their car. They pay Perfect Cleaners directly — the RWA is never billed.',
-  },
-  {
-    num: '03',
-    label: 'WE CLEAN',
-    title: 'Workers arrive on schedule',
-    body: 'Our certified team arrives at the society gate on the agreed days. Every subscribed car is cleaned with professional-grade products before the team departs.',
-  },
-  {
-    num: '04',
-    label: 'INSTANT NOTIFY',
-    title: 'Push notification when done',
-    body: 'The moment a car is marked clean, the subscriber gets a push notification — with the time, vehicle registration, and before/after photos.',
-  },
-] as const;
+export const metadata: Metadata = {
+  title: 'For Societies | Perfect Cleaners',
+  description: 'Bulk car-wash plans for residential societies and apartment complexes. Get a dedicated team, flexible scheduling, and discounted rates for your entire community.',
+};
 
-const SOCIETY_BENEFITS = [
-  {
-    title: 'Zero cost to the RWA',
-    body: 'Listing is completely free. Residents subscribe and pay individually — the society is never invoiced. You bring a premium service to your residents at no expense.',
-  },
-  {
-    title: 'Zero admin overhead',
-    body: 'We handle scheduling, staffing, and quality. The RWA gets a monthly activity report — no coordination needed from your side.',
-  },
-  {
-    title: 'Resident satisfaction lever',
-    body: 'A clean car every week is one of the most tangible quality-of-life improvements a society can offer. Every partner community has reported higher resident satisfaction scores after listing.',
-  },
-  {
-    title: 'Professional-grade, always',
-    body: "Koch Chemie, Meguiar's, CarPro — the same products used in our individual premium bookings. No diluted consumer alternatives on any society clean.",
-  },
-] as const;
+const steps = [
+  { n: '01', title: 'Register your society', body: 'Fill in a short form with your society name, location, and approximate number of cars. Takes under two minutes.' },
+  { n: '02', title: 'We confirm coverage', body: 'Our team checks whether your pin-code is in our service zone and reaches out within 24 hours.' },
+  { n: '03', title: 'Choose a plan', body: 'Pick Daily, Alternate-day, or Weekly cadence. Pricing is per vehicle and billed monthly to the society account.' },
+  { n: '04', title: 'We show up', body: 'A dedicated crew arrives at the agreed time every session. Residents track status in the app.' },
+];
 
-const RESIDENT_BENEFITS = [
+const benefits = [
   {
-    title: 'No booking, ever',
-    body: "Subscribe once, add your car. Your vehicle is cleaned on the society's fixed schedule without any action from you.",
+    icon: '₹',
+    title: 'Bulk pricing',
+    body: 'Societies with 20+ vehicles get up to 30 % off standard per-wash rates. More cars, better savings.',
   },
   {
-    title: 'Instant push notification',
-    body: "Know the exact moment your car was cleaned — with a before/after photo. No more uncertainty about whether today's session happened.",
+    icon: '📅',
+    title: 'Fixed schedule',
+    body: 'One recurring slot for the whole complex — no individual booking coordination required.',
   },
   {
-    title: 'Full cleaning history',
-    body: 'Every session is logged in the app with timestamps and photos. Your complete history is always a tap away.',
+    icon: '📱',
+    title: 'Resident app access',
+    body: 'Every resident gets live status updates, wash history, and the ability to pause their own vehicle.',
   },
   {
-    title: 'Pause or cancel anytime',
-    body: 'Change your plan, pause for a month, or cancel at any time from the app. No lock-in. No cancellation fees.',
+    icon: '🧾',
+    title: 'Single monthly invoice',
+    body: 'Society management gets one consolidated invoice. No per-household payment hassle.',
   },
-] as const;
+  {
+    icon: '🔒',
+    title: 'Verified crew',
+    body: 'Every worker is background-checked and carries a QR-verified ID badge displayed in the app.',
+  },
+  {
+    icon: '💬',
+    title: 'Dedicated support',
+    body: 'A named account manager for every society. Reach them on WhatsApp or email — no ticket queues.',
+  },
+];
 
-const PARTNER_SOCIETIES = [
-  'Uniworld City', 'ATS Greens', 'Jaypee Wish Town', 'Supertech Supernova',
-  'Gaur City', 'Amrapali Silicon City', 'Prateek Laurel', 'Antriksh Golf View',
-] as const;
-
-const STATS = [
-  ['50+',     'Partner societies'],
-  ['1,000+',  'Cars cleaned daily'],
-  ['10,000+', 'Residents served'],
-  ['< 5 min', 'Avg per vehicle'],
-] as const;
+const stats = [
+  { n: '120+', l: 'Societies served' },
+  { n: '8,000+', l: 'Vehicles washed / month' },
+  { n: '4.8 ★', l: 'Average society rating' },
+  { n: '< 24 h', l: 'Onboarding time' },
+];
 
 export default function ForSocietiesPage() {
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--pc-ink)', display: 'flex', flexDirection: 'column' }}>
+    <>
       <Nav />
-      <main style={{ flex: 1 }}>
+      <main style={{ paddingTop: 72 }}>
 
-        {/* ── Hero ──────────────────────────────────────────────────────────── */}
-        <div style={{
+        {/* ── Hero ── */}
+        <section style={{
           padding: 'var(--pc-space-20) var(--pc-screen-pad-lg) var(--pc-space-16)',
-          borderBottom: '1px solid var(--pc-line)',
-        }}>
-          <Eyebrow style={{ display: 'block', marginBottom: 'var(--pc-space-5)' }}>
-            [FOR RESIDENTIAL SOCIETIES]
-          </Eyebrow>
-          <h1 style={{
-            fontFamily: 'var(--pc-serif)',
-            fontSize: 'clamp(36px, 6vw, 64px)',
-            color: 'var(--pc-fg)',
-            letterSpacing: 'var(--pc-track-tight)',
-            lineHeight: 1.0,
-            margin: '0 0 var(--pc-space-6)',
-            maxWidth: 700,
-          }}>
-            Premium car care<br />for your entire community.
-          </h1>
-          <p style={{
-            fontFamily: 'var(--pc-sans)',
-            fontSize: 'var(--pc-text-lg)',
-            color: 'var(--pc-fg-2)',
-            lineHeight: 'var(--pc-lh-loose)',
-            maxWidth: 520,
-            margin: '0 0 var(--pc-space-8)',
-          }}>
-            List your society for free. Residents subscribe and pay individually — your premises get a professional car-care service at zero cost to the RWA.
-          </p>
-
-          <div className="pc-hero-ctas" style={{ display: 'flex', gap: 'var(--pc-space-3)', flexWrap: 'wrap' }}>
-            <Link
-              href="/contact"
-              className="pc-hero-cta-primary"
-              style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                padding: 'var(--pc-space-4) var(--pc-space-7)',
-                background: 'var(--pc-warm)', color: 'var(--pc-ink)',
-                border: 'none',
-                borderRadius: 'var(--pc-radius-pill)',
-                fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', fontWeight: 600,
-                textTransform: 'uppercase', letterSpacing: 'var(--pc-track-wide)',
-                textDecoration: 'none',
-                transition: 'background var(--pc-dur-fast) var(--pc-ease)',
-              }}
-            >
-              List Your Society — Free
-            </Link>
-            <a
-              href="#how-it-works"
-              className="pc-hero-cta-ghost"
-              style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                padding: 'var(--pc-space-4) var(--pc-space-7)',
-                background: 'transparent', color: 'var(--pc-fg)',
-                border: '1px solid currentColor',
-                borderRadius: 'var(--pc-radius-pill)',
-                fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', fontWeight: 500,
-                textTransform: 'uppercase', letterSpacing: 'var(--pc-track-wide)',
-                textDecoration: 'none',
-                transition: 'background var(--pc-dur-fast) var(--pc-ease), border-color var(--pc-dur-fast) var(--pc-ease)',
-              }}
-            >
-              How It Works
-            </a>
-          </div>
-        </div>
-
-        {/* ── Stats strip ───────────────────────────────────────────────────── */}
-        <div className="pc-for-societies-stats" style={{
+          maxWidth: 'var(--pc-maxw-content)',
+          margin: '0 auto',
           display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
+          gridTemplateColumns: '1fr 1fr',
+          gap: 'var(--pc-space-12)',
+          alignItems: 'center',
+        }} className="pc-about-grid">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-5)' }}>
+            <Eyebrow>For Residential Societies</Eyebrow>
+            <h1 style={{
+              fontFamily: 'var(--pc-serif)',
+              fontSize: 'var(--pc-text-3xl)',
+              lineHeight: 'var(--pc-lh-tight)',
+              letterSpacing: 'var(--pc-track-tight)',
+              color: 'var(--pc-fg)',
+              margin: 0,
+            }}>
+              One booking.<br />Every car.<br />Every morning.
+            </h1>
+            <p style={{
+              fontFamily: 'var(--pc-sans)',
+              fontSize: 'var(--pc-text-base)',
+              color: 'var(--pc-fg-2)',
+              lineHeight: 'var(--pc-lh-loose)',
+              maxWidth: 420,
+              margin: 0,
+            }}>
+              Perfect Cleaners partners with housing societies to provide
+              scheduled, crew-based car washing for every resident — at
+              discounted bulk rates with zero coordination overhead.
+            </p>
+            {/* ── CTA pair — identical to Hero / CTASection pill design ── */}
+            <div style={{ display: 'flex', gap: 'var(--pc-space-2)', flexWrap: 'wrap' }}>
+              <Link
+                href="/societies"
+                className="pc-hero-cta-primary"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  padding: 'var(--pc-space-4) var(--pc-space-6)',
+                  background: 'var(--pc-warm)', color: 'var(--pc-ink)',
+                  border: 'none', borderRadius: 'var(--pc-radius-pill)',
+                  fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)',
+                  fontWeight: 600, letterSpacing: 'var(--pc-track-wide)',
+                  textTransform: 'uppercase', textDecoration: 'none',
+                  cursor: 'pointer',
+                  transition: 'background var(--pc-dur-fast) var(--pc-ease), box-shadow var(--pc-dur-fast) var(--pc-ease)',
+                }}
+              >
+                Is my society listed?
+              </Link>
+              <Link
+                href="/contact"
+                className="pc-hero-cta-ghost"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  padding: 'var(--pc-space-4) var(--pc-space-6)',
+                  background: 'transparent', color: 'var(--pc-fg)',
+                  border: '1px solid var(--pc-line-warm)', borderRadius: 'var(--pc-radius-pill)',
+                  fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)',
+                  fontWeight: 500, letterSpacing: 'var(--pc-track-wide)',
+                  textTransform: 'uppercase', textDecoration: 'none',
+                  cursor: 'pointer',
+                  transition: 'background var(--pc-dur-fast) var(--pc-ease), border-color var(--pc-dur-fast) var(--pc-ease)',
+                }}
+              >
+                Contact Us
+              </Link>
+            </div>
+          </div>
+
+          {/* Right photo */}
+          <div style={{
+            position: 'relative', height: 380,
+            borderRadius: 'var(--pc-radius-xl)', overflow: 'hidden',
+            border: '1px solid var(--pc-line)',
+          }}>
+            <Image
+              src="/hero-professional-detailer.png"
+              alt="Perfect Cleaners crew washing cars in a residential society"
+              fill
+              sizes="(max-width: 768px) 100vw, 50vw"
+              style={{ objectFit: 'cover' }}
+            />
+          </div>
+        </section>
+
+        {/* ── Stats strip ── */}
+        <section style={{
+          borderTop: '1px solid var(--pc-line)',
           borderBottom: '1px solid var(--pc-line)',
         }}>
-          {STATS.map(([num, label], i) => (
-            <div key={label} style={{
+          <div
+            className="pc-for-societies-stats"
+            style={{
+              maxWidth: 'var(--pc-maxw-content)',
+              margin: '0 auto',
               padding: 'var(--pc-space-8) var(--pc-screen-pad-lg)',
-              borderRight: i < STATS.length - 1 ? '1px solid var(--pc-line)' : 'none',
-            }}>
-              <p style={{
-                fontFamily: 'var(--pc-serif)',
-                fontSize: 'clamp(24px, 3vw, 38px)',
-                color: 'var(--pc-fg)',
-                margin: 0,
-                lineHeight: 1,
-                letterSpacing: 'var(--pc-track-tight)',
-              }}>
-                {num}
-              </p>
-              <p style={{
-                fontFamily: 'var(--pc-sans)',
-                fontSize: 'var(--pc-text-xs)',
-                color: 'var(--pc-fg-3)',
-                margin: 'var(--pc-space-2) 0 0',
-                letterSpacing: 'var(--pc-track-wide)',
-              }}>
-                {label}
-              </p>
-            </div>
-          ))}
-        </div>
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4,1fr)',
+            }}
+          >
+            {stats.map((s, i) => (
+              <div
+                key={s.l}
+                style={{
+                  padding: 'var(--pc-space-4) var(--pc-space-5)',
+                  borderRight: i < stats.length - 1 ? '1px solid var(--pc-line)' : 'none',
+                }}
+              >
+                <p style={{
+                  fontFamily: 'var(--pc-serif)',
+                  fontSize: 'var(--pc-text-2xl)',
+                  color: 'var(--pc-fg)',
+                  letterSpacing: 'var(--pc-track-tight)',
+                  lineHeight: 1,
+                  margin: '0 0 var(--pc-space-1)',
+                }}>{s.n}</p>
+                <p style={{
+                  fontFamily: 'var(--pc-sans)',
+                  fontSize: 'var(--pc-text-xs)',
+                  color: 'var(--pc-fg-3)',
+                  margin: 0,
+                  letterSpacing: 'var(--pc-track-wide)',
+                  textTransform: 'uppercase',
+                }}>{s.l}</p>
+              </div>
+            ))}
+          </div>
+        </section>
 
-        {/* ── How it works ──────────────────────────────────────────────────── */}
-        <div
-          id="how-it-works"
-          style={{
-            padding: 'var(--pc-space-20) var(--pc-screen-pad-lg)',
-            borderBottom: '1px solid var(--pc-line)',
-          }}
-        >
-          <Eyebrow style={{ display: 'block', marginBottom: 'var(--pc-space-4)' }}>
-            [HOW IT WORKS]
-          </Eyebrow>
-          <h2 style={{
-            fontFamily: 'var(--pc-serif)',
-            fontSize: 'clamp(28px, 4vw, 44px)',
-            color: 'var(--pc-fg)',
-            letterSpacing: 'var(--pc-track-tight)',
-            lineHeight: 1.05,
-            margin: '0 0 var(--pc-space-3)',
-          }}>
-            From listing to your first clean.
-          </h2>
-          <p style={{
-            fontFamily: 'var(--pc-sans)',
-            fontSize: 'var(--pc-text-base)',
-            color: 'var(--pc-fg-3)',
-            margin: '0 0 var(--pc-space-10)',
-            maxWidth: 480,
-            lineHeight: 'var(--pc-lh-loose)',
-          }}>
-            A fully managed service — zero recurring effort for the RWA, zero booking effort for residents.
-          </p>
-
-          <div className="pc-for-societies-steps" style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: 'var(--pc-space-3)',
-          }}>
-            {STEPS.map(step => (
-              <div key={step.num} style={{
-                background: 'var(--pc-card)',
-                border: '1px solid var(--pc-line)',
-                borderRadius: 'var(--pc-radius-md)',
-                padding: 'var(--pc-space-6)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 'var(--pc-space-4)',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                  <span style={{
-                    fontFamily: 'var(--pc-mono)',
-                    fontSize: 'var(--pc-text-xs)',
-                    color: 'var(--pc-sage-hi)',
-                    letterSpacing: 'var(--pc-track-mono)',
-                  }}>
-                    {step.label}
-                  </span>
-                  <span style={{
-                    fontFamily: 'var(--pc-mono)',
-                    fontSize: 28,
-                    color: 'var(--pc-line-strong)',
-                    lineHeight: 1,
-                    letterSpacing: 'var(--pc-track-tight)',
-                  }}>
-                    {step.num}
-                  </span>
-                </div>
+        {/* ── How it works ── */}
+        <section style={{
+          maxWidth: 'var(--pc-maxw-content)',
+          margin: '0 auto',
+          padding: 'var(--pc-space-20) var(--pc-screen-pad-lg)',
+        }}>
+          <Eyebrow style={{ marginBottom: 'var(--pc-space-6)' }}>How it works</Eyebrow>
+          <div
+            className="pc-for-societies-steps"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4,1fr)',
+              gap: 'var(--pc-space-6)',
+            }}
+          >
+            {steps.map(s => (
+              <div key={s.n} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-3)' }}>
+                <span style={{
+                  fontFamily: 'var(--pc-mono)',
+                  fontSize: 'var(--pc-text-xs)',
+                  color: 'var(--pc-sage-hi)',
+                  letterSpacing: 'var(--pc-track-mono)',
+                }}>{s.n}</span>
                 <h3 style={{
                   fontFamily: 'var(--pc-sans)',
                   fontSize: 'var(--pc-text-base)',
                   fontWeight: 600,
                   color: 'var(--pc-fg)',
                   margin: 0,
-                  lineHeight: 1.3,
-                }}>
-                  {step.title}
-                </h3>
+                  lineHeight: 'var(--pc-lh-snug)',
+                }}>{s.title}</h3>
                 <p style={{
                   fontFamily: 'var(--pc-sans)',
                   fontSize: 'var(--pc-text-sm)',
-                  color: 'var(--pc-fg-3)',
-                  lineHeight: 'var(--pc-lh-loose)',
+                  color: 'var(--pc-fg-2)',
+                  lineHeight: 'var(--pc-lh-body)',
                   margin: 0,
-                  flex: 1,
-                }}>
-                  {step.body}
-                </p>
+                }}>{s.body}</p>
               </div>
             ))}
           </div>
-        </div>
+        </section>
 
-        {/* ── Benefits ──────────────────────────────────────────────────────── */}
-        <div className="pc-for-societies-benefits" style={{
-          padding: 'var(--pc-space-20) var(--pc-screen-pad-lg)',
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: 'var(--pc-space-16)',
+        {/* ── Benefits grid ── */}
+        <section style={{
+          background: 'var(--pc-card)',
+          borderTop: '1px solid var(--pc-line)',
           borderBottom: '1px solid var(--pc-line)',
         }}>
-          {/* RWA column */}
-          <div>
-            <Eyebrow style={{ display: 'block', marginBottom: 'var(--pc-space-4)' }}>[FOR THE RWA]</Eyebrow>
-            <h2 style={{
-              fontFamily: 'var(--pc-serif)',
-              fontSize: 'clamp(24px, 3vw, 36px)',
-              color: 'var(--pc-fg)',
-              letterSpacing: 'var(--pc-track-tight)',
-              lineHeight: 1.1,
-              margin: '0 0 var(--pc-space-8)',
-            }}>
-              Why societies choose us.
-            </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-6)' }}>
-              {SOCIETY_BENEFITS.map((b, i) => (
-                <div key={b.title} style={{ display: 'flex', gap: 'var(--pc-space-4)' }}>
-                  <span style={{
-                    fontFamily: 'var(--pc-mono)',
-                    fontSize: 'var(--pc-text-xs)',
-                    color: 'var(--pc-fg-4)',
-                    flexShrink: 0,
-                    paddingTop: 3,
-                  }}>
-                    0{i + 1}
-                  </span>
-                  <div>
-                    <p style={{
-                      fontFamily: 'var(--pc-sans)',
-                      fontSize: 'var(--pc-text-base)',
-                      fontWeight: 600,
-                      color: 'var(--pc-fg)',
-                      margin: '0 0 var(--pc-space-2)',
-                    }}>
-                      {b.title}
-                    </p>
-                    <p style={{
-                      fontFamily: 'var(--pc-sans)',
-                      fontSize: 'var(--pc-text-sm)',
-                      color: 'var(--pc-fg-3)',
-                      lineHeight: 'var(--pc-lh-loose)',
-                      margin: 0,
-                    }}>
-                      {b.body}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Resident column */}
-          <div>
-            <Eyebrow style={{ display: 'block', marginBottom: 'var(--pc-space-4)' }}>[FOR RESIDENTS]</Eyebrow>
-            <h2 style={{
-              fontFamily: 'var(--pc-serif)',
-              fontSize: 'clamp(24px, 3vw, 36px)',
-              color: 'var(--pc-fg)',
-              letterSpacing: 'var(--pc-track-tight)',
-              lineHeight: 1.1,
-              margin: '0 0 var(--pc-space-8)',
-            }}>
-              What subscribers get.
-            </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-6)' }}>
-              {RESIDENT_BENEFITS.map((b, i) => (
-                <div key={b.title} style={{ display: 'flex', gap: 'var(--pc-space-4)' }}>
-                  <span style={{
-                    fontFamily: 'var(--pc-mono)',
-                    fontSize: 'var(--pc-text-xs)',
-                    color: 'var(--pc-fg-4)',
-                    flexShrink: 0,
-                    paddingTop: 3,
-                  }}>
-                    0{i + 1}
-                  </span>
-                  <div>
-                    <p style={{
-                      fontFamily: 'var(--pc-sans)',
-                      fontSize: 'var(--pc-text-base)',
-                      fontWeight: 600,
-                      color: 'var(--pc-fg)',
-                      margin: '0 0 var(--pc-space-2)',
-                    }}>
-                      {b.title}
-                    </p>
-                    <p style={{
-                      fontFamily: 'var(--pc-sans)',
-                      fontSize: 'var(--pc-text-sm)',
-                      color: 'var(--pc-fg-3)',
-                      lineHeight: 'var(--pc-lh-loose)',
-                      margin: 0,
-                    }}>
-                      {b.body}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* ── Partner societies ─────────────────────────────────────────────── */}
-        <div style={{
-          padding: 'var(--pc-space-16) var(--pc-screen-pad-lg)',
-          borderBottom: '1px solid var(--pc-line)',
-        }}>
-          <Eyebrow style={{ display: 'block', marginBottom: 'var(--pc-space-3)' }}>
-            [OUR PARTNERS]
-          </Eyebrow>
-          <p style={{
-            fontFamily: 'var(--pc-sans)',
-            fontSize: 'var(--pc-text-sm)',
-            color: 'var(--pc-fg-3)',
-            margin: '0 0 var(--pc-space-8)',
-          }}>
-            Serving premium residential communities across Delhi NCR.
-          </p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--pc-space-2)' }}>
-            {PARTNER_SOCIETIES.map(name => (
-              <div key={name} style={{
-                padding: 'var(--pc-space-2) var(--pc-space-5)',
-                background: 'var(--pc-card)',
-                border: '1px solid var(--pc-line)',
-                borderRadius: 'var(--pc-radius-pill)',
-                fontFamily: 'var(--pc-sans)',
-                fontSize: 'var(--pc-text-sm)',
-                color: 'var(--pc-fg-2)',
-              }}>
-                {name}
+          <div
+            className="pc-for-societies-benefits"
+            style={{
+              maxWidth: 'var(--pc-maxw-content)',
+              margin: '0 auto',
+              padding: 'var(--pc-space-20) var(--pc-screen-pad-lg)',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3,1fr)',
+              gap: 'var(--pc-space-8) var(--pc-space-10)',
+            }}
+          >
+            {benefits.map(b => (
+              <div key={b.title} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-2)' }}>
+                <span style={{ fontSize: 22, lineHeight: 1 }}>{b.icon}</span>
+                <h3 style={{
+                  fontFamily: 'var(--pc-sans)',
+                  fontSize: 'var(--pc-text-base)',
+                  fontWeight: 600,
+                  color: 'var(--pc-fg)',
+                  margin: 0,
+                }}>{b.title}</h3>
+                <p style={{
+                  fontFamily: 'var(--pc-sans)',
+                  fontSize: 'var(--pc-text-sm)',
+                  color: 'var(--pc-fg-2)',
+                  lineHeight: 'var(--pc-lh-body)',
+                  margin: 0,
+                }}>{b.body}</p>
               </div>
             ))}
           </div>
-        </div>
+        </section>
 
-        {/* ── CTA ───────────────────────────────────────────────────────────── */}
-        <div style={{
+        {/* ── Bottom CTA ── */}
+        <section style={{
+          maxWidth: 'var(--pc-maxw-content)',
+          margin: '0 auto',
           padding: 'var(--pc-space-20) var(--pc-screen-pad-lg)',
           display: 'flex',
           flexDirection: 'column',
-          gap: 'var(--pc-space-6)',
-          maxWidth: 640,
+          alignItems: 'center',
+          textAlign: 'center',
+          gap: 'var(--pc-space-5)',
         }}>
-          <Eyebrow>[READY TO LIST?]</Eyebrow>
+          <Eyebrow>Get started today</Eyebrow>
           <h2 style={{
             fontFamily: 'var(--pc-serif)',
-            fontSize: 'clamp(28px, 4vw, 44px)',
-            color: 'var(--pc-fg)',
+            fontSize: 'var(--pc-text-2xl)',
+            lineHeight: 'var(--pc-lh-tight)',
             letterSpacing: 'var(--pc-track-tight)',
-            lineHeight: 1.05,
+            color: 'var(--pc-fg)',
             margin: 0,
+            maxWidth: 480,
           }}>
-            List your society — free.
+            Ready to bring perfect cleaning to your society?
           </h2>
-          <p style={{
-            fontFamily: 'var(--pc-sans)',
-            fontSize: 'var(--pc-text-base)',
-            color: 'var(--pc-fg-2)',
-            lineHeight: 'var(--pc-lh-loose)',
-            margin: 0,
-          }}>
-            Send us your society name and contact details. We will get back within 24 hours to schedule a visit and get your society on the app. No cost to the RWA — ever.
-          </p>
-          <div className="pc-hero-ctas" style={{ display: 'flex', gap: 'var(--pc-space-3)', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 'var(--pc-space-2)', flexWrap: 'wrap', justifyContent: 'center' }}>
             <Link
-              href="/contact"
+              href="/societies"
               className="pc-hero-cta-primary"
               style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                padding: 'var(--pc-space-4) var(--pc-space-8)',
+                padding: 'var(--pc-space-4) var(--pc-space-6)',
                 background: 'var(--pc-warm)', color: 'var(--pc-ink)',
-                border: 'none',
-                borderRadius: 'var(--pc-radius-pill)',
-                fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', fontWeight: 600,
-                textTransform: 'uppercase', letterSpacing: 'var(--pc-track-wide)',
-                textDecoration: 'none',
-                transition: 'background var(--pc-dur-fast) var(--pc-ease)',
+                border: 'none', borderRadius: 'var(--pc-radius-pill)',
+                fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)',
+                fontWeight: 600, letterSpacing: 'var(--pc-track-wide)',
+                textTransform: 'uppercase', textDecoration: 'none',
+                cursor: 'pointer',
+                transition: 'background var(--pc-dur-fast) var(--pc-ease), box-shadow var(--pc-dur-fast) var(--pc-ease)',
               }}
             >
-              Get in Touch →
+              Is my society listed?
             </Link>
             <Link
-              href="/plans"
+              href="/contact"
               className="pc-hero-cta-ghost"
               style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                padding: 'var(--pc-space-4) var(--pc-space-8)',
+                padding: 'var(--pc-space-4) var(--pc-space-6)',
                 background: 'transparent', color: 'var(--pc-fg)',
-                border: '1px solid currentColor',
-                borderRadius: 'var(--pc-radius-pill)',
-                fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', fontWeight: 500,
-                textTransform: 'uppercase', letterSpacing: 'var(--pc-track-wide)',
-                textDecoration: 'none',
+                border: '1px solid var(--pc-line-warm)', borderRadius: 'var(--pc-radius-pill)',
+                fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)',
+                fontWeight: 500, letterSpacing: 'var(--pc-track-wide)',
+                textTransform: 'uppercase', textDecoration: 'none',
+                cursor: 'pointer',
                 transition: 'background var(--pc-dur-fast) var(--pc-ease), border-color var(--pc-dur-fast) var(--pc-ease)',
               }}
             >
-              View Plans
+              Contact Us
             </Link>
           </div>
-        </div>
+        </section>
 
       </main>
       <Footer />
-    </div>
+    </>
   );
 }
