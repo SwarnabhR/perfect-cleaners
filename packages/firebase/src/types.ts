@@ -68,6 +68,7 @@ export interface Customer {
     unitNumber: string; // e.g. "1204"
   };
   walletBalance?: number;
+  outstandingBalance?: number;  // accumulated unpaid amount from society washes
   referralCode?: string;
   // Society resident fields — set when the customer belongs to a partner society
   societyId?: string;
@@ -181,7 +182,7 @@ export interface Society {
   isActive: boolean;
   contractStart: Date;
   contractEnd?: Date;
-  monthlyFee: number;          // ₹ per month for the whole society
+  pricePerWash: number;        // ₹ charged to each resident per exterior wash
   cleaningSchedule: string;    // e.g. "Mon, Wed, Fri · 7:00 AM"
   contactPerson: SocietyContact;
   assignedWorkerIds: string[];
@@ -189,7 +190,7 @@ export interface Society {
 }
 
 // Written by the worker app when a car is marked clean;
-// triggers a push notification to the resident via Cloud Function.
+// triggers a push notification + billing update via Cloud Function.
 export interface CleaningLog {
   id: string;
   societyId: string;
@@ -204,8 +205,10 @@ export interface CleaningLog {
   workerName: string;           // denormalized
   cleanedAt: Date;
   serviceType: 'exterior' | 'interior' | 'both';
+  servicePrice: number;         // ₹ amount added to customer's outstandingBalance
   photoUrls: string[];
   notificationSent: boolean;
+  billed: boolean;              // true once outstandingBalance has been incremented
 }
 
 export interface Promotion {

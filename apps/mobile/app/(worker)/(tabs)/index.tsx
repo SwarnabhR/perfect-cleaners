@@ -42,11 +42,12 @@ export default function WorkerHome() {
   const c      = useThemeColors();
   const ss     = useSharedStyles();
 
-  const [worker,   setWorker]   = useState<(Worker & { id: string }) | null>(null);
-  const [cars,     setCars]     = useState<ResidentCar[]>([]);
-  const [loading,  setLoading]  = useState(true);
-  const [toggling, setToggling] = useState(false);
-  const [marking,  setMarking]  = useState<string | null>(null);
+  const [worker,        setWorker]        = useState<(Worker & { id: string }) | null>(null);
+  const [pricePerWash,  setPricePerWash]  = useState(0);
+  const [cars,          setCars]          = useState<ResidentCar[]>([]);
+  const [loading,       setLoading]       = useState(true);
+  const [toggling,      setToggling]      = useState(false);
+  const [marking,       setMarking]       = useState<string | null>(null);
 
   const uid = auth().currentUser?.uid;
 
@@ -57,6 +58,17 @@ export default function WorkerHome() {
       if (snap.exists()) setWorker({ ...(snap.data() as Worker), id: snap.id });
     });
   }, [uid]);
+
+  // Fetch society pricePerWash when assignment changes
+  useEffect(() => {
+    if (!worker?.assignedSocietyId) { setPricePerWash(0); return; }
+    firestore()
+      .collection('societies')
+      .doc(worker.assignedSocietyId)
+      .get()
+      .then(snap => setPricePerWash((snap.data() as any)?.pricePerWash ?? 0))
+      .catch(() => {});
+  }, [worker?.assignedSocietyId]);
 
   // Load residents + today's logs when society changes
   useEffect(() => {
@@ -136,8 +148,10 @@ export default function WorkerHome() {
         workerName:          worker.name,
         cleanedAt:           firestore.FieldValue.serverTimestamp(),
         serviceType:         'exterior',
+        servicePrice:        pricePerWash,
         photoUrls:           [],
         notificationSent:    false,
+        billed:              false,
       });
       setCars(prev =>
         prev.map(c =>

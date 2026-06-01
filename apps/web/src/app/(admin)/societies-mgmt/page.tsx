@@ -199,7 +199,7 @@ export default function SocietiesMgmtPage() {
                 { label: 'Total Units',    value: (selected.totalUnits ?? 0).toLocaleString('en-IN') },
                 { label: 'Residents',      value: (selected.activeResidents ?? 0).toLocaleString('en-IN') },
                 { label: 'Vehicles',       value: (selected.vehicleCount ?? 0).toLocaleString('en-IN') },
-                { label: 'Monthly Fee',    value: selected.monthlyFee ? `₹${selected.monthlyFee.toLocaleString('en-IN')}` : '—' },
+                { label: 'Price per Wash', value: selected.pricePerWash ? `₹${selected.pricePerWash.toLocaleString('en-IN')}` : '—' },
                 { label: 'Schedule',       value: selected.cleaningSchedule || '—' },
                 { label: 'Contract Since', value: formatDate(selected.contractStart) },
               ].map(({ label, value }) => (

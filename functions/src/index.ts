@@ -254,6 +254,7 @@ export const onCleaningLogCreated = onDocumentCreated(
     const notifTitle   = `${reg} is clean ✓`;
     const notifBody    = `${vehicleLabel} at ${society} was cleaned at ${timeStr} by ${worker}.`;
 
+    const servicePrice = (log.servicePrice as number | undefined) ?? 0;
     const writes: Promise<unknown>[] = [];
 
     // In-app notification (always)
@@ -263,6 +264,33 @@ export const onCleaningLogCreated = onDocumentCreated(
         { logId, vehicleRegistration: reg },
       ),
     );
+
+    // Add service price to customer's outstanding balance and write a billing
+    // transaction so the customer can see an itemised history in the wallet screen.
+    if (servicePrice > 0) {
+      writes.push(
+        db.doc(`customers/${customerId}`).update({
+          outstandingBalance: FieldValue.increment(servicePrice),
+        }),
+      );
+      writes.push(
+        db
+          .collection('customers')
+          .doc(customerId)
+          .collection('transactions')
+          .add({
+            type:      'charge',
+            amount:    servicePrice,
+            label:     `${log.serviceType?.charAt(0).toUpperCase()}${(log.serviceType as string)?.slice(1)} wash · ${reg}`,
+            societyId: log.societyId,
+            logId,
+            createdAt: FieldValue.serverTimestamp(),
+          }),
+      );
+      writes.push(
+        db.doc(`cleaningLogs/${logId}`).update({ billed: true }),
+      );
+    }
 
     // FCM push to the resident's device
     const customerSnap = await db.doc(`customers/${customerId}`).get();

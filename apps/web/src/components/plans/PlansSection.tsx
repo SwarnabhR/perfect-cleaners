@@ -3,114 +3,72 @@
 import { useState } from 'react';
 import Link from 'next/link';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type Cycle = 'weekly' | 'monthly' | 'yearly';
-
-// ─── Plan data ──────────────────────────────────────────────────────────────────
-
-const PLANS = [
+const HOW_IT_WORKS = [
   {
-    id: 'starter',
-    name: 'Starter',
-    eyebrow: 'ESSENTIAL CARE',
-    tagline: 'Consistent cleanliness, every week.',
-    prices: { weekly: 899, monthly: 2999, yearly: 29999 },
-    yearlyPerMonth: 2500,
-    popular: false,
-    features: [
-      'Weekly Exterior Wash',
-      'Tyre dressing & shine included',
-      'Interior dashboard wipe-down',
-      '10% off on-demand bookings',
-      'Priority scheduling',
-    ],
+    num: '01',
+    title: 'Register your car',
+    body: 'Download the app, select your society and tower, and add your vehicle. That is all the setup you ever need to do.',
   },
   {
-    id: 'pro',
-    name: 'Pro',
-    eyebrow: 'PREMIUM DETAIL',
-    tagline: 'Showroom standard, consistently.',
-    prices: { weekly: 1499, monthly: 4999, yearly: 49999 },
-    yearlyPerMonth: 4167,
-    popular: true,
-    features: [
-      'Weekly Premium Wash',
-      'Full interior vacuum & steam clean',
-      'Leather & dashboard conditioning',
-      'Spray wax paint protection',
-      '20% off Ceramic & PPF',
-      'VIP emergency clean slots',
-    ],
+    num: '02',
+    title: 'We clean on schedule',
+    body: 'Workers arrive at your society on agreed days and clean every registered car. No booking. No reminders. No action needed from you.',
   },
   {
-    id: 'elite',
-    name: 'Elite',
-    eyebrow: 'CONCIERGE',
-    tagline: 'White-glove care for exceptional cars.',
-    prices: { weekly: 2499, monthly: 7999, yearly: 79999 },
-    yearlyPerMonth: 6667,
-    popular: false,
-    features: [
-      'Weekly Full Detail',
-      'Paint decontamination (bi-weekly)',
-      'Quarterly ceramic nano-coat boost',
-      'Free pickup & drop-off',
-      '30% off all additional services',
-      'Dedicated detailing specialist',
-    ],
+    num: '03',
+    title: 'You get notified instantly',
+    body: 'The moment your car is marked clean, you receive a push notification with the time and before/after photos.',
+  },
+  {
+    num: '04',
+    title: 'Bill accumulates, you pay when ready',
+    body: 'Each wash adds the society\'s fixed price to your outstanding balance. Pay whenever you like from the app — no due dates, no late fees.',
   },
 ] as const;
-
-// ─── FAQ items ──────────────────────────────────────────────────────────────────
 
 const FAQS = [
   {
-    q: 'Can I change or cancel my plan at any time?',
-    a: 'You can upgrade or downgrade at any time — changes take effect from the next billing cycle. Cancellations require 30 days\' notice; no lock-ins on monthly or weekly plans.',
+    q: 'How is the price per wash decided?',
+    a: 'The price is set per society and agreed when the society is listed on the platform. It is a fixed amount per clean — the same for every vehicle in the society regardless of size. Your society manager or admin can confirm the exact figure.',
   },
   {
-    q: 'What if I need to reschedule a visit?',
-    a: 'Any visit can be rescheduled up to 48 hours in advance at no cost. Same-day rescheduling is handled on a best-effort basis — call us directly.',
+    q: 'When do I need to pay?',
+    a: 'There is no due date or billing cycle. Your outstanding balance accumulates as washes happen. You can pay off the full amount (or part of it) at any time from the Bill screen in the app. We will continue cleaning your car while there is an outstanding balance.',
   },
   {
-    q: 'Is there a setup or joining fee?',
-    a: 'None. Your first visit is booked within 3 business days of signing up. Annual plans are billed in full upfront; monthly and weekly plans are charged at the start of each cycle.',
+    q: 'What payment methods are accepted?',
+    a: 'UPI, credit/debit card, and net banking via Razorpay. All payments are encrypted and processed securely.',
   },
   {
-    q: 'Do you service all vehicle types?',
-    a: 'Yes — hatchbacks, sedans, SUVs, MUVs, and exotics. Larger vehicles (full-size SUVs, vans) may attract a small surcharge on Starter and Pro plans.',
+    q: 'Can I pause or stop the service?',
+    a: 'Contact us or your society admin to remove your vehicle from the active list. Any outstanding balance at that point remains payable.',
+  },
+  {
+    q: 'What happens if my society is not listed yet?',
+    a: 'Ask your RWA or facility manager to list the society — it is free and takes under 24 hours. Once listed, you can register immediately.',
   },
 ] as const;
-
-// ─── FAQ accordion item ────────────────────────────────────────────────────────────────
 
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <div style={{
-      borderBottom: '1px solid var(--pc-line)',
-      padding: '20px 0',
-    }}>
+    <div style={{ borderBottom: '1px solid var(--pc-line)', padding: '20px 0' }}>
       <button
         type="button"
-        onClick={() => setOpen(v => !v)}
+        onClick={() => setOpen((v: boolean) => !v)}
         style={{
           width: '100%', display: 'flex', alignItems: 'center',
           justifyContent: 'space-between', gap: 16,
-          background: 'none', border: 'none', cursor: 'pointer',
-          textAlign: 'left', padding: 0,
+          background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0,
         }}
       >
-        <span style={{
-          fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-base)',
-          fontWeight: 500, color: 'var(--pc-fg)', lineHeight: 'var(--pc-lh-snug)',
-        }}>{q}</span>
+        <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-base)', fontWeight: 500, color: 'var(--pc-fg)', lineHeight: 'var(--pc-lh-snug)' }}>
+          {q}
+        </span>
         <span style={{
           width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
           border: '1px solid var(--pc-line-strong)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: 'var(--pc-fg-3)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--pc-fg-3)',
           transform: open ? 'rotate(45deg)' : 'none',
           transition: 'transform var(--pc-dur-fast) var(--pc-ease)',
         }}>
@@ -120,36 +78,20 @@ function FaqItem({ q, a }: { q: string; a: string }) {
         </span>
       </button>
       {open && (
-        <p style={{
-          fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)',
-          color: 'var(--pc-fg-2)', lineHeight: 'var(--pc-lh-loose)',
-          marginTop: 12, maxWidth: 680,
-        }}>{a}</p>
+        <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg-2)', lineHeight: 'var(--pc-lh-loose)', marginTop: 12, maxWidth: 680 }}>
+          {a}
+        </p>
       )}
     </div>
   );
 }
 
-// ─── Main component ────────────────────────────────────────────────────────────────────
-
 export default function PlansSection() {
-  const [cycle, setCycle] = useState<Cycle>('monthly');
-
-  const cycleLabel: Record<Cycle, string> = {
-    weekly:  'wk',
-    monthly: 'mo',
-    yearly:  'yr',
-  };
-
   return (
-    <div style={{
-      padding: 'var(--pc-space-20) var(--pc-screen-pad-lg) var(--pc-space-20)',
-      maxWidth: 1200,
-      margin: '0 auto',
-    }}>
+    <div style={{ padding: 'var(--pc-space-20) var(--pc-screen-pad-lg) var(--pc-space-20)', maxWidth: 1200, margin: '0 auto' }}>
 
-      {/* ── Hero header ── */}
-      <div style={{ textAlign: 'center', marginBottom: 48 }}>
+      {/* Hero header */}
+      <div style={{ textAlign: 'center', marginBottom: 64 }}>
         <div style={{
           display: 'inline-block',
           fontFamily: 'var(--pc-mono)', fontSize: 10, letterSpacing: 'var(--pc-track-wide)',
@@ -157,270 +99,101 @@ export default function PlansSection() {
           border: '1px solid var(--pc-line)', borderRadius: 999,
           padding: '5px 14px', marginBottom: 20,
         }}>
-          [SUBSCRIPTION PLANS]
+          [HOW BILLING WORKS]
         </div>
 
-        <h1 style={{
-          fontFamily: 'var(--pc-serif)',
-          fontSize: 'clamp(32px, 5vw, 64px)',
-          color: 'var(--pc-fg)', letterSpacing: 'var(--pc-track-tight)',
-          lineHeight: 'var(--pc-lh-tight)', margin: '0 0 16px',
-        }}>
-          Choose your cadence.
+        <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 'clamp(32px, 5vw, 56px)', color: 'var(--pc-fg)', letterSpacing: 'var(--pc-track-tight)', lineHeight: 'var(--pc-lh-tight)', margin: '0 0 20px' }}>
+          Pay per wash.<br />No subscriptions.
         </h1>
 
-        <p style={{
-          fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-base)',
-          color: 'var(--pc-fg-2)', lineHeight: 'var(--pc-lh-body)',
-          maxWidth: 520, margin: '0 auto 36px',
-        }}>
-          Regular care, predictable pricing. Pick the frequency that fits your life — cancel or change anytime.
+        <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-lg)', color: 'var(--pc-fg-2)', lineHeight: 'var(--pc-lh-loose)', maxWidth: 520, margin: '0 auto 40px' }}>
+          Each wash adds a fixed amount to your outstanding balance. Pay it off whenever you like — no due dates, no lock-in, no billing cycles.
         </p>
 
-        {/* Billing cycle toggle */}
-        <div style={{
-          display: 'inline-flex', gap: 4, padding: 4,
-          background: 'var(--pc-card)', borderRadius: 999,
-          border: '1px solid var(--pc-line)',
-          maxWidth: '100%',
-        }}>
-          {(['weekly', 'monthly', 'yearly'] as Cycle[]).map(c => (
-            <button
-              key={c}
-              type="button"
-              onClick={() => setCycle(c)}
-              style={{
-                padding: 'clamp(7px, 2vw, 9px) clamp(10px, 3vw, 20px)',
-                borderRadius: 999,
-                background: cycle === c ? 'var(--pc-ink-raised)' : 'transparent',
-                color: cycle === c ? 'var(--pc-fg)' : 'var(--pc-fg-2)',
-                border: cycle === c ? '1px solid var(--pc-line-strong)' : '1px solid transparent',
-                fontFamily: 'var(--pc-sans)',
-                fontSize: 'clamp(11px, 3vw, var(--pc-text-sm))',
-                fontWeight: cycle === c ? 600 : 400,
-                letterSpacing: '0.03em',
-                cursor: 'pointer',
-                display: 'flex', alignItems: 'center',
-                gap: 'clamp(3px, 1vw, 7px)',
-                whiteSpace: 'nowrap',
-                transition: 'background var(--pc-dur-fast) var(--pc-ease), color var(--pc-dur-fast) var(--pc-ease)',
-              }}
-            >
-              {c === 'weekly' ? 'Weekly' : c === 'monthly' ? 'Monthly' : 'Yearly'}
-              {c === 'monthly' && (
-                <span style={{
-                  background: 'rgba(91,111,82,0.25)',
-                  color: 'var(--pc-sage-ink)',
-                  borderRadius: 999,
-                  padding: '2px 6px',
-                  fontFamily: 'var(--pc-mono)', fontSize: 9,
-                  letterSpacing: 'var(--pc-track-mono)',
-                  display: 'inline-block',
-                }}>−23%</span>
-              )}
-              {c === 'yearly' && (
-                <span style={{
-                  background: 'rgba(91,111,82,0.25)',
-                  color: 'var(--pc-sage-ink)',
-                  borderRadius: 999,
-                  padding: '2px 6px',
-                  fontFamily: 'var(--pc-mono)', fontSize: 9,
-                  letterSpacing: 'var(--pc-track-mono)',
-                  display: 'inline-block',
-                }}>−17%</span>
-              )}
-            </button>
-          ))}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <Link
+            href="/for-societies"
+            style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              padding: 'var(--pc-space-4) var(--pc-space-7)',
+              background: 'var(--pc-warm)', color: 'var(--pc-ink)',
+              borderRadius: 'var(--pc-radius-pill)',
+              fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', fontWeight: 600,
+              textTransform: 'uppercase', letterSpacing: 'var(--pc-track-wide)', textDecoration: 'none',
+            }}
+          >
+            Is my society listed?
+          </Link>
+          <Link
+            href="/contact"
+            style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              padding: 'var(--pc-space-4) var(--pc-space-7)',
+              background: 'transparent', color: 'var(--pc-fg)',
+              border: '1px solid var(--pc-line-strong)', borderRadius: 'var(--pc-radius-pill)',
+              fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', fontWeight: 500,
+              textTransform: 'uppercase', letterSpacing: 'var(--pc-track-wide)', textDecoration: 'none',
+            }}
+          >
+            Contact Us
+          </Link>
         </div>
       </div>
 
-      {/* ── Plan cards ── */}
+      {/* How it works — 4 steps */}
       <div className="pc-plans-grid" style={{ marginBottom: 64 }}>
-        {PLANS.map(plan => {
-          const price   = plan.prices[cycle];
-          const popular = plan.popular;
-
-          return (
-            <div
-              key={plan.id}
-              style={{
-                background: 'var(--pc-card)',
-                border: `1px solid ${popular ? 'rgba(91,111,82,0.55)' : 'var(--pc-line)'}`,
-                borderRadius: 20,
-                padding: 'clamp(20px, 4vw, 36px) clamp(16px, 4vw, 32px)',
-                display: 'flex', flexDirection: 'column',
-                position: 'relative',
-                boxShadow: popular ? 'var(--pc-shadow-glow-sage)' : 'none',
-              }}
-            >
-              {popular && (
-                <div style={{
-                  position: 'absolute', top: -13, left: '50%',
-                  transform: 'translateX(-50%)',
-                  background: 'var(--pc-sage)',
-                  color: 'var(--pc-sage-ink)',
-                  padding: '4px 16px',
-                  borderRadius: 999,
-                  fontFamily: 'var(--pc-mono)', fontSize: 9,
-                  letterSpacing: 'var(--pc-track-wide)',
-                  whiteSpace: 'nowrap',
-                }}>MOST POPULAR</div>
-              )}
-
-              {/* Eyebrow */}
-              <div style={{
-                fontFamily: 'var(--pc-mono)', fontSize: 9,
-                letterSpacing: 'var(--pc-track-wide)',
-                color: popular ? 'var(--pc-sage-hi)' : 'var(--pc-fg-3)',
-                marginBottom: 10,
-              }}>{plan.eyebrow}</div>
-
-              {/* Plan name */}
-              <h2 style={{
-                fontFamily: 'var(--pc-serif)',
-                fontSize: 'clamp(24px, 3vw, 36px)',
-                color: 'var(--pc-fg)',
-                letterSpacing: 'var(--pc-track-tight)',
-                margin: '0 0 6px', lineHeight: 1,
-              }}>{plan.name}</h2>
-
-              {/* Tagline */}
-              <p style={{
-                fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)',
-                color: 'var(--pc-fg-2)', lineHeight: 'var(--pc-lh-body)',
-                margin: '0 0 24px',
-              }}>{plan.tagline}</p>
-
-              {/* Price */}
-              <div style={{ marginBottom: 24 }}>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                  <span style={{
-                    fontFamily: 'var(--pc-serif)',
-                    fontSize: 'clamp(32px, 4vw, 52px)',
-                    color: 'var(--pc-fg)',
-                    letterSpacing: 'var(--pc-track-tight)',
-                    lineHeight: 1,
-                  }}>
-                    ₹{price.toLocaleString('en-IN')}
-                  </span>
-                  <span style={{
-                    fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)',
-                    color: 'var(--pc-fg-3)',
-                  }}>/{cycleLabel[cycle]}</span>
-                </div>
-
-                <div style={{
-                  fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)',
-                  color: 'var(--pc-fg-3)', marginTop: 6, lineHeight: 'var(--pc-lh-body)',
-                }}>
-                  {cycle === 'yearly' && `≈ ₹${plan.yearlyPerMonth.toLocaleString('en-IN')}/mo · billed annually`}
-                  {cycle === 'monthly' && '~4 visits per month · billed monthly'}
-                  {cycle === 'weekly' && '1 visit per week · billed weekly'}
-                </div>
-              </div>
-
-              {/* Divider */}
-              <div style={{ borderTop: '1px solid var(--pc-line)', marginBottom: 20 }} />
-
-              {/* Features */}
-              <ul style={{
-                listStyle: 'none', padding: 0, margin: '0 0 28px',
-                display: 'flex', flexDirection: 'column', gap: 10, flex: 1,
-              }}>
-                {plan.features.map((f, i) => (
-                  <li key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                    <svg
-                      width="14" height="14" viewBox="0 0 24 24" fill="none"
-                      stroke={popular ? 'var(--pc-sage-hi)' : 'var(--pc-fg-3)'}
-                      strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                      style={{ flexShrink: 0, marginTop: 1 }}
-                    >
-                      <path d="M20 6 9 17l-5-5"/>
-                    </svg>
-                    <span style={{
-                      fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)',
-                      color: 'var(--pc-fg)', lineHeight: 'var(--pc-lh-body)',
-                    }}>{f}</span>
-                  </li>
-                ))}
-              </ul>
-
-              {/* CTA */}
-              <Link
-                href={`/subscribe?plan=${plan.id}&cycle=${cycle}`}
-                style={{
-                  display: 'block', textAlign: 'center',
-                  padding: '13px 0', borderRadius: 999,
-                  background: popular ? 'var(--pc-warm)' : 'transparent',
-                  color: popular ? 'var(--pc-ink)' : 'var(--pc-fg)',
-                  border: popular ? 'none' : '1px solid var(--pc-line-strong)',
-                  fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)',
-                  fontWeight: popular ? 600 : 500,
-                  letterSpacing: '0.05em',
-                  textDecoration: 'none',
-                  textTransform: 'uppercase',
-                  transition: 'opacity var(--pc-dur-fast) var(--pc-ease)',
-                }}
-              >
-                Get Started →
-              </Link>
+        {HOW_IT_WORKS.map(step => (
+          <div key={step.num} style={{
+            background: 'var(--pc-card)', border: '1px solid var(--pc-line)',
+            borderRadius: 'var(--pc-radius-md)',
+            padding: 'clamp(20px, 4vw, 32px)',
+            display: 'flex', flexDirection: 'column', gap: 16,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-sage-hi)', letterSpacing: 'var(--pc-track-mono)' }}>
+                STEP {step.num}
+              </span>
+              <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 28, color: 'var(--pc-line-strong)', lineHeight: 1 }}>
+                {step.num}
+              </span>
             </div>
-          );
-        })}
-      </div>
-
-      {/* ── Value comparison strip ── */}
-      <div className="pc-plans-value-strip" style={{ marginBottom: 64 }}>
-        {[
-          { num: '₹0',     label: 'Setup fee'              },
-          { num: '48 hr',  label: 'Free reschedule window' },
-          { num: '30-day', label: 'Cancellation notice'    },
-          { num: '3 days', label: 'First visit turnaround' },
-        ].map(({ num, label }) => (
-          <div key={label} style={{ textAlign: 'center' }}>
-            <div style={{
-              fontFamily: 'var(--pc-serif)',
-              fontSize: 'clamp(24px, 3vw, 36px)',
-              color: 'var(--pc-fg)', letterSpacing: 'var(--pc-track-tight)',
-              marginBottom: 6,
-            }}>{num}</div>
-            <div style={{
-              fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)',
-              color: 'var(--pc-fg-3)', letterSpacing: 'var(--pc-track-wide)',
-              textTransform: 'uppercase',
-            }}>{label}</div>
+            <h2 style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-base)', fontWeight: 600, color: 'var(--pc-fg)', margin: 0, lineHeight: 1.3 }}>
+              {step.title}
+            </h2>
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg-3)', lineHeight: 'var(--pc-lh-loose)', margin: 0, flex: 1 }}>
+              {step.body}
+            </p>
           </div>
         ))}
       </div>
 
-      {/* ── FAQ ── */}
+      {/* Value strip */}
+      <div className="pc-plans-value-strip" style={{ marginBottom: 64 }}>
+        {[
+          { num: '₹0',     label: 'Setup fee'          },
+          { num: '₹0',     label: 'Cancellation fee'   },
+          { num: 'Any',    label: 'Pay anytime'         },
+          { num: '< 5 min', label: 'Avg per vehicle'   },
+        ].map(({ num, label }) => (
+          <div key={label} style={{ textAlign: 'center' }}>
+            <div style={{ fontFamily: 'var(--pc-serif)', fontSize: 'clamp(24px, 3vw, 36px)', color: 'var(--pc-fg)', letterSpacing: 'var(--pc-track-tight)', marginBottom: 6 }}>
+              {num}
+            </div>
+            <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)', letterSpacing: 'var(--pc-track-wide)', textTransform: 'uppercase' }}>
+              {label}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* FAQ */}
       <div style={{ maxWidth: 720, margin: '0 auto' }}>
-        <div style={{
-          fontFamily: 'var(--pc-mono)', fontSize: 10, letterSpacing: 'var(--pc-track-wide)',
-          color: 'var(--pc-fg-3)', textTransform: 'uppercase',
-          marginBottom: 32, textAlign: 'center',
-        }}>
+        <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, letterSpacing: 'var(--pc-track-wide)', color: 'var(--pc-fg-3)', textTransform: 'uppercase', marginBottom: 32, textAlign: 'center' }}>
           [COMMON QUESTIONS]
         </div>
         {FAQS.map(faq => <FaqItem key={faq.q} q={faq.q} a={faq.a} />)}
       </div>
 
-      {/* ── Bottom link ── */}
-      <div style={{ textAlign: 'center', marginTop: 56 }}>
-        <p style={{
-          fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)',
-          color: 'var(--pc-fg-3)', marginBottom: 12,
-        }}>
-          Looking for a one-time booking instead?
-        </p>
-        <Link href="/book" style={{
-          fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)',
-          color: 'var(--pc-fg-2)', textDecoration: 'underline',
-          textUnderlineOffset: 3,
-        }}>
-          Book a single service →
-        </Link>
-      </div>
     </div>
   );
 }

@@ -1,47 +1,49 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, Alert } from 'react-native';
+import { ScrollView, View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ArrowDown, ArrowUp } from 'lucide-react-native';
+import { CheckCircle2, CreditCard } from 'lucide-react-native';
 import auth from '@react-native-firebase/auth';
 import firestore, { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
 import { typography, spacing, radii } from '@pc/tokens';
 import { useThemeColors } from '../../theme';
 import { useSharedStyles } from '../../theme/sharedStyles';
 import { ScreenHeader, Group, Row } from '../../components/RowGroup';
-import { StyleSheet } from 'react-native';
 
-type TxType = 'in' | 'out';
-
-interface Transaction {
-  id:    string;
-  type:  TxType;
-  amt:   number;
-  label: string;
-  date:  string;
-  ts:    number;
+interface WashEntry {
+  id:          string;
+  label:       string;
+  plate:       string;
+  societyName: string;
+  amount:      number;
+  date:        string;
+  ts:          number;
+  type:        'charge' | 'payment';
 }
 
-function toTx(d: FirebaseFirestoreTypes.QueryDocumentSnapshot): Transaction {
+function toEntry(d: FirebaseFirestoreTypes.QueryDocumentSnapshot): WashEntry {
   const data = d.data();
-  const at: Date = data.createdAt?.toDate?.() ?? new Date();
+  const at   = data.createdAt?.toDate?.() ?? new Date();
   return {
-    id:    d.id,
-    type:  (data.type === 'out' ? 'out' : 'in') as TxType,
-    amt:   data.amount ?? 0,
-    label: data.label ?? (data.type === 'in' ? 'Credit added' : 'Credit applied'),
-    date:  at.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
-    ts:    at.getTime(),
+    id:          d.id,
+    label:       data.label ?? 'Wash',
+    plate:       '',
+    societyName: data.societyId ?? '',
+    amount:      data.amount ?? 0,
+    date:        at.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+    ts:          at.getTime(),
+    type:        data.type === 'payment' ? 'payment' : 'charge',
   };
 }
 
 export default function WalletScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const c  = useThemeColors();
-  const ss = useSharedStyles();
-  const [balance,      setBalance]      = useState(0);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const c      = useThemeColors();
+  const ss     = useSharedStyles();
+
+  const [outstanding, setOutstanding] = useState(0);
+  const [entries,     setEntries]     = useState<WashEntry[]>([]);
 
   useEffect(() => {
     const user = auth().currentUser;
@@ -52,7 +54,7 @@ export default function WalletScreen() {
       .doc(user.uid)
       .onSnapshot(
         snap => {
-          if (snap.exists()) setBalance(snap.data()?.walletBalance ?? 0);
+          if (snap.exists()) setOutstanding(snap.data()?.outstandingBalance ?? 0);
         },
         err => console.warn('[Wallet] balance:', err.message),
       );
@@ -62,27 +64,49 @@ export default function WalletScreen() {
       .doc(user.uid)
       .collection('transactions')
       .orderBy('createdAt', 'desc')
-      .limit(30)
+      .limit(50)
       .onSnapshot(
-        snap => setTransactions(snap.docs.map(toTx)),
+        snap => setEntries(snap.docs.map(toEntry)),
         err => console.warn('[Wallet] transactions:', err.message),
       );
 
     return () => { unsubBalance(); unsubTx(); };
   }, []);
 
+  function handlePayNow() {
+    if (outstanding <= 0) {
+      Alert.alert('All clear', 'You have no outstanding balance.');
+      return;
+    }
+    router.push({
+      pathname: '/(customer)/payment',
+      params: {
+        bookingId:  'wallet-settle',
+        bookingRef: 'SETTLE',
+        amount:     String(outstanding),
+        label:      'Settle balance',
+        slot:       '',
+        name:       '',
+        phone:      '',
+      },
+    });
+  }
+
+  const isPaid = outstanding <= 0;
+
   const s = StyleSheet.create({
-    cardWrap:          { paddingHorizontal: spacing[5], paddingBottom: spacing[1] },
-    balanceCard:       { borderRadius: radii.lg, padding: 22, backgroundColor: c.sage, overflow: 'hidden' },
-    balanceAmount:     { fontFamily: typography.serif, fontSize: 52, color: '#fff', letterSpacing: -0.5, lineHeight: 58, marginTop: 4 },
-    balanceSub:        { fontFamily: typography.sans, fontSize: 13, color: 'rgba(255,255,255,0.75)', marginTop: 6 },
-    cardActions:       { flexDirection: 'row', gap: 8, marginTop: 18 },
-    primaryAction:     { flex: 1, backgroundColor: c.warm, borderRadius: radii.sm, paddingVertical: 11, alignItems: 'center' },
-    primaryActionText: { fontFamily: typography.sansSemiBold, fontSize: 13, color: c.ink, letterSpacing: 0.2 },
-    ghostAction:       { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', borderRadius: radii.sm, paddingVertical: 11, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
-    ghostActionText:   { fontFamily: typography.sansSemiBold, fontSize: 13, color: '#fff', letterSpacing: 0.2 },
-    txAmt:             { fontFamily: typography.serif, fontSize: 17 },
-    emptyTx:           { fontFamily: typography.sans, fontSize: 13, color: c.fg3, textAlign: 'center', paddingVertical: spacing[6] },
+    cardWrap:           { paddingHorizontal: spacing[5], paddingBottom: spacing[1] },
+    billCard:           { borderRadius: radii.lg, padding: 22, backgroundColor: isPaid ? c.sage : c.card, borderWidth: isPaid ? 0 : 1, borderColor: c.lineStrong, overflow: 'hidden' },
+    billAmount:         { fontFamily: typography.serif, fontSize: 52, color: isPaid ? '#fff' : c.fg, letterSpacing: -0.5, lineHeight: 58, marginTop: 4 },
+    billSub:            { fontFamily: typography.sans, fontSize: 13, color: isPaid ? 'rgba(255,255,255,0.75)' : c.fg3, marginTop: 6 },
+    cardActions:        { flexDirection: 'row', gap: 8, marginTop: 18 },
+    primaryAction:      { flex: 1, backgroundColor: c.warm, borderRadius: radii.sm, paddingVertical: 11, alignItems: 'center' },
+    primaryActionText:  { fontFamily: typography.sansSemiBold, fontSize: 13, color: c.ink, letterSpacing: 0.2 },
+    ghostAction:        { flex: 1, backgroundColor: 'rgba(0,0,0,0.18)', borderRadius: radii.sm, paddingVertical: 11, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
+    ghostActionText:    { fontFamily: typography.sansSemiBold, fontSize: 13, color: '#fff', letterSpacing: 0.2 },
+    chargeAmount:       { fontFamily: typography.serif, fontSize: 17, color: c.fg },
+    paymentAmount:      { fontFamily: typography.serif, fontSize: 17, color: c.success },
+    emptyTx:            { fontFamily: typography.sans, fontSize: 13, color: c.fg3, textAlign: 'center', paddingVertical: spacing[6] },
   });
 
   return (
@@ -92,33 +116,40 @@ export default function WalletScreen() {
       showsVerticalScrollIndicator={false}
     >
       <View style={{ paddingTop: insets.top }}>
-        <ScreenHeader title="Credits" />
+        <ScreenHeader title="Bill" />
       </View>
 
       <View style={ss.titleSection}>
-        <Text style={ss.pageTitle}>Your credits.</Text>
+        <Text style={ss.pageTitle}>Your bill.</Text>
       </View>
 
       <View style={s.cardWrap}>
-        <View style={s.balanceCard}>
-          <Text style={ss.eyebrow}>[YOUR BALANCE]</Text>
-          <Text style={s.balanceAmount}>₹{balance.toLocaleString('en-IN')}</Text>
-          <Text style={s.balanceSub}>Auto-applies to your next booking · No expiry</Text>
+        <View style={s.billCard}>
+          <Text style={ss.eyebrow}>[OUTSTANDING BALANCE]</Text>
+          <Text style={s.billAmount}>₹{outstanding.toLocaleString('en-IN')}</Text>
+          <Text style={s.billSub}>
+            {isPaid
+              ? 'All paid up — nothing outstanding.'
+              : 'Added after each wash. Pay anytime.'}
+          </Text>
           <View style={s.cardActions}>
             <TouchableOpacity
-              style={s.primaryAction}
+              style={[s.primaryAction, isPaid && { opacity: 0.5 }]}
               activeOpacity={0.8}
-              onPress={() => router.push('/(customer)/referral')}
+              onPress={handlePayNow}
+              disabled={isPaid}
             >
-              <Text style={s.primaryActionText}>Refer & earn ₹200</Text>
+              <Text style={s.primaryActionText}>
+                {isPaid ? 'All clear ✓' : 'Pay Now'}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={s.ghostAction}
               activeOpacity={0.8}
               onPress={() =>
                 Alert.alert(
-                  'Credits are non-withdrawable',
-                  'PC wallet credits are applied automatically at checkout. They cannot be transferred to a bank account.',
+                  'How billing works',
+                  'Each wash at your society adds a fixed amount to your outstanding balance. Pay whenever you like — there is no due date. Your car will continue to be cleaned regardless.',
                   [{ text: 'Got it' }],
                 )
               }
@@ -129,27 +160,27 @@ export default function WalletScreen() {
         </View>
       </View>
 
-      {transactions.length === 0 ? (
+      {entries.length === 0 ? (
         <Text style={s.emptyTx}>No transactions yet.</Text>
       ) : (
-        <Group header="Recent">
-          {transactions.map((t, i) => (
+        <Group header="Activity">
+          {entries.map((entry, i) => (
             <Row
-              key={t.id}
+              key={entry.id}
               icon={
-                t.type === 'in'
-                  ? <ArrowDown size={14} color="#fff" strokeWidth={2.5} />
-                  : <ArrowUp   size={14} color="#fff" strokeWidth={2.5} />
+                entry.type === 'payment'
+                  ? <CreditCard size={14} color="#fff" strokeWidth={2} />
+                  : <CheckCircle2 size={14} color="#fff" strokeWidth={2} />
               }
-              iconBg={t.type === 'in' ? c.success : c.fg3}
-              title={t.label}
-              sub={t.date}
+              iconBg={entry.type === 'payment' ? c.success : c.sage}
+              title={entry.label}
+              sub={entry.date}
               value={
-                <Text style={[s.txAmt, { color: t.type === 'in' ? c.success : c.fg }]}>
-                  {t.type === 'in' ? '+' : '−'}₹{t.amt}
+                <Text style={entry.type === 'payment' ? s.paymentAmount : s.chargeAmount}>
+                  {entry.type === 'payment' ? '−' : '+'}₹{entry.amount.toLocaleString('en-IN')}
                 </Text>
               }
-              isLast={i === transactions.length - 1}
+              isLast={i === entries.length - 1}
             />
           ))}
         </Group>

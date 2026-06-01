@@ -52,11 +52,11 @@ const SOCIETY_BENEFITS = [
 const RESIDENT_BENEFITS = [
   {
     title: 'No booking, ever',
-    body: 'Subscribe once, add your car. Your vehicle is cleaned on the society's fixed schedule without any action from you.',
+    body: "Subscribe once, add your car. Your vehicle is cleaned on the society's fixed schedule without any action from you.",
   },
   {
     title: 'Instant push notification',
-    body: 'Know the exact moment your car was cleaned — with a before/after photo. No more uncertainty about whether today's session happened.',
+    body: "Know the exact moment your car was cleaned — with a before/after photo. No more uncertainty about whether today's session happened.",
   },
   {
     title: 'Full cleaning history',

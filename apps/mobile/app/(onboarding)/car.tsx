@@ -29,7 +29,7 @@ export default function OnboardingCar() {
 
       <View style={s.heading}>
         <Text style={ss.onboardingStep}>[STEP 02 OF 03]</Text>
-        <Text style={ss.onboardingTitle}>Tell us about{‘\n’}your car.</Text>
+        <Text style={ss.onboardingTitle}>Tell us about{'\n'}your car.</Text>
         <Text style={ss.subtitle}>Saved once — used automatically for every clean. No re-entering details.</Text>
       </View>
 
