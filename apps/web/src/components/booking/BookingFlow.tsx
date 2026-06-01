@@ -624,7 +624,7 @@ export default function BookingFlow() {
             style={{
               background: 'transparent',
               color: 'var(--pc-fg)',
-              border: '1px solid var(--pc-line-strong)',
+              border: '1px solid currentColor',
               borderRadius: 'var(--pc-radius-pill)',
               padding: 'var(--pc-space-4) var(--pc-space-8)',
               fontFamily: 'var(--pc-sans)',

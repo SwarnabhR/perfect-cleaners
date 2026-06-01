@@ -2,12 +2,16 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Before/after photos — any authenticated user can read; 10 MB max write
+    // Before/after photos — authenticated users can read; only registered
+    // workers may write (verified via Firestore workers/{uid} existence).
     match /bookings/{bookingId}/{allPaths=**} {
       allow read:  if request.auth != null;
       allow write: if request.auth != null
                    && request.resource.size < 10 * 1024 * 1024
-                   && request.resource.contentType.matches('image/.*');
+                   && request.resource.contentType.matches('image/.*')
+                   && firestore.exists(
+                        /databases/(default)/documents/workers/$(request.auth.uid)
+                      );
     }
 
     // Worker/customer avatars — public read, own write only
