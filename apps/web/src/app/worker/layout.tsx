@@ -6,10 +6,11 @@ import { usePathname } from 'next/navigation';
 import Icon from '@/components/ui/Icon';
 
 const NAV = [
-  { label: 'Dashboard', href: '/worker/dashboard', icon: 'layout-dashboard' },
-  { label: 'Jobs',      href: '/worker/jobs',      icon: 'calendar'         },
-  { label: 'Earnings',  href: '/worker/earnings',  icon: 'indian-rupee'     },
-  { label: 'Profile',   href: '/worker/profile',   icon: 'user'             },
+  { label: 'Dashboard', href: '/worker/dashboard',     icon: 'layout-dashboard' },
+  { label: 'Cleans',    href: '/worker/cleaning-logs', icon: 'check-circle'     },
+  { label: 'Jobs',      href: '/worker/jobs',          icon: 'calendar'         },
+  { label: 'Earnings',  href: '/worker/earnings',      icon: 'indian-rupee'     },
+  { label: 'Profile',   href: '/worker/profile',       icon: 'user'             },
 ] as const;
 
 function WorkerShell({ children }: { children: React.ReactNode }) {
