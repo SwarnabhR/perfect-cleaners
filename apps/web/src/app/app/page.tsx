@@ -120,7 +120,7 @@ export default function AppPage() {
 
             {/* Feature pills */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 48 }}>
-              {['Live job tracker', 'Before / after photos', 'Saved vehicles', 'Booking history', 'Wallet & rewards'].map(f => (
+              {['Live job tracker', 'Instant wash notifications', 'Saved vehicles', 'Booking history', 'Wallet & rewards'].map(f => (
                 <span key={f} style={{
                   fontFamily: 'var(--pc-mono)', fontSize: 10.5, letterSpacing: '0.06em',
                   textTransform: 'uppercase',
