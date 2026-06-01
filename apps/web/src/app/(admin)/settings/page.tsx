@@ -95,7 +95,7 @@ export default function SettingsPage() {
 
       <div>
         <Eyebrow style={{ display: 'block', marginBottom: 4 }}>CONFIGURATION</Eyebrow>
-        <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 28, fontWeight: 400, color: 'var(--pc-fg)', margin: 0 }}>Settings</h1>
+        <h1 className="admin-page-title">Settings</h1>
       </div>
 
       {/* Notifications */}

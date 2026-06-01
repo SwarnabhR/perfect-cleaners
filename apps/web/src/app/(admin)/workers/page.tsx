@@ -401,8 +401,7 @@ export default function WorkersPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <Eyebrow style={{ display: 'block', marginBottom: 4 }}>TEAM</Eyebrow>
-          <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 28, fontWeight: 400,
-            color: 'var(--pc-fg)', margin: 0 }}>Workers</h1>
+          <h1 className="admin-page-title">Workers</h1>
         </div>
         <button
           type="button"

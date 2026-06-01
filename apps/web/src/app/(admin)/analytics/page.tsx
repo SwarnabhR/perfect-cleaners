@@ -113,7 +113,7 @@ export default function AnalyticsPage() {
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <Eyebrow style={{ display: 'block', marginBottom: 4 }}>ANALYTICS</Eyebrow>
-          <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 28, fontWeight: 400, color: 'var(--pc-fg)', margin: 0 }}>Performance Overview</h1>
+          <h1 className="admin-page-title">Performance Overview</h1>
         </div>
         <div style={{ display: 'flex', gap: 4, background: 'var(--pc-card-hi)', padding: 4, borderRadius: 8, flexShrink: 0 }}>
           {(['7D', '30D', '90D', 'All'] as RangeKey[]).map(r => (

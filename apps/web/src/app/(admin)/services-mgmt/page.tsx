@@ -106,7 +106,7 @@ export default function ServicesMgmtPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <Eyebrow style={{ display: 'block', marginBottom: 4 }}>CATALOGUE</Eyebrow>
-          <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 28, fontWeight: 400, color: 'var(--pc-fg)', margin: 0 }}>Services</h1>
+          <h1 className="admin-page-title">Services</h1>
         </div>
         <button type="button" onClick={openAdd} style={{
           display: 'flex', alignItems: 'center', gap: 8,

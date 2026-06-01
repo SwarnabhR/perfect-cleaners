@@ -106,7 +106,7 @@ export default function CustomersPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <Eyebrow style={{ display: 'block', marginBottom: 4 }}>CRM</Eyebrow>
-          <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 28, fontWeight: 400, color: 'var(--pc-fg)', margin: 0 }}>Customers</h1>
+          <h1 className="admin-page-title">Customers</h1>
         </div>
       </div>
 

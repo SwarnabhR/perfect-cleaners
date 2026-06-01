@@ -67,7 +67,7 @@ export default function JobsPage() {
     <div style={{ padding: 'var(--pc-space-5) var(--pc-screen-pad-lg) var(--pc-space-10)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-5)' }}>
       <div style={{ paddingTop: 'var(--pc-space-3)' }}>
         <Eyebrow style={{ display: 'block', marginBottom: 4 }}>ASSIGNMENTS</Eyebrow>
-        <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 28, fontWeight: 400, color: 'var(--pc-fg)', letterSpacing: '-0.02em', margin: 0 }}>
+        <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 'clamp(22px, 4vw, 28px)', fontWeight: 400, color: 'var(--pc-fg)', letterSpacing: '-0.02em', margin: 0 }}>
           My Jobs
         </h1>
       </div>

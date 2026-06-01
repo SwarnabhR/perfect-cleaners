@@ -99,7 +99,7 @@ export default function BookingsPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
         <div>
           <Eyebrow style={{ display: 'block', marginBottom: 4 }}>SCHEDULE</Eyebrow>
-          <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 28, fontWeight: 400, color: 'var(--pc-fg)', margin: 0 }}>Bookings</h1>
+          <h1 className="admin-page-title">Bookings</h1>
         </div>
         {searchTerm && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px', background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 999 }}>
@@ -177,7 +177,7 @@ export default function BookingsPage() {
                         <button type="button" onClick={() => setAssigning(assigning === b.id ? null : b.id)} style={{ padding: '5px 12px', borderRadius: 999, border: '1px solid var(--pc-warning)', background: 'transparent', color: 'var(--pc-warning)', fontFamily: 'var(--pc-sans)', fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' }}>Assign worker</button>
                       )}
                       {assigning === b.id && (
-                        <div style={{ position: 'absolute', zIndex: 50, marginTop: 8, background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 10, padding: 8, minWidth: 200, boxShadow: '0 8px 24px rgba(0,0,0,0.3)' }}>
+                        <div className="admin-dropdown" style={{ position: 'absolute', zIndex: 50, marginTop: 8, background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 10, padding: 8, minWidth: 200, boxShadow: '0 8px 24px rgba(0,0,0,0.3)', right: 0 }}>
                           <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', padding: '4px 8px', margin: 0 }}>SELECT WORKER</p>
                           {workers.length === 0 ? (
                             <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)', padding: '4px 8px', margin: 0 }}>No workers found</p>

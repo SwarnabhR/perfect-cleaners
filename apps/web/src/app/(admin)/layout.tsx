@@ -197,10 +197,53 @@ function AdminShell({ children }: { children: React.ReactNode }) {
           .kpi-grid-3 { grid-template-columns: 1fr; }
         }
 
+        /* Responsive page title used on every admin page */
+        .admin-page-title {
+          font-family: var(--pc-serif);
+          font-size: clamp(22px, 4vw, 28px);
+          font-weight: 400;
+          color: var(--pc-fg);
+          margin: 0;
+          letter-spacing: -0.02em;
+        }
+
+        /* Page header row: title left, action button right — wraps on mobile */
+        .admin-page-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 12px;
+        }
+
+        /* Filter chip rows that should wrap on mobile */
+        .filter-chips {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+
+        /* Drowdown/popover: never wider than viewport */
+        .admin-dropdown {
+          max-width: min(280px, 90vw);
+        }
+
         .admin-search-input::placeholder { color: var(--pc-fg-4); }
         .admin-search-input::-webkit-search-cancel-button { display: none; }
         .hide-xs { display: none; }
         @media (min-width: 640px) { .hide-xs { display: inline; } }
+
+        /* Stack filter rows on narrow screens */
+        @media (max-width: 639px) {
+          .filter-row {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .filter-row .filter-chips {
+            justify-content: flex-start;
+          }
+        }
       `}</style>
 
       {/* ── Mobile overlay ───────────────────────────────────────────────── */}

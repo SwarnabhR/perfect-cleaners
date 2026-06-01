@@ -42,13 +42,13 @@ export default function EarningsPage() {
     <div style={{ padding: 'var(--pc-space-5) var(--pc-screen-pad-lg) var(--pc-space-10)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-5)' }}>
       <div style={{ paddingTop: 'var(--pc-space-3)' }}>
         <Eyebrow style={{ display: 'block', marginBottom: 4 }}>FINANCES</Eyebrow>
-        <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 28, fontWeight: 400, color: 'var(--pc-fg)', letterSpacing: '-0.02em', margin: 0 }}>
+        <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 'clamp(22px, 4vw, 28px)', fontWeight: 400, color: 'var(--pc-fg)', letterSpacing: '-0.02em', margin: 0 }}>
           Earnings
         </h1>
       </div>
 
       {/* Earnings cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10 }}>
         {[
           { label: 'Today',     value: earnings.today },
           { label: 'This Week', value: earnings.week  },

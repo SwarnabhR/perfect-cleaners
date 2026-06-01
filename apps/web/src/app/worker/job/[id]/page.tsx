@@ -15,9 +15,9 @@ import Icon from '@/components/ui/Icon';
 const PIPELINE: BookingStatus[] = ['assigned', 'enroute', 'inprogress', 'done'];
 
 const ACTION_LABEL: Partial<Record<BookingStatus, string>> = {
-  assigned:   '🚗  On My Way',
-  enroute:    '🔧  Start Job',
-  inprogress: '✅  Complete Job',
+  assigned:   'On My Way →',
+  enroute:    'Start Job →',
+  inprogress: 'Mark Complete →',
 };
 
 const NEXT_STATUS: Partial<Record<BookingStatus, BookingStatus>> = {

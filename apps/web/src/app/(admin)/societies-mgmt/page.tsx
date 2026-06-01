@@ -161,7 +161,7 @@ function SocietyFormModal({
       onClick={onClose}
     >
       <div style={{ background: 'var(--pc-card)', borderRadius: 16, border: '1px solid var(--pc-line)',
-        padding: 28, width: 560, maxWidth: '100%', maxHeight: '90vh',
+        padding: 'clamp(16px, 4vw, 28px)', width: 560, maxWidth: 'min(560px, calc(100vw - 32px))', maxHeight: '90vh',
         overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20 }}
         onClick={e => e.stopPropagation()}
       >
@@ -447,7 +447,7 @@ export default function SocietiesMgmtPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <Eyebrow style={{ display: 'block', marginBottom: 4 }}>PARTNERS</Eyebrow>
-          <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 28, fontWeight: 400, color: 'var(--pc-fg)', margin: 0 }}>Societies</h1>
+          <h1 className="admin-page-title">Societies</h1>
         </div>
         <button type="button" onClick={() => setAddOpen(true)} style={{
           display: 'inline-flex', alignItems: 'center', gap: 8,

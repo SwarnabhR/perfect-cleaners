@@ -147,7 +147,7 @@ export default function PromotionsPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <Eyebrow style={{ display: 'block', marginBottom: 4 }}>MARKETING</Eyebrow>
-          <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 28, fontWeight: 400, color: 'var(--pc-fg)', margin: 0 }}>Promotions</h1>
+          <h1 className="admin-page-title">Promotions</h1>
         </div>
         <button type="button" onClick={openAdd} style={{
           display: 'flex', alignItems: 'center', gap: 8,

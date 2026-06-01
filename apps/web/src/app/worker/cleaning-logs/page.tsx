@@ -87,7 +87,7 @@ export default function WorkerCleaningLogsPage() {
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', paddingTop: 'var(--pc-space-3)' }}>
         <div>
           <Eyebrow style={{ display: 'block', marginBottom: 4 }}>ACTIVITY LOG</Eyebrow>
-          <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 28, fontWeight: 400, color: 'var(--pc-fg)', letterSpacing: '-0.02em', margin: 0 }}>
+          <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 'clamp(22px, 4vw, 28px)', fontWeight: 400, color: 'var(--pc-fg)', letterSpacing: '-0.02em', margin: 0 }}>
             My Cleans
           </h1>
           {worker?.assignedSocietyName && (
