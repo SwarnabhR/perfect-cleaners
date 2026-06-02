@@ -19,10 +19,11 @@ test.describe('Worker Cleaning Logs', () => {
   });
 
   test('switching date filters works', async ({ page }) => {
+    await expect(page.locator('button:has-text("Last 7 days")')).toBeVisible({ timeout: 8_000 });
     await page.click('button:has-text("Last 7 days")');
-    await page.waitForTimeout(400);
+    await page.waitForTimeout(300);
     await page.click('button:has-text("All time")');
-    await page.waitForTimeout(400);
+    await page.waitForTimeout(300);
     await page.click('button:has-text("Today")');
   });
 

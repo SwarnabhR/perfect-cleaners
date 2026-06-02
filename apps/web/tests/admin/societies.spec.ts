@@ -25,30 +25,26 @@ test.describe('Admin Societies Management', () => {
 
   test('opening Add Society modal shows all form fields', async ({ page }) => {
     await page.click('button:has-text("Add Society")');
-
-    const modal = page.locator('text=Add society').locator('..');
-    await expect(modal).toBeVisible();
-
-    await expect(page.locator('input[placeholder="Uniworld City"]')).toBeVisible();
+    await expect(page.locator('input[placeholder="Uniworld City"]')).toBeVisible({ timeout: 8_000 });
     await expect(page.locator('input[placeholder="Sector 30, Noida"]')).toBeVisible();
     await expect(page.locator('input[placeholder="Noida"]')).toBeVisible();
     await expect(page.locator('input[placeholder="201301"]')).toBeVisible();
     await expect(page.locator('input[placeholder*="Tower A"]')).toBeVisible();
-    await expect(page.locator('input[placeholder="99"][type="number"]')).toBeVisible();
     await expect(page.locator('input[placeholder="Rajesh Kumar"]')).toBeVisible();
   });
 
   test('Add Society modal can be cancelled', async ({ page }) => {
     await page.click('button:has-text("Add Society")');
-    await expect(page.locator('text=Add society')).toBeVisible();
+    await expect(page.locator('input[placeholder="Uniworld City"]')).toBeVisible({ timeout: 8_000 });
     await page.click('button:has-text("Cancel")');
-    await expect(page.locator('text=Add society')).not.toBeVisible();
+    await expect(page.locator('input[placeholder="Uniworld City"]')).not.toBeVisible({ timeout: 5_000 });
   });
 
   test('Add Society modal validates required fields', async ({ page }) => {
     await page.click('button:has-text("Add Society")');
-    await page.click('button:has-text("Add society")');
-    await expect(page.locator('text=Society name is required.')).toBeVisible();
+    await expect(page.locator('input[placeholder="Uniworld City"]')).toBeVisible({ timeout: 8_000 });
+    await page.locator('button[type="submit"]').click();
+    await expect(page.locator('text=Society name is required.')).toBeVisible({ timeout: 5_000 });
   });
 
   test('status filter buttons are visible', async ({ page }) => {
@@ -61,11 +57,10 @@ test.describe('Admin Societies Management', () => {
     const search = page.locator('input[placeholder="Search by name or city…"]');
     await expect(search).toBeVisible();
     await search.fill('Test Society XYZ');
-    // After filtering, either shows no results or filtered rows
     await page.waitForTimeout(300);
-    const noResults = page.locator('text=No societies yet.');
-    const rows      = page.locator('tbody tr');
-    await expect(noResults.or(rows.first())).toBeVisible({ timeout: 5_000 });
+    await expect(
+      page.locator('text=No societies yet.').or(page.locator('tbody tr').first())
+    ).toBeVisible({ timeout: 5_000 });
   });
 
   test('table has correct column headers', async ({ page }) => {

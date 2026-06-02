@@ -15,37 +15,32 @@ test.describe('Admin Services Management', () => {
     await expect(page.locator('button:has-text("Add Service")')).toBeVisible();
   });
 
-  test('opening Add Service shows form fields', async ({ page }) => {
+  test('opening Add Service shows correct form fields', async ({ page }) => {
     await page.click('button:has-text("Add Service")');
-    await expect(page.locator('input[placeholder*="Exterior"], input[placeholder*="service"], input[placeholder*="name"]').first()).toBeVisible();
+    // Actual placeholder in the service name input
+    await expect(page.locator('input[placeholder="e.g. Premium Exterior Wash"]')).toBeVisible({ timeout: 8_000 });
     await expect(page.locator('input[type="number"]').first()).toBeVisible();
-    await expect(page.locator('textarea')).toBeVisible();
+    await expect(page.locator('textarea[placeholder*="description"]')).toBeVisible();
   });
 
-  test('Add Service modal can be cancelled', async ({ page }) => {
+  test('Add Service form can be cancelled', async ({ page }) => {
     await page.click('button:has-text("Add Service")');
-    await page.click('button:has-text("Cancel")');
-    await expect(page.locator('button:has-text("Cancel")')).not.toBeVisible();
+    await expect(page.locator('input[placeholder="e.g. Premium Exterior Wash"]')).toBeVisible({ timeout: 8_000 });
+    await page.locator('button:has-text("Cancel")').last().click();
+    await expect(page.locator('input[placeholder="e.g. Premium Exterior Wash"]')).not.toBeVisible({ timeout: 5_000 });
   });
 
-  test('service table shows correct headers', async ({ page }) => {
-    const hasData = await page.locator('table tbody tr').first().isVisible().catch(() => false);
-    if (!hasData) {
-      test.skip(true, 'No services in database');
-      return;
-    }
+  test('service table shows correct headers when data exists', async ({ page }) => {
+    const hasData = await page.locator('table tbody tr').first().isVisible({ timeout: 8_000 }).catch(() => false);
+    if (!hasData) { test.skip(true, 'No services in database'); return; }
     for (const h of ['Service', 'Category', 'Price Range', 'Status']) {
       await expect(page.locator(`th:has-text("${h}")`)).toBeVisible();
     }
   });
 
-  test('active toggle is present per row', async ({ page }) => {
-    const hasData = await page.locator('table tbody tr').first().isVisible().catch(() => false);
-    if (!hasData) {
-      test.skip(true, 'No services in database');
-      return;
-    }
-    // Each row has an edit + delete action
+  test('each service row has action buttons', async ({ page }) => {
+    const hasData = await page.locator('table tbody tr').first().isVisible({ timeout: 8_000 }).catch(() => false);
+    if (!hasData) { test.skip(true, 'No services in database'); return; }
     const firstRow = page.locator('table tbody tr').first();
     await expect(firstRow.locator('button').first()).toBeVisible();
   });

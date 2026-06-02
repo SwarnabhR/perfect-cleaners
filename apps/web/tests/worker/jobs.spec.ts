@@ -19,10 +19,12 @@ test.describe('Worker Jobs', () => {
   });
 
   test('filter chips toggle correctly', async ({ page }) => {
+    // Wait for filter buttons to be interactive
+    await expect(page.locator('button:has-text("Upcoming")')).toBeVisible({ timeout: 8_000 });
     await page.click('button:has-text("Upcoming")');
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(200);
     await page.click('button:has-text("Done")');
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(200);
     await page.click('button:has-text("All")');
   });
 

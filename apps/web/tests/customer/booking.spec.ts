@@ -157,20 +157,19 @@ test.describe('Customer Booking Flow', () => {
   });
 
   test('Confirm Booking enables after checking terms', async ({ page }) => {
-    // Check the terms checkbox
-    await page.click('input[type="checkbox"]');
-    await expect(page.locator('button:has-text("Confirm Booking")')).not.toBeDisabled();
+    // The checkbox has opacity:0 so we need force:true to click it
+    await page.click('input[type="checkbox"]', { force: true });
+    await expect(page.locator('button:has-text("Confirm Booking")')).not.toBeDisabled({ timeout: 5_000 });
   });
 
   test('submitting with missing fields shows validation errors', async ({ page }) => {
-    await page.click('input[type="checkbox"]');
+    await page.click('input[type="checkbox"]', { force: true });
     await page.click('button:has-text("Confirm Booking")');
-    // At least one validation error should appear
     await expect(
       page.locator('text=Address is required.')
         .or(page.locator('text=Vehicle model is required.'))
         .or(page.locator('text=required'))
-    ).toBeVisible({ timeout: 5_000 });
+    ).toBeVisible({ timeout: 8_000 });
   });
 
   // ── Order summary ────────────────────────────────────────────────────────

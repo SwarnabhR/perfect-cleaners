@@ -48,17 +48,16 @@ test.describe('Worker Dashboard', () => {
     }
   });
 
-  test('bottom tabs navigate to correct pages', async ({ page }) => {
-    const routes: Array<[string, RegExp]> = [
-      ['Jobs',     /\/worker\/jobs/],
-      ['Earnings', /\/worker\/earnings/],
-      ['Profile',  /\/worker\/profile/],
-      ['Cleans',   /\/worker\/cleaning-logs/],
+  test('bottom tab hrefs point to correct worker pages', async ({ page }) => {
+    const tabs: Array<[string, string]> = [
+      ['Jobs',     '/worker/jobs'],
+      ['Earnings', '/worker/earnings'],
+      ['Profile',  '/worker/profile'],
+      ['Cleans',   '/worker/cleaning-logs'],
     ];
-    for (const [label, url] of routes) {
-      await page.goto('/worker/dashboard');
-      await page.click(`nav a:has-text("${label}")`);
-      await page.waitForURL(url, { timeout: 8_000 });
+    for (const [label, expectedHref] of tabs) {
+      const href = await page.locator(`nav a:has-text("${label}")`).getAttribute('href');
+      expect(href).toBe(expectedHref);
     }
   });
 

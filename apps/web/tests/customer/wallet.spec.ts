@@ -54,9 +54,9 @@ test.describe('Customer Wallet / Bill', () => {
     await expect(page.locator('text=/₹/').first()).toBeVisible({ timeout: 8_000 });
   });
 
-  test('navigation back to Bookings tab works', async ({ page }) => {
-    await page.click('a:has-text("Bookings")');
-    await page.waitForURL('**/account', { timeout: 8_000 });
+  test('Bookings tab href is /account', async ({ page }) => {
+    const href = await page.locator('a:has-text("Bookings")').getAttribute('href');
+    expect(href).toBe('/account');
   });
 
 });

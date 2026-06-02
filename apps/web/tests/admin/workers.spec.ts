@@ -26,11 +26,8 @@ test.describe('Admin Workers', () => {
   });
 
   test('table has correct column headers when data is present', async ({ page }) => {
-    const hasData = await page.locator('tbody tr').first().isVisible().catch(() => false);
-    if (!hasData) {
-      test.skip(true, 'No workers in database');
-      return;
-    }
+    const hasData = await page.locator('tbody tr').first().isVisible({ timeout: 8_000 }).catch(() => false);
+    if (!hasData) { test.skip(true, 'No workers in database'); return; }
     for (const h of ['Name', 'Phone', 'Status', 'Rating', 'Jobs', 'Society']) {
       await expect(page.locator(`th:has-text("${h}")`)).toBeVisible();
     }
@@ -38,20 +35,20 @@ test.describe('Admin Workers', () => {
 
   test('clicking a worker row opens detail panel', async ({ page }) => {
     const firstRow = page.locator('tbody tr').first();
-    if (!await firstRow.isVisible().catch(() => false)) {
-      test.skip(true, 'No workers in database');
-      return;
+    if (!await firstRow.isVisible({ timeout: 8_000 }).catch(() => false)) {
+      test.skip(true, 'No workers in database'); return;
     }
     await firstRow.click();
-    // Detail panel shows edit / delete actions
-    await expect(page.locator('button:has-text("Edit"), button:has-text("Delete")')).toBeVisible();
+    await expect(page.locator('button:has-text("Edit"), button:has-text("Delete")')).toBeVisible({ timeout: 8_000 });
   });
 
   test('Add Worker modal opens and has required fields', async ({ page }) => {
     await page.click('button:has-text("Add Worker")');
-    await expect(page.locator('input[placeholder*="name"], input[placeholder*="Name"]')).toBeVisible();
-    await expect(page.locator('input[placeholder*="phone"], input[placeholder*="Phone"]')).toBeVisible();
-    await page.keyboard.press('Escape');
+    // Actual placeholders in the worker form
+    await expect(page.locator('input[placeholder="Ravi Kumar"]')).toBeVisible({ timeout: 8_000 });
+    await expect(page.locator('input[placeholder="98765 43210"]')).toBeVisible();
+    // Close via Cancel button
+    await page.locator('button:has-text("Cancel")').first().click();
   });
 
 });
