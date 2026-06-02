@@ -43,14 +43,15 @@ test.describe('Admin Analytics', () => {
   });
 
   test('switching to 7D updates the revenue chart heading', async ({ page }) => {
+    await expect(page.locator('button:has-text("7D")')).toBeVisible({ timeout: 20_000 });
     await page.click('button:has-text("7D")');
-    // The Eyebrow text reads "REVENUE — LAST 7 DAYS"
-    await expect(page.locator('text=LAST 7 DAYS')).toBeVisible({ timeout: 8_000 });
+    await expect(page.locator('text=LAST 7 DAYS')).toBeVisible({ timeout: 15_000 });
   });
 
   test('switching to All updates the revenue chart heading', async ({ page }) => {
+    await expect(page.locator('button:has-text("All")')).toBeVisible({ timeout: 20_000 });
     await page.click('button:has-text("All")');
-    await expect(page.locator('text=ALL TIME')).toBeVisible({ timeout: 8_000 });
+    await expect(page.locator('text=ALL TIME')).toBeVisible({ timeout: 15_000 });
   });
 
   test('KPI cards eventually show non-null values', async ({ page }) => {

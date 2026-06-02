@@ -74,7 +74,9 @@ test.describe('Customer Profile', () => {
   });
 
   test('Bookings tab href is /account', async ({ page }) => {
-    const href = await page.locator('a:has-text("Bookings")').getAttribute('href');
+    const link = page.locator('a:has-text("Bookings")');
+    await expect(link).toBeVisible({ timeout: 20_000 });
+    const href = await link.getAttribute('href');
     expect(href).toBe('/account');
   });
 

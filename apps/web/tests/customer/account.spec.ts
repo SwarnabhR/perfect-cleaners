@@ -31,33 +31,40 @@ test.describe('Customer Account — Bookings', () => {
   });
 
   test('Book a service links to /book', async ({ page }) => {
-    const href = await page.locator('a:has-text("Book a service")').getAttribute('href');
+    const link = page.locator('a:has-text("Book a service")');
+    await expect(link).toBeVisible({ timeout: 20_000 });
+    const href = await link.getAttribute('href');
     expect(href).toBe('/book');
   });
 
   test('Sign out button is visible', async ({ page }) => {
-    await expect(page.locator('button:has-text("Sign out")')).toBeVisible();
+    await expect(page.locator('button:has-text("Sign out")')).toBeVisible({ timeout: 20_000 });
   });
 
   test('sign out redirects to home', async ({ page }) => {
+    await expect(page.locator('button:has-text("Sign out")')).toBeVisible({ timeout: 20_000 });
     await page.click('button:has-text("Sign out")');
-    await page.waitForURL('**/', { timeout: 20_000 });
+    await page.waitForURL('**/', { timeout: 30_000 });
     expect(page.url()).toMatch(/\/$/);
   });
 
   test('three account tabs are present', async ({ page }) => {
-    await expect(page.locator('a:has-text("Bookings")')).toBeVisible();
+    await expect(page.locator('a:has-text("Bookings")')).toBeVisible({ timeout: 20_000 });
     await expect(page.locator('a:has-text("Profile")')).toBeVisible();
     await expect(page.locator('a:has-text("Bill")')).toBeVisible();
   });
 
   test('Profile tab href is /account/profile', async ({ page }) => {
-    const href = await page.locator('a:has-text("Profile")').getAttribute('href');
+    const link = page.locator('a:has-text("Profile")');
+    await expect(link).toBeVisible({ timeout: 20_000 });
+    const href = await link.getAttribute('href');
     expect(href).toBe('/account/profile');
   });
 
   test('Bill tab href is /account/wallet', async ({ page }) => {
-    const href = await page.locator('a:has-text("Bill")').getAttribute('href');
+    const link = page.locator('a:has-text("Bill")');
+    await expect(link).toBeVisible({ timeout: 20_000 });
+    const href = await link.getAttribute('href');
     expect(href).toBe('/account/wallet');
   });
 

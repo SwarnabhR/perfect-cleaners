@@ -57,8 +57,10 @@ export default defineConfig({
     },
 
     // ── Admin pages — authenticated ────────────────────────────────────────
+    // timeout: 60s — Firestore pages take 10-12s to load, leaving room for interactions
     {
       name: 'admin',
+      timeout: 60_000,
       use:  {
         ...devices['Desktop Chrome'],
         storageState: 'tests/.auth/admin.json',
@@ -71,6 +73,7 @@ export default defineConfig({
     // ── Worker pages — authenticated ───────────────────────────────────────
     {
       name: 'worker',
+      timeout: 60_000,
       use:  {
         ...devices['Desktop Chrome'],
         storageState: 'tests/.auth/worker.json',
@@ -96,6 +99,7 @@ export default defineConfig({
     // ── Customer pages — authenticated ─────────────────────────────────────
     {
       name: 'customer',
+      timeout: 60_000,
       use:  {
         ...devices['Desktop Chrome'],
         storageState: 'tests/.auth/customer.json',
@@ -108,6 +112,7 @@ export default defineConfig({
     // ── Auth flows — no stored state; authenticated contexts created inline ─
     {
       name: 'auth',
+      timeout: 60_000,
       use:  { ...devices['Desktop Chrome'] },
       dependencies: ['setup', 'worker-setup', 'customer-setup'],
       testMatch: '**/auth/**/*.spec.ts',

@@ -26,11 +26,9 @@ test.describe('Admin Bookings', () => {
 
   test('filter buttons toggle active state', async ({ page }) => {
     const pendingBtn = page.locator('button:has-text("Pending")').first();
+    await expect(pendingBtn).toBeVisible({ timeout: 20_000 });
     await pendingBtn.click();
-    // Active filter button uses sage background — check it's visually distinguished
     await expect(pendingBtn).toHaveCSS('background-color', /rgba|rgb/);
-
-    // Switch back to All
     await page.locator('button:has-text("All")').first().click();
   });
 

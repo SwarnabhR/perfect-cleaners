@@ -68,11 +68,10 @@ test.describe('AuthBottomSheet — Booking page', () => {
   });
 
   test('submitting booking form without auth opens auth sheet', async ({ page }) => {
-    // Accept terms to enable submit
-    await page.click('input[type="checkbox"]');
+    // Checkbox has opacity:0 — must force click
+    await page.click('input[type="checkbox"]', { force: true });
     await page.click('button:has-text("Confirm Booking")');
-    // Auth sheet should open
-    await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 8_000 });
     await expect(page.locator('text=Sign in to confirm your booking.')).toBeVisible();
   });
 

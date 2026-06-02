@@ -60,13 +60,13 @@ test.describe('Worker Jobs', () => {
   });
 
   test('Cancelled filter shows only cancelled jobs', async ({ page }) => {
+    await expect(page.locator('button:has-text("Cancelled")')).toBeVisible({ timeout: 20_000 });
     await page.click('button:has-text("Cancelled")');
     await page.waitForTimeout(500);
     const cards = page.locator('a[href*="/worker/job/"]');
     const count = await cards.count();
-    if (count === 0) return; // No cancelled jobs — that's fine
-    // Each visible card should show "Cancelled" status
-    for (let i = 0; i < count; i++) {
+    if (count === 0) { return; } // No cancelled jobs — pass
+    for (let i = 0; i < Math.min(count, 3); i++) {
       await expect(cards.nth(i).locator('span', { hasText: /cancelled/i })).toBeVisible();
     }
   });

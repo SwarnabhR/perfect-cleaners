@@ -16,18 +16,19 @@ test.describe('Admin Services Management', () => {
   });
 
   test('opening Add Service shows correct form fields', async ({ page }) => {
+    await expect(page.locator('button:has-text("Add Service")')).toBeVisible({ timeout: 20_000 });
     await page.click('button:has-text("Add Service")');
-    // Actual placeholder in the service name input
-    await expect(page.locator('input[placeholder="e.g. Premium Exterior Wash"]')).toBeVisible({ timeout: 8_000 });
+    await expect(page.locator('input[placeholder="e.g. Premium Exterior Wash"]')).toBeVisible({ timeout: 15_000 });
     await expect(page.locator('input[type="number"]').first()).toBeVisible();
     await expect(page.locator('textarea[placeholder*="description"]')).toBeVisible();
   });
 
   test('Add Service form can be cancelled', async ({ page }) => {
+    await expect(page.locator('button:has-text("Add Service")')).toBeVisible({ timeout: 20_000 });
     await page.click('button:has-text("Add Service")');
-    await expect(page.locator('input[placeholder="e.g. Premium Exterior Wash"]')).toBeVisible({ timeout: 8_000 });
+    await expect(page.locator('input[placeholder="e.g. Premium Exterior Wash"]')).toBeVisible({ timeout: 15_000 });
     await page.locator('button:has-text("Cancel")').last().click();
-    await expect(page.locator('input[placeholder="e.g. Premium Exterior Wash"]')).not.toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('input[placeholder="e.g. Premium Exterior Wash"]')).not.toBeVisible({ timeout: 8_000 });
   });
 
   test('service table shows correct headers when data exists', async ({ page }) => {

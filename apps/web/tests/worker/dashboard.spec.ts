@@ -49,6 +49,8 @@ test.describe('Worker Dashboard', () => {
   });
 
   test('bottom tab hrefs point to correct worker pages', async ({ page }) => {
+    // Wait for nav to be present before checking hrefs
+    await expect(page.locator('nav a:has-text("Dashboard")')).toBeVisible({ timeout: 20_000 });
     const tabs: Array<[string, string]> = [
       ['Jobs',     '/worker/jobs'],
       ['Earnings', '/worker/earnings'],
@@ -56,7 +58,9 @@ test.describe('Worker Dashboard', () => {
       ['Cleans',   '/worker/cleaning-logs'],
     ];
     for (const [label, expectedHref] of tabs) {
-      const href = await page.locator(`nav a:has-text("${label}")`).getAttribute('href');
+      const link = page.locator(`nav a:has-text("${label}")`);
+      await expect(link).toBeVisible();
+      const href = await link.getAttribute('href');
       expect(href).toBe(expectedHref);
     }
   });
@@ -72,18 +76,19 @@ test.describe('Worker Dashboard', () => {
     const goOnline = page.locator('button:has-text("Go Online")');
     const online   = page.locator('button:has-text("Online")');
 
+    // Wait for either state to render after Firestore loads
+    await expect(goOnline.or(online)).toBeVisible({ timeout: 20_000 });
+
     if (await goOnline.isVisible()) {
       await goOnline.click();
-      await expect(online).toBeVisible({ timeout: 8_000 });
-      // Toggle back off
+      await expect(online).toBeVisible({ timeout: 15_000 });
       await online.click();
-      await expect(goOnline).toBeVisible({ timeout: 8_000 });
+      await expect(goOnline).toBeVisible({ timeout: 15_000 });
     } else {
-      // Already online — toggle off then on
       await online.click();
-      await expect(goOnline).toBeVisible({ timeout: 8_000 });
+      await expect(goOnline).toBeVisible({ timeout: 15_000 });
       await goOnline.click();
-      await expect(online).toBeVisible({ timeout: 8_000 });
+      await expect(online).toBeVisible({ timeout: 15_000 });
     }
   });
 

@@ -43,9 +43,9 @@ test.describe('Admin Workers', () => {
   });
 
   test('Add Worker modal opens and has required fields', async ({ page }) => {
+    await expect(page.locator('button:has-text("Add Worker")')).toBeVisible({ timeout: 20_000 });
     await page.click('button:has-text("Add Worker")');
-    // Actual placeholders in the worker form
-    await expect(page.locator('input[placeholder="Ravi Kumar"]')).toBeVisible({ timeout: 8_000 });
+    await expect(page.locator('input[placeholder="Ravi Kumar"]')).toBeVisible({ timeout: 15_000 });
     await expect(page.locator('input[placeholder="98765 43210"]')).toBeVisible();
     // Close via Cancel button
     await page.locator('button:has-text("Cancel")').first().click();

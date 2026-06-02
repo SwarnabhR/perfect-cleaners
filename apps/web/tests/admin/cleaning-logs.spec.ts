@@ -19,6 +19,7 @@ test.describe('Admin Cleaning Logs', () => {
   });
 
   test('date filter switches work', async ({ page }) => {
+    await expect(page.locator('button:has-text("Last 7 Days")')).toBeVisible({ timeout: 20_000 });
     await page.click('button:has-text("Last 7 Days")');
     await page.waitForTimeout(300);
     await page.click('button:has-text("All Time")');
