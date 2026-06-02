@@ -498,7 +498,7 @@ export default function SocietiesMgmtPage() {
             }}
           />
         </div>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {(['All', 'Active', 'Inactive'] as StatusFilter[]).map(s => (
             <button type="button" key={s} onClick={() => setStatusFilter(s)} style={{
               padding: '7px 14px', borderRadius: 999, border: '1px solid',

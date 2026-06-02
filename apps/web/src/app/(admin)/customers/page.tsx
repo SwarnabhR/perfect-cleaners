@@ -140,7 +140,7 @@ export default function CustomersPage() {
             }}
           />
         </div>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {['All', 'Platinum', 'Gold', 'Silver', 'Bronze'].map(t => (
             <button type="button" key={t} onClick={() => setTierFilter(t)} style={{
               padding: '7px 14px', borderRadius: 999, border: '1px solid',

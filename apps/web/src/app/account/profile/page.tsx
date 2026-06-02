@@ -185,7 +185,7 @@ export default function ProfilePage() {
       <main style={{ flex: 1, maxWidth: 640, width: '100%', margin: '0 auto', padding: 'var(--pc-space-12) var(--pc-space-6) var(--pc-space-20)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-8)' }}>
 
         {/* Tab bar */}
-        <div style={{ display: 'flex', gap: 'var(--pc-space-1)', borderBottom: '1px solid var(--pc-line)' }}>
+        <div style={{ display: 'flex', gap: 'var(--pc-space-1)', borderBottom: '1px solid var(--pc-line)', overflowX: 'auto', WebkitOverflowScrolling: 'touch' as any, scrollbarWidth: 'none' as any }}>
           {[
             { label: 'Bookings', href: '/account'         },
             { label: 'Profile',  href: '/account/profile' },

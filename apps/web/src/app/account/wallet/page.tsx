@@ -224,6 +224,8 @@ export default function WalletPage() {
           gap:           'var(--pc-space-1)',
           borderBottom:  '1px solid var(--pc-line)',
           marginBottom:  'var(--pc-space-8)',
+          overflowX:     'auto', WebkitOverflowScrolling: 'touch' as any,
+          scrollbarWidth: 'none' as any,
         }}>
           {[
             { label: 'Bookings', href: '/account'         },

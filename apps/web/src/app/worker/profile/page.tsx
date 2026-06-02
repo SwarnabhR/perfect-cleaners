@@ -63,7 +63,7 @@ function AddAddressModal({ uid, onClose }: { uid: string; onClose: () => void })
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-      <div style={{ background: 'var(--pc-ink-raised)', borderTopLeftRadius: 20, borderTopRightRadius: 20, border: '1px solid var(--pc-line-strong)', padding: '24px 20px 40px', width: '100%', maxWidth: 540 }}>
+      <div style={{ background: 'var(--pc-ink-raised)', borderTopLeftRadius: 20, borderTopRightRadius: 20, border: '1px solid var(--pc-line-strong)', padding: '24px 20px 40px', width: '100%', maxWidth: 540, maxHeight: '80vh', overflowY: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 16, fontWeight: 600, color: 'var(--pc-fg)' }}>Add Address</span>
           <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--pc-fg-3)' }}>

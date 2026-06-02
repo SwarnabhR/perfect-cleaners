@@ -295,7 +295,7 @@ export default function AccountPage() {
             )}
           </div>
 
-          <div style={{ display: 'flex', gap: 'var(--pc-space-3)', alignItems: 'center', flexShrink: 0 }}>
+          <div style={{ display: 'flex', gap: 'var(--pc-space-3)', alignItems: 'center', flexWrap: 'wrap' }}>
             <Link
               href="/book"
               style={{
@@ -332,6 +332,8 @@ export default function AccountPage() {
           display: 'flex', gap: 'var(--pc-space-1)',
           borderBottom: '1px solid var(--pc-line)',
           marginBottom: 'var(--pc-space-8)',
+          overflowX: 'auto', WebkitOverflowScrolling: 'touch' as any,
+          scrollbarWidth: 'none' as any,
         }}>
           {[
             { label: 'Bookings', href: '/account'         },
