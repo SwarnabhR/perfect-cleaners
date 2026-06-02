@@ -6,6 +6,8 @@ import Eyebrow from '@/components/ui/Eyebrow';
 import Card from '@/components/ui/Card';
 import CustomSelect from '@/components/ui/CustomSelect';
 import type { VehicleType } from '@pc/firebase';
+import { db } from '@pc/firebase';
+import { getDocs, collection, query, where, limit } from 'firebase/firestore';
 import AuthBottomSheet from '@/components/auth/AuthBottomSheet';
 import { useCustomerAuth } from '@/lib/auth/CustomerAuthContext';
 import { submitBooking } from '@/lib/firebase/booking';
@@ -370,8 +372,15 @@ export default function BookingFlow() {
   const [result,       setResult]       = useState<{ bookingRef: string } | null>(null);
   const [submitError,  setSubmitError]  = useState('');
 
-  const gst   = Math.round(service.price * 0.18);
-  const total = service.price + gst + PLATFORM_FEE;
+  const [promoInput,   setPromoInput]   = useState('');
+  const [promoApplied, setPromoApplied] = useState<{ promoId: string; code: string; description: string; discount: number } | null>(null);
+  const [promoError,   setPromoError]   = useState('');
+  const [promoLoading, setPromoLoading] = useState(false);
+
+  const gst        = Math.round(service.price * 0.18);
+  const total      = service.price + gst + PLATFORM_FEE;
+  const discount   = promoApplied?.discount ?? 0;
+  const finalTotal = Math.max(0, total - discount);
 
   // ─── Outside-click dismiss for calendar popover ───────────────────────────
   useEffect(() => {
@@ -402,6 +411,38 @@ export default function BookingFlow() {
       fullDate:  d,
     });
     setShowCalendar(false);
+  }
+
+  async function applyPromo() {
+    const code = promoInput.trim().toUpperCase();
+    if (!code) return;
+    setPromoError(''); setPromoLoading(true);
+    try {
+      const snap = await getDocs(query(collection(db, 'promotions'), where('code', '==', code), limit(1)));
+      if (snap.empty) { setPromoError('Promo code not found.'); return; }
+      const docSnap = snap.docs[0];
+      const p = docSnap.data();
+      if (!p.isActive)            { setPromoError('This promo code is no longer active.'); return; }
+      if (p.usedCount >= p.maxUses) { setPromoError('This promo code has reached its usage limit.'); return; }
+      const now   = new Date();
+      const from  = p.validFrom?.toDate  ? p.validFrom.toDate()  : new Date(p.validFrom);
+      const until = p.validUntil?.toDate ? p.validUntil.toDate() : new Date(p.validUntil);
+      if (now < from)  { setPromoError('This promo code is not yet active.'); return; }
+      if (now > until) { setPromoError('This promo code has expired.'); return; }
+      if (total < p.minOrderValue) {
+        setPromoError(`Minimum order of ₹${(p.minOrderValue as number).toLocaleString('en-IN')} required.`);
+        return;
+      }
+      const discountAmt = p.discountType === 'flat'
+        ? (p.discountValue as number)
+        : Math.round(total * (p.discountValue as number) / 100);
+      setPromoApplied({ promoId: docSnap.id, code, description: p.description, discount: discountAmt });
+      setPromoInput('');
+    } catch {
+      setPromoError('Could not validate promo code. Please try again.');
+    } finally {
+      setPromoLoading(false);
+    }
   }
 
   async function handleSubmit() {
@@ -438,7 +479,24 @@ export default function BookingFlow() {
         vehicleType:   VEHICLE_TYPES.find(t => t.label === vehicleTypeLabel)?.value ?? 'sedan',
         customerName:  name,
         customerPhone: phone.replace(/\D/g, ''),
+        promoCode:     promoApplied?.code,
+        promoId:       promoApplied?.promoId,
+        promoDiscount: promoApplied?.discount,
       });
+      // Fire-and-forget: SMS + in-app notification
+      fetch('/api/booking/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingId:     res.docId,
+          bookingRef:    res.bookingRef,
+          customerId:    user?.uid ?? `phone:${phone.replace(/\D/g, '')}`,
+          customerPhone: phone.replace(/\D/g, ''),
+          serviceId:     service.id,
+          total:         finalTotal,
+          scheduledAt:   scheduledAt.toISOString(),
+        }),
+      }).catch(() => {});
       setResult({ bookingRef: res.bookingRef });
     } catch (err) {
       console.error('[BookingFlow] submitBooking error:', err);
@@ -491,7 +549,7 @@ export default function BookingFlow() {
           margin: '0 auto',
           marginBottom: 'var(--pc-space-10)',
         }}>
-          <strong style={{ color: 'var(--pc-fg)' }}>{service.name}</strong> · ₹{total.toLocaleString('en-IN')} ·{' '}
+          <strong style={{ color: 'var(--pc-fg)' }}>{service.name}</strong> · ₹{finalTotal.toLocaleString('en-IN')} ·{' '}
           {selDate.dayName} {selDate.dayNum} {selDate.monthName} at {selTime}.
           {' '}We\'ll confirm via WhatsApp on{' '}
           <strong style={{ color: 'var(--pc-fg)' }}>+91 {phone}</strong>.
@@ -544,7 +602,7 @@ export default function BookingFlow() {
               fontFamily: 'var(--pc-serif)',
               fontSize: 'var(--pc-text-2xl)',
               color: 'var(--pc-fg)',
-            }}>₹{total.toLocaleString('en-IN')}</span>
+            }}>₹{finalTotal.toLocaleString('en-IN')}</span>
           </div>
         </Card>
 
@@ -568,7 +626,7 @@ export default function BookingFlow() {
             fontFamily: 'var(--pc-sans)', fontSize: 14,
             color: 'var(--pc-fg)', fontWeight: 500, margin: '0 0 6px',
           }}>
-            Pay ₹{total.toLocaleString('en-IN')} when our detailer arrives.
+            Pay ₹{finalTotal.toLocaleString('en-IN')} when our detailer arrives.
           </p>
           <p style={{
             fontFamily: 'var(--pc-sans)', fontSize: 13,
@@ -1070,6 +1128,54 @@ export default function BookingFlow() {
           </div>
         </section>
 
+        {/* Promo code */}
+        <section>
+          <StepLabel n="05">Promo Code</StepLabel>
+          {promoApplied ? (
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: 'var(--pc-space-3) var(--pc-space-4)',
+              background: 'rgba(74,94,68,0.10)', border: '1px solid rgba(74,94,68,0.30)',
+              borderRadius: 'var(--pc-radius-md)',
+            }}>
+              <div>
+                <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 12, color: 'var(--pc-sage-hi)', margin: '0 0 2px', letterSpacing: '0.06em' }}>{promoApplied.code}</p>
+                <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)', margin: 0 }}>
+                  {promoApplied.description} · −₹{promoApplied.discount.toLocaleString('en-IN')}
+                </p>
+              </div>
+              <button type="button" onClick={() => setPromoApplied(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--pc-fg-4)', fontSize: 18, lineHeight: 1, padding: '0 4px' }}>
+                ×
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                placeholder="Enter promo code"
+                value={promoInput}
+                onChange={e => { setPromoInput(e.target.value.toUpperCase()); setPromoError(''); }}
+                onKeyDown={e => e.key === 'Enter' && applyPromo()}
+                className={styles.input}
+                style={{ flex: 1, fontFamily: 'var(--pc-mono)', letterSpacing: '0.06em' }}
+              />
+              <button type="button" onClick={applyPromo} disabled={!promoInput.trim() || promoLoading}
+                style={{
+                  flexShrink: 0, padding: '0 20px', borderRadius: 'var(--pc-radius-sm)',
+                  background: 'var(--pc-card-hi)', border: '1px solid var(--pc-line-strong)',
+                  color: 'var(--pc-fg-2)', fontFamily: 'var(--pc-sans)', fontSize: 13,
+                  fontWeight: 600, cursor: !promoInput.trim() || promoLoading ? 'not-allowed' : 'pointer',
+                  opacity: !promoInput.trim() || promoLoading ? 0.5 : 1,
+                }}>
+                {promoLoading ? '…' : 'Apply'}
+              </button>
+            </div>
+          )}
+          {promoError && (
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-danger)', margin: 'var(--pc-space-2) 0 0' }}>{promoError}</p>
+          )}
+        </section>
+
         {submitError && (
           <p style={{
             fontFamily: 'var(--pc-sans)',
@@ -1162,18 +1268,24 @@ export default function BookingFlow() {
 
             <div style={{ marginTop: 'var(--pc-space-4)', paddingTop: 'var(--pc-space-4)', borderTop: '1px solid var(--pc-line-strong)' }}>
               {[
-                ['Base price',    `₹${service.price.toLocaleString('en-IN')}`],
-                ['GST (18%)',     `₹${gst.toLocaleString('en-IN')}`],
-                ['Platform fee',  `₹${PLATFORM_FEE}`],
+                ['Base price',   `₹${service.price.toLocaleString('en-IN')}`],
+                ['GST (18%)',    `₹${gst.toLocaleString('en-IN')}`],
+                ['Platform fee', `₹${PLATFORM_FEE}`],
               ].map(([k, v]) => (
                 <div key={k} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--pc-space-2)' }}>
                   <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)' }}>{k}</span>
                   <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-2)' }}>{v}</span>
                 </div>
               ))}
+              {discount > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--pc-space-2)' }}>
+                  <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-sage-hi)' }}>Promo ({promoApplied?.code})</span>
+                  <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-sage-hi)' }}>−₹{discount.toLocaleString('en-IN')}</span>
+                </div>
+              )}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 'var(--pc-space-3)' }}>
                 <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', fontWeight: 600, color: 'var(--pc-fg)' }}>Total</span>
-                <span style={{ fontFamily: 'var(--pc-serif)', fontSize: 'var(--pc-text-xl)', color: 'var(--pc-fg)' }}>₹{total.toLocaleString('en-IN')}</span>
+                <span style={{ fontFamily: 'var(--pc-serif)', fontSize: 'var(--pc-text-xl)', color: 'var(--pc-fg)' }}>₹{finalTotal.toLocaleString('en-IN')}</span>
               </div>
             </div>
           </div>

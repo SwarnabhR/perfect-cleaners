@@ -1,5 +1,5 @@
 import { db, auth } from '@pc/firebase';
-import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, setDoc, updateDoc, serverTimestamp, increment } from 'firebase/firestore';
 import type { Booking, BookingStatus, VehicleType } from '@pc/firebase';
 
 const GST_RATE = 0.18; // 18 % GST on services (standard rate for car wash / detailing)
@@ -24,6 +24,9 @@ export interface SubmitBookingInput {
   customerName: string;
   /** 10-digit Indian mobile number (no country prefix) */
   customerPhone: string;
+  promoCode?:     string;
+  promoId?:       string;
+  promoDiscount?: number;
 }
 
 export interface SubmitBookingResult {
@@ -47,7 +50,8 @@ export async function submitBooking(
   const fee      = data.platformFee ?? 50;
   const subtotal = data.price;
   const tax      = Math.round(subtotal * GST_RATE);
-  const total    = subtotal + tax + fee;
+  const discount = data.promoDiscount ?? 0;
+  const total    = Math.max(0, subtotal + tax + fee - discount);
 
   const currentUser = auth.currentUser;
 
@@ -71,7 +75,7 @@ export async function submitBooking(
       pincode: data.pincode,
       coordinates: { latitude: 0, longitude: 0 },
     },
-    priceBreakdown: { subtotal, tax, total },
+    priceBreakdown: { subtotal, tax, total, ...(discount > 0 ? { discount } : {}) },
     paymentStatus: 'pending',
     photos: { before: [], after: [] },
   };
@@ -85,9 +89,16 @@ export async function submitBooking(
     bookingRef,
     customerName:  data.customerName,
     customerPhone: `+91${data.customerPhone}`,
+    ...(data.promoCode ? { promoCode: data.promoCode, promoDiscount: discount } : {}),
     createdAt:     serverTimestamp(),
     updatedAt:     serverTimestamp(),
   });
+
+  // Increment promo usedCount (best-effort — never block the booking)
+  if (data.promoId) {
+    updateDoc(doc(db, 'promotions', data.promoId), { usedCount: increment(1) })
+      .catch(err => console.error('[submitBooking] promo increment failed:', err));
+  }
 
   return { docId: docRef.id, bookingRef };
 }
