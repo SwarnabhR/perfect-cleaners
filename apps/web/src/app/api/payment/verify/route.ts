@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
+import { FieldValue } from 'firebase-admin/firestore';
 import { adminFirestore } from '@/lib/firebase/admin';
 
 export async function POST(req: NextRequest) {
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
     const bookingRef = `PC-${suffix}`;
 
     const db = adminFirestore();
-    await db.collection('bookings').add({
+    const bookingDoc = await db.collection('bookings').add({
       bookingRef,
       customerId:    booking.customerId ?? `phone:${booking.customerPhone}`,
       customerName:  booking.customerName,
@@ -66,6 +67,48 @@ export async function POST(req: NextRequest) {
       createdAt:      new Date(),
       updatedAt:      new Date(),
     });
+
+    // In-app notification for authenticated customers (mirrors onBookingCreated Cloud Function)
+    const customerId = booking.customerId;
+    if (customerId && !customerId.startsWith('phone:')) {
+      const svc     = (booking.serviceId ?? 'service').replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
+      const dateStr = new Date(booking.scheduledAt).toLocaleDateString('en-IN', {
+        weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+      });
+      db.collection('customers').doc(customerId).collection('notifications').add({
+        type:      'booking_confirmed',
+        title:     'Booking confirmed',
+        body:      `PC-${bookingRef} · ${svc} on ${dateStr}. Pay ₹${total.toLocaleString('en-IN')} at service.`,
+        read:      false,
+        createdAt: FieldValue.serverTimestamp(),
+        bookingId: bookingDoc.id,
+      }).catch(err => console.error('[verify-payment] notification write failed:', err));
+    }
+
+    // SMS confirmation via MSG91 (best-effort — never blocks the response)
+    const phone   = booking.customerPhone?.replace(/\D/g, '');
+    const authKey = process.env.MSG91_AUTH_KEY;
+    if (phone && phone.length >= 10 && authKey) {
+      const message = [
+        '[Perfect Cleaners] Booking confirmed!',
+        `Ref: ${bookingRef}.`,
+        `${(booking.serviceId ?? 'service').replace(/-/g, ' ')}.`,
+        `Pay ₹${total.toLocaleString('en-IN')} at service.`,
+        'Track your booking in the app.',
+      ].join(' ');
+      const url = new URL('https://api.msg91.com/api/sendhttp.php');
+      url.searchParams.set('authkey', authKey);
+      url.searchParams.set('mobiles', phone);
+      url.searchParams.set('message', message);
+      url.searchParams.set('route',   '4');
+      url.searchParams.set('sender',  'PCLNRS');
+      url.searchParams.set('country', '91');
+      url.searchParams.set('unicode', '0');
+      fetch(url.toString())
+        .then(r => r.text())
+        .then(b => console.log('[verify-payment] SMS →', b))
+        .catch(err => console.error('[verify-payment] SMS failed:', err));
+    }
 
     return NextResponse.json({ bookingRef });
   } catch (err: any) {

@@ -63,8 +63,23 @@ export default function BookingsPage() {
 
   async function assignWorker(bookingId: string, worker: LiveWorker) {
     try {
+      const booking = bookings.find(b => b.id === bookingId);
       await updateDoc(doc(db, 'bookings', bookingId), { workerId: worker.id, workerName: worker.name, status: 'assigned' as BookingStatus, updatedAt: serverTimestamp() });
       setAssigning(null);
+      // Fire-and-forget: notify worker via Vercel API (replaces Cloud Function)
+      fetch('/api/worker/notify-assigned', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingId,
+          workerId:    worker.id,
+          workerName:  worker.name,
+          serviceIds:  booking?.serviceIds ?? [],
+          customerName: (booking as any)?.customerName ?? '',
+          address:     (booking as any)?.address ?? null,
+          scheduledAt: booking?.scheduledAt,
+        }),
+      }).catch(() => {});
     } catch (err: any) { console.error('[Bookings] assign failed:', err.message); }
   }
 

@@ -65,7 +65,21 @@ export default function JobDetailPage() {
       ...(next === 'done' ? { completedAt: serverTimestamp() } : {}),
     });
     setUpdating(false);
-    if (next === 'done') router.replace('/worker/dashboard');
+    if (next === 'done') {
+      // Fire-and-forget: credit earnings + notify customer (replaces Cloud Function)
+      fetch('/api/worker/job-complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingId:  id,
+          workerId:   (booking as any).workerId   ?? user?.uid,
+          customerId: (booking as any).customerId ?? null,
+          total:      booking.priceBreakdown?.total ?? 0,
+          serviceIds: (booking as any).serviceIds  ?? [],
+        }),
+      }).catch(() => {});
+      router.replace('/worker/dashboard');
+    }
   }
 
   if (loading) return (
