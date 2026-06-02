@@ -23,7 +23,7 @@ test('authenticate as worker', async ({ page }) => {
   }
 
   // 1. Get a custom token from the dev-only endpoint
-  const res  = await page.request.get(`/api/test/worker-token?uid=${uid}`);
+  const res  = await page.request.get(`/api/test/firebase-token?uid=${uid}`);
   const body = await res.json();
 
   if (!res.ok()) {

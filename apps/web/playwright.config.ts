@@ -79,5 +79,30 @@ export default defineConfig({
       testMatch: '**/worker/**/*.spec.ts',
       testIgnore: '**/worker/login.spec.ts',
     },
+
+    // ── Customer auth setup ────────────────────────────────────────────────
+    {
+      name: 'customer-setup',
+      testMatch: '**/customer-setup.spec.ts',
+    },
+
+    // ── Customer sign-in page — no saved auth state ────────────────────────
+    {
+      name: 'customer-signin',
+      use:  { ...devices['Desktop Chrome'] },
+      testMatch: '**/customer/signin.spec.ts',
+    },
+
+    // ── Customer pages — authenticated ─────────────────────────────────────
+    {
+      name: 'customer',
+      use:  {
+        ...devices['Desktop Chrome'],
+        storageState: 'tests/.auth/customer.json',
+      },
+      dependencies: ['customer-setup'],
+      testMatch: '**/customer/**/*.spec.ts',
+      testIgnore: '**/customer/signin.spec.ts',
+    },
   ],
 });
