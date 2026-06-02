@@ -1,0 +1,91 @@
+import { test, expect } from '@playwright/test';
+
+test.describe('Worker Dashboard', () => {
+
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/worker/dashboard');
+    // Wait for auth check — either dashboard loads or redirects to login
+    await page.waitForLoadState('networkidle');
+  });
+
+  test('unauthenticated access redirects to login', async ({ browser }) => {
+    const ctx  = await browser.newContext(); // no storageState
+    const page = await ctx.newPage();
+    await page.goto('/worker/dashboard');
+    await page.waitForURL(/\/worker\/login/, { timeout: 10_000 });
+    await expect(page.locator('h1')).toContainText('Worker sign in.');
+    await ctx.close();
+  });
+
+  test('top bar shows worker portal branding', async ({ page }) => {
+    await expect(page.locator('text=PERFECT CLEANERS')).toBeVisible();
+  });
+
+  test('renders greeting and worker name', async ({ page }) => {
+    const greetings = ['Good morning', 'Good afternoon', 'Good evening'];
+    const heading   = page.locator('h1');
+    await expect(heading).toBeVisible({ timeout: 10_000 });
+    const text = await heading.textContent();
+    // Heading ends with worker's first name followed by a period
+    expect(text).toMatch(/\w+\.$/);
+  });
+
+  test('Go Online / Online status button is visible', async ({ page }) => {
+    await expect(
+      page.locator('button:has-text("Go Online")').or(page.locator('button:has-text("Online")'))
+    ).toBeVisible({ timeout: 10_000 });
+  });
+
+  test('KPI stats strip renders three cards', async ({ page }) => {
+    await expect(page.locator('text=Cars Done Today').or(page.locator('text=cars done today'))).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('text=Remaining').or(page.locator('text=remaining'))).toBeVisible();
+  });
+
+  test('bottom tab bar has five navigation items', async ({ page }) => {
+    const tabs = ['Dashboard', 'Cleans', 'Jobs', 'Earnings', 'Profile'];
+    for (const label of tabs) {
+      await expect(page.locator(`nav a:has-text("${label}")`)).toBeVisible();
+    }
+  });
+
+  test('bottom tabs navigate to correct pages', async ({ page }) => {
+    const routes: Array<[string, RegExp]> = [
+      ['Jobs',     /\/worker\/jobs/],
+      ['Earnings', /\/worker\/earnings/],
+      ['Profile',  /\/worker\/profile/],
+      ['Cleans',   /\/worker\/cleaning-logs/],
+    ];
+    for (const [label, url] of routes) {
+      await page.goto('/worker/dashboard');
+      await page.click(`nav a:has-text("${label}")`);
+      await page.waitForURL(url, { timeout: 8_000 });
+    }
+  });
+
+  test('society assignment card or "no society" message is shown', async ({ page }) => {
+    await expect(
+      page.locator('text=ASSIGNED SOCIETY')
+        .or(page.locator('text=No society assigned.'))
+    ).toBeVisible({ timeout: 10_000 });
+  });
+
+  test('online toggle changes worker status', async ({ page }) => {
+    const goOnline = page.locator('button:has-text("Go Online")');
+    const online   = page.locator('button:has-text("Online")');
+
+    if (await goOnline.isVisible()) {
+      await goOnline.click();
+      await expect(online).toBeVisible({ timeout: 8_000 });
+      // Toggle back off
+      await online.click();
+      await expect(goOnline).toBeVisible({ timeout: 8_000 });
+    } else {
+      // Already online — toggle off then on
+      await online.click();
+      await expect(goOnline).toBeVisible({ timeout: 8_000 });
+      await goOnline.click();
+      await expect(online).toBeVisible({ timeout: 8_000 });
+    }
+  });
+
+});

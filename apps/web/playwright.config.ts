@@ -30,20 +30,33 @@ export default defineConfig({
   },
 
   projects: [
-    // ── 1. Auth setup — runs first, saves storageState ─────────────────────
+    // ── Admin auth setup ───────────────────────────────────────────────────
     {
       name: 'setup',
       testMatch: '**/global-setup.spec.ts',
     },
 
-    // ── 2. Login page — no saved auth state (tests the login UI itself) ────
+    // ── Worker auth setup ──────────────────────────────────────────────────
+    {
+      name: 'worker-setup',
+      testMatch: '**/worker-setup.spec.ts',
+    },
+
+    // ── Admin login page — no saved auth state ─────────────────────────────
     {
       name: 'admin-login',
       use:  { ...devices['Desktop Chrome'] },
       testMatch: '**/admin/login.spec.ts',
     },
 
-    // ── 3. All other admin pages — authenticated via saved storageState ─────
+    // ── Worker login page — no saved auth state ────────────────────────────
+    {
+      name: 'worker-login',
+      use:  { ...devices['Desktop Chrome'] },
+      testMatch: '**/worker/login.spec.ts',
+    },
+
+    // ── Admin pages — authenticated ────────────────────────────────────────
     {
       name: 'admin',
       use:  {
@@ -51,7 +64,20 @@ export default defineConfig({
         storageState: 'tests/.auth/admin.json',
       },
       dependencies: ['setup'],
-      testIgnore: ['**/admin/login.spec.ts', '**/global-setup.spec.ts'],
+      testMatch: '**/admin/**/*.spec.ts',
+      testIgnore: '**/admin/login.spec.ts',
+    },
+
+    // ── Worker pages — authenticated ───────────────────────────────────────
+    {
+      name: 'worker',
+      use:  {
+        ...devices['Desktop Chrome'],
+        storageState: 'tests/.auth/worker.json',
+      },
+      dependencies: ['worker-setup'],
+      testMatch: '**/worker/**/*.spec.ts',
+      testIgnore: '**/worker/login.spec.ts',
     },
   ],
 });
