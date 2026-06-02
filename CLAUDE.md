@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## ⚠️ Current Focus — DO NOT TOUCH
+
+**`apps/mobile/` is frozen.** Do not read, edit, or create any files under `apps/mobile/` unless the user explicitly asks. All active development is on the web app (`apps/web/`) and shared packages.
+
 ## What This Project Is
 
 **Perfect Cleaners** is a premium car wash & detailing service (Delhi NCR). This repo is a Turborepo monorepo containing the production apps and a reference design system.
