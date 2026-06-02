@@ -1,12 +1,1 @@
-{
-  "crons": [
-    {
-      "path": "/api/cron/process-cleaning-logs",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/cron/reset-earnings",
-      "schedule": "30 18 * * *"
-    }
-  ]
-}
+{}
