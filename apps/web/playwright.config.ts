@@ -104,5 +104,13 @@ export default defineConfig({
       testMatch: '**/customer/**/*.spec.ts',
       testIgnore: '**/customer/signin.spec.ts',
     },
+
+    // ── Auth flows — no stored state; authenticated contexts created inline ─
+    {
+      name: 'auth',
+      use:  { ...devices['Desktop Chrome'] },
+      dependencies: ['setup', 'worker-setup', 'customer-setup'],
+      testMatch: '**/auth/**/*.spec.ts',
+    },
   ],
 });
