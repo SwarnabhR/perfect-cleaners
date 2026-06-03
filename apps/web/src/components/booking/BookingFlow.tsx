@@ -7,7 +7,7 @@ import Card from '@/components/ui/Card';
 import CustomSelect from '@/components/ui/CustomSelect';
 import type { VehicleType } from '@pc/firebase';
 import { db } from '@pc/firebase';
-import { getDocs, collection, query, where, limit } from 'firebase/firestore';
+import { getDocs, collection, query, where, limit, onSnapshot } from 'firebase/firestore';
 import AuthBottomSheet from '@/components/auth/AuthBottomSheet';
 import { useCustomerAuth } from '@/lib/auth/CustomerAuthContext';
 import { submitBooking } from '@/lib/firebase/booking';
@@ -110,25 +110,25 @@ function buildScheduledAt(dateOpt: DateOption, timeStr: string): Date {
 // ─── Validation ───────────────────────────────────────────────────────────────
 
 interface FieldErrors {
-  address?: string;
-  pincode?: string;
-  model?:   string;
-  plate?:   string;
-  name?:    string;
-  phone?:   string;
+  societyId?: string;
+  flatNo?:    string;
+  model?:     string;
+  plate?:     string;
+  name?:      string;
+  phone?:     string;
 }
 
 function validate(fields: {
-  address: string; pincode: string;
+  societyId: string; flatNo: string;
   model: string; plate: string; name: string; phone: string;
 }): FieldErrors {
   const e: FieldErrors = {};
-  if (!fields.address.trim())                                    e.address = 'Address is required.';
-  if (!/^\d{6}$/.test(fields.pincode))                         e.pincode = 'Enter a valid 6-digit pincode.';
-  if (!fields.model.trim())                                      e.model   = 'Vehicle model is required.';
-  if (fields.plate.replace(/\s/g, '').length < 5)              e.plate   = 'Enter a valid number plate.';
-  if (!fields.name.trim())                                       e.name    = 'Name is required.';
-  if (!/^[6-9]\d{9}$/.test(fields.phone.replace(/\D/g, '')))  e.phone   = 'Enter a valid 10-digit mobile number.';
+  if (!fields.societyId)                                         e.societyId = 'Please select your society.';
+  if (!fields.flatNo.trim())                                     e.flatNo    = 'Flat number is required.';
+  if (!fields.model.trim())                                      e.model     = 'Vehicle model is required.';
+  if (fields.plate.replace(/\s/g, '').length < 5)               e.plate     = 'Enter a valid number plate.';
+  if (!fields.name.trim())                                       e.name      = 'Name is required.';
+  if (!/^[6-9]\d{9}$/.test(fields.phone.replace(/\D/g, '')))   e.phone     = 'Enter a valid 10-digit mobile number.';
   return e;
 }
 
@@ -347,9 +347,23 @@ export default function BookingFlow() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const [city,    setCity]    = useState(CITIES[0]);
-  const [address, setAddress] = useState('');
-  const [pincode, setPincode] = useState('');
+  const [societies,   setSocieties]   = useState<{ id: string; name: string; towers: string[] }[]>([]);
+  const [societyId,   setSocietyId]   = useState('');
+  const [societyName, setSocietyName] = useState('');
+  const [tower,       setTower]       = useState('');
+  const [flatNo,      setFlatNo]      = useState('');
+  const [garageNo,    setGarageNo]    = useState('');
+
+  useEffect(() => {
+    const q = query(collection(db, 'societies'), where('isActive', '==', true));
+    return onSnapshot(q, snap => {
+      setSocieties(snap.docs.map(d => ({
+        id:     d.id,
+        name:   d.data().name as string,
+        towers: (d.data().towers ?? []) as string[],
+      })));
+    });
+  }, []);
   const [brand,            setBrand]            = useState(BRANDS[4]);
   const [vehicleTypeLabel, setVehicleTypeLabel] = useState(VEHICLE_TYPE_LABELS[0]);
   const [model,            setModel]            = useState('');
@@ -446,7 +460,7 @@ export default function BookingFlow() {
   }
 
   async function handleSubmit() {
-    const errs = validate({ address, pincode, model, plate, name, phone });
+    const errs = validate({ societyId, flatNo, model, plate, name, phone });
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
       document.querySelector('[data-error-anchor]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -470,9 +484,11 @@ export default function BookingFlow() {
         price:         service.price,
         platformFee:   PLATFORM_FEE,
         scheduledAt,
-        city,
-        pincode,
-        addressLine1:  address,
+        societyId,
+        societyName,
+        tower:         tower || undefined,
+        flatNo,
+        garageNo:      garageNo || undefined,
         vehicleMake:   brand,
         vehicleModel:  model,
         vehiclePlate:  plate.toUpperCase(),
@@ -561,7 +577,7 @@ export default function BookingFlow() {
             ['Service',      service.name],
             ['Scheduled',    `${selDate.dayName} ${selDate.dayNum} ${selDate.monthName} · ${selTime}`],
             ['Vehicle',      `${brand} ${model} · ${vehicleTypeLabel}`],
-            ['Location',     `${address}, ${city} – ${pincode}`],
+            ['Location',     [flatNo && `Flat ${flatNo}`, tower, societyName].filter(Boolean).join(', ')],
           ].map(([k, v]) => (
             <div key={k} style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
@@ -1021,33 +1037,71 @@ export default function BookingFlow() {
           <StepLabel n="03">Location &amp; Vehicle</StepLabel>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-5)' }}>
 
-            {/* City */}
+            {/* Society */}
             <div>
-              <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--pc-fg-4)', marginBottom: 10 }}>City</p>
-              <CustomSelect options={CITIES} value={city} onChange={setCity} />
+              <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--pc-fg-4)', marginBottom: 10 }}>Society</p>
+              <select
+                value={societyId}
+                onChange={e => {
+                  const s = societies.find(s => s.id === e.target.value);
+                  setSocietyId(e.target.value);
+                  setSocietyName(s?.name ?? '');
+                  setTower('');
+                }}
+                className={`${styles.input}${errors.societyId ? ` ${styles.inputError}` : ''}`}
+                style={{ appearance: 'none', WebkitAppearance: 'none', cursor: 'pointer',
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
+                  backgroundRepeat: 'no-repeat', backgroundPosition: 'right 14px center', paddingRight: 36 }}
+              >
+                <option value="">Select your society…</option>
+                {societies.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+              <FieldError msg={errors.societyId} />
+              {societies.length === 0 && (
+                <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-4)', marginTop: 6 }}>
+                  No societies listed yet — contact us to get yours added.
+                </p>
+              )}
             </div>
 
-            {/* Address + Pincode */}
+            {/* Tower (only when society has towers) */}
+            {societyId && (societies.find(s => s.id === societyId)?.towers.length ?? 0) > 0 && (
+              <div>
+                <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--pc-fg-4)', marginBottom: 10 }}>Tower / Block</p>
+                <select
+                  value={tower}
+                  onChange={e => setTower(e.target.value)}
+                  className={styles.input}
+                  style={{ appearance: 'none', WebkitAppearance: 'none', cursor: 'pointer',
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
+                    backgroundRepeat: 'no-repeat', backgroundPosition: 'right 14px center', paddingRight: 36 }}
+                >
+                  <option value="">Select tower…</option>
+                  {(societies.find(s => s.id === societyId)?.towers ?? []).map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Flat No + Garage No */}
             <div className={styles.fieldRow}>
               <div style={{ flex: 1 }}>
                 <input
-                  placeholder="Full address (flat / house no., street, locality)"
-                  value={address}
-                  onChange={e => setAddress(e.target.value)}
-                  className={`${styles.input}${errors.address ? ` ${styles.inputError}` : ''}`}
+                  placeholder="Flat / unit number (e.g. 1204)"
+                  value={flatNo}
+                  onChange={e => setFlatNo(e.target.value)}
+                  className={`${styles.input}${errors.flatNo ? ` ${styles.inputError}` : ''}`}
                 />
-                <FieldError msg={errors.address} />
+                <FieldError msg={errors.flatNo} />
               </div>
-              <div style={{ flex: '0 0 120px' }}>
+              <div style={{ flex: 1 }}>
                 <input
-                  placeholder="Pincode"
-                  value={pincode}
-                  onChange={e => setPincode(e.target.value)}
-                  maxLength={6}
-                  inputMode="numeric"
-                  className={`${styles.input}${errors.pincode ? ` ${styles.inputError}` : ''}`}
+                  placeholder="Garage no. (optional, e.g. G-42)"
+                  value={garageNo}
+                  onChange={e => setGarageNo(e.target.value)}
+                  className={styles.input}
                 />
-                <FieldError msg={errors.pincode} />
               </div>
             </div>
 

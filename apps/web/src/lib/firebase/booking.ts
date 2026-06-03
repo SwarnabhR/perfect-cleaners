@@ -12,10 +12,12 @@ export interface SubmitBookingInput {
   /** Platform / convenience fee in ₹ (default 50) */
   platformFee?: number;
   /** Fully-constructed Date combining the selected calendar day + slot time */
-  scheduledAt: Date;
-  city: string;
-  pincode: string;
-  addressLine1: string;
+  scheduledAt:  Date;
+  societyId:    string;
+  societyName:  string;
+  tower?:       string;
+  flatNo:       string;
+  garageNo?:    string;
   vehicleMake:  string;
   vehicleModel: string;
   vehiclePlate?: string;
@@ -70,9 +72,13 @@ export async function submitBooking(
     status: 'pending' as BookingStatus,
     scheduledAt: data.scheduledAt,
     address: {
-      line1: data.addressLine1,
-      city: data.city,
-      pincode: data.pincode,
+      societyId:   data.societyId,
+      societyName: data.societyName,
+      tower:       data.tower ?? null,
+      flatNo:      data.flatNo,
+      garageNo:    data.garageNo ?? null,
+      line1:       [data.flatNo, data.tower, data.societyName].filter(Boolean).join(', '),
+      pincode:     '',
       coordinates: { latitude: 0, longitude: 0 },
     },
     priceBreakdown: { subtotal, tax, total, ...(discount > 0 ? { discount } : {}) },
