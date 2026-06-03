@@ -89,8 +89,11 @@ function SignInContent() {
     window.verifyOtp(
       otp,
       async (data: any) => {
-        const msg91Token = data?.['access-token'] ?? data?.token;
-        if (!msg91Token) { setError('No token returned. Please try again.'); setBusy(false); return; }
+        const msg91Token =
+          typeof data === 'string'
+            ? data
+            : (data?.['access-token'] ?? data?.accessToken ?? data?.token ?? data?.message);
+        if (!msg91Token) { console.error('[Auth] verifyOtp unexpected data shape:', JSON.stringify(data)); setError('No token returned. Please try again.'); setBusy(false); return; }
         try {
           const res  = await fetch('/api/auth/verify-otp', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },

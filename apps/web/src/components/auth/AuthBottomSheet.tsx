@@ -111,8 +111,14 @@ export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: A
     window.verifyOtp(
       otp,
       async (data: any) => {
-        const msg91Token = data?.['access-token'] ?? data?.token;
+        // Msg91 SDK puts the access token in different fields across versions:
+        // v1: data['access-token'], v2: data.token, v3: data.message (confusingly)
+        const msg91Token =
+          typeof data === 'string'
+            ? data
+            : (data?.['access-token'] ?? data?.accessToken ?? data?.token ?? data?.message);
         if (!msg91Token) {
+          console.error('[Auth] verifyOtp unexpected data shape:', JSON.stringify(data));
           setError('Verification failed. Please try again.');
           setBusy(false); return;
         }
