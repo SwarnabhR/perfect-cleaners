@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Nav from '@/components/marketing/Nav';
 import Footer from '@/components/marketing/Footer';
 import Eyebrow from '@/components/ui/Eyebrow';
+import Icon from '@/components/ui/Icon';
 
 export const metadata: Metadata = {
   title: 'For Societies | Perfect Cleaners',
@@ -17,34 +18,34 @@ const steps = [
   { n: '04', title: 'We show up', body: 'A dedicated crew arrives at the agreed time every session. Residents track status in the app.' },
 ];
 
-const benefits = [
+const benefits: { icon: string; title: string; body: string }[] = [
   {
-    icon: '₹',
+    icon: 'indian-rupee',
     title: 'Bulk pricing',
     body: 'Societies with 20+ vehicles get up to 30 % off standard per-wash rates. More cars, better savings.',
   },
   {
-    icon: '📅',
+    icon: 'calendar',
     title: 'Fixed schedule',
     body: 'One recurring slot for the whole complex — no individual booking coordination required.',
   },
   {
-    icon: '📱',
+    icon: 'smartphone',
     title: 'Resident app access',
     body: 'Every resident gets live status updates, wash history, and the ability to pause their own vehicle.',
   },
   {
-    icon: '🧾',
+    icon: 'file-text',
     title: 'Single monthly invoice',
     body: 'Society management gets one consolidated invoice. No per-household payment hassle.',
   },
   {
-    icon: '🔒',
+    icon: 'shield',
     title: 'Verified crew',
     body: 'Every worker is background-checked and carries a QR-verified ID badge displayed in the app.',
   },
   {
-    icon: '💬',
+    icon: 'message-circle',
     title: 'Dedicated support',
     body: 'A named account manager for every society. Reach them on WhatsApp or email — no ticket queues.',
   },
@@ -100,7 +101,7 @@ export default function ForSocietiesPage() {
             {/* ── CTA pair — identical to Hero / CTASection pill design ── */}
             <div style={{ display: 'flex', gap: 'var(--pc-space-2)', flexWrap: 'wrap' }}>
               <Link
-                href="/societies"
+                href="/contact"
                 className="pc-hero-cta-primary"
                 style={{
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -114,7 +115,7 @@ export default function ForSocietiesPage() {
                   transition: 'background var(--pc-dur-fast) var(--pc-ease), box-shadow var(--pc-dur-fast) var(--pc-ease)',
                 }}
               >
-                Is my society listed?
+                Register your society
               </Link>
               <Link
                 href="/contact"
@@ -258,7 +259,9 @@ export default function ForSocietiesPage() {
           >
             {benefits.map(b => (
               <div key={b.title} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-2)' }}>
-                <span style={{ fontSize: 22, lineHeight: 1 }}>{b.icon}</span>
+                <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--pc-sage)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon name={b.icon} size={16} color="var(--pc-sage-ink)" />
+                </div>
                 <h3 style={{
                   fontFamily: 'var(--pc-sans)',
                   fontSize: 'var(--pc-text-base)',
@@ -303,7 +306,7 @@ export default function ForSocietiesPage() {
           </h2>
           <div style={{ display: 'flex', gap: 'var(--pc-space-2)', flexWrap: 'wrap', justifyContent: 'center' }}>
             <Link
-              href="/societies"
+              href="/contact"
               className="pc-hero-cta-primary"
               style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -317,7 +320,7 @@ export default function ForSocietiesPage() {
                 transition: 'background var(--pc-dur-fast) var(--pc-ease), box-shadow var(--pc-dur-fast) var(--pc-ease)',
               }}
             >
-              Is my society listed?
+              Register your society
             </Link>
             <Link
               href="/contact"
