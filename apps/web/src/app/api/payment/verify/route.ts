@@ -110,6 +110,23 @@ export async function POST(req: NextRequest) {
         .catch(err => console.error('[verify-payment] SMS failed:', err));
     }
 
+    // Record payment in paymentLogs and update income stats
+    const batch = db.batch();
+    const logRef = db.collection('paymentLogs').doc();
+    batch.set(logRef, {
+      bookingId:    bookingDoc.id,
+      bookingRef,
+      customerId:   booking.customerId ?? `phone:${booking.customerPhone}`,
+      customerName: booking.customerName ?? '',
+      customerPhone:`+91${booking.customerPhone}`,
+      amount:       total,
+      type:         'online_booking',
+      paidAt:       FieldValue.serverTimestamp(),
+    });
+    const statsRef = db.collection('stats').doc('income');
+    batch.set(statsRef, { totalIncome: FieldValue.increment(total) }, { merge: true });
+    await batch.commit().catch(err => console.error('[verify-payment] stats write failed:', err));
+
     return NextResponse.json({ bookingRef });
   } catch (err: any) {
     console.error('[verify-payment]', err);

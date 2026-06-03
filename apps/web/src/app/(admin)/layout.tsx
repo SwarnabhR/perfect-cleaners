@@ -86,16 +86,17 @@ function SidebarFooter() {
 }
 
 const NAV = [
-  { label: 'Dashboard',  href: '/dashboard',    icon: 'layout-dashboard' },
-  { label: 'Societies',  href: '/societies-mgmt', icon: 'building-2'     },
-  { label: 'Bookings',   href: '/bookings',      icon: 'calendar'         },
-  { label: 'Customers',  href: '/customers',     icon: 'users'            },
-  { label: 'Workers',    href: '/workers',        icon: 'hard-hat'         },
-  { label: 'Activity',   href: '/cleaning-logs', icon: 'list-checks'      },
-  { label: 'Services',   href: '/services-mgmt', icon: 'sparkles'         },
-  { label: 'Promotions', href: '/promotions',    icon: 'tag'              },
-  { label: 'Analytics',  href: '/analytics',     icon: 'bar-chart-2'      },
-  { label: 'Settings',   href: '/settings',      icon: 'settings'         },
+  { label: 'Dashboard',  href: '/dashboard',     icon: 'layout-dashboard' },
+  { label: 'Societies',  href: '/societies-mgmt', icon: 'building-2'      },
+  { label: 'Bookings',   href: '/bookings',       icon: 'calendar'         },
+  { label: 'Customers',  href: '/customers',      icon: 'users'            },
+  { label: 'Workers',    href: '/workers',         icon: 'hard-hat'        },
+  { label: 'Billing',    href: '/billing',         icon: 'indian-rupee'    },
+  { label: 'Activity',   href: '/cleaning-logs',  icon: 'list-checks'      },
+  { label: 'Services',   href: '/services-mgmt',  icon: 'sparkles'         },
+  { label: 'Promotions', href: '/promotions',     icon: 'tag'              },
+  { label: 'Analytics',  href: '/analytics',      icon: 'bar-chart-2'      },
+  { label: 'Settings',   href: '/settings',       icon: 'settings'         },
 ];
 
 // Bottom-tab items (5 most important for mobile)
