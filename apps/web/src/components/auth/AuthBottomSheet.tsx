@@ -133,7 +133,7 @@ export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: A
 
           // New user → collect profile before proceeding
           const snap = await getDoc(doc(db, 'customers', cred.user.uid));
-          if (snap.exists() && snap.data().name && snap.data().email) {
+          if (snap.exists() && snap.data().name) {
             onSuccess?.(cred.user.uid);
             onClose();
           } else {
@@ -165,13 +165,13 @@ export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: A
     const trimFirst = firstName.trim();
     const trimLast  = lastName.trim();
     const trimEmail = email.trim();
-    if (!trimFirst || !trimLast || !trimEmail) { setError('All fields are required.'); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimEmail)) { setError('Enter a valid email address.'); return; }
+    if (!trimFirst || !trimLast) { setError('Name is required.'); return; }
+    if (trimEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimEmail)) { setError('Enter a valid email address.'); return; }
     setError(''); setBusy(true);
     try {
       await setDoc(doc(db, 'customers', uid), {
         name:      `${trimFirst} ${trimLast}`,
-        email:     trimEmail,
+        ...(trimEmail && { email: trimEmail }),
         phone:     `+91${phone}`,
         vehicles:  [],
         createdAt: serverTimestamp(),
@@ -314,7 +314,7 @@ export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: A
               fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)',
               marginBottom: 20, lineHeight: 1.5,
             }}>
-              Tell us your name and email to complete your account.
+              Tell us your name to complete your account.
             </p>
           )}
 
@@ -405,14 +405,14 @@ export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: A
               <FieldLabel>Email address</FieldLabel>
               <input
                 type="email" autoComplete="email" inputMode="email"
-                placeholder="rahul@example.com" value={email}
+                placeholder="rahul@example.com (optional)" value={email}
                 onChange={e => { setEmail(e.target.value); setError(''); }}
-                required style={{ ...inputStyle, marginBottom: 0 }}
+                style={{ ...inputStyle, marginBottom: 0 }}
               />
               <Err msg={error} />
               <button
                 type="submit"
-                disabled={busy || !firstName.trim() || !lastName.trim() || !email.trim()}
+                disabled={busy || !firstName.trim() || !lastName.trim()}
                 style={primaryBtn}
               >
                 {busy ? 'Saving…' : 'Create Account →'}

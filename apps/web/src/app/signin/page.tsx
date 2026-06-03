@@ -126,14 +126,14 @@ function SignInContent() {
     const trimFirst = firstName.trim();
     const trimLast  = lastName.trim();
     const trimEmail = email.trim();
-    if (!trimFirst || !trimLast || !trimEmail) { setError('All fields are required.'); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimEmail)) { setError('Enter a valid email address.'); return; }
+    if (!trimFirst || !trimLast) { setError('Name is required.'); return; }
+    if (trimEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimEmail)) { setError('Enter a valid email address.'); return; }
     setError(''); setBusy(true);
     try {
       await setDoc(doc(db, 'customers', user.uid), {
-        name:      `${trimFirst} ${trimLast}`,
-        email:     trimEmail,
-        phone:     `+91${phone}`,
+        name:  `${trimFirst} ${trimLast}`,
+        ...(trimEmail && { email: trimEmail }),
+        phone: `+91${phone}`,
         vehicles:  [],
         createdAt: serverTimestamp(),
       }, { merge: true });
@@ -302,15 +302,15 @@ function SignInContent() {
             <FieldLabel>Email address</FieldLabel>
             <input
               type="email" autoComplete="email" inputMode="email"
-              placeholder="rahul@example.com" value={email}
+              placeholder="rahul@example.com (optional)" value={email}
               onChange={e => { setEmail(e.target.value); setError(''); }}
-              required style={{ ...inputBase, marginBottom: 0 }}
+              style={{ ...inputBase, marginBottom: 0 }}
             />
 
             <ErrorMsg msg={error} />
             <button
               type="submit"
-              disabled={busy || !firstName.trim() || !lastName.trim() || !email.trim()}
+              disabled={busy || !firstName.trim() || !lastName.trim()}
               style={primaryBtn}
             >
               {busy ? 'Saving…' : 'Create Account →'}
