@@ -804,53 +804,22 @@ export default function BookingFlow() {
         {/* Step 1 — Service */}
         <section>
           <StepLabel n="01">Select Service</StepLabel>
-          <div className="pc-service-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 'var(--pc-space-3)' }}>
-            {SERVICES.map(s => {
-              const active = service.id === s.id;
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => setService(s)}
-                  className={styles.selBtn}
-                  style={{
-                    padding: 'var(--pc-space-4)',
-                    borderRadius: 'var(--pc-radius-md)',
-                    border: `1px solid ${active ? 'var(--pc-sage-hi)' : 'var(--pc-line)'}`,
-                    background: active ? 'var(--pc-sage-subtle)' : 'var(--pc-card)',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    transition: 'border-color var(--pc-dur-fast) var(--pc-ease), background var(--pc-dur-fast) var(--pc-ease)',
-                  }}
-                >
-                  <div style={{
-                    fontFamily: 'var(--pc-sans)',
-                    fontSize: 'var(--pc-text-sm)',
-                    fontWeight: 500,
-                    color: active ? 'var(--pc-sage-on-tint)' : 'var(--pc-fg)',
-                    marginBottom: 'var(--pc-space-1)',
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 'var(--pc-space-2)',
-                  }}>
-                    <span>{s.name}</span>
-                    <span style={{
-                      fontFamily: 'var(--pc-mono)',
-                      fontSize: 'var(--pc-text-xs)',
-                      color: active ? 'var(--pc-sage-on-tint)' : 'var(--pc-fg-2)',
-                    }}>
-                      ₹{s.price.toLocaleString('en-IN')}
-                    </span>
-                  </div>
-                  <div style={{
-                    fontFamily: 'var(--pc-sans)',
-                    fontSize: 'var(--pc-text-xs)',
-                    color: active ? 'var(--pc-sage-on-tint-2)' : 'var(--pc-fg-3)',
-                    lineHeight: 'var(--pc-lh-snug)',
-                  }}>{s.desc}</div>
-                </button>
-              );
-            })}
-          </div>
+          <CustomSelect
+            options={SERVICES.map(s => `${s.name} — ₹${s.price.toLocaleString('en-IN')}`)}
+            value={`${service.name} — ₹${service.price.toLocaleString('en-IN')}`}
+            onChange={val => {
+              const s = SERVICES.find(s => `${s.name} — ₹${s.price.toLocaleString('en-IN')}` === val);
+              if (s) setService(s);
+            }}
+          />
+          {service.desc && (
+            <p style={{
+              fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)',
+              color: 'var(--pc-fg-3)', marginTop: 'var(--pc-space-2)', lineHeight: 1.5,
+            }}>
+              {service.desc}
+            </p>
+          )}
         </section>
 
         {/* Step 2 — Date & Time */}
@@ -1216,6 +1185,11 @@ export default function BookingFlow() {
           )}
           {promoError && (
             <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-danger)', margin: 'var(--pc-space-2) 0 0' }}>{promoError}</p>
+          )}
+          {!promoApplied && !promoError && (
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-4)', margin: 'var(--pc-space-2) 0 0', lineHeight: 1.5 }}>
+              Have a discount or referral code? Enter it above to apply a deduction to your order.
+            </p>
           )}
         </section>
 
