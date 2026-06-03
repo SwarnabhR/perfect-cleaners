@@ -22,6 +22,34 @@ function formatTime(ts: any): string {
   return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 }
 
+// Build a 14-day sparkline from booking createdAt timestamps.
+function buildSparkline(bookings: LiveBooking[], W = 800, H = 200): { line: string; fill: string; labels: string[] } {
+  const DAYS = 14;
+  const buckets = Array<number>(DAYS).fill(0);
+  const now = Date.now();
+  const dayMs = 86_400_000;
+  for (const b of bookings) {
+    const ts = (b as any).createdAt;
+    const t  = ts?.toDate ? ts.toDate().getTime() : new Date(ts ?? 0).getTime();
+    const daysAgo = Math.floor((now - t) / dayMs);
+    if (daysAgo >= 0 && daysAgo < DAYS) buckets[DAYS - 1 - daysAgo]++;
+  }
+  const max = Math.max(...buckets, 1);
+  const pts = buckets.map((v, i) => {
+    const x = Math.round((i / (DAYS - 1)) * W);
+    const y = Math.round(H - (v / max) * H * 0.85 - H * 0.05);
+    return `${x},${y}`;
+  });
+  return {
+    line: pts.join(' '),
+    fill: `0,${H} ${pts.join(' ')} ${W},${H}`,
+    labels: buckets.map((_, i) => {
+      const d = new Date(now - (DAYS - 1 - i) * dayMs);
+      return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+    }),
+  };
+}
+
 export default function DashboardPage() {
   const [bookings, setBookings] = useState<LiveBooking[]>([]);
   const [workers,  setWorkers]  = useState<LiveWorker[]>([]);
@@ -41,6 +69,7 @@ export default function DashboardPage() {
     );
   }, []);
 
+  const spark          = buildSparkline(bookings);
   const revenue        = bookings.filter(b => b.status === 'done').reduce((s, b) => s + (b.priceBreakdown?.total ?? 0), 0);
   const activeJobs     = bookings.filter(b => ['inprogress', 'enroute'].includes(b.status)).length;
   const workersOnline  = workers.filter(w => w.isOnline).length;
@@ -85,19 +114,32 @@ export default function DashboardPage() {
       <div className="charts-row-1-4-1">
         <Card style={{ padding: 0, overflow: 'hidden' }}>
           <div style={{ padding: 'var(--pc-space-5) var(--pc-space-5) 0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <Eyebrow>BOOKING VOLUME — RECENT</Eyebrow>
+            <Eyebrow>BOOKING VOLUME — 14 DAYS</Eyebrow>
+            <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-4)', letterSpacing: '0.06em' }}>
+              {loading ? '—' : `${bookings.length} bookings`}
+            </span>
           </div>
-          <svg aria-hidden="true" viewBox="0 0 800 320" width="100%" height="200" style={{ display: 'block' }}>
-            <g style={{ stroke: 'var(--pc-line-faint)' }} fill="none">
-              <path d="M-20 100 Q200 80 400 110 T820 100" strokeWidth="20" />
-              <path d="M-20 220 Q200 200 400 230 T820 220" strokeWidth="14" />
-            </g>
-            {[80, 160, 240].map(y => (
-              <line key={y} x1="40" y1={y} x2="780" y2={y} style={{ stroke: 'var(--pc-line)' }} strokeWidth="0.5" strokeDasharray="4 4" />
+          <svg aria-hidden="true" viewBox="0 0 800 200" width="100%" height="160" style={{ display: 'block', marginTop: 8 }}>
+            {[50, 100, 150].map(y => (
+              <line key={y} x1="0" y1={y} x2="800" y2={y} stroke="var(--pc-line)" strokeWidth="0.5" strokeDasharray="4 4" />
             ))}
-            <polygon points="40,320 40,280 110,240 180,260 250,180 320,220 390,150 460,190 530,120 600,160 670,90 740,110 780,80 780,320" fill="var(--pc-sage)" opacity="0.08" />
-            <polyline points="40,280 110,240 180,260 250,180 320,220 390,150 460,190 530,120 600,160 670,90 740,110 780,80" fill="none" stroke="var(--pc-sage)" strokeWidth="2" />
+            {!loading && (
+              <>
+                <polygon points={spark.fill} fill="var(--pc-sage)" opacity="0.10" />
+                <polyline points={spark.line} fill="none" stroke="var(--pc-sage)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+              </>
+            )}
           </svg>
+          {!loading && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 var(--pc-space-3) var(--pc-space-3)' }}>
+              <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, color: 'var(--pc-fg-4)', letterSpacing: '0.04em' }}>
+                {spark.labels[0]}
+              </span>
+              <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, color: 'var(--pc-fg-4)', letterSpacing: '0.04em' }}>
+                Today
+              </span>
+            </div>
+          )}
         </Card>
 
         <Card style={{ padding: 'var(--pc-space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-3)' }}>

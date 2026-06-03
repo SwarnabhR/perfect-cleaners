@@ -8,6 +8,7 @@ const icons: Record<string, React.ReactNode> = {
   'arrow-left':       <><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></>,
   'arrow-right':      <><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></>,
   'arrow-up-right':   <><path d="M7 7h10v10"/><path d="M7 17 17 7"/></>,
+  'arrow-down-right': <><path d="M7 17h10V7"/><path d="M17 17 7 7"/></>,
   'chevron-right':    <path d="m9 18 6-6-6-6"/>,
   'chevron-left':     <path d="m15 18-6-6 6-6"/>,
   'chevron-down':     <path d="m6 9 6 6 6-6"/>,
