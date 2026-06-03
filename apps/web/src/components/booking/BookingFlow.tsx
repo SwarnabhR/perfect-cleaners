@@ -1308,7 +1308,7 @@ export default function BookingFlow() {
               ['Date',         `${selDate.dayName} ${selDate.dayNum} ${selDate.monthName}`],
               ['Time',         selTime],
               ['Vehicle',      `${brand} ${model || '—'} · ${vehicleTypeLabel}${plate ? ` · ${plate}` : ''}`],
-              ['City',         city],
+              ['Location',     [flatNo && `Flat ${flatNo}`, tower, societyName].filter(Boolean).join(', ')],
             ].map(([k, v]) => (
               <div key={k} style={{
                 display: 'flex', justifyContent: 'space-between',
