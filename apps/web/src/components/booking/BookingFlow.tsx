@@ -7,11 +7,21 @@ import Card from '@/components/ui/Card';
 import CustomSelect from '@/components/ui/CustomSelect';
 import type { VehicleType } from '@pc/firebase';
 import { db } from '@pc/firebase';
-import { getDocs, collection, query, where, limit, onSnapshot } from 'firebase/firestore';
+import { getDocs, getDoc, collection, query, where, limit, onSnapshot, doc } from 'firebase/firestore';
 import AuthBottomSheet from '@/components/auth/AuthBottomSheet';
 import { useCustomerAuth } from '@/lib/auth/CustomerAuthContext';
-import { submitBooking } from '@/lib/firebase/booking';
 import SlideToConfirm from '@/components/ui/SlideToConfirm';
+
+function loadRazorpay(): Promise<any> {
+  return new Promise(resolve => {
+    if (typeof window !== 'undefined' && (window as any).Razorpay) { resolve((window as any).Razorpay); return; }
+    const s = document.createElement('script');
+    s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    s.async = true;
+    s.onload = () => resolve((window as any).Razorpay);
+    document.body.appendChild(s);
+  });
+}
 import styles from './BookingFlow.module.css';
 
 // ─── Static data ──────────────────────────────────────────────────────────────
@@ -387,15 +397,27 @@ export default function BookingFlow() {
   const [result,       setResult]       = useState<{ bookingRef: string } | null>(null);
   const [submitError,  setSubmitError]  = useState('');
 
-  const [promoInput,   setPromoInput]   = useState('');
-  const [promoApplied, setPromoApplied] = useState<{ promoId: string; code: string; description: string; discount: number } | null>(null);
+  const [promoInput,    setPromoInput]    = useState('');
+  const [promoApplied,  setPromoApplied]  = useState<{ promoId: string; code: string; description: string; discount: number } | null>(null);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [useWallet,     setUseWallet]     = useState(false);
+
+  // Fetch wallet balance when user is signed in
+  useEffect(() => {
+    if (!user) { setWalletBalance(0); setUseWallet(false); return; }
+    getDoc(doc(db, 'customers', user.uid)).then(snap => {
+      setWalletBalance(snap.exists() ? (snap.data().walletBalance ?? 0) : 0);
+    });
+  }, [user?.uid]);
   const [promoError,   setPromoError]   = useState('');
   const [promoLoading, setPromoLoading] = useState(false);
 
   const gst        = Math.round(service.price * 0.18);
-  const total      = service.price + gst + PLATFORM_FEE;
-  const discount   = promoApplied?.discount ?? 0;
-  const finalTotal = Math.max(0, total - discount);
+  const total          = service.price + gst + PLATFORM_FEE;
+  const discount       = promoApplied?.discount ?? 0;
+  const finalTotal     = Math.max(0, total - discount);
+  const walletUsed     = useWallet ? Math.min(walletBalance, finalTotal) : 0;
+  const payableAmount  = Math.max(0, finalTotal - walletUsed);
 
   // ─── Outside-click dismiss for calendar popover ───────────────────────────
   useEffect(() => {
@@ -477,48 +499,99 @@ export default function BookingFlow() {
     setErrors({});
     setSubmitError('');
     setIsSubmitting(true);
+
+    const scheduledAt   = buildScheduledAt(selDate, selTime);
+    const bookingPayload = {
+      serviceId:     service.id,
+      serviceName:   service.name,
+      price:         service.price,
+      platformFee:   PLATFORM_FEE,
+      scheduledAt:   scheduledAt.toISOString(),
+      societyId,    societyName,
+      tower:         tower || null,
+      flatNo,        garageNo:   garageNo || null,
+      vehicleMake:   brand,      vehicleModel: model,
+      vehiclePlate:  plate.toUpperCase(),
+      vehicleType:   VEHICLE_TYPES.find(t => t.label === vehicleTypeLabel)?.value ?? 'sedan',
+      customerName:  name,
+      customerPhone: phone.replace(/\D/g, ''),
+      customerId:    user.uid,
+      promoCode:     promoApplied?.code,
+      promoId:       promoApplied?.promoId,
+      promoDiscount: promoApplied?.discount,
+    };
+
     try {
-      const scheduledAt = buildScheduledAt(selDate, selTime);
-      const res = await submitBooking({
-        serviceId:     service.id,
-        serviceName:   service.name,
-        price:         service.price,
-        platformFee:   PLATFORM_FEE,
-        scheduledAt,
-        societyId,
-        societyName,
-        tower:         tower || undefined,
-        flatNo,
-        garageNo:      garageNo || undefined,
-        vehicleMake:   brand,
-        vehicleModel:  model,
-        vehiclePlate:  plate.toUpperCase(),
-        vehicleType:   VEHICLE_TYPES.find(t => t.label === vehicleTypeLabel)?.value ?? 'sedan',
-        customerName:  name,
-        customerPhone: phone.replace(/\D/g, ''),
-        promoCode:     promoApplied?.code,
-        promoId:       promoApplied?.promoId,
-        promoDiscount: promoApplied?.discount,
+      // Wallet covers everything — no Razorpay needed
+      if (payableAmount === 0) {
+        const { getIdToken } = await import('firebase/auth');
+        const idToken = await getIdToken(user);
+        const res = await fetch('/api/payment/wallet-booking', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+          body: JSON.stringify({ booking: bookingPayload, walletUsed }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error);
+        setResult({ bookingRef: json.bookingRef });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Create Razorpay order for payable amount
+      const orderRes = await fetch('/api/payment/create-order', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: payableAmount, receipt: `bk_${Date.now()}` }),
       });
-      // Fire-and-forget: SMS + in-app notification
-      fetch('/api/booking/confirm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          bookingId:     res.docId,
-          bookingRef:    res.bookingRef,
-          customerId:    user?.uid ?? `phone:${phone.replace(/\D/g, '')}`,
-          customerPhone: phone.replace(/\D/g, ''),
-          serviceId:     service.id,
-          total:         finalTotal,
-          scheduledAt:   scheduledAt.toISOString(),
-        }),
-      }).catch(() => {});
-      setResult({ bookingRef: res.bookingRef });
-    } catch (err) {
-      console.error('[BookingFlow] submitBooking error:', err);
-      setSubmitError('Something went wrong. Please try again or call +91 98765 43210.');
-    } finally {
+      const { orderId, keyId, error: orderErr } = await orderRes.json();
+      if (orderErr || !orderId) throw new Error(orderErr ?? 'Could not create payment order.');
+
+      const RzpCheckout = await loadRazorpay();
+      const rzp = new RzpCheckout({
+        key:         keyId,
+        amount:      Math.round(payableAmount * 100),
+        currency:    'INR',
+        order_id:    orderId,
+        name:        'Perfect Cleaners',
+        description: service.name,
+        prefill:     { contact: `+91${phone}` },
+        theme:       { color: '#4A5E44' },
+        modal:       { ondismiss: () => setIsSubmitting(false) },
+        // UPI only — shows GPay, PhonePe, Paytm, UPI ID
+        method: { upi: 1, card: 0, netbanking: 0, wallet: 0, emi: 0 },
+        config: {
+          display: {
+            blocks: { upi: { name: 'Pay via UPI', instruments: [{ method: 'upi' }] } },
+            sequence: ['block.upi'],
+            preferences: { show_default_blocks: false },
+          },
+        },
+        handler: async (response: any) => {
+          try {
+            const verifyRes = await fetch('/api/payment/verify', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id:   response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature:  response.razorpay_signature,
+                booking:             bookingPayload,
+                walletUsed,
+              }),
+            });
+            const json = await verifyRes.json();
+            if (!verifyRes.ok) throw new Error(json.error);
+            setResult({ bookingRef: json.bookingRef });
+          } catch (err: any) {
+            setSubmitError(err.message ?? 'Payment verified but booking failed. Call us.');
+          } finally {
+            setIsSubmitting(false);
+          }
+        },
+      });
+      rzp.open();
+    } catch (err: any) {
+      console.error('[BookingFlow]', err);
+      setSubmitError(err.message ?? 'Something went wrong. Please try again or call +91 98765 43210.');
       setIsSubmitting(false);
     }
   }
@@ -1087,6 +1160,45 @@ export default function BookingFlow() {
           )}
         </section>
 
+        {/* Wallet toggle — only shown when user has a balance */}
+        {walletBalance > 0 && (
+          <section>
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: 'var(--pc-space-4)',
+              background: useWallet ? 'rgba(74,94,68,0.10)' : 'var(--pc-card)',
+              border: `1px solid ${useWallet ? 'rgba(74,94,68,0.35)' : 'var(--pc-line)'}`,
+              borderRadius: 'var(--pc-radius-md)',
+              cursor: 'pointer',
+              transition: 'background 0.15s ease, border-color 0.15s ease',
+            }} onClick={() => setUseWallet(v => !v)}>
+              <div>
+                <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 500, color: 'var(--pc-fg)', margin: '0 0 2px' }}>
+                  Use PC Wallet — ₹{walletBalance.toLocaleString('en-IN')} available
+                </p>
+                <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)', margin: 0 }}>
+                  {useWallet
+                    ? `₹${walletUsed.toLocaleString('en-IN')} will be deducted — pay ₹${payableAmount.toLocaleString('en-IN')} via UPI`
+                    : 'Tap to apply wallet balance to this booking'}
+                </p>
+              </div>
+              <div style={{
+                width: 20, height: 20, borderRadius: 4, flexShrink: 0,
+                border: `1.5px solid ${useWallet ? 'var(--pc-sage-hi)' : 'var(--pc-line-strong)'}`,
+                background: useWallet ? 'var(--pc-sage)' : 'var(--pc-card)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.15s ease',
+              }}>
+                {useWallet && (
+                  <svg width="11" height="9" viewBox="0 0 10 8" fill="none">
+                    <path d="M1 4l3 3 5-6" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
         {submitError && (
           <p style={{
             fontFamily: 'var(--pc-sans)',
@@ -1137,7 +1249,7 @@ export default function BookingFlow() {
         </label>
 
         <SlideToConfirm
-          label="Confirm Booking"
+          label={payableAmount === 0 ? 'Confirm — Wallet Covers All' : `Pay ₹${payableAmount.toLocaleString('en-IN')} via UPI`}
           onConfirm={handleSubmit}
           disabled={!termsAccepted}
           loading={isSubmitting}

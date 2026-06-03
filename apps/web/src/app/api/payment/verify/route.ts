@@ -10,6 +10,7 @@ export async function POST(req: NextRequest) {
       razorpay_payment_id,
       razorpay_signature,
       booking,             // full booking payload from the client
+      walletUsed = 0,      // amount deducted from PC wallet (silent, not on invoice)
     } = await req.json();
 
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
@@ -112,6 +113,14 @@ export async function POST(req: NextRequest) {
         .then(r => r.text())
         .then(b => console.log('[verify-payment] SMS →', b))
         .catch(err => console.error('[verify-payment] SMS failed:', err));
+    }
+
+    // Silently deduct wallet balance if used
+    const customerId = booking.customerId;
+    if (walletUsed > 0 && customerId && !customerId.startsWith('phone:')) {
+      db.collection('customers').doc(customerId).update({
+        walletBalance: FieldValue.increment(-Math.abs(walletUsed)),
+      }).catch(err => console.error('[verify-payment] wallet deduct failed:', err));
     }
 
     // Record payment in paymentLogs and update income stats
