@@ -11,7 +11,8 @@
     "test:ui": "playwright test --ui",
     "test:report": "playwright show-report",
     "seed": "node scripts/seed-demo.mjs",
-    "bootstrap-admin": "node scripts/bootstrap-admin.mjs"
+    "bootstrap-admin": "node scripts/bootstrap-admin.mjs",
+    "unseed": "node scripts/unseed-demo.mjs"
   },
   "dependencies": {
     "@pc/firebase": "*",

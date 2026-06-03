@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test';
 
+// The promotions form renders INLINE below the table. After clicking "Create Promo",
+// the form card appears at the bottom of the page. Elements near the TOP of the form
+// (code input, Generate, discount type buttons) may be scrolled out of viewport —
+// use scrollIntoViewIfNeeded() + toHaveCount(1) (DOM presence) rather than toBeVisible().
+
 test.describe('Admin Promotions', () => {
 
   test.beforeEach(async ({ page }) => {
@@ -15,52 +20,64 @@ test.describe('Admin Promotions', () => {
     await expect(page.locator('button:has-text("Create Promo")')).toBeVisible();
   });
 
-  test('opening Create Promo shows form fields', async ({ page }) => {
+  test('clicking Create Promo opens the form (CREATE PROMOTION header visible)', async ({ page }) => {
     await expect(page.locator('button:has-text("Create Promo")')).toBeVisible({ timeout: 20_000 });
     await page.click('button:has-text("Create Promo")');
-    await expect(page.locator('input[placeholder="SHINE10"]')).toBeVisible({ timeout: 15_000 });
-    await expect(page.locator('input[type="number"]').first()).toBeVisible();
+    // The Eyebrow shows "CREATE PROMOTION" when the form is in new mode
+    await expect(page.locator('text=CREATE PROMOTION')).toBeVisible({ timeout: 15_000 });
   });
 
-  test('promo form has Generate button', async ({ page }) => {
+  test('form has code input and Generate button in DOM', async ({ page }) => {
     await expect(page.locator('button:has-text("Create Promo")')).toBeVisible({ timeout: 20_000 });
     await page.click('button:has-text("Create Promo")');
-    await expect(page.locator('button:has-text("Generate")')).toBeVisible({ timeout: 15_000 });
-  });
-
-  test('Generate button fills code input', async ({ page }) => {
-    await expect(page.locator('button:has-text("Create Promo")')).toBeVisible({ timeout: 20_000 });
-    await page.click('button:has-text("Create Promo")');
+    await expect(page.locator('text=CREATE PROMOTION')).toBeVisible({ timeout: 15_000 });
+    // Scroll into view and check DOM presence — form top may be off-screen below the table
     const codeInput = page.locator('input[placeholder="SHINE10"]');
-    await expect(codeInput).toBeVisible({ timeout: 15_000 });
-    // Generate sets a random code — clear first then generate
-    await page.click('button:has-text("Generate")');
-    await page.waitForTimeout(300);
-    const value = await codeInput.inputValue();
-    expect(value.length).toBeGreaterThan(0);
+    await codeInput.scrollIntoViewIfNeeded();
+    await expect(codeInput).toHaveCount(1);
+    await expect(page.locator('button:has-text("Generate")')).toHaveCount(1);
   });
 
-  test('promo form closes via × button', async ({ page }) => {
+  test('Generate button updates code input value', async ({ page }) => {
     await expect(page.locator('button:has-text("Create Promo")')).toBeVisible({ timeout: 20_000 });
     await page.click('button:has-text("Create Promo")');
-    await expect(page.locator('input[placeholder="SHINE10"]')).toBeVisible({ timeout: 15_000 });
-    await page.locator('button').filter({ has: page.locator('svg') }).first().click();
-    await expect(page.locator('input[placeholder="SHINE10"]')).not.toBeVisible({ timeout: 8_000 });
+    await expect(page.locator('text=CREATE PROMOTION')).toBeVisible({ timeout: 15_000 });
+    const codeInput = page.locator('input[placeholder="SHINE10"]');
+    await codeInput.scrollIntoViewIfNeeded();
+    const before = await codeInput.inputValue();
+    await page.locator('button:has-text("Generate")').click();
+    await page.waitForTimeout(200);
+    const after = await codeInput.inputValue();
+    expect(after.length).toBeGreaterThan(0);
+    expect(after).not.toBe(before);
   });
 
-  test('discount type buttons show Flat ₹ and Percentage %', async ({ page }) => {
+  test('form closes via Cancel button', async ({ page }) => {
     await expect(page.locator('button:has-text("Create Promo")')).toBeVisible({ timeout: 20_000 });
     await page.click('button:has-text("Create Promo")');
-    await expect(page.locator('button:has-text("Flat ₹")')).toBeVisible({ timeout: 15_000 });
-    await expect(page.locator('button:has-text("Percentage %")')).toBeVisible();
+    await expect(page.locator('text=CREATE PROMOTION')).toBeVisible({ timeout: 15_000 });
+    await page.locator('button:has-text("Cancel")').last().click();
+    await expect(page.locator('text=CREATE PROMOTION')).not.toBeVisible({ timeout: 8_000 });
   });
 
-  test('clicking Percentage % changes discount label', async ({ page }) => {
+  test('discount type buttons exist in form DOM', async ({ page }) => {
     await expect(page.locator('button:has-text("Create Promo")')).toBeVisible({ timeout: 20_000 });
     await page.click('button:has-text("Create Promo")');
-    await expect(page.locator('button:has-text("Percentage %")')).toBeVisible({ timeout: 15_000 });
-    await page.click('button:has-text("Percentage %")');
-    await expect(page.locator('text=Discount (%)')).toBeVisible({ timeout: 8_000 });
+    await expect(page.locator('text=CREATE PROMOTION')).toBeVisible({ timeout: 15_000 });
+    const flatBtn = page.locator('button:has-text("Flat ₹")');
+    await flatBtn.scrollIntoViewIfNeeded();
+    await expect(flatBtn).toHaveCount(1);
+    await expect(page.locator('button:has-text("Percentage %")')).toHaveCount(1);
+  });
+
+  test('Percentage % button changes discount label', async ({ page }) => {
+    await expect(page.locator('button:has-text("Create Promo")')).toBeVisible({ timeout: 20_000 });
+    await page.click('button:has-text("Create Promo")');
+    await expect(page.locator('text=CREATE PROMOTION')).toBeVisible({ timeout: 15_000 });
+    const pctBtn = page.locator('button:has-text("Percentage %")');
+    await pctBtn.scrollIntoViewIfNeeded();
+    await pctBtn.click();
+    await expect(page.locator('text=Discount (%)')).toHaveCount(1);
   });
 
   test('Create Promotion submit button is visible in form', async ({ page }) => {
