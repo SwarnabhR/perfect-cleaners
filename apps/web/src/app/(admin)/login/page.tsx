@@ -1,16 +1,19 @@
 'use client';
 import { useState } from 'react';
+import { Suspense } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@pc/firebase';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Icon from '@/components/ui/Icon';
 
-export default function AdminLoginPage() {
+function AdminLoginForm() {
   const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
   const [error,    setError]    = useState('');
   const [loading,  setLoading]  = useState(false);
-  const router = useRouter();
+  const router      = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo  = searchParams.get('from') ?? '/dashboard';
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -18,7 +21,7 @@ export default function AdminLoginPage() {
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      router.replace('/dashboard');
+      router.replace(redirectTo);
     } catch (err: any) {
       setError(err?.code === 'auth/invalid-credential'
         ? 'Invalid email or password.'
@@ -121,5 +124,13 @@ export default function AdminLoginPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function AdminLoginPage() {
+  return (
+    <Suspense>
+      <AdminLoginForm />
+    </Suspense>
   );
 }

@@ -48,10 +48,14 @@ export default function JobDetailPage() {
 
   useEffect(() => {
     if (!id) return;
-    return onSnapshot(doc(db, 'bookings', id), snap => {
-      if (snap.exists()) setBooking({ id: snap.id, ...snap.data() } as any);
-      setLoading(false);
-    });
+    return onSnapshot(
+      doc(db, 'bookings', id),
+      snap => {
+        if (snap.exists()) setBooking({ id: snap.id, ...snap.data() } as any);
+        setLoading(false);
+      },
+      () => setLoading(false), // permission-denied on non-existent doc → show "not found"
+    );
   }, [id]);
 
   async function advanceStatus() {

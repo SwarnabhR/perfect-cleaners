@@ -121,7 +121,7 @@ export default function DashboardPage() {
           </div>
           <svg aria-hidden="true" viewBox="0 0 800 200" width="100%" height="160" style={{ display: 'block', marginTop: 8 }}>
             {[50, 100, 150].map(y => (
-              <line key={y} x1="0" y1={y} x2="800" y2={y} stroke="var(--pc-line)" strokeWidth="0.5" strokeDasharray="4 4" />
+              <line key={y} x1="0" y1={y} x2="800" y2={y} style={{ stroke: 'var(--pc-line)' }} strokeWidth="0.5" strokeDasharray="4 4" />
             ))}
             {!loading && (
               <>

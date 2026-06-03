@@ -24,7 +24,12 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     return onAuthStateChanged(auth, u => {
       setUser(u);
       setLoading(false);
-      if (!u && pathname !== '/login') router.replace('/login');
+      if (!u && pathname !== '/login') {
+        router.replace(`/login?from=${encodeURIComponent(pathname)}`);
+      }
+      if (u && pathname === '/login') {
+        router.replace('/dashboard');
+      }
     });
   }, [pathname]);
 
