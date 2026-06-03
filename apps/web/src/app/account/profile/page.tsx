@@ -9,6 +9,7 @@ import {
 import { db } from '@pc/firebase';
 import Link from 'next/link';
 import Nav from '@/components/marketing/Nav';
+import CustomSelect from '@/components/ui/CustomSelect';
 import Footer from '@/components/marketing/Footer';
 import { useCustomerAuth } from '@/lib/auth/CustomerAuthContext';
 
@@ -101,13 +102,7 @@ function AddAddressPanel({ uid, onClose }: { uid: string; onClose: () => void })
     onClose();
   }
 
-  const selectStyle: React.CSSProperties = {
-    ...inputStyle,
-    appearance: 'none', WebkitAppearance: 'none',
-    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
-    backgroundRepeat: 'no-repeat', backgroundPosition: 'right 14px center',
-    paddingRight: 36, cursor: 'pointer',
-  };
+
 
   return (
     <div style={{ marginTop: 14, background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 'var(--pc-radius-md)', padding: 20 }}>
@@ -116,17 +111,16 @@ function AddAddressPanel({ uid, onClose }: { uid: string; onClose: () => void })
         {/* Society */}
         <div>
           <label style={labelStyle}>Society</label>
-          <select
-            value={societyId}
-            onChange={e => { setSocietyId(e.target.value); setTower(''); }}
-            required
-            style={selectStyle}
-          >
-            <option value="">Select your society…</option>
-            {societies.map(s => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
-          </select>
+          <CustomSelect
+            options={societies.map(s => s.name)}
+            value={societies.find(s => s.id === societyId)?.name ?? ''}
+            placeholder="Select your society…"
+            onChange={name => {
+              const s = societies.find(s => s.name === name);
+              setSocietyId(s?.id ?? '');
+              setTower('');
+            }}
+          />
           {societies.length === 0 && (
             <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-4)', marginTop: 6 }}>
               No societies listed yet. Contact us to get yours added.
@@ -138,12 +132,12 @@ function AddAddressPanel({ uid, onClose }: { uid: string; onClose: () => void })
         {selected && selected.towers.length > 0 && (
           <div>
             <label style={labelStyle}>Tower / Block</label>
-            <select value={tower} onChange={e => setTower(e.target.value)} style={selectStyle}>
-              <option value="">Select tower…</option>
-              {selected.towers.map(t => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </select>
+            <CustomSelect
+              options={selected.towers}
+              value={tower}
+              placeholder="Select tower…"
+              onChange={setTower}
+            />
           </div>
         )}
 

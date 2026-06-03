@@ -1040,22 +1040,18 @@ export default function BookingFlow() {
             {/* Society */}
             <div>
               <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--pc-fg-4)', marginBottom: 10 }}>Society</p>
-              <select
-                value={societyId}
-                onChange={e => {
-                  const s = societies.find(s => s.id === e.target.value);
-                  setSocietyId(e.target.value);
-                  setSocietyName(s?.name ?? '');
+              <CustomSelect
+                options={societies.map(s => s.name)}
+                value={societyName}
+                placeholder="Select your society…"
+                onChange={name => {
+                  const s = societies.find(s => s.name === name);
+                  setSocietyName(name);
+                  setSocietyId(s?.id ?? '');
                   setTower('');
                 }}
-                className={`${styles.input}${errors.societyId ? ` ${styles.inputError}` : ''}`}
-                style={{ appearance: 'none', WebkitAppearance: 'none', cursor: 'pointer',
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
-                  backgroundRepeat: 'no-repeat', backgroundPosition: 'right 14px center', paddingRight: 36 }}
-              >
-                <option value="">Select your society…</option>
-                {societies.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
+                error={!!errors.societyId}
+              />
               <FieldError msg={errors.societyId} />
               {societies.length === 0 && (
                 <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-4)', marginTop: 6 }}>
@@ -1068,19 +1064,12 @@ export default function BookingFlow() {
             {societyId && (societies.find(s => s.id === societyId)?.towers.length ?? 0) > 0 && (
               <div>
                 <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--pc-fg-4)', marginBottom: 10 }}>Tower / Block</p>
-                <select
+                <CustomSelect
+                  options={societies.find(s => s.id === societyId)?.towers ?? []}
                   value={tower}
-                  onChange={e => setTower(e.target.value)}
-                  className={styles.input}
-                  style={{ appearance: 'none', WebkitAppearance: 'none', cursor: 'pointer',
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
-                    backgroundRepeat: 'no-repeat', backgroundPosition: 'right 14px center', paddingRight: 36 }}
-                >
-                  <option value="">Select tower…</option>
-                  {(societies.find(s => s.id === societyId)?.towers ?? []).map(t => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
+                  placeholder="Select tower…"
+                  onChange={setTower}
+                />
               </div>
             )}
 
