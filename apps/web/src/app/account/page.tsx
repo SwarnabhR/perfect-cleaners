@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { collection, query, where, onSnapshot, doc, getDoc, updateDoc, serverTimestamp, type Unsubscribe } from 'firebase/firestore';
 import { db } from '@pc/firebase';
@@ -172,7 +172,8 @@ function Skeleton({ h = 20, w = '100%' }: { h?: number; w?: string | number }) {
 
 export default function AccountPage() {
   const { user, loading, signOut } = useCustomerAuth();
-  const router = useRouter();
+  const router   = useRouter();
+  const pathname = usePathname();
 
   const [bookings,    setBookings]    = useState<BookingRow[]>([]);
   const [bLoading,    setBLoading]    = useState(true);
@@ -245,7 +246,12 @@ export default function AccountPage() {
     router.replace('/');
   }
 
-  if (loading || !user) return null;
+  if (loading) return (
+    <div style={{ minHeight: '100vh', background: 'var(--pc-ink)', display: 'flex', flexDirection: 'column' }}>
+      <Nav />
+    </div>
+  );
+  if (!user) return null;
 
   const displayPhone = user.phoneNumber?.replace('+91', '') ?? '';
   const formattedPhone = displayPhone
@@ -340,9 +346,9 @@ export default function AccountPage() {
             { label: 'Profile',  href: '/account/profile' },
             { label: 'Bill',     href: '/account/wallet'  },
           ].map(tab => {
-            const active = tab.href === '/account';
+            const active = pathname === tab.href;
             return (
-              <a
+              <Link
                 key={tab.href}
                 href={tab.href}
                 style={{
@@ -357,7 +363,7 @@ export default function AccountPage() {
                 }}
               >
                 {tab.label}
-              </a>
+              </Link>
             );
           })}
         </div>

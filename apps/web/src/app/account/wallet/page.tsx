@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { collection, doc, onSnapshot, orderBy, query, limit } from 'firebase/firestore';
 import { db } from '@pc/firebase';
 import Nav from '@/components/marketing/Nav';
@@ -62,7 +63,8 @@ const monoLabel: React.CSSProperties = {
 
 export default function WalletPage() {
   const { user, loading } = useCustomerAuth();
-  const router = useRouter();
+  const router   = useRouter();
+  const pathname = usePathname();
 
   const [outstanding, setOutstanding] = useState<number | null>(null);
   const [entries,     setEntries]     = useState<TxEntry[]>([]);
@@ -177,7 +179,12 @@ export default function WalletPage() {
     }
   }, [user, outstanding]);
 
-  if (loading || !user) return null;
+  if (loading) return (
+    <div style={{ minHeight: '100vh', background: 'var(--pc-ink)', display: 'flex', flexDirection: 'column' }}>
+      <Nav />
+    </div>
+  );
+  if (!user) return null;
 
   const isPaid = (outstanding ?? 0) <= 0;
 
@@ -232,9 +239,9 @@ export default function WalletPage() {
             { label: 'Profile',  href: '/account/profile' },
             { label: 'Bill',     href: '/account/wallet'  },
           ].map(tab => (
-            <a key={tab.href} href={tab.href} style={tabStyle(tab.href === '/account/wallet')}>
+            <Link key={tab.href} href={tab.href} style={tabStyle(pathname === tab.href)}>
               {tab.label}
-            </a>
+            </Link>
           ))}
         </div>
 

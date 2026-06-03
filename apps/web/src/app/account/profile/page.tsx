@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import {
   collection, doc, getDoc, setDoc, onSnapshot,
   addDoc, deleteDoc, serverTimestamp,
@@ -110,7 +110,8 @@ function AddAddressPanel({ uid, onClose }: { uid: string; onClose: () => void })
 
 export default function ProfilePage() {
   const { user, loading } = useCustomerAuth();
-  const router = useRouter();
+  const router   = useRouter();
+  const pathname = usePathname();
 
   const [name,       setName]       = useState('');
   const [email,      setEmail]      = useState('');
@@ -172,7 +173,12 @@ export default function ProfilePage() {
     await deleteDoc(doc(db, 'customers', user.uid, 'addresses', id));
   }
 
-  if (loading || !user || !fetched) return null;
+  if (loading) return (
+    <div style={{ minHeight: '100vh', background: 'var(--pc-ink)', display: 'flex', flexDirection: 'column' }}>
+      <Nav />
+    </div>
+  );
+  if (!user || !fetched) return null;
 
   const phone = user.phoneNumber
     ? `+91 ${user.phoneNumber.replace('+91', '').slice(0, 5)} ${user.phoneNumber.replace('+91', '').slice(5)}`
@@ -191,11 +197,11 @@ export default function ProfilePage() {
             { label: 'Profile',  href: '/account/profile' },
             { label: 'Bill',     href: '/account/wallet'  },
           ].map(tab => {
-            const active = tab.href === '/account/profile';
+            const active = pathname === tab.href;
             return (
-              <a key={tab.href} href={tab.href} style={{ padding: 'var(--pc-space-3) var(--pc-space-4)', fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: active ? 600 : 400, color: active ? 'var(--pc-fg)' : 'var(--pc-fg-3)', textDecoration: 'none', borderBottom: active ? '2px solid var(--pc-fg)' : '2px solid transparent', marginBottom: -1, transition: 'color 0.15s ease' }}>
+              <Link key={tab.href} href={tab.href} style={{ padding: 'var(--pc-space-3) var(--pc-space-4)', fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: active ? 600 : 400, color: active ? 'var(--pc-fg)' : 'var(--pc-fg-3)', textDecoration: 'none', borderBottom: active ? '2px solid var(--pc-fg)' : '2px solid transparent', marginBottom: -1, transition: 'color 0.15s ease' }}>
                 {tab.label}
-              </a>
+              </Link>
             );
           })}
         </div>
