@@ -373,6 +373,13 @@ button { cursor: pointer; }
 .pc-nav-hamburger {
   display: none !important;
 }
+.pc-nav-hamburger:focus {
+  outline: none;
+}
+.pc-nav-hamburger:focus-visible {
+  outline: 2px solid var(--pc-line-strong);
+  outline-offset: 2px;
+}
 
 /* Desktop nav items: flex by default */
 .pc-nav-desktop {
