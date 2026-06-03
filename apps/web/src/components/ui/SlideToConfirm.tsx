@@ -10,7 +10,7 @@ interface SlideToConfirmProps {
   variant?:    'warm' | 'sage';
 }
 
-const THRESHOLD = 0.82; // fraction of track width needed to confirm
+const THRESHOLD = 1.0; // must slide all the way to the end to confirm
 
 export default function SlideToConfirm({
   label, onConfirm, disabled = false, loading = false, variant = 'warm',
