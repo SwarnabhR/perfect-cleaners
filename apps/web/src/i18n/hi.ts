@@ -3,7 +3,6 @@ import type { Translations } from './en';
 const hi: Translations = {
   nav: {
     services:     'सेवाएं',
-    plans:        'प्लान',
     about:        'हमारे बारे में',
     societies:    'सोसायटी',
     contact:      'संपर्क',

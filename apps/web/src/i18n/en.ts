@@ -1,7 +1,6 @@
 const en = {
   nav: {
     services:     'Services',
-    plans:        'Plans',
     about:        'About',
     societies:    'Societies',
     contact:      'Contact',
@@ -13,7 +12,7 @@ const en = {
     eyebrow:          'DELHI NCR · GHAZIABAD',
     headline:         ['The detail', 'standard', 'for Delhi NCR.'],
     sub:              'Subscribe once. Your car gets cleaned at your society every week — and you get a push notification the moment it\'s done.',
-    bookNow:          'View Plans',
+    bookNow:          'Book Now',
     viewServices:     'For Societies',
     stats:            [['50+', 'Partner societies'], ['10,000+', 'Subscribers'], ['4.9 / 5', 'Service rating']],
     processLabel:     'PROCESS',
@@ -33,7 +32,7 @@ const en = {
     eyebrow:      '[WHY PERFECT CLEANERS]',
     headline:     "The difference is in\nwhat you can't see.",
     body:         "Anyone can splash water on a car. We turn up at your society every week, clean every registered car properly, and send you a notification when yours is done. No booking. No chasing. Just a clean car.",
-    bookNow:      'View Plans',
+    bookNow:      'Book Now',
     viewServices: 'Our Services',
     cards: [
       {
@@ -58,7 +57,7 @@ const en = {
     bookingLabel:     'BOOKING',
     quickLinks:       ['Services', 'Exterior Wash', 'Interior Detailing', 'Painting & Coating', 'Terms of Service', 'Privacy Policy'],
     official:         ['Ghaziabad, Delhi NCR', '+91 98765 43210', '09:00 – 21:00 IST'],
-    booking:          ['View Plans', 'For Societies', 'Membership'],
+    booking:          ['Book Now', 'For Societies', 'Membership'],
   },
   common: {
     langEn: 'EN',
@@ -72,7 +71,7 @@ const en = {
     headline1:  'Subscribe once.',
     headline2:  'Clean car every week.',
     body:       'Choose your plan, add your society and vehicle. We arrive on schedule, clean your car with professional-grade products, and send you a notification the moment it\'s done. Cancel or pause anytime.',
-    bookNow:    'View Plans',
+    bookNow:    'Book Now',
     getInTouch: 'For Societies',
   },
 

@@ -9,7 +9,7 @@ import styles from './Footer.module.css';
 
 const QUICK_LINKS_HREFS  = ['/services', '/services/exterior', '/services/interior', '/services/coating', '/terms', '/privacy'];
 const OFFICIAL_HREFS     = [undefined, 'tel:+919876543210', undefined] as (string | undefined)[];
-const BOOKING_HREFS      = ['/plans', '/for-societies', '/membership'];
+const BOOKING_HREFS      = ['/book', '/for-societies', '/membership'];
 
 const SOCIAL_LINKS = [
   { icon: 'camera',  href: 'https://instagram.com', ariaLabel: 'Instagram' },

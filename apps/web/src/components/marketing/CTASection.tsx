@@ -63,7 +63,7 @@ export default function CTASection() {
         </p>
         <div className="pc-cta-btns" style={{ display: 'flex', gap: 'var(--pc-space-2)', flexWrap: 'wrap' }}>
           <Link
-            href="/plans"
+            href="/book"
             className="pc-hero-cta-primary"
             style={{
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',

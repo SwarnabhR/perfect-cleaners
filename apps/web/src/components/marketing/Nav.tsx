@@ -10,7 +10,7 @@ import { useTheme } from '@/components/ThemeProvider';
 import { useI18n } from '@/i18n';
 import { useCustomerAuth } from '@/lib/auth/CustomerAuthContext';
 
-const NAV_HREFS = ['/services', '/plans', '/about', '/for-societies', '/contact'] as const;
+const NAV_HREFS = ['/services', '/about', '/for-societies', '/contact'] as const;
 
 /** CSS selector that matches all naturally focusable elements. */
 const FOCUSABLE = [
@@ -41,10 +41,9 @@ export default function Nav() {
 
   const NAV_LINKS = [
     { label: t.nav.services,   href: NAV_HREFS[0] },
-    { label: t.nav.plans,      href: NAV_HREFS[1] },
-    { label: t.nav.about,      href: NAV_HREFS[2] },
-    { label: t.nav.societies,  href: NAV_HREFS[3] },
-    { label: t.nav.contact,    href: NAV_HREFS[4] },
+    { label: t.nav.about,      href: NAV_HREFS[1] },
+    { label: t.nav.societies,  href: NAV_HREFS[2] },
+    { label: t.nav.contact,    href: NAV_HREFS[3] },
   ];
 
   // ── Scroll listener ──────────────────────────────────────────────────────
