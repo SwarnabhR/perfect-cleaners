@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import {
   collection, doc, getDoc, setDoc, onSnapshot,
-  addDoc, deleteDoc, serverTimestamp,
+  addDoc, deleteDoc, serverTimestamp, query, where,
 } from 'firebase/firestore';
 import { db } from '@pc/firebase';
 import Link from 'next/link';
@@ -15,13 +15,19 @@ import { useCustomerAuth } from '@/lib/auth/CustomerAuthContext';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface SavedAddress {
-  id:      string;
-  label:   string;
-  line1:   string;
-  line2:   string;
-  city:    string;
-  pincode: string;
-  primary: boolean;
+  id:          string;
+  societyId:   string;
+  societyName: string;
+  tower?:      string;
+  flatNo:      string;
+  garageNo?:   string;
+  primary:     boolean;
+}
+
+interface SocietyOption {
+  id:     string;
+  name:   string;
+  towers: string[];
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -58,43 +64,115 @@ const sectionTitle: React.CSSProperties = {
 // ─── Add Address Panel ────────────────────────────────────────────────────────
 
 function AddAddressPanel({ uid, onClose }: { uid: string; onClose: () => void }) {
-  const [lbl,    setLbl]    = useState('Home');
-  const [line1,  setLine1]  = useState('');
-  const [line2,  setLine2]  = useState('');
-  const [city,   setCity]   = useState('Ghaziabad');
-  const [pin,    setPin]    = useState('');
-  const [saving, setSaving] = useState(false);
+  const [societies,   setSocieties]   = useState<SocietyOption[]>([]);
+  const [societyId,   setSocietyId]   = useState('');
+  const [tower,       setTower]       = useState('');
+  const [flatNo,      setFlatNo]      = useState('');
+  const [garageNo,    setGarageNo]    = useState('');
+  const [saving,      setSaving]      = useState(false);
+
+  useEffect(() => {
+    const q = query(collection(db, 'societies'), where('isActive', '==', true));
+    return onSnapshot(q, snap => {
+      setSocieties(snap.docs.map(d => ({
+        id:     d.id,
+        name:   d.data().name as string,
+        towers: (d.data().towers ?? []) as string[],
+      })));
+    });
+  }, []);
+
+  const selected = societies.find(s => s.id === societyId);
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    if (!line1.trim()) return;
+    if (!societyId || !flatNo.trim()) return;
     setSaving(true);
     await addDoc(collection(db, 'customers', uid, 'addresses'), {
-      label: lbl.trim() || 'Home', line1: line1.trim(), line2: line2.trim(),
-      city: city.trim() || 'Ghaziabad', pincode: pin.trim(), primary: false,
-      createdAt: serverTimestamp(),
+      societyId,
+      societyName: selected?.name ?? '',
+      tower:       tower || null,
+      flatNo:      flatNo.trim(),
+      garageNo:    garageNo.trim() || null,
+      primary:     false,
+      createdAt:   serverTimestamp(),
     });
     setSaving(false);
     onClose();
   }
 
+  const selectStyle: React.CSSProperties = {
+    ...inputStyle,
+    appearance: 'none', WebkitAppearance: 'none',
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
+    backgroundRepeat: 'no-repeat', backgroundPosition: 'right 14px center',
+    paddingRight: 36, cursor: 'pointer',
+  };
+
   return (
     <div style={{ marginTop: 14, background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 'var(--pc-radius-md)', padding: 20 }}>
       <form onSubmit={save} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {[
-          { l: 'Label',          v: lbl,   s: setLbl,   p: 'Home, Office…' },
-          { l: 'Address Line 1', v: line1, s: setLine1, p: 'Building / street / house' },
-          { l: 'Address Line 2', v: line2, s: setLine2, p: 'Landmark, sector (optional)' },
-          { l: 'City',           v: city,  s: setCity,  p: 'Ghaziabad' },
-          { l: 'Pincode',        v: pin,   s: setPin,   p: '201002' },
-        ].map(({ l, v, s, p }) => (
-          <div key={l}>
-            <label style={labelStyle}>{l}</label>
-            <input type="text" value={v} onChange={e => s(e.target.value)} placeholder={p} style={inputStyle} />
+
+        {/* Society */}
+        <div>
+          <label style={labelStyle}>Society</label>
+          <select
+            value={societyId}
+            onChange={e => { setSocietyId(e.target.value); setTower(''); }}
+            required
+            style={selectStyle}
+          >
+            <option value="">Select your society…</option>
+            {societies.map(s => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+          {societies.length === 0 && (
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-4)', marginTop: 6 }}>
+              No societies listed yet. Contact us to get yours added.
+            </p>
+          )}
+        </div>
+
+        {/* Tower — only shown if society has towers */}
+        {selected && selected.towers.length > 0 && (
+          <div>
+            <label style={labelStyle}>Tower / Block</label>
+            <select value={tower} onChange={e => setTower(e.target.value)} style={selectStyle}>
+              <option value="">Select tower…</option>
+              {selected.towers.map(t => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
           </div>
-        ))}
+        )}
+
+        {/* Flat No */}
+        <div>
+          <label style={labelStyle}>Flat / Unit number</label>
+          <input
+            type="text" placeholder="e.g. 1204" value={flatNo}
+            onChange={e => setFlatNo(e.target.value)}
+            required style={inputStyle}
+          />
+        </div>
+
+        {/* Garage No */}
+        <div>
+          <label style={labelStyle}>Garage number <span style={{ color: 'var(--pc-fg-4)', fontWeight: 400 }}>(optional)</span></label>
+          <input
+            type="text" placeholder="e.g. G-42" value={garageNo}
+            onChange={e => setGarageNo(e.target.value)}
+            style={inputStyle}
+          />
+        </div>
+
         <div style={{ display: 'flex', gap: 10 }}>
-          <button type="submit" disabled={saving || !line1.trim()} style={{ flex: 1, padding: '12px 0', borderRadius: 999, background: 'var(--pc-warm)', color: 'var(--pc-ink)', border: 'none', fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1 }}>
+          <button
+            type="submit"
+            disabled={saving || !societyId || !flatNo.trim()}
+            style={{ flex: 1, padding: '12px 0', borderRadius: 999, background: 'var(--pc-warm)', color: 'var(--pc-ink)', border: 'none', fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600, cursor: (saving || !societyId || !flatNo.trim()) ? 'not-allowed' : 'pointer', opacity: (saving || !societyId || !flatNo.trim()) ? 0.5 : 1 }}
+          >
             {saving ? 'Saving…' : 'Save Address'}
           </button>
           <button type="button" onClick={onClose} style={{ padding: '12px 20px', borderRadius: 999, background: 'transparent', border: '1px solid var(--pc-line)', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', cursor: 'pointer' }}>
@@ -261,11 +339,14 @@ export default function ProfilePage() {
                 <div key={addr.id} style={{ background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 'var(--pc-radius-md)', padding: '16px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                      <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 500, color: 'var(--pc-fg)' }}>{addr.label}</span>
+                      <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 500, color: 'var(--pc-fg)' }}>
+                        Flat {addr.flatNo}{addr.tower ? `, ${addr.tower}` : ''}
+                      </span>
                       {addr.primary && <span style={{ padding: '2px 8px', borderRadius: 999, background: 'color-mix(in srgb, var(--pc-sage) 15%, transparent)', border: '1px solid rgba(74,94,68,0.3)', fontFamily: 'var(--pc-mono)', fontSize: 9, color: 'var(--pc-sage-hi)', letterSpacing: '0.06em' }}>PRIMARY</span>}
                     </div>
                     <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: 0, lineHeight: 1.5 }}>
-                      {[addr.line1, addr.line2, addr.city, addr.pincode].filter(Boolean).join(', ')}
+                      {addr.societyName}
+                      {addr.garageNo ? ` · Garage ${addr.garageNo}` : ''}
                     </p>
                   </div>
                   <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
