@@ -10,11 +10,11 @@ import Icon from '@/components/ui/Icon';
 import StatusPill from '@/components/ui/StatusPill';
 
 interface LiveBooking {
-  id: string; customerId: string; customerName?: string;
+  id: string; customerId: string; customerName?: string; customerPhone?: string;
   workerId?: string; workerName?: string;
   serviceIds: string[]; status: BookingStatus; paymentStatus: string;
   scheduledAt: any; priceBreakdown: { total: number };
-  address: { line1: string; city: string };
+  address: { line1?: string; city?: string; societyName?: string; tower?: string; flatNo?: string };
 }
 interface LiveWorker { id: string; name: string; isOnline: boolean; rating: number; }
 
@@ -196,7 +196,14 @@ export default function BookingsPage() {
                         <div style={{ width: 28, height: 28, borderRadius: 999, background: 'var(--pc-card-hi)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 11, fontWeight: 600, color: 'var(--pc-fg-2)' }}>{(b.customerName ?? b.customerId)?.[0]?.toUpperCase() ?? '?'}</span>
                         </div>
-                        <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg)' }}>{b.customerName ?? b.customerId.slice(0, 8)}</span>
+                        <div>
+                          <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg)' }}>{b.customerName ?? b.customerId.slice(0, 8)}</span>
+                          {b.customerPhone && (
+                            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-4)', margin: '2px 0 0', letterSpacing: '0.04em' }}>
+                              +91 {b.customerPhone.replace('+91', '').replace(/\D/g, '').slice(0, 5)} {b.customerPhone.replace('+91', '').replace(/\D/g, '').slice(5)}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)', whiteSpace: 'nowrap' }}>{serviceLabel(b.serviceIds)}</td>

@@ -188,7 +188,13 @@ export default function JobDetailPage() {
         <Eyebrow>JOB DETAILS</Eyebrow>
         {[
           { icon: 'clock',        label: 'Scheduled', value: scheduledAt.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) },
-          { icon: 'map-pin',      label: 'Address',   value: [booking.address?.line1, booking.address?.city, booking.address?.pincode].filter(Boolean).join(', ') },
+          { icon: 'map-pin',      label: 'Address',   value: (() => {
+            const a = booking.address as any;
+            if (a?.societyName) {
+              return [a.flatNo && `Flat ${a.flatNo}`, a.tower, a.societyName].filter(Boolean).join(', ');
+            }
+            return [a?.line1, a?.city, a?.pincode].filter(Boolean).join(', ');
+          })() },
           { icon: 'car',          label: 'Vehicle',   value: [booking.vehicle?.make, booking.vehicle?.model, booking.vehicle?.registration].filter(Boolean).join(' · ') },
           { icon: 'indian-rupee', label: 'Amount',    value: `₹${(booking.priceBreakdown?.total ?? 0).toLocaleString('en-IN')} (pay at service)` },
         ].map(({ icon, label, value }) => (
