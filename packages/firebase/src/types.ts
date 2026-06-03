@@ -120,10 +120,15 @@ export interface CleaningSession {
 }
 
 export interface BookingAddress {
-  line1: string;
-  city: string;
-  pincode: string;
-  coordinates: GeoPoint;
+  line1:        string;
+  city?:        string;
+  pincode?:     string;
+  coordinates:  GeoPoint;
+  societyId?:   string;
+  societyName?: string;
+  tower?:       string | null;
+  flatNo?:      string;
+  garageNo?:    string | null;
 }
 
 export interface PriceBreakdown {
