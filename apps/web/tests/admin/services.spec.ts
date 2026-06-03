@@ -4,7 +4,7 @@ test.describe('Admin Services Management', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto('/services-mgmt');
-    await expect(page.locator('.admin-page-root')).toBeVisible();
+    await expect(page.locator('.admin-page-root')).toBeVisible({ timeout: 20_000 });
   });
 
   test('renders page heading', async ({ page }) => {

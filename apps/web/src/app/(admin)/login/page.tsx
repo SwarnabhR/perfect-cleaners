@@ -129,7 +129,7 @@ function AdminLoginForm() {
 
 export default function AdminLoginPage() {
   return (
-    <Suspense>
+    <Suspense fallback={<div style={{ minHeight: '100vh', background: 'var(--pc-ink)' }} />}>
       <AdminLoginForm />
     </Suspense>
   );

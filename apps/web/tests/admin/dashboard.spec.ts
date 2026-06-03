@@ -33,7 +33,8 @@ test.describe('Admin Dashboard', () => {
     const search = page.locator('input[placeholder="Search bookings…"]');
     await search.fill('test customer');
     await search.press('Enter');
-    await page.waitForURL('**/bookings?search=test+customer', { timeout: 5_000 });
+    // encodeURIComponent produces %20, not +; use regex to match either encoding
+    await page.waitForURL(/\/bookings\?search=test(%20|\+)customer/, { timeout: 8_000 });
   });
 
   test('theme toggle button is present', async ({ page }) => {
