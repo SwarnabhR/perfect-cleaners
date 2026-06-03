@@ -4,7 +4,7 @@ test.describe('Customer Subscribe Flow', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto('/subscribe?plan=pro&cycle=monthly');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
   });
 
   test('renders subscription heading', async ({ page }) => {

@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { onAuthStateChanged, signOut as fbSignOut, type User } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { auth, db } from '@pc/firebase';
 import type { Worker } from '@pc/firebase';
 
@@ -22,8 +22,9 @@ export function WorkerAuthProvider({ children }: { children: ReactNode }) {
   const [user,    setUser]    = useState<User | null>(null);
   const [worker,  setWorker]  = useState<(Worker & { id: string }) | null>(null);
   const [loading, setLoading] = useState(true);
-  const router   = useRouter();
-  const pathname = usePathname();
+  const router       = useRouter();
+  const pathname     = usePathname();
+  const searchParams = useSearchParams();
 
   // Firebase Auth listener
   useEffect(() => {
@@ -51,13 +52,17 @@ export function WorkerAuthProvider({ children }: { children: ReactNode }) {
     return unsub;
   }, [user?.uid]);
 
-  // Redirect unauthenticated users to login, preserving the current path
+  // Redirect unauthenticated users to login; redirect authenticated users away from login
   useEffect(() => {
     if (loading) return;
     if (!user && pathname !== '/worker/login') {
       router.replace(`/worker/login?from=${encodeURIComponent(pathname)}`);
     }
-  }, [user, loading, pathname]);
+    if (user && worker && pathname === '/worker/login') {
+      const from = searchParams.get('from') ?? '/worker/dashboard';
+      router.replace(from);
+    }
+  }, [user, worker, loading, pathname]);
 
   async function signOut() {
     await fbSignOut(auth);

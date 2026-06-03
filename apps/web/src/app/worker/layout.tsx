@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { WorkerAuthProvider, useWorkerAuth } from '@/components/WorkerAuthProvider';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -123,8 +124,10 @@ function WorkerShell({ children }: { children: React.ReactNode }) {
 
 export default function WorkerLayout({ children }: { children: React.ReactNode }) {
   return (
-    <WorkerAuthProvider>
-      <WorkerShell>{children}</WorkerShell>
-    </WorkerAuthProvider>
+    <Suspense>
+      <WorkerAuthProvider>
+        <WorkerShell>{children}</WorkerShell>
+      </WorkerAuthProvider>
+    </Suspense>
   );
 }
