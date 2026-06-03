@@ -174,7 +174,7 @@ function SocietyFormModal({
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
           {/* Society details */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
             <div style={{ gridColumn: '1 / -1' }}>
               <FormRow label="Society name" value={draft.name}    onChange={field('name')}    ph="Uniworld City" />
             </div>
@@ -189,7 +189,7 @@ function SocietyFormModal({
           <FormRow label="Towers / blocks (comma-separated)" value={draft.towers} onChange={field('towers')} ph="Tower A, Tower B, Tower C" />
 
           {/* Billing & schedule */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
             <FormRow label="Total units"        value={draft.totalUnits}       onChange={field('totalUnits')}       ph="320" type="number" />
             <FormRow label="Price per wash (₹)" value={draft.pricePerWash}     onChange={field('pricePerWash')}     ph="99"  type="number" />
             <div style={{ gridColumn: '1 / -1' }}>
@@ -200,7 +200,7 @@ function SocietyFormModal({
           {/* Contact person */}
           <div>
             <p style={{ ...monoLabel, marginBottom: 12 }}>Contact person</p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
               <FormRow label="Name"             value={draft.cpName}  onChange={field('cpName')}  ph="Rajesh Kumar" />
               <FormRow label="Role"             value={draft.cpRole}  onChange={field('cpRole')}  ph="Facility Manager" />
               <FormRow label="Phone"            value={draft.cpPhone} onChange={field('cpPhone')} ph="+91 98765 43210" />
@@ -334,13 +334,13 @@ function SocietyDetailPanel({
         {/* Actions */}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button type="button" onClick={onEdit} style={{
-            flex: 1, padding: '10px 0', borderRadius: 999,
+            flex: '1 1 120px', minHeight: 44, padding: '10px 0', borderRadius: 999,
             background: 'var(--pc-card-hi)', border: '1px solid var(--pc-line)',
             fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)', cursor: 'pointer',
           }}>Edit</button>
 
           <button type="button" onClick={onToggleActive} style={{
-            flex: 1, padding: '10px 0', borderRadius: 999,
+            flex: '1 1 120px', minHeight: 44, padding: '10px 0', borderRadius: 999,
             background: society.isActive ? 'rgba(201,169,97,0.1)' : 'rgba(74,94,68,0.1)',
             border: `1px solid ${society.isActive ? 'var(--pc-gold)' : 'var(--pc-sage-hi)'}`,
             fontFamily: 'var(--pc-sans)', fontSize: 13,
@@ -351,14 +351,14 @@ function SocietyDetailPanel({
 
           {delConfirm ? (
             <button type="button" onClick={onDelete} style={{
-              flex: 1, padding: '10px 0', borderRadius: 999,
+              flex: '1 1 120px', minHeight: 44, padding: '10px 0', borderRadius: 999,
               background: 'var(--pc-danger)', border: 'none',
               fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600,
               color: '#fff', cursor: 'pointer',
             }}>Confirm delete</button>
           ) : (
             <button type="button" onClick={() => setDelConfirm(true)} style={{
-              flex: 1, padding: '10px 0', borderRadius: 999,
+              flex: '1 1 120px', minHeight: 44, padding: '10px 0', borderRadius: 999,
               background: 'transparent', border: '1px solid currentColor',
               fontFamily: 'var(--pc-sans)', fontSize: 13,
               color: 'var(--pc-danger)', cursor: 'pointer',

@@ -94,12 +94,13 @@ function WorkerFormModal({
   return (
     <div
       style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.6)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
       onClick={onClose}
     >
       <div
         style={{ background: 'var(--pc-card)', borderRadius: 16, border: '1px solid var(--pc-line)',
-          padding: 28, width: 400, maxWidth: '90vw' }}
+          padding: 'clamp(16px,5vw,28px)', width: '100%', maxWidth: 400,
+          maxHeight: '90vh', overflowY: 'auto' }}
         onClick={e => e.stopPropagation()}
       >
         <h2 style={{ fontFamily: 'var(--pc-serif)', fontSize: 22, fontWeight: 400,
@@ -205,12 +206,13 @@ function WorkerDetailPanel({
   return (
     <div
       style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.5)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
       onClick={onClose}
     >
       <div
         style={{ background: 'var(--pc-card)', borderRadius: 16, border: '1px solid var(--pc-line)',
-          padding: 28, width: 420, maxWidth: '90vw', display: 'flex', flexDirection: 'column', gap: 20 }}
+          padding: 'clamp(16px,5vw,28px)', width: '100%', maxWidth: 420,
+          maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20 }}
         onClick={e => e.stopPropagation()}
       >
         {/* Identity */}

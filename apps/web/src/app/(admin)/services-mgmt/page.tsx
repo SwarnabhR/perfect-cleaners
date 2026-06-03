@@ -103,7 +103,7 @@ export default function ServicesMgmtPage() {
     <div className="admin-page-root">
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <Eyebrow style={{ display: 'block', marginBottom: 4 }}>CATALOGUE</Eyebrow>
           <h1 className="admin-page-title">Services</h1>
@@ -166,12 +166,12 @@ export default function ServicesMgmtPage() {
                       border: 'none', cursor: 'pointer',
                     }}>{s.isActive ? 'Active' : 'Inactive'}</button>
                   </td>
-                  <td style={{ padding: '14px 18px' }}>
-                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                      <button type="button" onClick={() => openEdit(s)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+                  <td style={{ padding: '6px 12px' }}>
+                    <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                      <button type="button" onClick={() => openEdit(s)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 9, display: 'flex', borderRadius: 6, minWidth: 36, minHeight: 36, alignItems: 'center', justifyContent: 'center' }}>
                         <Icon name="pencil" size={14} color="var(--pc-fg-3)" />
                       </button>
-                      <button type="button" onClick={() => handleDelete(s)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+                      <button type="button" onClick={() => handleDelete(s)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 9, display: 'flex', borderRadius: 6, minWidth: 36, minHeight: 36, alignItems: 'center', justifyContent: 'center' }}>
                         <Icon name="trash-2" size={14} color="var(--pc-danger)" />
                       </button>
                     </div>

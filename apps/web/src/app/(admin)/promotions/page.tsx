@@ -144,7 +144,7 @@ export default function PromotionsPage() {
     <div className="admin-page-root">
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <Eyebrow style={{ display: 'block', marginBottom: 4 }}>MARKETING</Eyebrow>
           <h1 className="admin-page-title">Promotions</h1>
@@ -229,15 +229,15 @@ export default function PromotionsPage() {
                         <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: STATUS_COLORS[status] ?? 'var(--pc-fg-3)' }}>{status}</span>
                       </div>
                     </td>
-                    <td style={{ padding: '13px 18px' }}>
-                      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                        <button type="button" onClick={() => openEdit(p)} title="Edit" style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+                    <td style={{ padding: '6px 12px' }}>
+                      <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                        <button type="button" onClick={() => openEdit(p)} title="Edit" style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 9, display: 'flex', borderRadius: 6, minWidth: 36, minHeight: 36, alignItems: 'center', justifyContent: 'center' }}>
                           <Icon name="pencil" size={14} color="var(--pc-fg-3)" />
                         </button>
-                        <button type="button" onClick={() => togglePause(p)} title={p.isActive ? 'Pause' : 'Resume'} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+                        <button type="button" onClick={() => togglePause(p)} title={p.isActive ? 'Pause' : 'Resume'} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 9, display: 'flex', borderRadius: 6, minWidth: 36, minHeight: 36, alignItems: 'center', justifyContent: 'center' }}>
                           <Icon name={p.isActive ? 'pause' : 'play'} size={14} color="var(--pc-fg-3)" />
                         </button>
-                        <button type="button" onClick={() => handleDelete(p)} title="Delete" style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+                        <button type="button" onClick={() => handleDelete(p)} title="Delete" style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 9, display: 'flex', borderRadius: 6, minWidth: 36, minHeight: 36, alignItems: 'center', justifyContent: 'center' }}>
                           <Icon name="trash-2" size={14} color="var(--pc-danger)" />
                         </button>
                       </div>
