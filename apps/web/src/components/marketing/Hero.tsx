@@ -1,13 +1,17 @@
 'use client';
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useI18n } from '@/i18n';
+import AuthBottomSheet from '@/components/auth/AuthBottomSheet';
 
 export default function Hero() {
   const { t } = useI18n();
   const h = t.hero;
+  const [authOpen, setAuthOpen] = useState(false);
 
   return (
+    <>
     <div
       className="pc-hero-grid"
       style={{
@@ -68,8 +72,9 @@ export default function Hero() {
           Button appearance is applied directly to the anchor.
         */}
         <div className="pc-hero-ctas" style={{ display: 'flex', gap: 'var(--pc-space-2)', flexWrap: 'wrap' }}>
-          <Link
-            href="/plans"
+          <button
+            type="button"
+            onClick={() => setAuthOpen(true)}
             className="pc-hero-cta-primary"
             style={{
               display: 'inline-flex',
@@ -85,37 +90,12 @@ export default function Hero() {
               fontWeight: 600,
               letterSpacing: 'var(--pc-track-wide)',
               textTransform: 'uppercase',
-              textDecoration: 'none',
               cursor: 'pointer',
               transition: 'background var(--pc-dur-fast) var(--pc-ease), box-shadow var(--pc-dur-fast) var(--pc-ease)',
             }}
           >
-            {h.bookNow}
-          </Link>
-          <Link
-            href="/for-societies"
-            className="pc-hero-cta-ghost"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 'var(--pc-space-4) var(--pc-space-6)',
-              background: 'transparent',
-              color: 'var(--pc-fg)',
-              border: '1px solid var(--pc-line-warm)',
-              borderRadius: 'var(--pc-radius-pill)',
-              fontFamily: 'var(--pc-sans)',
-              fontSize: 'var(--pc-text-sm)',
-              fontWeight: 500,
-              letterSpacing: 'var(--pc-track-wide)',
-              textTransform: 'uppercase',
-              textDecoration: 'none',
-              cursor: 'pointer',
-              transition: 'background var(--pc-dur-fast) var(--pc-ease), border-color var(--pc-dur-fast) var(--pc-ease)',
-            }}
-          >
-            {h.viewServices}
-          </Link>
+            Sign Up / Log In
+          </button>
         </div>
 
         {/* Trust strip */}
@@ -219,5 +199,7 @@ export default function Hero() {
         </div>
       </div>
     </div>
+    <AuthBottomSheet open={authOpen} onClose={() => setAuthOpen(false)} />
+    </>
   );
 }

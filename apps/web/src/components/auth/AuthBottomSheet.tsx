@@ -53,7 +53,16 @@ export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: A
   const [busy,      setBusy]      = useState(false);
   const [error,     setError]     = useState('');
   const [countdown, setCountdown] = useState(0);
+  const [isDesktop, setIsDesktop] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)');
+    setIsDesktop(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
 
   // Reset state when sheet opens
   useEffect(() => {
@@ -204,12 +213,26 @@ export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: A
         aria-hidden="true"
       />
 
-      {/* Sheet */}
+      {/* Sheet / Modal */}
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Sign in to continue"
-        style={{
+        style={isDesktop ? {
+          position: 'fixed',
+          top: '50%', left: '50%',
+          transform: open ? 'translate(-50%, -50%) scale(1)' : 'translate(-50%, -50%) scale(0.96)',
+          zIndex: 201,
+          width: 460,
+          background: 'var(--pc-ink-raised)',
+          border: '1px solid var(--pc-line-strong)',
+          borderRadius: 'var(--pc-radius-md)',
+          opacity: open ? 1 : 0,
+          pointerEvents: open ? 'auto' : 'none',
+          transition: 'opacity 0.22s ease, transform 0.22s ease',
+          overflowY: 'auto',
+          maxHeight: '90dvh',
+        } : {
           position: 'fixed', bottom: 0, left: 0, right: 0,
           zIndex: 201,
           background: 'var(--pc-ink-raised)',
@@ -222,12 +245,12 @@ export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: A
           overflowY: 'auto',
         }}
       >
-        {/* Handle */}
-        <div style={{
+        {/* Handle — mobile only */}
+        {!isDesktop && <div style={{
           width: 40, height: 4, borderRadius: 999,
           background: 'var(--pc-line-strong)',
           margin: '12px auto 0',
-        }} />
+        }} />}
 
         {/* Close button */}
         <button
@@ -249,7 +272,7 @@ export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: A
         </button>
 
         {/* Content */}
-        <div style={{ padding: '20px 24px 32px' }}>
+        <div style={{ padding: isDesktop ? '32px 32px 36px' : '20px 24px 32px' }}>
           {/* Heading */}
           <p style={{
             fontFamily: 'var(--pc-mono)', fontSize: 10, letterSpacing: '0.1em',
