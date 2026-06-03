@@ -31,11 +31,12 @@ function formatJoined(ts: any): string {
 }
 
 export default function CustomersPage() {
-  const [customers, setCustomers] = useState<LiveCustomer[]>([]);
-  const [bookings,  setBookings]  = useState<LiveBooking[]>([]);
-  const [search,    setSearch]    = useState('');
-  const [tierFilter,setTierFilter]= useState('All');
-  const [loading,   setLoading]   = useState(true);
+  const [customers,     setCustomers]     = useState<LiveCustomer[]>([]);
+  const [bookings,      setBookings]      = useState<LiveBooking[]>([]);
+  const [search,        setSearch]        = useState('');
+  const [tierFilter,    setTierFilter]    = useState('All');
+  const [societyFilter, setSocietyFilter] = useState('All');
+  const [loading,       setLoading]       = useState(true);
 
   useEffect(() => {
     return onSnapshot(
@@ -69,12 +70,23 @@ export default function CustomersPage() {
       return { ...c, ...stats, customerTier: tier(stats.spent) };
     });
 
+  // Unique society names + per-society counts derived from customers
+  const societyCounts = enriched.reduce<Record<string, number>>((acc, c) => {
+    const name = (c as any).societyName as string | undefined;
+    if (name) acc[name] = (acc[name] ?? 0) + 1;
+    return acc;
+  }, {});
+  const societyOptions = Object.entries(societyCounts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([name, count]) => ({ name, count }));
+
   const filtered = enriched.filter(c => {
     const matchSearch = !search ||
       c.name?.toLowerCase().includes(search.toLowerCase()) ||
       c.phone?.includes(search);
-    const matchTier = tierFilter === 'All' || c.customerTier === tierFilter;
-    return matchSearch && matchTier;
+    const matchTier    = tierFilter    === 'All' || c.customerTier === tierFilter;
+    const matchSociety = societyFilter === 'All' || (c as any).societyName === societyFilter;
+    return matchSearch && matchTier && matchSociety;
   });
 
   const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
@@ -125,32 +137,67 @@ export default function CustomersPage() {
         ))}
       </div>
 
-      {/* Search + tier filter */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-        <div style={{ position: 'relative', flex: 1, maxWidth: 320 }}>
-          <Icon name="search" size={14} color="var(--pc-fg-4)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search by name or phone…"
-            style={{
-              width: '100%', paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9, boxSizing: 'border-box',
-              background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 999,
-              fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)', outline: 'none',
-            }}
-          />
+      {/* Search + filters */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {/* Row 1: search + tier */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ position: 'relative', flex: 1, maxWidth: 320 }}>
+            <Icon name="search" size={14} color="var(--pc-fg-4)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search by name or phone…"
+              style={{
+                width: '100%', paddingLeft: 36, paddingRight: 12, paddingTop: 9, paddingBottom: 9, boxSizing: 'border-box',
+                background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 999,
+                fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)', outline: 'none',
+              }}
+            />
+          </div>
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {['All', 'Platinum', 'Gold', 'Silver', 'Bronze'].map(t => (
+              <button type="button" key={t} onClick={() => setTierFilter(t)} style={{
+                padding: '7px 14px', borderRadius: 999, border: '1px solid',
+                borderColor: tierFilter === t ? 'var(--pc-sage)' : 'var(--pc-line)',
+                background:  tierFilter === t ? 'var(--pc-sage)' : 'transparent',
+                color:       tierFilter === t ? 'var(--pc-sage-ink)' : 'var(--pc-fg-2)',
+                fontFamily: 'var(--pc-sans)', fontSize: 13, cursor: 'pointer',
+              }}>{t}</button>
+            ))}
+          </div>
         </div>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {['All', 'Platinum', 'Gold', 'Silver', 'Bronze'].map(t => (
-            <button type="button" key={t} onClick={() => setTierFilter(t)} style={{
-              padding: '7px 14px', borderRadius: 999, border: '1px solid',
-              borderColor: tierFilter === t ? 'var(--pc-sage)' : 'var(--pc-line)',
-              background:  tierFilter === t ? 'var(--pc-sage)' : 'transparent',
-              color:       tierFilter === t ? 'var(--pc-sage-ink)' : 'var(--pc-fg-2)',
-              fontFamily: 'var(--pc-sans)', fontSize: 13, cursor: 'pointer',
-            }}>{t}</button>
-          ))}
-        </div>
+
+        {/* Row 2: society filter */}
+        {societyOptions.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, color: 'var(--pc-fg-4)', letterSpacing: '0.08em', textTransform: 'uppercase', marginRight: 4, flexShrink: 0 }}>Society</span>
+            <button type="button" onClick={() => setSocietyFilter('All')} style={{
+              padding: '5px 12px', borderRadius: 999, border: '1px solid',
+              borderColor: societyFilter === 'All' ? 'var(--pc-sage)' : 'var(--pc-line)',
+              background:  societyFilter === 'All' ? 'var(--pc-sage)' : 'transparent',
+              color:       societyFilter === 'All' ? 'var(--pc-sage-ink)' : 'var(--pc-fg-2)',
+              fontFamily: 'var(--pc-sans)', fontSize: 12, cursor: 'pointer',
+            }}>All</button>
+            {societyOptions.map(({ name, count }) => (
+              <button type="button" key={name} onClick={() => setSocietyFilter(name)} style={{
+                padding: '5px 12px', borderRadius: 999, border: '1px solid',
+                borderColor: societyFilter === name ? 'var(--pc-sage)' : 'var(--pc-line)',
+                background:  societyFilter === name ? 'var(--pc-sage)' : 'transparent',
+                color:       societyFilter === name ? 'var(--pc-sage-ink)' : 'var(--pc-fg-2)',
+                fontFamily: 'var(--pc-sans)', fontSize: 12, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 5,
+              }}>
+                {name}
+                <span style={{
+                  padding: '1px 6px', borderRadius: 999,
+                  background: societyFilter === name ? 'rgba(255,255,255,0.2)' : 'var(--pc-card-hi)',
+                  fontFamily: 'var(--pc-mono)', fontSize: 10,
+                  color: societyFilter === name ? 'var(--pc-sage-ink)' : 'var(--pc-fg-3)',
+                }}>{count}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Table */}
@@ -164,7 +211,7 @@ export default function CustomersPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--pc-line)' }}>
-                {['Customer', 'Phone', 'Vehicles', 'Jobs', 'Total Spent', 'Outstanding', 'Tier', 'Joined'].map(h => (
+                {['Customer', 'Society', 'Phone', 'Vehicles', 'Jobs', 'Total Spent', 'Outstanding', 'Tier', 'Joined'].map(h => (
                   <th key={h} style={{ padding: '13px 18px', textAlign: 'left', fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
                 ))}
               </tr>
@@ -184,6 +231,16 @@ export default function CustomersPage() {
                         <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-4)', margin: 0 }}>{c.id.slice(0, 8)}</p>
                       </div>
                     </div>
+                  </td>
+                  <td style={{ padding: '13px 18px' }}>
+                    {(c as any).societyName ? (
+                      <div>
+                        <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)', margin: '0 0 1px' }}>{(c as any).societyName}</p>
+                        {(c as any).unitNumber && <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-4)', margin: 0, letterSpacing: '0.04em' }}>{(c as any).unitNumber}</p>}
+                      </div>
+                    ) : (
+                      <span style={{ color: 'var(--pc-fg-4)', fontFamily: 'var(--pc-sans)', fontSize: 13 }}>—</span>
+                    )}
                   </td>
                   <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)' }}>
                     {c.phone || '—'}
