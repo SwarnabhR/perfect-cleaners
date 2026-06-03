@@ -109,6 +109,20 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void 
   );
 }
 
+// Defined at module level so React never treats it as a new component type on re-render.
+function FormRow({ label, value, onChange, ph, type = 'text' }: {
+  label: string; value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  ph?: string; type?: string;
+}) {
+  return (
+    <div>
+      <p style={monoLabel}>{label}</p>
+      <input type={type} value={value} onChange={onChange} placeholder={ph ?? ''} style={inputStyle} />
+    </div>
+  );
+}
+
 function SocietyFormModal({
   initial,
   onClose,
@@ -122,7 +136,7 @@ function SocietyFormModal({
   const [busy,  setBusy]  = useState(false);
   const [err,   setErr]   = useState('');
 
-  function set(key: keyof SocietyDraft) {
+  function field(key: keyof SocietyDraft) {
     return (e: React.ChangeEvent<HTMLInputElement>) => {
       setDraft(d => ({ ...d, [key]: e.target.value }));
       setErr('');
@@ -141,19 +155,6 @@ function SocietyFormModal({
       setErr(e.message ?? 'Something went wrong.');
     } finally { setBusy(false); }
   }
-
-  const Row = ({ label, fieldKey, ph, type = 'text' }: {
-    label: string; fieldKey: keyof SocietyDraft; ph?: string; type?: string;
-  }) => (
-    <div>
-      <p style={monoLabel}>{label}</p>
-      <input
-        type={type} value={String(draft[fieldKey])}
-        onChange={set(fieldKey as any)} placeholder={ph ?? ''}
-        style={inputStyle}
-      />
-    </div>
-  );
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.6)',
@@ -175,24 +176,24 @@ function SocietyFormModal({
           {/* Society details */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div style={{ gridColumn: '1 / -1' }}>
-              <Row label="Society name" fieldKey="name" ph="Uniworld City" />
+              <FormRow label="Society name" value={draft.name}    onChange={field('name')}    ph="Uniworld City" />
             </div>
             <div style={{ gridColumn: '1 / -1' }}>
-              <Row label="Address" fieldKey="address" ph="Sector 30, Noida" />
+              <FormRow label="Address"      value={draft.address} onChange={field('address')} ph="Sector 30, Noida" />
             </div>
-            <Row label="City"    fieldKey="city"    ph="Noida" />
-            <Row label="Pincode" fieldKey="pincode" ph="201301" />
+            <FormRow label="City"    value={draft.city}    onChange={field('city')}    ph="Noida" />
+            <FormRow label="Pincode" value={draft.pincode} onChange={field('pincode')} ph="201301" />
           </div>
 
           {/* Towers */}
-          <Row label="Towers / blocks (comma-separated)" fieldKey="towers" ph="Tower A, Tower B, Tower C" />
+          <FormRow label="Towers / blocks (comma-separated)" value={draft.towers} onChange={field('towers')} ph="Tower A, Tower B, Tower C" />
 
           {/* Billing & schedule */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <Row label="Total units"     fieldKey="totalUnits"       ph="320" type="number" />
-            <Row label="Price per wash (₹)" fieldKey="pricePerWash"  ph="99"  type="number" />
+            <FormRow label="Total units"        value={draft.totalUnits}       onChange={field('totalUnits')}       ph="320" type="number" />
+            <FormRow label="Price per wash (₹)" value={draft.pricePerWash}     onChange={field('pricePerWash')}     ph="99"  type="number" />
             <div style={{ gridColumn: '1 / -1' }}>
-              <Row label="Cleaning schedule" fieldKey="cleaningSchedule" ph="Mon, Wed, Fri · 7:00 AM" />
+              <FormRow label="Cleaning schedule" value={draft.cleaningSchedule} onChange={field('cleaningSchedule')} ph="Mon, Wed, Fri · 7:00 AM" />
             </div>
           </div>
 
@@ -200,10 +201,10 @@ function SocietyFormModal({
           <div>
             <p style={{ ...monoLabel, marginBottom: 12 }}>Contact person</p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <Row label="Name"  fieldKey="cpName"  ph="Rajesh Kumar" />
-              <Row label="Role"  fieldKey="cpRole"  ph="Facility Manager" />
-              <Row label="Phone" fieldKey="cpPhone" ph="+91 98765 43210" />
-              <Row label="Email (optional)" fieldKey="cpEmail" ph="rjk@society.in" type="email" />
+              <FormRow label="Name"             value={draft.cpName}  onChange={field('cpName')}  ph="Rajesh Kumar" />
+              <FormRow label="Role"             value={draft.cpRole}  onChange={field('cpRole')}  ph="Facility Manager" />
+              <FormRow label="Phone"            value={draft.cpPhone} onChange={field('cpPhone')} ph="+91 98765 43210" />
+              <FormRow label="Email (optional)" value={draft.cpEmail} onChange={field('cpEmail')} ph="rjk@society.in" type="email" />
             </div>
           </div>
 
@@ -419,8 +420,11 @@ export default function SocietiesMgmtPage() {
   }
 
   async function handleDelete(societyId: string) {
-    await deleteDoc(doc(db, 'societies', societyId));
-    setSelected(null);
+    try {
+      await deleteDoc(doc(db, 'societies', societyId));
+    } finally {
+      setSelected(null);
+    }
   }
 
   const kpis = {

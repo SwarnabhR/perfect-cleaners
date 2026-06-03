@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { collection, query, orderBy, limit, onSnapshot, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@pc/firebase';
@@ -39,9 +39,11 @@ export default function BookingsPage() {
   const [workers,    setWorkers]    = useState<LiveWorker[]>([]);
   const [filter,     setFilter]     = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
-  const [assigning,  setAssigning]  = useState<string | null>(null);
-  const [cancelling, setCancelling] = useState<string | null>(null);
-  const [loading,    setLoading]    = useState(true);
+  const [assigning,    setAssigning]    = useState<string | null>(null);
+  const [dropdownPos,  setDropdownPos]  = useState<{ top: number; left: number } | null>(null);
+  const [cancelling,   setCancelling]   = useState<string | null>(null);
+  const [loading,      setLoading]      = useState(true);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setSearchTerm(searchParams.get('search') ?? '');
@@ -61,11 +63,25 @@ export default function BookingsPage() {
     );
   }, []);
 
+  // Close dropdown on outside click or scroll
+  useEffect(() => {
+    if (!assigning) return;
+    function close(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setAssigning(null); setDropdownPos(null);
+      }
+    }
+    function onScroll() { setAssigning(null); setDropdownPos(null); }
+    document.addEventListener('mousedown', close);
+    window.addEventListener('scroll', onScroll, true);
+    return () => { document.removeEventListener('mousedown', close); window.removeEventListener('scroll', onScroll, true); };
+  }, [assigning]);
+
   async function assignWorker(bookingId: string, worker: LiveWorker) {
     try {
       const booking = bookings.find(b => b.id === bookingId);
       await updateDoc(doc(db, 'bookings', bookingId), { workerId: worker.id, workerName: worker.name, status: 'assigned' as BookingStatus, updatedAt: serverTimestamp() });
-      setAssigning(null);
+      setAssigning(null); setDropdownPos(null);
       // Fire-and-forget: notify worker via Vercel API (replaces Cloud Function)
       fetch('/api/worker/notify-assigned', {
         method: 'POST',
@@ -185,29 +201,22 @@ export default function BookingsPage() {
                     </td>
                     <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)', whiteSpace: 'nowrap' }}>{serviceLabel(b.serviceIds)}</td>
                     <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)', whiteSpace: 'nowrap' }}>{formatDate(b.scheduledAt)}</td>
-                    <td style={{ padding: '13px 18px', whiteSpace: 'nowrap', position: 'relative' }}>
+                    <td style={{ padding: '13px 18px', whiteSpace: 'nowrap' }}>
                       {b.workerName ? (
                         <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)' }}>{b.workerName}</span>
                       ) : (
-                        <button type="button" onClick={() => setAssigning(assigning === b.id ? null : b.id)} style={{ padding: '5px 12px', borderRadius: 999, border: '1px solid var(--pc-warning)', background: 'transparent', color: 'var(--pc-warning)', fontFamily: 'var(--pc-sans)', fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' }}>Assign worker</button>
-                      )}
-                      {assigning === b.id && (
-                        <div className="admin-dropdown" style={{ position: 'absolute', zIndex: 50, marginTop: 8, background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 10, padding: 8, minWidth: 200, boxShadow: '0 8px 24px rgba(0,0,0,0.3)', right: 0 }}>
-                          <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', padding: '4px 8px', margin: 0 }}>SELECT WORKER</p>
-                          {workers.length === 0 ? (
-                            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)', padding: '4px 8px', margin: 0 }}>No workers found</p>
-                          ) : workers.map(w => (
-                            <button key={w.id} type="button" onClick={() => assignWorker(b.id, w)} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 10px', borderRadius: 6, background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
-                              <div style={{ width: 24, height: 24, borderRadius: 999, background: 'var(--pc-sage)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 10, fontWeight: 600, color: '#fff' }}>{w.name[0]}</span>
-                              </div>
-                              <div style={{ flex: 1 }}>
-                                <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)', margin: 0, fontWeight: 500 }}>{w.name}</p>
-                                <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', margin: 0 }}>{w.isOnline ? '● Online' : 'Offline'} · ★ {w.rating?.toFixed(1) ?? '—'}</p>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
+                        <button
+                          type="button"
+                          onClick={e => {
+                            if (assigning === b.id) { setAssigning(null); setDropdownPos(null); return; }
+                            const rect = (e.currentTarget as HTMLButtonElement).getBoundingClientRect();
+                            setAssigning(b.id);
+                            setDropdownPos({ top: rect.bottom + 6, left: rect.left });
+                          }}
+                          style={{ padding: '5px 12px', borderRadius: 999, border: '1px solid var(--pc-warning)', background: assigning === b.id ? 'color-mix(in srgb, var(--pc-warning) 10%, transparent)' : 'transparent', color: 'var(--pc-warning)', fontFamily: 'var(--pc-sans)', fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                        >
+                          Assign worker
+                        </button>
                       )}
                     </td>
                     <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg)', fontWeight: 600, whiteSpace: 'nowrap' }}>₹{b.priceBreakdown?.total?.toLocaleString('en-IN') ?? '—'}</td>
@@ -240,6 +249,54 @@ export default function BookingsPage() {
           </div>
         )}
       </Card>
+
+      {/* Worker picker — fixed to viewport so it escapes table overflow */}
+      {assigning && dropdownPos && (
+        <div
+          ref={dropdownRef}
+          style={{
+            position: 'fixed',
+            top: dropdownPos.top,
+            left: dropdownPos.left,
+            zIndex: 300,
+            background: 'var(--pc-card)',
+            border: '1px solid var(--pc-line)',
+            borderRadius: 12,
+            padding: 8,
+            minWidth: 220,
+            maxWidth: 280,
+            boxShadow: '0 12px 32px rgba(0,0,0,0.35)',
+          }}
+        >
+          <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', padding: '4px 8px 8px', margin: 0, textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid var(--pc-line)' }}>
+            Select worker
+          </p>
+          <div style={{ marginTop: 6 }}>
+            {workers.length === 0 ? (
+              <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)', padding: '4px 8px', margin: 0 }}>No workers found</p>
+            ) : workers.map(w => (
+              <button
+                key={w.id}
+                type="button"
+                onClick={() => assignWorker(assigning, w)}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '8px 10px', borderRadius: 8, background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--pc-card-hi)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+              >
+                <div style={{ width: 28, height: 28, borderRadius: 999, background: w.isOnline ? 'var(--pc-sage)' : 'var(--pc-card-hi)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 11, fontWeight: 600, color: w.isOnline ? '#fff' : 'var(--pc-fg-3)' }}>{w.name[0]}</span>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)', margin: 0, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.name}</p>
+                  <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11, color: w.isOnline ? 'var(--pc-sage)' : 'var(--pc-fg-4)', margin: 0 }}>
+                    {w.isOnline ? '● Online' : '○ Offline'} · ★ {w.rating?.toFixed(1) ?? '—'}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

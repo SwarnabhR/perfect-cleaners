@@ -328,6 +328,7 @@ export default function WorkersPage() {
   const [editingWorker,  setEditingWorker]  = useState<LiveWorker | null>(null);
   const [addOpen,        setAddOpen]        = useState(false);
   const [loading,        setLoading]        = useState(true);
+  const [loadErr,        setLoadErr]        = useState('');
   const [search,         setSearch]         = useState('');
   const [statusFilter,   setStatusFilter]   = useState<StatusFilter>('All');
 
@@ -344,7 +345,13 @@ export default function WorkersPage() {
         setWorkers(snap.docs.map(d => ({ id: d.id, ...d.data() } as LiveWorker)));
         setLoading(false);
       },
-      err => { console.warn('[Workers]', err.message); setLoading(false); },
+      err => {
+        console.warn('[Workers]', err.message);
+        setLoadErr(err.code === 'permission-denied'
+          ? 'Permission denied — your account may not have admin access yet.'
+          : err.message);
+        setLoading(false);
+      },
     );
   }, []);
 
@@ -373,8 +380,11 @@ export default function WorkersPage() {
   }
 
   async function handleDeleteWorker(workerId: string) {
-    await deleteDoc(doc(db, 'workers', workerId));
-    setSelectedWorker(null);
+    try {
+      await deleteDoc(doc(db, 'workers', workerId));
+    } finally {
+      setSelectedWorker(null);
+    }
   }
 
   const kpis = {
@@ -474,6 +484,15 @@ export default function WorkersPage() {
         {loading ? (
           <div style={{ padding: 48, textAlign: 'center', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)' }}>
             Loading…
+          </div>
+        ) : loadErr ? (
+          <div style={{ padding: 48, textAlign: 'center' }}>
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-danger)', margin: '0 0 6px' }}>
+              {loadErr}
+            </p>
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-4)', margin: 0 }}>
+              Run <code style={{ fontFamily: 'var(--pc-mono)' }}>npm run bootstrap-admin</code> to set up admin access.
+            </p>
           </div>
         ) : filtered.length === 0 ? (
           <div style={{ padding: 48, textAlign: 'center' }}>

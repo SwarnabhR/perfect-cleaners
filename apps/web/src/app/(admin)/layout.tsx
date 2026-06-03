@@ -8,41 +8,10 @@ import Icon from '@/components/ui/Icon';
 import { useTheme } from '@/components/ThemeProvider';
 import { AdminAuthProvider, useAdminAuth } from '@/components/AdminAuthProvider';
 
-const NAV = [
-  { label: 'Dashboard',  href: '/dashboard',    icon: 'layout-dashboard' },
-  { label: 'Societies',  href: '/societies-mgmt', icon: 'building-2'     },
-  { label: 'Bookings',   href: '/bookings',      icon: 'calendar'         },
-  { label: 'Customers',  href: '/customers',     icon: 'users'            },
-  { label: 'Workers',    href: '/workers',        icon: 'hard-hat'         },
-  { label: 'Activity',   href: '/cleaning-logs', icon: 'list-checks'      },
-  { label: 'Services',   href: '/services-mgmt', icon: 'sparkles'         },
-  { label: 'Promotions', href: '/promotions',    icon: 'tag'              },
-  { label: 'Analytics',  href: '/analytics',     icon: 'bar-chart-2'      },
-  { label: 'Settings',   href: '/settings',      icon: 'settings'         },
-];
-
-// Bottom-tab items (5 most important for mobile)
-const TABS = NAV.slice(0, 5);
-
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+// Module-level so React never sees a new component type on re-render of AdminShell.
+function Sidebar({ onClose }: { onClose?: () => void }) {
+  const pathname = usePathname();
   return (
-    <AdminAuthProvider>
-      <AdminShell>{children}</AdminShell>
-    </AdminAuthProvider>
-  );
-}
-
-function AdminShell({ children }: { children: React.ReactNode }) {
-  const pathname     = usePathname();
-  const [open,        setOpen]        = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [alertsOpen,  setAlertsOpen]  = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
-  const { theme, toggle } = useTheme();
-  const { user, signOut } = useAdminAuth();
-  const router = useRouter();
-
-  const Sidebar = ({ onClose }: { onClose?: () => void }) => (
     <aside style={{
       width: 240, flexShrink: 0,
       background: 'var(--pc-card)', borderRight: '1px solid var(--pc-line)',
@@ -89,24 +58,66 @@ function AdminShell({ children }: { children: React.ReactNode }) {
         })}
       </nav>
 
-      <div style={{ padding: 'var(--pc-space-3) var(--pc-space-4)', borderTop: '1px solid var(--pc-line)', display: 'flex', alignItems: 'center', gap: 'var(--pc-space-3)' }}>
-        <div style={{ width: 32, height: 32, borderRadius: 'var(--pc-radius-pill)', background: 'var(--pc-card-hi)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <Icon name="user" size={14} color="var(--pc-fg-2)" />
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg)', margin: 0, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {user?.displayName ?? 'Admin'}
-          </p>
-          <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {user?.email ?? 'ops@perfectcleaners.in'}
-          </p>
-        </div>
-        <button type="button" aria-label="Sign out" onClick={signOut} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, background: 'transparent', border: 'none', borderRadius: 'var(--pc-radius-xs)', cursor: 'pointer', color: 'var(--pc-fg-4)', transition: 'color var(--pc-dur-fast) var(--pc-ease)' }}>
-          <Icon name="log-out" size={14} color="currentColor" />
-        </button>
-      </div>
+      <SidebarFooter />
     </aside>
   );
+}
+
+function SidebarFooter() {
+  const { user, signOut } = useAdminAuth();
+  return (
+    <div style={{ padding: 'var(--pc-space-3) var(--pc-space-4)', borderTop: '1px solid var(--pc-line)', display: 'flex', alignItems: 'center', gap: 'var(--pc-space-3)' }}>
+      <div style={{ width: 32, height: 32, borderRadius: 'var(--pc-radius-pill)', background: 'var(--pc-card-hi)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <Icon name="user" size={14} color="var(--pc-fg-2)" />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg)', margin: 0, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {user?.displayName ?? 'Admin'}
+        </p>
+        <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {user?.email ?? 'ops@perfectcleaners.in'}
+        </p>
+      </div>
+      <button type="button" aria-label="Sign out" onClick={signOut} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, background: 'transparent', border: 'none', borderRadius: 'var(--pc-radius-xs)', cursor: 'pointer', color: 'var(--pc-fg-4)', transition: 'color var(--pc-dur-fast) var(--pc-ease)' }}>
+        <Icon name="log-out" size={14} color="currentColor" />
+      </button>
+    </div>
+  );
+}
+
+const NAV = [
+  { label: 'Dashboard',  href: '/dashboard',    icon: 'layout-dashboard' },
+  { label: 'Societies',  href: '/societies-mgmt', icon: 'building-2'     },
+  { label: 'Bookings',   href: '/bookings',      icon: 'calendar'         },
+  { label: 'Customers',  href: '/customers',     icon: 'users'            },
+  { label: 'Workers',    href: '/workers',        icon: 'hard-hat'         },
+  { label: 'Activity',   href: '/cleaning-logs', icon: 'list-checks'      },
+  { label: 'Services',   href: '/services-mgmt', icon: 'sparkles'         },
+  { label: 'Promotions', href: '/promotions',    icon: 'tag'              },
+  { label: 'Analytics',  href: '/analytics',     icon: 'bar-chart-2'      },
+  { label: 'Settings',   href: '/settings',      icon: 'settings'         },
+];
+
+// Bottom-tab items (5 most important for mobile)
+const TABS = NAV.slice(0, 5);
+
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <AdminAuthProvider>
+      <AdminShell>{children}</AdminShell>
+    </AdminAuthProvider>
+  );
+}
+
+function AdminShell({ children }: { children: React.ReactNode }) {
+  const [open,        setOpen]        = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [alertsOpen,  setAlertsOpen]  = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const { theme, toggle } = useTheme();
+  const { user, signOut } = useAdminAuth();
+  const pathname = usePathname();
+  const router = useRouter();
 
   return (
     <>
