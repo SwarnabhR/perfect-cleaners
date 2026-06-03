@@ -54,7 +54,19 @@ export function useMsg91() {
     };
 
     function init() {
-      window.initSendOTP?.(config);
+      // Mount an off-screen container so the widget never renders visible UI.
+      // Without this, the widget overlays the page with its own OTP form and
+      // shows "Something went wrong" when its iframe is blocked by CSP frame-src.
+      const containerId = 'msg91-widget-sink';
+      if (!document.getElementById(containerId)) {
+        const sink = document.createElement('div');
+        sink.id = containerId;
+        sink.setAttribute('aria-hidden', 'true');
+        sink.style.cssText = 'position:fixed;width:0;height:0;overflow:hidden;opacity:0;pointer-events:none;z-index:-1;';
+        document.body.appendChild(sink);
+      }
+
+      window.initSendOTP?.({ ...config, containerId });
       const start = Date.now();
       const poll  = setInterval(() => {
         if (typeof window.sendOtp === 'function') {
