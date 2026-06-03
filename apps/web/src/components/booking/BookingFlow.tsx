@@ -523,196 +523,89 @@ export default function BookingFlow() {
     }
   }
 
-  // ─── Success screen ───────────────────────────────────────────────────────────
+  // ─── Success popup ────────────────────────────────────────────────────────────
   if (result) {
     return (
+      <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: 'rgba(10,9,8,0.75)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}>
       <div style={{
-        maxWidth: 520, margin: '0 auto', textAlign: 'center',
-        padding: 'var(--pc-space-20) var(--pc-space-6) var(--pc-space-24)',
+        width: '100%', maxWidth: 420,
+        background: 'var(--pc-ink-raised)',
+        border: '1px solid var(--pc-line-strong)',
+        borderRadius: 'var(--pc-radius-md)',
+        padding: 'var(--pc-space-8) var(--pc-space-6)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        gap: 'var(--pc-space-4)', textAlign: 'center',
+        maxHeight: '90dvh', overflowY: 'auto',
       }}>
+        {/* Check icon */}
         <div style={{
-          width: 72, height: 72,
-          borderRadius: 'var(--pc-radius-pill)',
-          background: 'var(--pc-sage-subtle)',
-          border: '1px solid var(--pc-sage-hi)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          margin: '0 auto',
-          marginBottom: 'var(--pc-space-8)',
+          width: 64, height: 64, borderRadius: '50%',
+          background: 'rgba(74,94,68,0.15)', border: '1px solid var(--pc-sage-hi)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
         }}>
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-               stroke="var(--pc-sage-hi)" strokeWidth="2.5"
-               strokeLinecap="round" strokeLinejoin="round">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
+            stroke="var(--pc-sage-hi)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M20 6 9 17l-5-5"/>
           </svg>
         </div>
 
-        <Eyebrow style={{ marginBottom: 'var(--pc-space-3)', display: 'block' }}>
-          [CONFIRMED] · {result.bookingRef}
-        </Eyebrow>
-        <h2 style={{
-          fontFamily: 'var(--pc-serif)',
-          fontSize: 'var(--pc-text-3xl)',
-          color: 'var(--pc-fg)',
-          letterSpacing: 'var(--pc-track-tight)',
-          lineHeight: 'var(--pc-lh-tight)',
-          marginBottom: 'var(--pc-space-4)',
-        }}>Booking confirmed.</h2>
-        <p style={{
-          fontFamily: 'var(--pc-sans)',
-          fontSize: 'var(--pc-text-base)',
-          color: 'var(--pc-fg-2)',
-          lineHeight: 'var(--pc-lh-loose)',
-          maxWidth: 380,
-          margin: '0 auto',
-          marginBottom: 'var(--pc-space-10)',
-        }}>
-          <strong style={{ color: 'var(--pc-fg)' }}>{service.name}</strong> · ₹{finalTotal.toLocaleString('en-IN')} ·{' '}
-          {selDate.dayName} {selDate.dayNum} {selDate.monthName} at {selTime}.
-          {' '}We\'ll confirm via WhatsApp on{' '}
-          <strong style={{ color: 'var(--pc-fg)' }}>+91 {phone}</strong>.
-        </p>
-
-        <Card style={{ padding: 'var(--pc-space-5)', textAlign: 'left', marginBottom: 'var(--pc-space-8)' }}>
-          {[
-            ['Booking ref',  result.bookingRef],
-            ['Service',      service.name],
-            ['Scheduled',    `${selDate.dayName} ${selDate.dayNum} ${selDate.monthName} · ${selTime}`],
-            ['Vehicle',      `${brand} ${model} · ${vehicleTypeLabel}`],
-            ['Location',     [flatNo && `Flat ${flatNo}`, tower, societyName].filter(Boolean).join(', ')],
-          ].map(([k, v]) => (
-            <div key={k} style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-              padding: 'var(--pc-space-3) 0',
-              borderBottom: '1px solid var(--pc-line)',
-              gap: 'var(--pc-space-4)',
-            }}>
-              <span style={{
-                fontFamily: 'var(--pc-mono)',
-                fontSize: 'var(--pc-text-xs)',
-                color: 'var(--pc-fg-3)',
-                letterSpacing: 'var(--pc-track-mono)',
-                textTransform: 'uppercase',
-                flexShrink: 0, paddingTop: 'var(--pc-space-1)',
-              }}>{k}</span>
-              <span style={{
-                fontFamily: 'var(--pc-sans)',
-                fontSize: 'var(--pc-text-sm)',
-                color: 'var(--pc-fg)',
-                textAlign: 'right',
-                minWidth: 0, overflow: 'hidden',
-                textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
-              }}>{v}</span>
-            </div>
-          ))}
-          <div style={{
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            paddingTop: 'var(--pc-space-4)',
-          }}>
-            <span style={{
-              fontFamily: 'var(--pc-mono)',
-              fontSize: 'var(--pc-text-xs)',
-              color: 'var(--pc-fg-3)',
-              letterSpacing: 'var(--pc-track-mono)',
-              textTransform: 'uppercase',
-            }}>Amount due</span>
-            <span style={{
-              fontFamily: 'var(--pc-serif)',
-              fontSize: 'var(--pc-text-2xl)',
-              color: 'var(--pc-fg)',
-            }}>₹{finalTotal.toLocaleString('en-IN')}</span>
-          </div>
-        </Card>
-
-        {/* Pay at service instructions */}
-        <div style={{
-          background: 'rgba(74,94,68,0.10)',
-          border: '1px solid rgba(74,94,68,0.30)',
-          borderRadius: 'var(--pc-radius-md)',
-          padding: 'var(--pc-space-5)',
-          marginBottom: 'var(--pc-space-8)',
-          textAlign: 'left',
-        }}>
-          <p style={{
-            fontFamily: 'var(--pc-mono)', fontSize: 10, letterSpacing: '0.1em',
-            textTransform: 'uppercase', color: 'var(--pc-sage-hi)',
-            margin: '0 0 10px',
-          }}>
-            [PAYMENT] / PAY AT SERVICE
+        <div>
+          <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--pc-sage-hi)', margin: '0 0 6px' }}>
+            {result.bookingRef}
           </p>
-          <p style={{
-            fontFamily: 'var(--pc-sans)', fontSize: 14,
-            color: 'var(--pc-fg)', fontWeight: 500, margin: '0 0 6px',
-          }}>
-            Pay ₹{finalTotal.toLocaleString('en-IN')} when our detailer arrives.
-          </p>
-          <p style={{
-            fontFamily: 'var(--pc-sans)', fontSize: 13,
-            color: 'var(--pc-fg-2)', lineHeight: 1.6, margin: '0 0 14px',
-          }}>
-            We accept cash and all UPI apps — GPay, PhonePe, Paytm, BHIM.
-            No card machine required.
-          </p>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {['GPay', 'PhonePe', 'Paytm', 'Cash'].map(m => (
-              <span key={m} style={{
-                padding: '4px 12px',
-                background: 'var(--pc-sage-subtle)',
-                border: '1px solid rgba(74,94,68,0.25)',
-                borderRadius: 999,
-                fontFamily: 'var(--pc-sans)', fontSize: 12,
-                color: 'var(--pc-sage-on-tint)',
-              }}>{m}</span>
-            ))}
-          </div>
+          <h2 style={{ fontFamily: 'var(--pc-serif)', fontSize: 'clamp(24px, 5vw, 30px)', fontWeight: 400, color: 'var(--pc-fg)', letterSpacing: '-0.02em', lineHeight: 1.1, margin: 0 }}>
+            Booking confirmed.
+          </h2>
         </div>
 
-        {/*
-          Success screen CTAs.
-          "Book Another" resets the page — no navigation, so <button> is correct.
-          "Back to Home" navigates, but this is not inside a <Link>, so we also
-          use <button> with router.push rather than the invalid <Link><button> pattern.
-          Both inherit PrimaryButton/GhostButton styles inline — no import needed.
-        */}
-        <div style={{ display: 'flex', gap: 'var(--pc-space-3)', justifyContent: 'center', flexWrap: 'wrap' }}>
+        {/* Summary rows */}
+        <div style={{ width: '100%', borderTop: '1px solid var(--pc-line)', borderBottom: '1px solid var(--pc-line)', padding: 'var(--pc-space-4) 0', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-3)' }}>
+          {[
+            ['Service',   service.name],
+            ['Date',      `${selDate.dayName} ${selDate.dayNum} ${selDate.monthName} · ${selTime}`],
+            ['Location',  [flatNo && `Flat ${flatNo}`, tower, societyName].filter(Boolean).join(', ')],
+            ['Amount due',`₹${finalTotal.toLocaleString('en-IN')}`],
+          ].map(([k, v]) => (
+            <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
+              <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, color: 'var(--pc-fg-4)', letterSpacing: '0.08em', textTransform: 'uppercase', flexShrink: 0 }}>{k}</span>
+              <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)', textAlign: 'right' }}>{v}</span>
+            </div>
+          ))}
+        </div>
+
+        <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)', lineHeight: 1.6, margin: 0 }}>
+          Pay ₹{finalTotal.toLocaleString('en-IN')} when our detailer arrives. We accept cash and all UPI apps.
+        </p>
+
+        {/* CTAs */}
+        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <button
+            type="button"
+            onClick={() => router.push('/account')}
+            style={{
+              width: '100%', padding: '13px 0', borderRadius: 999,
+              background: 'var(--pc-warm)', color: 'var(--pc-ink)', border: 'none',
+              fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 700,
+              letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer',
+            }}
+          >
+            View Booking →
+          </button>
           <button
             type="button"
             onClick={() => router.refresh()}
             style={{
-              background: 'var(--pc-warm)',
-              color: 'var(--pc-ink)',
-              border: 'none',
-              borderRadius: 'var(--pc-radius-pill)',
-              padding: 'var(--pc-space-4) var(--pc-space-8)',
-              fontFamily: 'var(--pc-sans)',
-              fontSize: 'var(--pc-text-sm)',
-              fontWeight: 600,
-              letterSpacing: 'var(--pc-track-wide)',
-              textTransform: 'uppercase',
-              cursor: 'pointer',
+              width: '100%', padding: '13px 0', borderRadius: 999,
+              background: 'transparent', color: 'var(--pc-fg-2)',
+              border: '1px solid var(--pc-line-strong)',
+              fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 500,
+              letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer',
             }}
           >
-            Book Another →
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push('/')}
-            style={{
-              background: 'transparent',
-              color: 'var(--pc-fg)',
-              border: '1px solid currentColor',
-              borderRadius: 'var(--pc-radius-pill)',
-              padding: 'var(--pc-space-4) var(--pc-space-8)',
-              fontFamily: 'var(--pc-sans)',
-              fontSize: 'var(--pc-text-sm)',
-              fontWeight: 500,
-              letterSpacing: 'var(--pc-track-wide)',
-              textTransform: 'uppercase',
-              cursor: 'pointer',
-            }}
-          >
-            Back to Home
+            Book Another
           </button>
         </div>
+      </div>
       </div>
     );
   }
