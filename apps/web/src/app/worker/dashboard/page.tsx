@@ -114,9 +114,8 @@ export default function WorkerDashboard() {
       {/* Stats strip */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 10 }}>
         {[
-          { label: 'Cars Done Today', value: done,                                                                   icon: 'check-circle'  },
-          { label: 'Remaining',       value: total > 0 ? Math.max(0, total - done) : '—',                           icon: 'circle-dot'    },
-          { label: "Today's Earn",    value: `₹${(worker?.earnings?.today ?? 0).toLocaleString('en-IN')}`,          icon: 'indian-rupee'  },
+          { label: 'Cars Done Today', value: done,                                        icon: 'check-circle' },
+          { label: 'Remaining',       value: total > 0 ? Math.max(0, total - done) : '—', icon: 'circle-dot'  },
         ].map(s => (
           <Card key={s.label} style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
             <Icon name={s.icon} size={16} color="var(--pc-fg-3)" />
