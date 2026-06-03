@@ -48,8 +48,11 @@ function WorkerLoginContent() {
     window.verifyOtp(
       otp,
       async (data: any) => {
-        const msg91Token = data?.['access-token'] ?? data?.token;
-        if (!msg91Token) { setError('Verification failed.'); setBusy(false); return; }
+        const msg91Token =
+          typeof data === 'string'
+            ? data
+            : (data?.['access-token'] ?? data?.accessToken ?? data?.token ?? data?.message);
+        if (!msg91Token) { console.error('[WorkerLogin] verifyOtp unexpected data shape:', JSON.stringify(data)); setError('Verification failed.'); setBusy(false); return; }
         try {
           const res  = await fetch('/api/auth/verify-otp', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
