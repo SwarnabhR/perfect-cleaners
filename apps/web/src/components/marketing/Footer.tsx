@@ -56,6 +56,7 @@ export default function Footer() {
           hello@perfectcleaners.in
         </a>
 
+        {/* Social links — uncomment once handles are live
         <Eyebrow>{f.socialLabel}</Eyebrow>
         <div style={{ display: 'flex', gap: 'var(--pc-space-2)' }}>
           {SOCIAL_LINKS.map(({ icon, href, ariaLabel }) => (
@@ -71,6 +72,7 @@ export default function Footer() {
             </a>
           ))}
         </div>
+        */}
 
         {/* Language toggle */}
         <div
