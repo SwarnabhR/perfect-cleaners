@@ -4,11 +4,13 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useI18n } from '@/i18n';
 import AuthBottomSheet from '@/components/auth/AuthBottomSheet';
+import { useCustomerAuth } from '@/lib/auth/CustomerAuthContext';
 
 export default function Hero() {
   const { t } = useI18n();
   const h = t.hero;
   const [authOpen, setAuthOpen] = useState(false);
+  const { user, profileName } = useCustomerAuth();
 
   return (
     <>
@@ -72,30 +74,57 @@ export default function Hero() {
           Button appearance is applied directly to the anchor.
         */}
         <div className="pc-hero-ctas" style={{ display: 'flex', gap: 'var(--pc-space-2)', flexWrap: 'wrap' }}>
-          <button
-            type="button"
-            onClick={() => setAuthOpen(true)}
-            className="pc-hero-cta-primary"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 'var(--pc-space-4) var(--pc-space-6)',
-              background: 'var(--pc-warm)',
-              color: 'var(--pc-ink)',
-              border: 'none',
-              borderRadius: 'var(--pc-radius-pill)',
-              fontFamily: 'var(--pc-sans)',
-              fontSize: 'var(--pc-text-sm)',
-              fontWeight: 600,
-              letterSpacing: 'var(--pc-track-wide)',
-              textTransform: 'uppercase',
-              cursor: 'pointer',
-              transition: 'background var(--pc-dur-fast) var(--pc-ease), box-shadow var(--pc-dur-fast) var(--pc-ease)',
-            }}
-          >
-            Sign Up / Log In
-          </button>
+          {user ? (
+            <Link
+              href="/account"
+              className="pc-hero-cta-primary"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 'var(--pc-space-4) var(--pc-space-6)',
+                background: 'var(--pc-warm)',
+                color: 'var(--pc-ink)',
+                border: 'none',
+                borderRadius: 'var(--pc-radius-pill)',
+                fontFamily: 'var(--pc-sans)',
+                fontSize: 'var(--pc-text-sm)',
+                fontWeight: 600,
+                letterSpacing: 'var(--pc-track-wide)',
+                textTransform: 'uppercase',
+                textDecoration: 'none',
+                cursor: 'pointer',
+                transition: 'background var(--pc-dur-fast) var(--pc-ease), box-shadow var(--pc-dur-fast) var(--pc-ease)',
+              }}
+            >
+              {profileName ? `Hi, ${profileName.split(' ')[0]}` : 'My Account'}
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setAuthOpen(true)}
+              className="pc-hero-cta-primary"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 'var(--pc-space-4) var(--pc-space-6)',
+                background: 'var(--pc-warm)',
+                color: 'var(--pc-ink)',
+                border: 'none',
+                borderRadius: 'var(--pc-radius-pill)',
+                fontFamily: 'var(--pc-sans)',
+                fontSize: 'var(--pc-text-sm)',
+                fontWeight: 600,
+                letterSpacing: 'var(--pc-track-wide)',
+                textTransform: 'uppercase',
+                cursor: 'pointer',
+                transition: 'background var(--pc-dur-fast) var(--pc-ease), box-shadow var(--pc-dur-fast) var(--pc-ease)',
+              }}
+            >
+              Sign Up / Log In
+            </button>
+          )}
         </div>
 
         {/* Trust strip */}
