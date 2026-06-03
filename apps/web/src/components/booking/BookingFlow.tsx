@@ -11,6 +11,7 @@ import { getDocs, collection, query, where, limit, onSnapshot } from 'firebase/f
 import AuthBottomSheet from '@/components/auth/AuthBottomSheet';
 import { useCustomerAuth } from '@/lib/auth/CustomerAuthContext';
 import { submitBooking } from '@/lib/firebase/booking';
+import SlideToConfirm from '@/components/ui/SlideToConfirm';
 import styles from './BookingFlow.module.css';
 
 // ─── Static data ──────────────────────────────────────────────────────────────
@@ -1242,14 +1243,13 @@ export default function BookingFlow() {
           </span>
         </label>
 
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={isSubmitting || !termsAccepted}
-          className={styles.submitBtn}
-        >
-          {isSubmitting ? 'Confirming…' : 'Confirm Booking →'}
-        </button>
+        <SlideToConfirm
+          label="Confirm Booking"
+          onConfirm={handleSubmit}
+          disabled={!termsAccepted}
+          loading={isSubmitting}
+          variant="warm"
+        />
       </div>
 
       {/* ── Right: order summary ── */}

@@ -9,6 +9,7 @@ import { useWorkerAuth } from '@/components/WorkerAuthProvider';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
+import SlideToConfirm from '@/components/ui/SlideToConfirm';
 
 // ─── Status pipeline ──────────────────────────────────────────────────────────
 
@@ -211,23 +212,12 @@ export default function JobDetailPage() {
 
       {/* Action button */}
       {!isDone && actionLabel && (
-        <button
-          type="button"
-          onClick={advanceStatus}
-          disabled={updating}
-          style={{
-            width: '100%', padding: '15px 0', borderRadius: 999,
-            background: status === 'inprogress' ? 'var(--pc-sage)' : 'var(--pc-warm)',
-            color: status === 'inprogress' ? 'var(--pc-sage-ink)' : 'var(--pc-ink)',
-            border: 'none',
-            fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 700,
-            cursor: updating ? 'not-allowed' : 'pointer',
-            opacity: updating ? 0.6 : 1,
-            transition: 'opacity 0.15s ease',
-          }}
-        >
-          {updating ? 'Updating…' : actionLabel}
-        </button>
+        <SlideToConfirm
+          label={actionLabel}
+          onConfirm={advanceStatus}
+          loading={updating}
+          variant={status === 'inprogress' ? 'sage' : 'warm'}
+        />
       )}
 
       {isDone && (
