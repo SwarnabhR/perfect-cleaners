@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminFirestore } from '@/lib/firebase/admin';
+import { notifySocietyWorkers } from '@/lib/notify-society-workers';
 
 // Called fire-and-forget from BookingFlow after a direct (pay-at-service) booking
 // is written to Firestore. Sends the booking_confirmed in-app notification and
@@ -33,6 +34,21 @@ export async function POST(req: NextRequest) {
         createdAt: FieldValue.serverTimestamp(),
         bookingId,
       }).catch(err => console.error('[booking/confirm] notification failed:', err));
+    }
+
+    // Notify workers assigned to this society (best-effort)
+    if (bookingId) {
+      db.collection('bookings').doc(bookingId).get().then(snap => {
+        const societyId = snap.data()?.address?.societyId;
+        if (societyId) {
+          notifySocietyWorkers(societyId, {
+            type:      'new_booking',
+            title:     'New booking',
+            body:      `${bookingRef} · ${svc}${dateStr ? ` on ${dateStr}` : ''}.`,
+            bookingId,
+          }).catch(() => {});
+        }
+      }).catch(() => {});
     }
 
     // SMS via MSG91 (best-effort)

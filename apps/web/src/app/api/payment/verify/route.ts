@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminFirestore } from '@/lib/firebase/admin';
+import { notifySocietyWorkers } from '@/lib/notify-society-workers';
 
 export async function POST(req: NextRequest) {
   try {
@@ -90,6 +91,20 @@ export async function POST(req: NextRequest) {
       }).catch(err => console.error('[verify-payment] notification write failed:', err));
     }
 
+    // Notify workers assigned to this society (best-effort)
+    if (booking.societyId) {
+      const svc     = (booking.serviceId ?? 'service').replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
+      const dateStr = new Date(booking.scheduledAt).toLocaleDateString('en-IN', {
+        weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+      });
+      notifySocietyWorkers(booking.societyId, {
+        type:      'new_booking',
+        title:     'New booking',
+        body:      `${bookingRef} · ${svc} on ${dateStr}.`,
+        bookingId: bookingDoc.id,
+      }).catch(() => {});
+    }
+
     // SMS confirmation via MSG91 (best-effort — never blocks the response)
     const phone   = booking.customerPhone?.replace(/\D/g, '');
     const authKey = process.env.MSG91_AUTH_KEY;
@@ -116,7 +131,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Silently deduct wallet balance if used
-    const customerId = booking.customerId;
     if (walletUsed > 0 && customerId && !customerId.startsWith('phone:')) {
       db.collection('customers').doc(customerId).update({
         walletBalance: FieldValue.increment(-Math.abs(walletUsed)),

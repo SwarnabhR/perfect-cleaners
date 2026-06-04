@@ -12,6 +12,7 @@
     "test:report": "playwright show-report",
     "seed": "node scripts/seed-demo.mjs",
     "bootstrap-admin": "node scripts/bootstrap-admin.mjs",
+    "clear-data": "node scripts/clear-data.mjs",
     "unseed": "node scripts/unseed-demo.mjs"
   },
   "dependencies": {

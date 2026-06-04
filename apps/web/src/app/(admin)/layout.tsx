@@ -89,6 +89,7 @@ const NAV = [
   { label: 'Dashboard',  href: '/dashboard',     icon: 'layout-dashboard' },
   { label: 'Societies',  href: '/societies-mgmt', icon: 'building-2'      },
   { label: 'Bookings',   href: '/bookings',       icon: 'calendar'         },
+  { label: 'Sessions',   href: '/sessions',       icon: 'car'              },
   { label: 'Customers',  href: '/customers',      icon: 'users'            },
   { label: 'Workers',    href: '/workers',         icon: 'hard-hat'        },
   { label: 'Billing',    href: '/billing',         icon: 'indian-rupee'    },

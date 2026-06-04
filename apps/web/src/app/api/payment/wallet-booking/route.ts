@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminFirestore, adminAuth } from '@/lib/firebase/admin';
+import { notifySocietyWorkers } from '@/lib/notify-society-workers';
 
 export async function POST(req: NextRequest) {
   try {
@@ -63,6 +64,16 @@ export async function POST(req: NextRequest) {
       photos:    { before: [], after: [] },
       createdAt: new Date(), updatedAt: new Date(),
     });
+
+    // Notify workers assigned to this society (best-effort)
+    if (booking.societyId) {
+      notifySocietyWorkers(booking.societyId, {
+        type:      'new_booking',
+        title:     'New booking',
+        body:      `${bookingRef} · ${(booking.serviceId ?? 'service').replace(/-/g, ' ')} at ${booking.societyName ?? booking.societyId}.`,
+        bookingId: bookingDoc.id,
+      }).catch(() => {});
+    }
 
     // Deduct wallet balance atomically
     await db.collection('customers').doc(booking.customerId).update({

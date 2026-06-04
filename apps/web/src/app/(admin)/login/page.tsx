@@ -6,30 +6,57 @@ import { auth } from '@pc/firebase';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Icon from '@/components/ui/Icon';
 
+// Username → Firebase email/password mapping.
+// Add more entries here as you create additional admin accounts.
+const ADMIN_CREDENTIALS: Record<string, { email: string; password: string }> = {
+  admin: { email: 'admin@perfectcleaners.in', password: 'admin1' },
+};
+
 function AdminLoginForm() {
-  const [email,    setEmail]    = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error,    setError]    = useState('');
   const [loading,  setLoading]  = useState(false);
-  const router      = useRouter();
+  const router       = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo  = searchParams.get('from') ?? '/dashboard';
+  const redirectTo   = searchParams.get('from') ?? '/dashboard';
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const creds = ADMIN_CREDENTIALS[username.trim().toLowerCase()];
+      const email    = creds?.email    ?? username.trim();
+      const realPass = creds ? creds.password : password;
+
+      // If a known username was matched, ignore whatever the user typed as
+      // password and use the stored one — the UX password is just a gate.
+      if (creds && password !== 'admin') {
+        setError('Invalid username or password.');
+        setLoading(false);
+        return;
+      }
+
+      await signInWithEmailAndPassword(auth, email, realPass);
       router.replace(redirectTo);
     } catch (err: any) {
-      setError(err?.code === 'auth/invalid-credential'
-        ? 'Invalid email or password.'
-        : err?.message ?? 'Sign-in failed. Please try again.');
+      setError(
+        err?.code === 'auth/invalid-credential' || err?.code === 'auth/user-not-found'
+          ? 'Invalid username or password.'
+          : err?.message ?? 'Sign-in failed. Please try again.',
+      );
     } finally {
       setLoading(false);
     }
   }
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%', padding: '11px 14px', boxSizing: 'border-box',
+    background: 'var(--pc-card)', border: '1px solid var(--pc-line)',
+    borderRadius: 'var(--pc-radius-sm)', color: 'var(--pc-fg)',
+    fontFamily: 'var(--pc-sans)', fontSize: 14, outline: 'none',
+  };
 
   return (
     <div style={{
@@ -66,20 +93,16 @@ function AdminLoginForm() {
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div>
             <label style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
-              Email
+              Username
             </label>
             <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
+              type="text"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
               required
-              autoComplete="email"
-              style={{
-                width: '100%', padding: '11px 14px', boxSizing: 'border-box',
-                background: 'var(--pc-card)', border: '1px solid var(--pc-line)',
-                borderRadius: 'var(--pc-radius-sm)', color: 'var(--pc-fg)',
-                fontFamily: 'var(--pc-sans)', fontSize: 14, outline: 'none',
-              }}
+              autoComplete="username"
+              placeholder="admin"
+              style={inputStyle}
             />
           </div>
 
@@ -93,12 +116,7 @@ function AdminLoginForm() {
               onChange={e => setPassword(e.target.value)}
               required
               autoComplete="current-password"
-              style={{
-                width: '100%', padding: '11px 14px', boxSizing: 'border-box',
-                background: 'var(--pc-card)', border: '1px solid var(--pc-line)',
-                borderRadius: 'var(--pc-radius-sm)', color: 'var(--pc-fg)',
-                fontFamily: 'var(--pc-sans)', fontSize: 14, outline: 'none',
-              }}
+              style={inputStyle}
             />
           </div>
 

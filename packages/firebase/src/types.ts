@@ -108,6 +108,7 @@ export interface CleaningSession {
   id: string;
   societyId: string;
   societyName: string;
+  tower?: string;
   workerId: string;
   workerName: string;
   scheduledDate: Date;       // calendar day (time is start of day)
