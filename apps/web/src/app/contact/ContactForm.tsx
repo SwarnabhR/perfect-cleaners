@@ -7,7 +7,7 @@ import Card from '@/components/ui/Card';
 
 const SERVICES = [
   { value: 'society',    label: 'List My Society'             },
-  { value: 'subscribe',  label: 'Subscribe as a Resident'     },
+  { value: 'register',   label: 'Register as a Resident'      },
   { value: 'interior',   label: 'Interior Detailing (Add-on)' },
   { value: 'exterior',   label: 'Exterior Wash (Add-on)'      },
   { value: 'coating',    label: 'Paint Protection & Coating'  },
@@ -144,7 +144,7 @@ export default function ContactForm() {
           <label style={label}>Message *</label>
           <textarea
             rows={5} value={message} onChange={e => setMessage(e.target.value)}
-            placeholder="Tell us about your society, subscription query, or service requirement…"
+            placeholder="Tell us about your society, or describe your service requirement…"
             required style={{ ...input, resize: 'none' }}
           />
         </div>

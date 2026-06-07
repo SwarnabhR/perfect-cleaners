@@ -8,21 +8,21 @@ import Icon from '@/components/ui/Icon';
 
 export const metadata: Metadata = {
   title: 'For Societies | Perfect Cleaners',
-  description: 'Bulk car-wash plans for residential societies and apartment complexes. Get a dedicated team, flexible scheduling, and discounted rates for your entire community.',
+  description: 'Bring scheduled, crew-based car washing to your housing society. Free to list — residents pay per wash, the RWA is never invoiced.',
 };
 
 const steps = [
   { n: '01', title: 'Register your society', body: 'Fill in a short form with your society name, location, and approximate number of cars. Takes under two minutes.' },
   { n: '02', title: 'We confirm coverage', body: 'Our team checks whether your pin-code is in our service zone and reaches out within 24 hours.' },
-  { n: '03', title: 'Choose a plan', body: 'Pick Daily, Alternate-day, or Weekly cadence. Pricing is per vehicle and billed monthly to the society account.' },
+  { n: '03', title: 'Agree on a schedule', body: 'Pick visit days — Daily, Alternate-day, or Weekly. Residents register their own cars in the app and pay per wash. The society is never invoiced.' },
   { n: '04', title: 'We show up', body: 'A dedicated crew arrives at the agreed time every session. Residents track status in the app.' },
 ];
 
 const benefits: { icon: string; title: string; body: string }[] = [
   {
     icon: 'indian-rupee',
-    title: 'Bulk pricing',
-    body: 'Societies with 20+ vehicles get up to 30 % off standard per-wash rates. More cars, better savings.',
+    title: 'Per-wash pricing',
+    body: 'Residents pay only for what they use. Rates are agreed per society and shown in the app before residents register — no surprises.',
   },
   {
     icon: 'calendar',
@@ -32,12 +32,12 @@ const benefits: { icon: string; title: string; body: string }[] = [
   {
     icon: 'smartphone',
     title: 'Resident app access',
-    body: 'Every resident gets live status updates, wash history, and the ability to pause their own vehicle.',
+    body: 'Every resident gets live status updates, wash history, and a push notification the moment their car is clean.',
   },
   {
     icon: 'file-text',
-    title: 'Single monthly invoice',
-    body: 'Society management gets one consolidated invoice. No per-household payment hassle.',
+    title: 'Monthly activity report',
+    body: 'Society management gets a monthly summary of visits, cars cleaned, and resident coverage. Zero admin overhead.',
   },
   {
     icon: 'shield',
