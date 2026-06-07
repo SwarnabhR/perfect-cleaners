@@ -366,9 +366,8 @@ export default function ProfilePage() {
           <p style={sectionTitle}>MY ACCOUNT</p>
           <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 'var(--pc-radius-md)', overflow: 'hidden' }}>
             {[
-              { label: 'Order History',      sub: 'View all your past and upcoming bookings', href: '/account'        },
-              { label: 'Your Bill',          sub: 'Outstanding balance and wash history',       href: '/account/wallet' },
-              { label: 'Membership & Plans', sub: 'How billing works and FAQ',                  href: '/plans'          },
+              { label: 'Order History', sub: 'View all your past and upcoming bookings', href: '/account'        },
+              { label: 'Your Bill',     sub: 'Outstanding balance and wash history',   href: '/account/wallet' },
             ].map(({ label: lbl, sub, href }, i, arr) => (
               <Link key={lbl} href={href} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: i < arr.length - 1 ? '1px solid var(--pc-line)' : 'none', textDecoration: 'none' }}>
                 <div>

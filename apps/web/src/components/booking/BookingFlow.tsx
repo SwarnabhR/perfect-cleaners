@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Card from '@/components/ui/Card';
 import CustomSelect from '@/components/ui/CustomSelect';
@@ -38,13 +38,6 @@ const SERVICES = [
 ];
 
 const TIMES = ['09:00 AM', '11:00 AM', '01:00 PM', '03:00 PM', '05:00 PM'];
-
-// Plans page passes ?plan=starter|pro|elite — map to the closest one-off service
-const PLAN_TO_SERVICE: Record<string, string> = {
-  starter: 'exterior-wash',
-  pro:     'premium-wash',
-  elite:   'full-detail',
-};
 
 const CITIES = ['Delhi', 'Noida', 'Gurgaon', 'Ghaziabad', 'Faridabad'];
 
@@ -323,8 +316,7 @@ function FieldError({ msg }: { msg?: string }) {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function BookingFlow() {
-  const router       = useRouter();
-  const searchParams = useSearchParams();
+  const router = useRouter();
   const { user, profileName } = useCustomerAuth();
   const [authSheetOpen,  setAuthSheetOpen]  = useState(false);
   const [pendingSubmit,  setPendingSubmit]  = useState(false);
@@ -356,24 +348,6 @@ export default function BookingFlow() {
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // When landing from the Plans page (?plan=pro&cycle=monthly), pre-select
-  // the matching service and surface a subscription context banner.
-  const planParam  = searchParams.get('plan');
-  const cycleParam = searchParams.get('cycle') as 'weekly' | 'monthly' | 'yearly' | null;
-  const [subscriptionBanner] = useState<{ plan: string; cycle: string } | null>(() => {
-    if (!planParam || !cycleParam) return null;
-    return { plan: planParam, cycle: cycleParam };
-  });
-
-  useEffect(() => {
-    if (!planParam) return;
-    const serviceId = PLAN_TO_SERVICE[planParam];
-    if (!serviceId) return;
-    const match = liveServices.find(s => s.id === serviceId);
-    if (match) setService(match);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveServices]);
 
   const [societies,   setSocieties]   = useState<{ id: string; name: string; towers: string[] }[]>([]);
   const [societyId,   setSocietyId]   = useState('');
@@ -746,42 +720,6 @@ export default function BookingFlow() {
             >
               Sign in →
             </button>
-          </div>
-        )}
-
-        {/* Subscription context banner — shown when arriving from /plans */}
-        {subscriptionBanner && (
-          <div style={{
-            display: 'flex', alignItems: 'flex-start', gap: 12,
-            background: 'rgba(74,94,68,0.10)',
-            border: '1px solid rgba(74,94,68,0.30)',
-            borderRadius: 'var(--pc-radius-md)',
-            padding: 'var(--pc-space-3) var(--pc-space-4)',
-          }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                 stroke="var(--pc-sage-hi)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                 style={{ flexShrink: 0, marginTop: 1 }}>
-              <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
-              <path d="M12 8v4M12 16h.01"/>
-            </svg>
-            <div>
-              <p style={{
-                fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)',
-                color: 'var(--pc-sage-on-tint)', fontWeight: 500, margin: 0,
-              }}>
-                Setting up your{' '}
-                <strong style={{ textTransform: 'capitalize' }}>{subscriptionBanner.cycle}</strong>
-                {' '}
-                <strong style={{ textTransform: 'capitalize' }}>{subscriptionBanner.plan}</strong>
-                {' '}subscription
-              </p>
-              <p style={{
-                fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)',
-                color: 'var(--pc-sage-on-tint-2)', margin: 'var(--pc-space-1) 0 0', lineHeight: 1.5,
-              }}>
-                This books your first visit. Our team will contact you to set up your recurring schedule after payment.
-              </p>
-            </div>
           </div>
         )}
 
