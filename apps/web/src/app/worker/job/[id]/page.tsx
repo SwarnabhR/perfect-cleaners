@@ -13,23 +13,26 @@ import SlideToConfirm from '@/components/ui/SlideToConfirm';
 
 // ─── Status pipeline ──────────────────────────────────────────────────────────
 
-const PIPELINE: BookingStatus[] = ['assigned', 'enroute', 'inprogress', 'done'];
+const PIPELINE: BookingStatus[] = ['assigned', 'enroute', 'arrived', 'inprogress', 'done'];
 
 const ACTION_LABEL: Partial<Record<BookingStatus, string>> = {
   assigned:   'On My Way →',
-  enroute:    'Start Job →',
+  enroute:    "I've Arrived →",
+  arrived:    'Start Job →',
   inprogress: 'Mark Complete →',
 };
 
 const NEXT_STATUS: Partial<Record<BookingStatus, BookingStatus>> = {
   assigned:   'enroute',
-  enroute:    'inprogress',
+  enroute:    'arrived',
+  arrived:    'inprogress',
   inprogress: 'done',
 };
 
 const STEP_LABEL: Record<BookingStatus, string> = {
   assigned:   'Assigned',
   enroute:    'En Route',
+  arrived:    'Arrived',
   inprogress: 'In Progress',
   done:       'Done',
   pending:    'Pending',

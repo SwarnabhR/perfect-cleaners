@@ -29,6 +29,7 @@ const STATUS_LABEL: Record<BookingStatus, string> = {
   pending:    'Pending',
   assigned:   'Confirmed',
   enroute:    'En Route',
+  arrived:    'Technician Arrived',
   inprogress: 'In Progress',
   done:       'Done',
   cancelled:  'Cancelled',

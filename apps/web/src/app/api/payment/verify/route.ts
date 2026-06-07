@@ -29,6 +29,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Payment signature invalid.' }, { status: 400 });
     }
 
+    const db = adminFirestore();
+
+    // Idempotency: return existing booking if this orderId was already processed
+    const existing = await db.collection('bookings')
+      .where('orderId', '==', razorpay_order_id)
+      .limit(1)
+      .get();
+    if (!existing.empty) {
+      const existingData = existing.docs[0].data();
+      return NextResponse.json({ bookingRef: existingData.bookingRef });
+    }
+
     // Build booking document (mirrors the Booking type in @pc/firebase)
     const fee      = booking.platformFee ?? 50;
     const subtotal = booking.price ?? 0;
@@ -37,7 +49,6 @@ export async function POST(req: NextRequest) {
     const suffix     = String(Math.floor(1000 + Math.random() * 9000));
     const bookingRef = `PC-${suffix}`;
 
-    const db = adminFirestore();
     const bookingDoc = await db.collection('bookings').add({
       bookingRef,
       customerId:    booking.customerId ?? `phone:${booking.customerPhone}`,
@@ -73,6 +84,13 @@ export async function POST(req: NextRequest) {
       createdAt:      new Date(),
       updatedAt:      new Date(),
     });
+
+    // Increment promo usedCount if a code was applied
+    if (booking.promoId) {
+      db.collection('promotions').doc(booking.promoId).update({
+        usedCount: FieldValue.increment(1),
+      }).catch(err => console.error('[verify-payment] promo increment failed:', err));
+    }
 
     // In-app notification for authenticated customers (mirrors onBookingCreated Cloud Function)
     const customerId = booking.customerId;

@@ -338,7 +338,24 @@ export default function BookingFlow() {
   const [calMonth, setCalMonth] = useState(() => new Date().getMonth());
   const calendarRef = useRef<HTMLDivElement>(null);
 
+  const [liveServices, setLiveServices] = useState(SERVICES);
   const [service, setService] = useState(SERVICES[0]);
+
+  // Fetch active services from Firestore; keep hardcoded SERVICES as fallback
+  useEffect(() => {
+    getDocs(query(collection(db, 'services'), where('isActive', '==', true)))
+      .then(snap => {
+        if (snap.empty) return;
+        const rows = snap.docs.map(d => {
+          const s = d.data();
+          return { id: d.id, name: s.name as string, price: s.priceMin as number, desc: s.description as string };
+        });
+        setLiveServices(rows);
+        setService(prev => rows.find(r => r.id === prev.id) ?? rows[0]);
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // When landing from the Plans page (?plan=pro&cycle=monthly), pre-select
   // the matching service and surface a subscription context banner.
@@ -353,10 +370,10 @@ export default function BookingFlow() {
     if (!planParam) return;
     const serviceId = PLAN_TO_SERVICE[planParam];
     if (!serviceId) return;
-    const match = SERVICES.find(s => s.id === serviceId);
+    const match = liveServices.find(s => s.id === serviceId);
     if (match) setService(match);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [liveServices]);
 
   const [societies,   setSocieties]   = useState<{ id: string; name: string; towers: string[] }[]>([]);
   const [societyId,   setSocietyId]   = useState('');
@@ -772,10 +789,10 @@ export default function BookingFlow() {
         <section>
           <StepLabel n="01">Select Service</StepLabel>
           <CustomSelect
-            options={SERVICES.map(s => `${s.name} — ₹${s.price.toLocaleString('en-IN')}`)}
+            options={liveServices.map(s => `${s.name} — ₹${s.price.toLocaleString('en-IN')}`)}
             value={`${service.name} — ₹${service.price.toLocaleString('en-IN')}`}
             onChange={val => {
-              const s = SERVICES.find(s => `${s.name} — ₹${s.price.toLocaleString('en-IN')}` === val);
+              const s = liveServices.find(s => `${s.name} — ₹${s.price.toLocaleString('en-IN')}` === val);
               if (s) setService(s);
             }}
           />

@@ -11,7 +11,7 @@ import { useSharedStyles } from '../../theme/sharedStyles';
 import { ScreenHeader, Group, Row } from '../../components/RowGroup';
 
 const DONE_STATUSES: BookingStatus[] = ['done'];
-const ACTIVE_STATUSES: BookingStatus[] = ['assigned', 'enroute', 'inprogress'];
+const ACTIVE_STATUSES: BookingStatus[] = ['assigned', 'enroute', 'arrived', 'inprogress'];
 
 export default function BookingDetailScreen() {
   const insets = useSafeAreaInsets();

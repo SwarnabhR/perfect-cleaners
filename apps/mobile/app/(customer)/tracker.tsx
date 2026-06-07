@@ -12,7 +12,7 @@ import { useSharedStyles } from '../../theme/sharedStyles';
 const STEPS = ['Assigned', 'En Route', 'In Progress', 'Done'];
 
 const STATUS_STEP: Record<BookingStatus, number> = {
-  pending: 0, assigned: 0, enroute: 1, inprogress: 2, done: 3, cancelled: 3,
+  pending: 0, assigned: 0, enroute: 1, arrived: 1, inprogress: 2, done: 3, cancelled: 3,
 };
 
 export default function TrackerScreen() {

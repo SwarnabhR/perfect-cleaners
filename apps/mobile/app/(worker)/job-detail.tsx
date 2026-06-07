@@ -21,7 +21,7 @@ const DEFAULT_CHECKLIST = [
 const LABELS = ['En Route', 'Arrived', 'In Progress', 'Complete'];
 
 // Step index → Firestore BookingStatus
-const STEP_STATUS: BookingStatus[] = ['enroute', 'assigned', 'inprogress', 'done'];
+const STEP_STATUS: BookingStatus[] = ['enroute', 'arrived', 'inprogress', 'done'];
 
 export default function JobDetail() {
   const router = useRouter();

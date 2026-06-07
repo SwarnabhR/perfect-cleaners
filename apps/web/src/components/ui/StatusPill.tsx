@@ -7,6 +7,7 @@ const PALETTE: Record<string, { text: string; bg: string; border: string }> = {
   'Pending':     { text: 'var(--pc-warning)', bg: 'rgba(217,164,65,0.12)',  border: 'rgba(217,164,65,0.2)'  },
   'Confirmed':   { text: 'var(--pc-info)',    bg: 'rgba(106,142,174,0.12)', border: 'rgba(106,142,174,0.2)' },
   'En Route':    { text: 'var(--pc-warning)', bg: 'rgba(217,164,65,0.12)',  border: 'rgba(217,164,65,0.2)'  },
+  'Arrived':     { text: 'var(--pc-info)',    bg: 'rgba(106,142,174,0.12)', border: 'rgba(106,142,174,0.2)' },
   'In Progress': { text: 'var(--pc-sage)',    bg: 'rgba(74,94,68,0.12)',    border: 'rgba(74,94,68,0.2)'    },
   'Done':        { text: 'var(--pc-success)', bg: 'rgba(111,174,106,0.12)', border: 'rgba(111,174,106,0.2)' },
   'Cancelled':   { text: 'var(--pc-danger)',  bg: 'rgba(201,85,78,0.12)',   border: 'rgba(201,85,78,0.2)'   },

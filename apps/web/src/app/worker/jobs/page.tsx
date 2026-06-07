@@ -17,8 +17,8 @@ interface JobRow {
 
 const STATUS_COLOR: Record<string, string> = {
   assigned: 'var(--pc-info)', enroute: 'var(--pc-warning)',
-  inprogress: 'var(--pc-sage-hi)', done: 'var(--pc-success)',
-  pending: 'var(--pc-fg-3)', cancelled: 'var(--pc-danger)',
+  arrived: 'var(--pc-info)', inprogress: 'var(--pc-sage-hi)',
+  done: 'var(--pc-success)', pending: 'var(--pc-fg-3)', cancelled: 'var(--pc-danger)',
 };
 
 const FILTERS = ['All', 'Upcoming', 'Active', 'Done', 'Cancelled'] as const;
@@ -57,7 +57,7 @@ export default function JobsPage() {
   const filtered = jobs.filter(j => {
     if (filter === 'All')      return true;
     if (filter === 'Upcoming') return j.status === 'assigned';
-    if (filter === 'Active')   return j.status === 'enroute' || j.status === 'inprogress';
+    if (filter === 'Active')   return j.status === 'enroute' || j.status === 'arrived' || j.status === 'inprogress';
     if (filter === 'Done')     return j.status === 'done';
     if (filter === 'Cancelled') return j.status === 'cancelled';
     return true;

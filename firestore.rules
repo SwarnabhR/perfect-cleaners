@@ -158,6 +158,19 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // ── Payment logs ──────────────────────────────────────────────────────────
+    // Written by Cloud Functions and the admin billing page (Mark Paid action).
+    // Customers never read this collection directly.
+    match /paymentLogs/{logId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ── Aggregate stats ───────────────────────────────────────────────────────
+    // Counters (income, job counts) maintained by Cloud Functions and admin.
+    match /stats/{docId} {
+      allow read, write: if isAdmin();
+    }
+
     // ── Operator settings ─────────────────────────────────────────────────────
     match /settings/{docId} {
       allow read, write: if isAdmin();

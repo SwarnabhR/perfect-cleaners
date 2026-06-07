@@ -13,7 +13,7 @@ type LiveWorker  = Worker  & { id: string };
 
 const STATUS_LABEL: Record<BookingStatus, string> = {
   pending: 'Pending', assigned: 'Assigned', enroute: 'En Route',
-  inprogress: 'In Progress', done: 'Done', cancelled: 'Cancelled',
+  arrived: 'Arrived', inprogress: 'In Progress', done: 'Done', cancelled: 'Cancelled',
 };
 
 function formatTime(ts: any): string {
@@ -71,7 +71,7 @@ export default function DashboardPage() {
 
   const spark          = buildSparkline(bookings);
   const revenue        = bookings.filter(b => b.status === 'done').reduce((s, b) => s + (b.priceBreakdown?.total ?? 0), 0);
-  const activeJobs     = bookings.filter(b => ['inprogress', 'enroute'].includes(b.status)).length;
+  const activeJobs     = bookings.filter(b => ['enroute', 'arrived', 'inprogress'].includes(b.status)).length;
   const workersOnline  = workers.filter(w => w.isOnline).length;
   const topWorkers     = [...workers].sort((a, b) => (b.totalJobs ?? 0) - (a.totalJobs ?? 0)).slice(0, 4);
   const recentBookings = bookings.slice(0, 5);

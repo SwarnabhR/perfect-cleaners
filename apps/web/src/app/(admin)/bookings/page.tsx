@@ -20,9 +20,9 @@ interface LiveWorker { id: string; name: string; isOnline: boolean; rating: numb
 
 const STATUS_LABELS: Record<BookingStatus, string> = {
   pending: 'Pending', assigned: 'Assigned', enroute: 'En Route',
-  inprogress: 'In Progress', done: 'Done', cancelled: 'Cancelled',
+  arrived: 'Arrived', inprogress: 'In Progress', done: 'Done', cancelled: 'Cancelled',
 };
-const FILTERS = ['All', 'Pending', 'Assigned', 'En Route', 'In Progress', 'Done'];
+const FILTERS = ['All', 'Pending', 'Assigned', 'En Route', 'Arrived', 'In Progress', 'Done'];
 
 function formatDate(ts: any): string {
   if (!ts) return '—';
@@ -119,7 +119,7 @@ export default function BookingsPage() {
     });
   const counts = {
     pending: bookings.filter(b => b.status === 'pending').length,
-    active:  bookings.filter(b => ['assigned','enroute','inprogress'].includes(b.status)).length,
+    active:  bookings.filter(b => ['assigned','enroute','arrived','inprogress'].includes(b.status)).length,
     done:    bookings.filter(b => b.status === 'done').length,
     total:   bookings.length,
   };

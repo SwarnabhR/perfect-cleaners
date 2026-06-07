@@ -65,6 +65,13 @@ export async function POST(req: NextRequest) {
       createdAt: new Date(), updatedAt: new Date(),
     });
 
+    // Increment promo usedCount if a code was applied
+    if (booking.promoId) {
+      db.collection('promotions').doc(booking.promoId).update({
+        usedCount: FieldValue.increment(1),
+      }).catch(err => console.error('[wallet-booking] promo increment failed:', err));
+    }
+
     // Notify workers assigned to this society (best-effort)
     if (booking.societyId) {
       notifySocietyWorkers(booking.societyId, {
