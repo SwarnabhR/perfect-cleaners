@@ -11,7 +11,7 @@ const en = {
   hero: {
     eyebrow:          'DELHI NCR · GHAZIABAD',
     headline:         ['The detail', 'standard', 'for Delhi NCR.'],
-    sub:              'Subscribe once. Your car gets cleaned at your society every week — and you get a push notification the moment it\'s done.',
+    sub:              'Register your car in the app. Your car is cleaned at your society every week — and you get a push notification the moment it\'s done.',
     bookNow:          'Book Now',
     viewServices:     'For Societies',
     stats:            [['50+', 'Partner societies'], ['10,000+', 'Subscribers'], ['4.9 / 5', 'Service rating']],
@@ -44,8 +44,8 @@ const en = {
         body:    'Pre-rinse, decontamination, and a two-bucket hand-wash method. No automatic tunnels. No swirl marks. No compromises.',
       },
       {
-        heading: 'Subscribe once,\nclean every week',
-        body:    'Pick a weekly or monthly plan, add your society and car. We show up on schedule — you get a push notification with before/after photos when your car is done.',
+        heading: 'Register once,\nclean every week',
+        body:    'Add your society and car to the app. We show up on schedule — you get a push notification the moment your car is done.',
       },
     ],
   },
@@ -57,7 +57,7 @@ const en = {
     bookingLabel:     'BOOKING',
     quickLinks:       ['Services', 'Exterior Wash', 'Interior Detailing', 'Painting & Coating', 'Terms of Service', 'Privacy Policy'],
     official:         ['Ghaziabad, Delhi NCR', '+91 98765 43210', '09:00 – 21:00 IST'],
-    booking:          ['Book Now', 'For Societies', 'Membership'],
+    booking:          ['Book Now', 'For Societies'],
   },
   common: {
     langEn: 'EN',
@@ -67,10 +67,10 @@ const en = {
   // ── Shared marketing components ──────────────────────────────────────────────
 
   cta: {
-    eyebrow:    '[SUBSCRIBE & FORGET]',
-    headline1:  'Subscribe once.',
+    eyebrow:    '[REGISTER & FORGET]',
+    headline1:  'Register once.',
     headline2:  'Clean car every week.',
-    body:       'Choose your plan, add your society and vehicle. We arrive on schedule, clean your car with professional-grade products, and send you a notification the moment it\'s done. Cancel or pause anytime.',
+    body:       'Add your society and vehicle in the app. We arrive on schedule, clean your car with professional-grade products, and send you a notification the moment it\'s done.',
     bookNow:    'Book Now',
     getInTouch: 'For Societies',
   },

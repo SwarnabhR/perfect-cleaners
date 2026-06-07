@@ -10,21 +10,21 @@ const STEPS = [
   },
   {
     num: '02',
-    label: 'RESIDENTS SUBSCRIBE',
-    title: 'Each resident pays their own plan',
-    body: 'Residents choose a weekly or monthly subscription in the app and add their car. They pay Perfect Cleaners directly — the RWA is never billed.',
+    label: 'RESIDENTS REGISTER',
+    title: 'Each resident registers their car',
+    body: 'Residents find their society in the app, add their vehicle and unit number, and are included from the next visit. They pay Perfect Cleaners per wash — the RWA is never billed.',
   },
   {
     num: '03',
     label: 'WE CLEAN',
     title: 'Workers arrive on schedule',
-    body: 'Our certified team arrives at the gate on the agreed days and cleans every subscribed car with professional-grade products.',
+    body: 'Our certified team arrives at the gate on the agreed days and cleans every registered car with professional-grade products.',
   },
   {
     num: '04',
     label: 'INSTANT NOTIFY',
     title: 'Push notification when done',
-    body: 'The moment a car is marked clean, the subscriber gets a notification with a timestamp, plate, and before/after photo.',
+    body: 'The moment a car is marked clean, the resident gets a notification with a timestamp and plate number.',
   },
 ] as const;
 
@@ -60,7 +60,7 @@ export default function SocietiesSection() {
           maxWidth: 400,
           margin: 0,
         }}>
-          We operate inside residential societies across Delhi NCR. Listing is free for the RWA — residents subscribe individually and pay directly. No bulk contract, no cost to the society.
+          We operate inside residential societies across Delhi NCR. Listing is free for the RWA — residents register individually and pay per wash. No bulk contract, no cost to the society.
         </p>
       </div>
 
