@@ -83,6 +83,11 @@ service cloud.firestore {
         allow create: if isAdmin();
         allow delete: if isOwner(workerId) || isAdmin();
       }
+
+      // Worker-owned address book — used by the worker web profile page.
+      match /addresses/{addressId} {
+        allow read, write: if isOwner(workerId) || isAdmin();
+      }
     }
 
     // ── Bookings ──────────────────────────────────────────────────────────────
