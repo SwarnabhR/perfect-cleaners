@@ -44,7 +44,8 @@ export async function POST(req: NextRequest) {
     // Build booking document (mirrors the Booking type in @pc/firebase)
     const fee      = booking.platformFee ?? 50;
     const subtotal = booking.price ?? 0;
-    const total    = subtotal + fee;
+    const gst      = Math.round(subtotal * 0.18);
+    const total    = subtotal + gst + fee;
 
     const suffix     = String(Math.floor(1000 + Math.random() * 9000));
     const bookingRef = `PC-${suffix}`;
@@ -76,7 +77,7 @@ export async function POST(req: NextRequest) {
         pincode:     '',
         coordinates: { latitude: 0, longitude: 0 },
       },
-      priceBreakdown: { subtotal, tax: 0, total },
+      priceBreakdown: { subtotal, tax: gst, total },
       paymentStatus:  'paid',
       paymentId:      razorpay_payment_id,
       orderId:        razorpay_order_id,
@@ -102,7 +103,7 @@ export async function POST(req: NextRequest) {
       db.collection('customers').doc(customerId).collection('notifications').add({
         type:      'booking_confirmed',
         title:     'Booking confirmed',
-        body:      `PC-${bookingRef} · ${svc} on ${dateStr}. Pay ₹${total.toLocaleString('en-IN')} at service.`,
+        body:      `${bookingRef} · ${svc} on ${dateStr}. Pay ₹${total.toLocaleString('en-IN')} at service.`,
         read:      false,
         createdAt: FieldValue.serverTimestamp(),
         bookingId: bookingDoc.id,

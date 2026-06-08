@@ -385,7 +385,7 @@ export default function BookingFlow() {
 
   const [errors,       setErrors]       = useState<FieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [result,       setResult]       = useState<{ bookingRef: string } | null>(null);
+  const [result,       setResult]       = useState<{ bookingRef: string; paymentVia: 'razorpay' | 'wallet' } | null>(null);
   const [submitError,  setSubmitError]  = useState('');
 
   const [promoInput,    setPromoInput]    = useState('');
@@ -524,7 +524,7 @@ export default function BookingFlow() {
         });
         const json = await res.json();
         if (!res.ok) throw new Error(json.error);
-        setResult({ bookingRef: json.bookingRef });
+        setResult({ bookingRef: json.bookingRef, paymentVia: 'wallet' });
         setIsSubmitting(false);
         return;
       }
@@ -571,7 +571,7 @@ export default function BookingFlow() {
             });
             const json = await verifyRes.json();
             if (!verifyRes.ok) throw new Error(json.error);
-            setResult({ bookingRef: json.bookingRef });
+            setResult({ bookingRef: json.bookingRef, paymentVia: 'razorpay' });
           } catch (err: any) {
             setSubmitError(err.message ?? 'Payment verified but booking failed. Call us.');
           } finally {
@@ -638,7 +638,9 @@ export default function BookingFlow() {
         </div>
 
         <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)', lineHeight: 1.6, margin: 0 }}>
-          Pay ₹{finalTotal.toLocaleString('en-IN')} when our detailer arrives. We accept cash and all UPI apps.
+          {result.paymentVia === 'razorpay'
+            ? 'Payment received via UPI. Our detailer will arrive at the scheduled time.'
+            : 'Payment deducted from your PC Wallet. Our detailer will arrive at the scheduled time.'}
         </p>
 
         {/* CTAs */}

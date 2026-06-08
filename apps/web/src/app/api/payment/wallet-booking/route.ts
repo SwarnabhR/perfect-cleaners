@@ -31,7 +31,8 @@ export async function POST(req: NextRequest) {
 
     const fee      = booking.platformFee ?? 50;
     const subtotal = booking.price ?? 0;
-    const total    = subtotal + fee;
+    const gst      = Math.round(subtotal * 0.18);
+    const total    = subtotal + gst + fee;
     const suffix   = String(Math.floor(1000 + Math.random() * 9000));
     const bookingRef = `PC-${suffix}`;
 
@@ -58,7 +59,7 @@ export async function POST(req: NextRequest) {
         line1: [booking.flatNo, booking.tower, booking.societyName].filter(Boolean).join(', '),
         pincode: '', coordinates: { latitude: 0, longitude: 0 },
       },
-      priceBreakdown: { subtotal, tax: 0, total },
+      priceBreakdown: { subtotal, tax: gst, total },
       paymentStatus:  'paid',
       walletUsed,
       photos:    { before: [], after: [] },
