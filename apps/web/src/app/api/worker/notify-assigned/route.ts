@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
-import { adminFirestore, adminMessaging } from '@/lib/firebase/admin';
+import { adminFirestore, adminMessaging, adminAuth } from '@/lib/firebase/admin';
 
 // Called by the admin bookings page immediately after assigning a worker.
 // Sends an FCM push + writes an in-app notification on the worker doc.
@@ -13,7 +13,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'bookingId and workerId are required.' }, { status: 400 });
     }
 
+    // Verify the caller is an admin
+    const idToken = (req.headers.get('Authorization') ?? '').replace('Bearer ', '').trim();
+    if (!idToken) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+    const decoded = await adminAuth().verifyIdToken(idToken);
     const db = adminFirestore();
+    const adminSnap = await db.collection('admins').doc(decoded.uid).get();
+    if (!adminSnap.exists) {
+      return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
+    }
 
     const svc = ((serviceIds?.[0] ?? 'service') as string)
       .replace(/-/g, ' ')

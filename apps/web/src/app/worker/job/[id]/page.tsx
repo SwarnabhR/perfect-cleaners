@@ -75,17 +75,19 @@ export default function JobDetailPage() {
     setUpdating(false);
     if (next === 'done') {
       // Fire-and-forget: credit earnings + notify customer (replaces Cloud Function)
-      fetch('/api/worker/job-complete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          bookingId:  id,
-          workerId:   (booking as any).workerId   ?? user?.uid,
-          customerId: (booking as any).customerId ?? null,
-          total:      booking.priceBreakdown?.total ?? 0,
-          serviceIds: (booking as any).serviceIds  ?? [],
-        }),
-      }).catch(() => {});
+      user?.getIdToken().then(token =>
+        fetch('/api/worker/job-complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({
+            bookingId:  id,
+            workerId:   (booking as any).workerId   ?? user?.uid,
+            customerId: (booking as any).customerId ?? null,
+            total:      booking.priceBreakdown?.total ?? 0,
+            serviceIds: (booking as any).serviceIds  ?? [],
+          }),
+        })
+      ).catch(() => {});
       router.replace('/worker/dashboard');
     }
   }
@@ -200,7 +202,7 @@ export default function JobDetailPage() {
             return [a?.line1, a?.city, a?.pincode].filter(Boolean).join(', ');
           })() },
           { icon: 'car',          label: 'Vehicle',   value: [booking.vehicle?.make, booking.vehicle?.model, booking.vehicle?.registration].filter(Boolean).join(' · ') },
-          { icon: 'indian-rupee', label: 'Amount',    value: `₹${(booking.priceBreakdown?.total ?? 0).toLocaleString('en-IN')} (pay at service)` },
+          { icon: 'indian-rupee', label: 'Amount',    value: `₹${(booking.priceBreakdown?.total ?? 0).toLocaleString('en-IN')} (${(booking as any).paymentStatus === 'paid' ? 'paid' : 'pay at service'})` },
         ].map(({ icon, label, value }) => (
           <div key={label} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
             <Icon name={icon} size={14} color="var(--pc-fg-4)" style={{ marginTop: 2, flexShrink: 0 }} />

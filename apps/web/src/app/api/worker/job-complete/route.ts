@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
-import { adminFirestore } from '@/lib/firebase/admin';
+import { adminFirestore, adminAuth } from '@/lib/firebase/admin';
 
 // Called by the worker job detail page when status advances to 'done'.
 // Credits worker earnings and writes an in-app notification to the customer.
@@ -10,6 +10,14 @@ export async function POST(req: NextRequest) {
 
     if (!bookingId) {
       return NextResponse.json({ error: 'bookingId is required.' }, { status: 400 });
+    }
+
+    // Verify the caller is the assigned worker
+    const idToken = (req.headers.get('Authorization') ?? '').replace('Bearer ', '').trim();
+    if (!idToken) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+    const decoded = await adminAuth().verifyIdToken(idToken);
+    if (workerId && decoded.uid !== workerId) {
+      return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
     }
 
     const db = adminFirestore();

@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { collection, query, orderBy, limit, onSnapshot, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@pc/firebase';
+import { db, auth } from '@pc/firebase';
 import type { BookingStatus } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
@@ -83,19 +83,21 @@ export default function BookingsPage() {
       await updateDoc(doc(db, 'bookings', bookingId), { workerId: worker.id, workerName: worker.name, status: 'assigned' as BookingStatus, updatedAt: serverTimestamp() });
       setAssigning(null); setDropdownPos(null);
       // Fire-and-forget: notify worker via Vercel API (replaces Cloud Function)
-      fetch('/api/worker/notify-assigned', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          bookingId,
-          workerId:    worker.id,
-          workerName:  worker.name,
-          serviceIds:  booking?.serviceIds ?? [],
-          customerName: (booking as any)?.customerName ?? '',
-          address:     (booking as any)?.address ?? null,
-          scheduledAt: booking?.scheduledAt,
-        }),
-      }).catch(() => {});
+      auth.currentUser?.getIdToken().then(token =>
+        fetch('/api/worker/notify-assigned', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({
+            bookingId,
+            workerId:    worker.id,
+            workerName:  worker.name,
+            serviceIds:  booking?.serviceIds ?? [],
+            customerName: (booking as any)?.customerName ?? '',
+            address:     (booking as any)?.address ?? null,
+            scheduledAt: booking?.scheduledAt,
+          }),
+        })
+      ).catch(() => {});
     } catch (err: any) { console.error('[Bookings] assign failed:', err.message); }
   }
 

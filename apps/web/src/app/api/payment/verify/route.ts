@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
       db.collection('customers').doc(customerId).collection('notifications').add({
         type:      'booking_confirmed',
         title:     'Booking confirmed',
-        body:      `${bookingRef} · ${svc} on ${dateStr}. Pay ₹${total.toLocaleString('en-IN')} at service.`,
+        body:      `${bookingRef} · ${svc} on ${dateStr}. Payment received — ₹${total.toLocaleString('en-IN')} via UPI.`,
         read:      false,
         createdAt: FieldValue.serverTimestamp(),
         bookingId: bookingDoc.id,
@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
         '[Perfect Cleaners] Booking confirmed!',
         `Ref: ${bookingRef}.`,
         `${(booking.serviceId ?? 'service').replace(/-/g, ' ')}.`,
-        `Pay ₹${total.toLocaleString('en-IN')} at service.`,
+        `Paid ₹${total.toLocaleString('en-IN')} via UPI.`,
         'Track your booking in the app.',
       ].join(' ');
       const url = new URL('https://api.msg91.com/api/sendhttp.php');
