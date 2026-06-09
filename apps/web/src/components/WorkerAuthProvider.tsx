@@ -53,24 +53,16 @@ export function WorkerAuthProvider({ children }: { children: ReactNode }) {
   }, [user?.uid]);
 
   // Redirect unauthenticated users to login; redirect authenticated workers away from login.
-  // If an authenticated user manually navigates to /worker/login (e.g. to switch account),
-  // sign them out first so the login form is always reachable.
   useEffect(() => {
     if (loading) return;
     if (!user && pathname !== '/worker/login') {
       router.replace(`/worker/login?from=${encodeURIComponent(pathname)}`);
       return;
     }
-    if (user && pathname === '/worker/login') {
+    if (user && worker && pathname === '/worker/login') {
       const from = searchParams.get('from');
-      if (worker && from) {
-        // Came here via an auth-guard redirect — bounce back to the intended page.
-        router.replace(from);
-      } else if (worker && !from) {
-        // Already authenticated worker navigated here directly — sign out so the
-        // login form is usable (allows switching accounts).
-        fbSignOut(auth);
-      }
+      // Redirect to intended page if coming via auth-guard, otherwise dashboard.
+      router.replace(from ?? '/worker/dashboard');
     }
   }, [user, worker, loading, pathname]);
 
