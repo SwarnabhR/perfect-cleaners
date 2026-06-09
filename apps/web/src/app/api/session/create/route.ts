@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
-import { adminFirestore, adminMessaging } from '@/lib/firebase/admin';
+import { adminFirestore, adminMessaging, adminAuth } from '@/lib/firebase/admin';
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,7 +15,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'societyId, workerId, scheduledDate and totalCars are required.' }, { status: 400 });
     }
 
-    const db  = adminFirestore();
+    // Only admins may create cleaning sessions
+    const idToken = (req.headers.get('Authorization') ?? '').replace('Bearer ', '').trim();
+    if (!idToken) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+    const decoded = await adminAuth().verifyIdToken(idToken);
+    const db      = adminFirestore();
+    const adminSnap = await db.collection('admins').doc(decoded.uid).get();
+    if (!adminSnap.exists) {
+      return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
+    }
     const ref = await db.collection('cleaningSessions').add({
       societyId,
       societyName,

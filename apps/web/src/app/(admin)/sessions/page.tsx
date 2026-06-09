@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   collection, onSnapshot, orderBy, query,
 } from 'firebase/firestore';
-import { db } from '@pc/firebase';
+import { db, auth } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
@@ -124,9 +124,10 @@ export default function SessionsPage() {
     setSaveErr('');
     try {
       const scheduledDate = new Date(`${draft.scheduledDate}T${draft.scheduledTime}:00`).toISOString();
+      const idToken = await auth.currentUser?.getIdToken();
       const res = await fetch('/api/session/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(idToken ? { 'Authorization': `Bearer ${idToken}` } : {}) },
         body: JSON.stringify({
           societyId:    draft.societyId,
           societyName:  draft.societyName,

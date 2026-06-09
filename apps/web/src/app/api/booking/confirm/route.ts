@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
-import { adminFirestore } from '@/lib/firebase/admin';
+import { adminFirestore, adminAuth } from '@/lib/firebase/admin';
 import { notifySocietyWorkers } from '@/lib/notify-society-workers';
 
 // Called fire-and-forget from BookingFlow after a direct (pay-at-service) booking
@@ -10,6 +10,16 @@ export async function POST(req: NextRequest) {
   try {
     const { bookingId, bookingRef, customerId, customerPhone, serviceId, total, scheduledAt } =
       await req.json();
+
+    // Verify the caller is the customer who owns this booking
+    const idToken = (req.headers.get('Authorization') ?? '').replace('Bearer ', '').trim();
+    if (!idToken) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+    const decoded = await adminAuth().verifyIdToken(idToken);
+    const db = adminFirestore();
+    const isAdmin = (await db.collection('admins').doc(decoded.uid).get()).exists;
+    if (!isAdmin && customerId && !customerId.startsWith('phone:') && decoded.uid !== customerId) {
+      return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
+    }
 
     const svc = ((serviceId ?? 'service') as string)
       .replace(/-/g, ' ')
@@ -21,8 +31,6 @@ export async function POST(req: NextRequest) {
           hour: '2-digit', minute: '2-digit',
         })
       : '';
-
-    const db = adminFirestore();
 
     // In-app notification for authenticated customers
     if (customerId && !customerId.startsWith('phone:')) {

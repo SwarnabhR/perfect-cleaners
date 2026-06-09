@@ -75,7 +75,14 @@ service cloud.firestore {
     match /workers/{workerId} {
       allow read:           if isOwner(workerId) || isAdmin();
       allow create, delete: if isAdmin();
-      allow update:         if isOwner(workerId) || isAdmin();
+      // Workers may update only operational/preference fields (isOnline, fcmToken, name, phone).
+      // Financial fields (earnings, totalJobs) are written exclusively by the server-side API
+      // (job-complete route, reset-earnings cron) — never by the client SDK.
+      allow update:         if isAdmin()
+        || (isOwner(workerId)
+            && !request.resource.data.diff(resource.data)
+                  .affectedKeys()
+                  .hasAny(['earnings', 'totalJobs', 'id', 'createdAt']));
 
       match /notifications/{notifId} {
         allow read:   if isOwner(workerId) || isAdmin();

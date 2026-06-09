@@ -155,9 +155,10 @@ export default function WalletPage() {
         modal:       { ondismiss: () => setPaying(false) },
         handler: async (response: any) => {
           // 3. Verify and record the payment
+          const idToken   = await user.getIdToken();
           const verifyRes = await fetch('/api/payment/settle-balance', {
             method:  'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
             body:    JSON.stringify({
               razorpay_order_id:   response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { FieldValue } from 'firebase-admin/firestore';
-import { adminFirestore } from '@/lib/firebase/admin';
+import { adminFirestore, adminAuth } from '@/lib/firebase/admin';
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,6 +15,14 @@ export async function POST(req: NextRequest) {
 
     if (!customerId || !amount || amount <= 0) {
       return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 });
+    }
+
+    // Verify the caller is the customer whose balance is being settled
+    const idToken = (req.headers.get('Authorization') ?? '').replace('Bearer ', '').trim();
+    if (!idToken) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+    const decoded = await adminAuth().verifyIdToken(idToken);
+    if (decoded.uid !== customerId) {
+      return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
     }
 
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
