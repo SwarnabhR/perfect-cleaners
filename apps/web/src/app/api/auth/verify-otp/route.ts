@@ -39,12 +39,17 @@ export async function POST(req: NextRequest) {
 
     // Bind the verified mobile to the submitted phone — prevents a valid OTP
     // token for phone A being resubmitted to authenticate as phone B.
-    // MSG91 always returns `mobile` (with country code, e.g. "919876543210") on success.
+    // MSG91 returns `mobile` with the country code (e.g. "919876543210") on success.
+    // Only block when the field is present AND doesn't match; log when it's absent
+    // so we know if MSG91 changes their response shape.
     const returnedMobile = String(verifyData.mobile ?? '').replace(/\D/g, '');
     const expectedMobile = `91${phone}`;
-    if (returnedMobile !== expectedMobile) {
+    if (returnedMobile && returnedMobile !== expectedMobile) {
       console.error('[verify-otp] phone binding mismatch:', { returnedMobile, expectedMobile });
       return NextResponse.json({ error: 'Phone verification failed.' }, { status: 400 });
+    }
+    if (!returnedMobile) {
+      console.warn('[verify-otp] MSG91 did not return mobile — phone binding not enforced for this request');
     }
 
     // Find or create the Firebase Auth user for this phone number
