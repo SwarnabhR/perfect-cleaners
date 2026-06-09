@@ -3,6 +3,11 @@
  *
  * Run from repo root:
  *   node scripts/seed.mjs
+ *
+ * Auth model (web app — all three use email + password):
+ *   Admin    → email + password  (web admin dashboard)
+ *   Worker   → email + password  (web worker job page)
+ *   Customer → email + password  (web customer flows)
  */
 import { readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
@@ -87,14 +92,12 @@ async function deleteAuthIfExists(identifier, byPhone = false) {
   } catch { /* not found */ }
 }
 
-async function createUser({ email, phone, password, name }) {
+// Admin: email + password auth
+async function createAdminUser({ email, phone, password, name }) {
   await deleteAuthIfExists(email, false);
   await deleteAuthIfExists(phone, true);
-  const u = await auth.createUser({
-    email, phoneNumber: phone, password,
-    displayName: name, emailVerified: true,
-  });
-  console.log(`  Created: ${name}  uid=${u.uid}`);
+  const u = await auth.createUser({ email, phoneNumber: phone, password, displayName: name, emailVerified: true });
+  console.log(`  Created (email+password): ${name}  uid=${u.uid}`);
   return u.uid;
 }
 
@@ -107,7 +110,7 @@ await clearCollection('customers');
 // ── Step 2 — create users ──────────────────────────────────────────────────
 console.log('\n── 2. Creating auth users + Firestore docs ──────────────────');
 
-const adminUid = await createUser(ADMIN_USER);
+const adminUid = await createAdminUser(ADMIN_USER);
 await db.collection('admins').doc(adminUid).set({
   name:      ADMIN_USER.name,
   email:     ADMIN_USER.email,
@@ -117,7 +120,7 @@ await db.collection('admins').doc(adminUid).set({
 });
 console.log(`     admins/${adminUid}`);
 
-const workerUid = await createUser(WORKER_USER);
+const workerUid = await createAdminUser(WORKER_USER);
 await db.collection('workers').doc(workerUid).set({
   id:        workerUid,
   name:      WORKER_USER.name,
@@ -130,7 +133,7 @@ await db.collection('workers').doc(workerUid).set({
 });
 console.log(`     workers/${workerUid}`);
 
-const customerUid = await createUser(CUSTOMER_USER);
+const customerUid = await createAdminUser(CUSTOMER_USER);
 await db.collection('customers').doc(customerUid).set({
   id:        customerUid,
   name:      CUSTOMER_USER.name,
@@ -142,7 +145,7 @@ await db.collection('customers').doc(customerUid).set({
 console.log(`     customers/${customerUid}`);
 
 // ── Step 3 — seed a test booking ───────────────────────────────────────────
-const bookingRef = db.collection('bookings').doc();
+const bookingRef  = db.collection('bookings').doc();
 const scheduledAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 await bookingRef.set({
   id:             bookingRef.id,
@@ -167,35 +170,33 @@ console.log(`     bookings/${bookingRef.id}  (status: assigned, total: ₹590)`)
 
 // ── Summary ────────────────────────────────────────────────────────────────
 console.log('\n── 3. UIDs ──────────────────────────────────────────────────');
-console.log(`  Admin    UID : ${adminUid}`);
-console.log(`  Worker   UID : ${workerUid}`);
-console.log(`  Customer UID : ${customerUid}`);
+console.log(`  Admin    UID : ${adminUid}   phone: ${ADMIN_USER.phone}`);
+console.log(`  Worker   UID : ${workerUid}   phone: ${WORKER_USER.phone}`);
+console.log(`  Customer UID : ${customerUid}   phone: ${CUSTOMER_USER.phone}`);
 console.log(`  Booking  ID  : ${bookingRef.id}`);
 
-// ── Token fetch commands ───────────────────────────────────────────────────
 const signInUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${API_KEY}`;
 console.log(`
 ── 4. Get ID tokens ─────────────────────────────────────────
-Run any of these to get a Bearer token (copy the idToken field):
 
-  # Admin token  (password: Admin@123)
-  curl -s -X POST "${signInUrl}" \\
-    -H "Content-Type: application/json" \\
-    -d '{"email":"${ADMIN_USER.email}","password":"${ADMIN_USER.password}","returnSecureToken":true}'
+  Admin (email+password):
+    curl -s -X POST "${signInUrl}" \\
+      -H "Content-Type: application/json" \\
+      -d '{"email":"${ADMIN_USER.email}","password":"${ADMIN_USER.password}","returnSecureToken":true}'
 
-  # Worker token  (password: Worker@123)
-  curl -s -X POST "${signInUrl}" \\
-    -H "Content-Type: application/json" \\
-    -d '{"email":"${WORKER_USER.email}","password":"${WORKER_USER.password}","returnSecureToken":true}'
+  Worker (email+password):
+    curl -s -X POST "${signInUrl}" \\
+      -H "Content-Type: application/json" \\
+      -d '{"email":"${WORKER_USER.email}","password":"${WORKER_USER.password}","returnSecureToken":true}'
 
-  # Customer token  (password: Customer@123)
-  curl -s -X POST "${signInUrl}" \\
-    -H "Content-Type: application/json" \\
-    -d '{"email":"${CUSTOMER_USER.email}","password":"${CUSTOMER_USER.password}","returnSecureToken":true}'
+  Customer (email+password):
+    curl -s -X POST "${signInUrl}" \\
+      -H "Content-Type: application/json" \\
+      -d '{"email":"${CUSTOMER_USER.email}","password":"${CUSTOMER_USER.password}","returnSecureToken":true}'
 
 ── 5. Test API endpoints (with dev server running on :3000) ──
 
-  # notify-assigned  — must use ADMIN token
+  # notify-assigned  — ADMIN token required
   curl -s -X POST http://localhost:3000/api/worker/notify-assigned \\
     -H "Content-Type: application/json" \\
     -H "Authorization: Bearer ADMIN_TOKEN" \\
@@ -208,7 +209,7 @@ Run any of these to get a Bearer token (copy the idToken field):
       "scheduledAt":"${scheduledAt.toISOString()}"
     }'
 
-  # job-complete  — must use WORKER token (workerId comes from the token, not the body)
+  # job-complete  — WORKER token required
   curl -s -X POST http://localhost:3000/api/worker/job-complete \\
     -H "Content-Type: application/json" \\
     -H "Authorization: Bearer WORKER_TOKEN" \\
@@ -225,4 +226,5 @@ Run any of these to get a Bearer token (copy the idToken field):
   Password : ${ADMIN_USER.password}
 `);
 
+await admin.app().delete();
 process.exit(0);
