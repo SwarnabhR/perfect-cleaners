@@ -4,10 +4,14 @@
  * Run from repo root:
  *   node scripts/seed.mjs
  *
- * Auth model (web app — all three use email + password):
- *   Admin    → email + password  (web admin dashboard)
- *   Worker   → email + password  (web worker job page)
- *   Customer → email + password  (web customer flows)
+ * Auth model:
+ *   Admin    → email + password  (web admin dashboard only)
+ *   Worker   → phone OTP only
+ *   Customer → phone OTP only
+ *
+ * To get a token for worker/customer testing (no OTP needed):
+ *   node scripts/get-token.mjs worker
+ *   node scripts/get-token.mjs customer
  */
 import { readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
@@ -60,16 +64,12 @@ const ADMIN_USER = {
   name:     'Swarnabh R',
 };
 const WORKER_USER = {
-  email:    'worker.ravi@perfectcleaners.in',
-  phone:    '+919888800001',
-  password: 'Worker@123',
-  name:     'Ravi Kumar',
+  phone: '+919888800001',
+  name:  'Ravi Kumar',
 };
 const CUSTOMER_USER = {
-  email:    'customer.rahul@perfectcleaners.in',
-  phone:    '+919888800002',
-  password: 'Customer@123',
-  name:     'Rahul Sharma',
+  phone: '+919888800002',
+  name:  'Rahul Sharma',
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -101,6 +101,14 @@ async function createAdminUser({ email, phone, password, name }) {
   return u.uid;
 }
 
+// Worker / Customer: phone-only auth
+async function createPhoneUser({ phone, name }) {
+  await deleteAuthIfExists(phone, true);
+  const u = await auth.createUser({ phoneNumber: phone, displayName: name });
+  console.log(`  Created (phone-only): ${name}  uid=${u.uid}`);
+  return u.uid;
+}
+
 // ── Step 1 — clear Firestore ───────────────────────────────────────────────
 console.log('\n── 1. Clearing Firestore collections ────────────────────────');
 await clearCollection('admins');
@@ -120,7 +128,7 @@ await db.collection('admins').doc(adminUid).set({
 });
 console.log(`     admins/${adminUid}`);
 
-const workerUid = await createAdminUser(WORKER_USER);
+const workerUid = await createPhoneUser(WORKER_USER);
 await db.collection('workers').doc(workerUid).set({
   id:        workerUid,
   name:      WORKER_USER.name,
@@ -133,12 +141,11 @@ await db.collection('workers').doc(workerUid).set({
 });
 console.log(`     workers/${workerUid}`);
 
-const customerUid = await createAdminUser(CUSTOMER_USER);
+const customerUid = await createPhoneUser(CUSTOMER_USER);
 await db.collection('customers').doc(customerUid).set({
   id:        customerUid,
   name:      CUSTOMER_USER.name,
   phone:     CUSTOMER_USER.phone,
-  email:     CUSTOMER_USER.email,
   vehicles:  [],
   createdAt: FieldValue.serverTimestamp(),
 });
@@ -184,15 +191,11 @@ console.log(`
       -H "Content-Type: application/json" \\
       -d '{"email":"${ADMIN_USER.email}","password":"${ADMIN_USER.password}","returnSecureToken":true}'
 
-  Worker (email+password):
-    curl -s -X POST "${signInUrl}" \\
-      -H "Content-Type: application/json" \\
-      -d '{"email":"${WORKER_USER.email}","password":"${WORKER_USER.password}","returnSecureToken":true}'
+  Worker token (phone-only — use custom token helper):
+    node scripts/get-token.mjs worker
 
-  Customer (email+password):
-    curl -s -X POST "${signInUrl}" \\
-      -H "Content-Type: application/json" \\
-      -d '{"email":"${CUSTOMER_USER.email}","password":"${CUSTOMER_USER.password}","returnSecureToken":true}'
+  Customer token (phone-only — use custom token helper):
+    node scripts/get-token.mjs customer
 
 ── 5. Test API endpoints (with dev server running on :3000) ──
 
