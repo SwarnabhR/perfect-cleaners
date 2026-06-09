@@ -187,7 +187,10 @@ export default function WalletPage() {
   );
   if (!user) return null;
 
-  const isPaid = (outstanding ?? 0) <= 0;
+  // True only once both loaders have resolved with real data
+  const dataReady   = outstanding !== null && !txLoading;
+  const neverBilled = dataReady && outstanding === 0 && entries.length === 0;
+  const isPaid      = !neverBilled && (outstanding ?? 0) <= 0;
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--pc-ink)', display: 'flex', flexDirection: 'column' }}>
@@ -246,6 +249,27 @@ export default function WalletPage() {
           ))}
         </div>
 
+        {/* No billing history yet — customer has never been charged */}
+        {neverBilled ? (
+          <div style={{
+            background:   'var(--pc-card)',
+            border:       '1px solid var(--pc-line)',
+            borderRadius: 'var(--pc-radius-lg)',
+            padding:      48,
+            textAlign:    'center',
+          }}>
+            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--pc-fg-4)', margin: '0 0 12px' }}>
+              [NO BILLING YET]
+            </p>
+            <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 22, fontWeight: 400, color: 'var(--pc-fg)', margin: '0 0 8px', letterSpacing: '-0.01em' }}>
+              Nothing to show here.
+            </p>
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: 0, lineHeight: 1.6 }}>
+              Bills appear here after your first society wash. Your car gets cleaned — you pay at your own pace.
+            </p>
+          </div>
+        ) : (
+          <>
         {/* Outstanding balance card */}
         <div style={{
           background:   isPaid ? 'var(--pc-sage)' : 'var(--pc-card)',
@@ -457,6 +481,8 @@ export default function WalletPage() {
             </div>
           )}
         </div>
+          </>
+        )}
       </main>
 
       <Footer />

@@ -385,7 +385,7 @@ export default function BookingFlow() {
 
   const [errors,       setErrors]       = useState<FieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [result,       setResult]       = useState<{ bookingRef: string; paymentVia: 'razorpay' | 'wallet' } | null>(null);
+  const [result,       setResult]       = useState<{ bookingRef: string; paymentVia: 'razorpay' | 'wallet' | 'pay_at_service'; total?: number } | null>(null);
   const [submitError,  setSubmitError]  = useState('');
 
   const [promoInput,    setPromoInput]    = useState('');
@@ -535,7 +535,22 @@ export default function BookingFlow() {
         body: JSON.stringify({ amount: payableAmount, receipt: `bk_${Date.now()}` }),
       });
       const { orderId, keyId, error: orderErr } = await orderRes.json();
-      if (orderErr || !orderId) throw new Error(orderErr ?? 'Could not create payment order.');
+
+      // Razorpay unavailable — fall back to pay-at-service
+      if (orderErr || !orderId) {
+        const { getIdToken } = await import('firebase/auth');
+        const idToken  = await getIdToken(user);
+        const fallback = await fetch('/api/booking/pay-at-service', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+          body:    JSON.stringify({ booking: bookingPayload }),
+        });
+        const fallbackJson = await fallback.json();
+        if (!fallback.ok) throw new Error(fallbackJson.error ?? 'Could not confirm booking.');
+        setResult({ bookingRef: fallbackJson.bookingRef, paymentVia: 'pay_at_service', total: fallbackJson.total });
+        setIsSubmitting(false);
+        return;
+      }
 
       const RzpCheckout = await loadRazorpay();
       const rzp = new RzpCheckout({
@@ -628,7 +643,9 @@ export default function BookingFlow() {
             ['Service',   service.name],
             ['Date',      `${selDate.dayName} ${selDate.dayNum} ${selDate.monthName} · ${selTime}`],
             ['Location',  [flatNo && `Flat ${flatNo}`, tower, societyName].filter(Boolean).join(', ')],
-            ['Amount due',`₹${finalTotal.toLocaleString('en-IN')}`],
+            ['Amount',    result.paymentVia === 'pay_at_service'
+              ? `₹${(result.total ?? finalTotal).toLocaleString('en-IN')} — pay at service`
+              : `₹${finalTotal.toLocaleString('en-IN')} — paid`],
           ].map(([k, v]) => (
             <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
               <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, color: 'var(--pc-fg-4)', letterSpacing: '0.08em', textTransform: 'uppercase', flexShrink: 0 }}>{k}</span>
@@ -640,7 +657,9 @@ export default function BookingFlow() {
         <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)', lineHeight: 1.6, margin: 0 }}>
           {result.paymentVia === 'razorpay'
             ? 'Payment received via UPI. Our detailer will arrive at the scheduled time.'
-            : 'Payment deducted from your PC Wallet. Our detailer will arrive at the scheduled time.'}
+            : result.paymentVia === 'wallet'
+            ? 'Payment deducted from your PC Wallet. Our detailer will arrive at the scheduled time.'
+            : 'Your booking is confirmed. Please keep the amount ready to pay our detailer at the time of service.'}
         </p>
 
         {/* CTAs */}
