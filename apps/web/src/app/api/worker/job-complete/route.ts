@@ -6,19 +6,17 @@ import { adminFirestore, adminAuth } from '@/lib/firebase/admin';
 // Credits worker earnings and writes an in-app notification to the customer.
 export async function POST(req: NextRequest) {
   try {
-    const { bookingId, workerId, customerId, total, serviceIds } = await req.json();
+    const { bookingId, customerId, total, serviceIds } = await req.json();
 
     if (!bookingId) {
       return NextResponse.json({ error: 'bookingId is required.' }, { status: 400 });
     }
 
-    // Verify the caller is the assigned worker
+    // Verify the caller — workerId is always the authenticated user's UID
     const idToken = (req.headers.get('Authorization') ?? '').replace('Bearer ', '').trim();
     if (!idToken) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     const decoded = await adminAuth().verifyIdToken(idToken);
-    if (workerId && decoded.uid !== workerId) {
-      return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
-    }
+    const workerId = decoded.uid;
 
     const db = adminFirestore();
 
@@ -30,8 +28,7 @@ export async function POST(req: NextRequest) {
     const writes: Promise<unknown>[] = [];
 
     // Credit worker earnings
-    if (workerId) {
-      writes.push(
+    writes.push(
         db.doc(`workers/${workerId}`).update({
           totalJobs:        FieldValue.increment(1),
           'earnings.today': FieldValue.increment(earned),
@@ -40,7 +37,6 @@ export async function POST(req: NextRequest) {
           updatedAt:        FieldValue.serverTimestamp(),
         }),
       );
-    }
 
     // In-app notification to customer
     if (customerId && !customerId.startsWith('phone:')) {
