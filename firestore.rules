@@ -73,7 +73,11 @@ service cloud.firestore {
     // (Worker name / rating shown to customers comes from denormalized fields
     //  on the booking doc — customers never query this collection directly.)
     match /workers/{workerId} {
-      allow read:           if isOwner(workerId) || isAdmin();
+      // isOwner: doc ID == UID (workers created via the API)
+      // phone match: fallback for docs whose ID is not the UID (manually created)
+      allow read:           if isOwner(workerId)
+        || isAdmin()
+        || (isSignedIn() && resource.data.phone == request.auth.token.phone_number);
       allow create, delete: if isAdmin();
       // Workers may update only operational/preference fields (isOnline, fcmToken, name, phone).
       // Financial fields (earnings, totalJobs) are written exclusively by the server-side API

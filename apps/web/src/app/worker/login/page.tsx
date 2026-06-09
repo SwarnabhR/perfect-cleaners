@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signInWithCustomToken } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, limit, getDocs } from 'firebase/firestore';
 import { auth, db } from '@pc/firebase';
 import { useMsg91 } from '@/lib/auth/useMsg91';
 import OtpInput from '@/components/ui/OtpInput';
@@ -60,11 +60,17 @@ function WorkerLoginContent() {
           });
           const json = await res.json();
           if (!res.ok) throw new Error(json.error);
-          const cred = await signInWithCustomToken(auth, json.token);
+          await signInWithCustomToken(auth, json.token);
 
-          // Check this phone is a registered worker
-          const snap = await getDoc(doc(db, 'workers', cred.user.uid));
-          if (!snap.exists()) {
+          // Check this phone is a registered worker — query by phone so it works
+          // regardless of whether the doc ID matches the Firebase Auth UID.
+          const wq = query(
+            collection(db, 'workers'),
+            where('phone', '==', `+91${phone}`),
+            limit(1),
+          );
+          const wSnap = await getDocs(wq);
+          if (wSnap.empty) {
             await auth.signOut();
             setError('This number is not registered as a worker. Contact your manager.');
             setBusy(false);

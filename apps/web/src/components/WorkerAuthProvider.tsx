@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { onAuthStateChanged, signOut as fbSignOut, type User } from 'firebase/auth';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, limit, onSnapshot } from 'firebase/firestore';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { auth, db } from '@pc/firebase';
 import type { Worker } from '@pc/firebase';
@@ -34,14 +34,22 @@ export function WorkerAuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  // Live-sync workers/{uid} — determines if this user is a worker
+  // Live-sync worker doc by phone number — works regardless of document ID.
+  // Workers created via the API use Firebase Auth UID as doc ID, but manually
+  // created docs may use a different ID. Phone is the canonical identity.
   useEffect(() => {
-    if (!user) return;
+    if (!user?.phoneNumber) { setWorker(null); setLoading(false); return; }
+    const q = query(
+      collection(db, 'workers'),
+      where('phone', '==', user.phoneNumber),
+      limit(1),
+    );
     const unsub = onSnapshot(
-      doc(db, 'workers', user.uid),
+      q,
       snap => {
-        if (snap.exists()) {
-          setWorker({ ...(snap.data() as Worker), id: snap.id });
+        if (!snap.empty) {
+          const d = snap.docs[0];
+          setWorker({ ...(d.data() as Worker), id: d.id });
         } else {
           setWorker(null);
         }
