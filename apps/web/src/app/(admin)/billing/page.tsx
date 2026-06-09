@@ -69,7 +69,7 @@ export default function BillingPage() {
   const [totalIncome,   setTotalIncome]   = useState(0);
   const [todayIncome,   setTodayIncome]   = useState(0);
   const [marking,       setMarking]       = useState<string | null>(null);
-  const [filter,        setFilter]        = useState<'all' | 'pending' | 'cleared'>('all');
+  const [filter,        setFilter]        = useState<'all' | 'pending'>('all');
 
   // Live payment logs — most recent 200
   useEffect(() => {
@@ -97,10 +97,15 @@ export default function BillingPage() {
     });
   }, []);
 
-  // Live customers with outstanding balance
+  // Live customers with outstanding balance — only fetch customers who actually owe money
   useEffect(() => {
     return onSnapshot(
-      query(collection(db, 'customers'), orderBy('createdAt', 'desc'), limit(300)),
+      query(
+        collection(db, 'customers'),
+        where('outstandingBalance', '>', 0),
+        orderBy('outstandingBalance', 'desc'),
+        limit(300),
+      ),
       snap => {
         setCustomers(snap.docs.map(d => {
           const data = d.data();
@@ -152,16 +157,13 @@ export default function BillingPage() {
 
   const pendingTotal = customers.reduce((s, c) => s + (c.outstandingBalance ?? 0), 0);
 
-  const displayed = customers.filter(c => {
-    if (filter === 'pending') return (c.outstandingBalance ?? 0) > 0;
-    if (filter === 'cleared') return (c.outstandingBalance ?? 0) <= 0;
-    return true;
-  });
+  const displayed = filter === 'pending'
+    ? customers.filter(c => (c.outstandingBalance ?? 0) > 0)
+    : customers;
 
   const FILTER_OPTS: { key: typeof filter; label: string }[] = [
-    { key: 'all',     label: 'All' },
+    { key: 'all',     label: 'All pending' },
     { key: 'pending', label: 'Pending dues' },
-    { key: 'cleared', label: 'Cleared' },
   ];
 
   return (
@@ -221,7 +223,7 @@ export default function BillingPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--pc-line)' }}>
-                  {['Status', 'Customer', 'Society / Unit', 'Outstanding', 'Action'].map(h => (
+                  {['Customer', 'Society / Unit', 'Outstanding', 'Action'].map(h => (
                     <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -229,28 +231,14 @@ export default function BillingPage() {
               <tbody>
                 {displayed.length === 0 ? (
                   <tr>
-                    <td colSpan={5} style={{ padding: '48px 16px', textAlign: 'center', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)' }}>
-                      No customers found.
+                    <td colSpan={4} style={{ padding: '48px 16px', textAlign: 'center', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)' }}>
+                      No outstanding dues.
                     </td>
                   </tr>
                 ) : displayed.map(c => {
-                  const cleared = (c.outstandingBalance ?? 0) <= 0;
                   const isMarking = marking === c.id;
                   return (
                     <tr key={c.id} style={{ borderBottom: '1px solid var(--pc-line)' }}>
-
-                      {/* Status dot */}
-                      <td style={{ padding: '12px 16px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <div style={{
-                            width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                            background: cleared ? 'var(--pc-success)' : 'var(--pc-warning)',
-                          }} />
-                          <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: cleared ? 'var(--pc-success)' : 'var(--pc-warning)' }}>
-                            {cleared ? 'Cleared' : 'Pending'}
-                          </span>
-                        </div>
-                      </td>
 
                       {/* Name + phone */}
                       <td style={{ padding: '12px 16px' }}>
@@ -270,16 +258,15 @@ export default function BillingPage() {
                       <td style={{ padding: '12px 16px' }}>
                         <span style={{
                           fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 600,
-                          color: cleared ? 'var(--pc-fg-3)' : 'var(--pc-warning)',
+                          color: 'var(--pc-warning)',
                         }}>
-                          {cleared ? '—' : fmt(c.outstandingBalance)}
+                          {fmt(c.outstandingBalance)}
                         </span>
                       </td>
 
                       {/* Action */}
                       <td style={{ padding: '8px 16px' }}>
-                        {!cleared && (
-                          <button
+                        <button
                             type="button"
                             disabled={isMarking}
                             onClick={() => markPaid(c)}
@@ -295,7 +282,6 @@ export default function BillingPage() {
                           >
                             {isMarking ? 'Saving…' : 'Mark Paid'}
                           </button>
-                        )}
                       </td>
                     </tr>
                   );
