@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { signInWithCustomToken } from 'firebase/auth';
+import { signInWithCustomToken, setPersistence, browserSessionPersistence } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import LogoMark from '@/components/ui/LogoMark';
 import { auth, db } from '@pc/firebase';
@@ -101,6 +101,7 @@ function SignInContent() {
           });
           const json = await res.json();
           if (!res.ok) throw new Error(json.error);
+          await setPersistence(auth, browserSessionPersistence);
           const cred = await signInWithCustomToken(auth, json.token);
 
           // Check if customer doc already exists with name + email

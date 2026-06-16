@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, signOut as fbSignOut, type User } from 'firebase/auth';
+import { onAuthStateChanged, signOut as fbSignOut, setPersistence, browserSessionPersistence, type User } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '@pc/firebase';
 
@@ -25,11 +25,19 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
   const [profileName, setProfileName] = useState('');
 
   useEffect(() => {
-    return onAuthStateChanged(auth, u => {
-      setUser(u);
-      setLoading(false);
-      if (!u) setProfileName('');
-    });
+    let unsub: (() => void) | undefined;
+
+    setPersistence(auth, browserSessionPersistence)
+      .catch(err => console.error('[Auth] setPersistence failed:', err))
+      .finally(() => {
+        unsub = onAuthStateChanged(auth, u => {
+          setUser(u);
+          setLoading(false);
+          if (!u) setProfileName('');
+        });
+      });
+
+    return () => unsub?.();
   }, []);
 
   // Live-sync the customer's display name from Firestore
