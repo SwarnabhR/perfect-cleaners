@@ -80,9 +80,24 @@ export default function BookingsPage() {
   async function assignWorker(bookingId: string, worker: LiveWorker) {
     try {
       const booking = bookings.find(b => b.id === bookingId);
-      await updateDoc(doc(db, 'bookings', bookingId), { workerId: worker.id, workerName: worker.name, status: 'assigned' as BookingStatus, updatedAt: serverTimestamp() });
+
+      // Update booking with worker assignment
+      await updateDoc(doc(db, 'bookings', bookingId), {
+        workerId: worker.id,
+        workerName: worker.name,
+        status: 'assigned' as BookingStatus,
+        updatedAt: serverTimestamp()
+      });
+
+      // Set worker's activeBookingId
+      await updateDoc(doc(db, 'workers', worker.id), {
+        activeBookingId: bookingId,
+        updatedAt: serverTimestamp(),
+      });
+
       setAssigning(null); setDropdownPos(null);
-      // Fire-and-forget: notify worker via Vercel API (replaces Cloud Function)
+
+      // Fire-and-forget: notify worker via Vercel API
       auth.currentUser?.getIdToken().then(token =>
         fetch('/api/worker/notify-assigned', {
           method: 'POST',

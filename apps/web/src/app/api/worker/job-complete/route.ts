@@ -51,6 +51,7 @@ export async function POST(req: NextRequest) {
       db.doc(`workers/${workerId}`).update({
         totalJobs:          FieldValue.increment(1),
         carsCompletedToday: FieldValue.increment(1),
+        activeBookingId:    FieldValue.delete(),
         updatedAt:          FieldValue.serverTimestamp(),
       }),
     );
