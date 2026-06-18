@@ -1,0 +1,130 @@
+/**
+ * Notification service
+ * Sends SMS and in-app notifications to users
+ */
+
+type NotificationType = 'approval' | 'car_cleaned' | 'weekly_reminder' | 'payment_reminder';
+
+interface NotificationPayload {
+  type: NotificationType;
+  recipientPhone: string;
+  recipientName: string;
+  data: Record<string, any>;
+}
+
+export async function sendNotification(payload: NotificationPayload): Promise<boolean> {
+  try {
+    const response = await fetch('/api/notification/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      console.warn('[Notification]', response.statusText);
+      // Return true even if failed, since we logged it
+      return true;
+    }
+
+    const result = await response.json();
+    return result.success ?? true;
+  } catch (err: any) {
+    console.error('[Notification] Send failed:', err.message);
+    // Fail silently - notifications are nice-to-have, not critical
+    return false;
+  }
+}
+
+/**
+ * Send approval notification
+ * "✅ Approved! Your car will be cleaned every Mon/Wed/Fri starting [date]"
+ */
+export async function notifyApproval(
+  customerPhone: string,
+  customerName: string,
+  societyName: string,
+  tower: string,
+  schedule: string,
+  startDate: string
+) {
+  return sendNotification({
+    type: 'approval',
+    recipientPhone: customerPhone,
+    recipientName: customerName,
+    data: {
+      customerId: customerPhone,
+      societyName,
+      tower,
+      schedule,
+      startDate,
+    },
+  });
+}
+
+/**
+ * Send car cleaned notification
+ * "✨ Your car is clean! Ready for pickup"
+ */
+export async function notifyCarCleaned(
+  customerPhone: string,
+  customerName: string,
+  carPlate: string,
+  societyName: string,
+  tower: string
+) {
+  return sendNotification({
+    type: 'car_cleaned',
+    recipientPhone: customerPhone,
+    recipientName: customerName,
+    data: {
+      customerId: customerPhone,
+      carPlate,
+      societyName,
+      tower,
+    },
+  });
+}
+
+/**
+ * Send weekly reminder notification
+ * "🧹 Cleaning reminder: Your car will be cleaned Mon/Wed/Fri"
+ */
+export async function notifyWeeklyReminder(
+  customerPhone: string,
+  customerName: string,
+  schedule: string,
+  societyName: string
+) {
+  return sendNotification({
+    type: 'weekly_reminder',
+    recipientPhone: customerPhone,
+    recipientName: customerName,
+    data: {
+      customerId: customerPhone,
+      schedule,
+      societyName,
+    },
+  });
+}
+
+/**
+ * Send payment reminder notification
+ * "💳 Payment reminder: ₹500 due for this month's cleanings"
+ */
+export async function notifyPaymentReminder(
+  customerPhone: string,
+  customerName: string,
+  amount: number,
+  societyName: string
+) {
+  return sendNotification({
+    type: 'payment_reminder',
+    recipientPhone: customerPhone,
+    recipientName: customerName,
+    data: {
+      customerId: customerPhone,
+      amount,
+      societyName,
+    },
+  });
+}

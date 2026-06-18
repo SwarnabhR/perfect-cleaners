@@ -6,6 +6,7 @@ import type { PendingApproval, CustomerSocietyRecord } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
+import { notifyApproval } from '@/lib/notification';
 
 type LiveApproval = PendingApproval & { id: string };
 
@@ -119,8 +120,19 @@ export default function PendingApprovalsPage() {
         { merge: true }
       );
 
-      // 3. TODO: Send SMS notification to customer
-      // "✅ Approved! Your car will be cleaned every Mon/Wed/Fri starting [date]"
+      // 3. Send SMS notification to customer
+      const nextWeekDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN', {
+        month: 'short',
+        day: 'numeric',
+      });
+      await notifyApproval(
+        approval.customerPhone,
+        approval.customerName,
+        approval.societyName,
+        approval.tower,
+        'Mon, Wed, Fri · 9:00 AM', // TODO: Fetch from societyBillingConfig
+        nextWeekDate
+      );
 
       closeApprovalForm();
     } catch (err: any) {
