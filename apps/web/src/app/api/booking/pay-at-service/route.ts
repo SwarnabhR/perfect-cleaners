@@ -67,6 +67,11 @@ export async function POST(req: NextRequest) {
       updatedAt:       new Date(),
     });
 
+    // Increment customer's outstanding balance for this pending booking
+    db.collection('customers').doc(booking.customerId).update({
+      outstandingBalance: FieldValue.increment(total),
+    }).catch(err => console.error('[pay-at-service] balance update failed:', err));
+
     // Increment promo usedCount if applied
     if (booking.promoId) {
       db.collection('promotions').doc(booking.promoId).update({

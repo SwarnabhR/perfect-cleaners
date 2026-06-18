@@ -9,7 +9,7 @@ import Icon from '@/components/ui/Icon';
 // Username → Firebase email/password mapping.
 // Add more entries here as you create additional admin accounts.
 const ADMIN_CREDENTIALS: Record<string, { email: string; password: string }> = {
-  admin: { email: 'admin@perfectcleaners.in', password: 'admin1' },
+  admin: { email: 'admin@perfectcleaners.in', password: '123456' },
 };
 
 function AdminLoginForm() {
@@ -32,7 +32,7 @@ function AdminLoginForm() {
 
       // If a known username was matched, ignore whatever the user typed as
       // password and use the stored one — the UX password is just a gate.
-      if (creds && password !== 'admin') {
+      if (creds && password !== '123456') {
         setError('Invalid username or password.');
         setLoading(false);
         return;
