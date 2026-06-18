@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getFirestore, doc, setDoc, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
+import { sendSMSViaTwilio, normalizePhoneNumber } from '@/lib/twilio';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -30,24 +31,27 @@ interface SMSResponse {
   error?: string;
 }
 
-// Placeholder SMS implementation
-// Replace with actual Twilio, AWS SNS, or Firebase Extensions when ready
 async function sendSMS(phone: string, message: string): Promise<SMSResponse> {
   try {
-    console.log(`[SMS] To: ${phone}, Message: ${message}`);
+    // Normalize phone to E.164 format (+91XXXXXXXXXX)
+    const normalizedPhone = normalizePhoneNumber(phone);
 
-    // TODO: Replace with actual SMS provider
-    // const response = await twilio.messages.create({
-    //   body: message,
-    //   from: process.env.TWILIO_PHONE,
-    //   to: phone,
-    // });
+    // Send via Twilio
+    const result = await sendSMSViaTwilio(normalizedPhone, message);
 
-    // For now, just log and return success
-    // In production, integrate Twilio, AWS SNS, or Firebase Extensions
-    return { success: true, messageId: `mock_${Date.now()}` };
+    if (result.success) {
+      return {
+        success: true,
+        messageId: result.messageId,
+      };
+    } else {
+      return {
+        success: false,
+        error: result.error,
+      };
+    }
   } catch (err: any) {
-    console.error('[SMS] Failed:', err.message);
+    console.error('[Notification] SMS send failed:', err.message);
     return { success: false, error: err.message };
   }
 }
