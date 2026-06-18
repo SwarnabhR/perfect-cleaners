@@ -86,18 +86,26 @@ function SidebarFooter() {
 }
 
 const NAV = [
-  { label: 'Dashboard',  href: '/dashboard',     icon: 'layout-dashboard' },
-  { label: 'Societies',  href: '/societies-mgmt', icon: 'building-2'      },
-  { label: 'Bookings',   href: '/bookings',       icon: 'calendar'         },
-  { label: 'Sessions',   href: '/sessions',       icon: 'car'              },
-  { label: 'Customers',  href: '/customers',      icon: 'users'            },
-  { label: 'Workers',    href: '/workers',         icon: 'hard-hat'        },
-  { label: 'Billing',    href: '/billing',         icon: 'indian-rupee'    },
-  { label: 'Activity',   href: '/cleaning-logs',  icon: 'list-checks'      },
-  { label: 'Services',   href: '/services-mgmt',  icon: 'sparkles'         },
-  { label: 'Promotions', href: '/promotions',     icon: 'tag'              },
-  { label: 'Analytics',  href: '/analytics',      icon: 'bar-chart-2'      },
-  { label: 'Settings',   href: '/settings',       icon: 'settings'         },
+  { label: 'Dashboard',   href: '/dashboard',       icon: 'layout-dashboard' },
+  // Society Cleaning Program
+  { label: 'Societies',   href: '/societies-mgmt',  icon: 'building-2'      },
+  { label: 'Tower Billing', href: '/tower-billing', icon: 'credit-card'    },
+  { label: 'Approvals',   href: '/pending-approvals', icon: 'check-circle' },
+  { label: 'Schedule',    href: '/cleaning-schedule', icon: 'calendar'     },
+  // Individual Bookings (Legacy)
+  { label: 'Bookings',    href: '/bookings',       icon: 'calendar'         },
+  { label: 'Sessions',    href: '/sessions',       icon: 'car'              },
+  // People & Services
+  { label: 'Customers',   href: '/customers',      icon: 'users'            },
+  { label: 'Workers',     href: '/workers',        icon: 'hard-hat'         },
+  // Finance & Analytics
+  { label: 'Billing',     href: '/billing',        icon: 'indian-rupee'    },
+  { label: 'Analytics',   href: '/analytics',      icon: 'bar-chart-2'      },
+  // Support & Config
+  { label: 'Activity',    href: '/cleaning-logs',  icon: 'list-checks'      },
+  { label: 'Services',    href: '/services-mgmt',  icon: 'sparkles'         },
+  { label: 'Promotions',  href: '/promotions',     icon: 'tag'              },
+  { label: 'Settings',    href: '/settings',       icon: 'settings'         },
 ];
 
 // Bottom-tab items (5 most important for mobile)
