@@ -374,10 +374,23 @@ All generated images are also copied to `apps/web/public/` so Next.js can serve 
 - Payment method: Phone payment (manual collection)
 - Admin marks as "Paid" in dashboard
 
-**Notifications:**
-- Approval: SMS + in-app ("You're approved! Starting [date]…")
-- Car cleaned: SMS + in-app ("Your car is clean")
-- Reminder: "Cleaning scheduled Mon/Wed/Fri"
+**Notifications System:**
+- **API Endpoint:** `/api/notification/send` (POST)
+- **Service:** `lib/notification.ts` with helper functions
+- **Types:** Approval, car cleaned, weekly reminder, payment reminder
+- **Integration:** Auto-sends SMS when customer approved
+- **History Page:** `/notifications` admin page to view all sent notifications
+
+**Notification Messages:**
+- Approval: "✅ Approved! Your car will be cleaned every Mon/Wed/Fri starting [date]"
+- Car cleaned: "✨ Your car is clean! Ready for pickup"
+- Reminder: "🧹 Cleaning reminder: Your car will be cleaned Mon/Wed/Fri"
+- Payment: "💳 Payment reminder: ₹500 due for this month's cleanings"
+
+**SMS Provider (Placeholder):**
+- Currently logs to console (no external SMS service)
+- Implement with: Twilio, AWS SNS, or Firebase Extensions
+- Environment: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE`
 
 ---
 
