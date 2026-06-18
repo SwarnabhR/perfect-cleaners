@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     return ist.getUTCDate() === 1;
   })();
 
-  const fields: Record<string, number> = { 'earnings.today': 0 };
+  const fields: Record<string, number> = { 'earnings.today': 0, 'carsCompletedToday': 0 };
   if (isMonday)       fields['earnings.week']  = 0;
   if (isFirstOfMonth) fields['earnings.month'] = 0;
 

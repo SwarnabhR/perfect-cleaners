@@ -230,12 +230,13 @@ function WorkerDetailPanel({
         {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           {[
-            { label: 'Jobs Done',  value: worker.totalJobs ?? 0 },
-            { label: 'Rating',     value: worker.rating != null ? `${worker.rating.toFixed(1)} / 5.0` : '—' },
-            { label: 'Today',      value: worker.earnings?.today  ? `₹${worker.earnings.today.toLocaleString('en-IN')}`  : '₹0' },
-            { label: 'This Week',  value: worker.earnings?.week   ? `₹${worker.earnings.week.toLocaleString('en-IN')}`   : '₹0' },
-            { label: 'This Month', value: worker.earnings?.month  ? `₹${worker.earnings.month.toLocaleString('en-IN')}` : '₹0' },
-            { label: 'Joined',     value: fmt((worker as any).createdAt) },
+            { label: 'Jobs Done',           value: worker.totalJobs ?? 0 },
+            { label: 'Cars Done Today',     value: worker.carsCompletedToday ?? 0 },
+            { label: 'Rating',              value: worker.rating != null ? `${worker.rating.toFixed(1)} / 5.0` : '—' },
+            { label: 'Today (Earnings)',    value: worker.earnings?.today  ? `₹${worker.earnings.today.toLocaleString('en-IN')}`  : '₹0' },
+            { label: 'This Week',           value: worker.earnings?.week   ? `₹${worker.earnings.week.toLocaleString('en-IN')}`   : '₹0' },
+            { label: 'This Month',          value: worker.earnings?.month  ? `₹${worker.earnings.month.toLocaleString('en-IN')}` : '₹0' },
+            { label: 'Joined',              value: fmt((worker as any).createdAt) },
           ].map(({ label, value }) => (
             <div key={label} style={{ background: 'var(--pc-card-hi)', borderRadius: 8, padding: '10px 12px' }}>
               <p style={{ ...monoLabel, margin: '0 0 4px' }}>{label}</p>
@@ -518,7 +519,7 @@ export default function WorkersPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--pc-line)' }}>
-                  {['Worker', 'Phone', 'Status', 'Society', 'Jobs Done', 'Rating', 'This Month', 'Joined'].map(h => (
+                  {['Worker', 'Phone', 'Status', 'Society', 'Jobs Done', 'Cars Today', 'Rating', 'This Month', 'Joined'].map(h => (
                     <th key={h} style={{
                       padding: '13px 18px', textAlign: 'left',
                       fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)',
@@ -558,6 +559,9 @@ export default function WorkersPage() {
                     </td>
                     <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg-2)' }}>
                       {w.totalJobs ?? 0}
+                    </td>
+                    <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg-2)' }}>
+                      {w.carsCompletedToday ?? 0}
                     </td>
                     <td style={{ padding: '13px 18px' }}>
                       <StarRating value={w.rating ?? 0} />

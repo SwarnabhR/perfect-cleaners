@@ -97,6 +97,7 @@ export interface Worker {
   assignedSocietyName?: string;
   rating: number;
   totalJobs: number;
+  carsCompletedToday: number;
   earnings: WorkerEarnings;
   createdAt: Date;
 }

@@ -51,11 +51,12 @@ export async function POST(req: NextRequest) {
     // Credit worker earnings
     writes.push(
       db.doc(`workers/${workerId}`).update({
-        totalJobs:        FieldValue.increment(1),
-        'earnings.today': FieldValue.increment(earned),
-        'earnings.week':  FieldValue.increment(earned),
-        'earnings.month': FieldValue.increment(earned),
-        updatedAt:        FieldValue.serverTimestamp(),
+        totalJobs:           FieldValue.increment(1),
+        carsCompletedToday:  FieldValue.increment(1),
+        'earnings.today':    FieldValue.increment(earned),
+        'earnings.week':     FieldValue.increment(earned),
+        'earnings.month':    FieldValue.increment(earned),
+        updatedAt:           FieldValue.serverTimestamp(),
       }),
     );
 
