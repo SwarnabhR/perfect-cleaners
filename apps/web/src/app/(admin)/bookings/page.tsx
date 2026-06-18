@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { collection, query, orderBy, limit, onSnapshot, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, orderBy, limit, onSnapshot, doc, updateDoc, serverTimestamp, addDoc, getDoc, setDoc } from 'firebase/firestore';
 import { db, auth } from '@pc/firebase';
 import type { BookingStatus } from '@pc/firebase';
 import Card from '@/components/ui/Card';
@@ -110,7 +110,51 @@ export default function BookingsPage() {
 
   async function markAsPaid(bookingId: string) {
     try {
-      await updateDoc(doc(db, 'bookings', bookingId), { paymentStatus: 'paid', updatedAt: serverTimestamp() });
+      const booking = bookings.find(b => b.id === bookingId);
+      if (!booking) return;
+
+      const amount = booking.priceBreakdown?.total ?? 0;
+      const customerId = booking.customerId;
+      const customerName = booking.customerName ?? 'Unknown';
+      const customerPhone = booking.customerPhone ?? '';
+
+      // 1. Create payment log
+      await addDoc(collection(db, 'paymentLogs'), {
+        bookingRef:   booking.id?.slice(0, 8).toUpperCase(),
+        customerId,
+        customerName,
+        customerPhone,
+        amount,
+        type:         'online_booking',
+        paidAt:       serverTimestamp(),
+      });
+
+      // 2. Update customer's outstanding balance
+      const customerRef = doc(db, 'customers', customerId);
+      const customerSnap = await getDoc(customerRef);
+      if (customerSnap.exists()) {
+        const currentBalance = customerSnap.data()?.outstandingBalance ?? 0;
+        await updateDoc(customerRef, {
+          outstandingBalance: Math.max(0, currentBalance - amount),
+        });
+      }
+
+      // 3. Update stats/income document
+      const statsRef = doc(db, 'stats', 'income');
+      const statsSnap = await getDoc(statsRef);
+      if (statsSnap.exists()) {
+        await updateDoc(statsRef, {
+          totalIncome: (statsSnap.data()?.totalIncome ?? 0) + amount,
+        });
+      } else {
+        await setDoc(statsRef, { totalIncome: amount });
+      }
+
+      // 4. Update booking payment status
+      await updateDoc(doc(db, 'bookings', bookingId), {
+        paymentStatus: 'paid',
+        updatedAt: serverTimestamp(),
+      });
     } catch (err: any) { console.error('[Bookings] mark as paid failed:', err.message); }
   }
 
