@@ -116,10 +116,10 @@ export default function CustomerEnrollmentsPage() {
     <div className="admin-page-root">
       {/* Header */}
       <div>
-        <Eyebrow style={{ display: 'block', marginBottom: 4 }}>SOCIETY</Eyebrow>
-        <h1 className="admin-page-title">Customer Enrollments</h1>
+        <Eyebrow style={{ display: 'block', marginBottom: 4 }}>CUSTOMERS</Eyebrow>
+        <h1 className="admin-page-title">Active Enrollments</h1>
         <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg-3)', margin: '8px 0 0' }}>
-          Track active and upcoming customer enrollments
+          View all enrolled customers, track payment status, and manage monthly billing
         </p>
       </div>
 

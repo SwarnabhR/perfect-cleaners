@@ -127,9 +127,9 @@ export default function NotificationsPage() {
       {/* Header */}
       <div>
         <Eyebrow style={{ display: 'block', marginBottom: 4 }}>COMMUNICATION</Eyebrow>
-        <h1 className="admin-page-title">Notification History</h1>
+        <h1 className="admin-page-title">SMS History</h1>
         <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg-3)', margin: '8px 0 0' }}>
-          Track all SMS and in-app notifications sent to customers
+          Monitor all SMS notifications sent to customers. Track delivery status and troubleshoot issues.
         </p>
       </div>
 

@@ -149,7 +149,10 @@ export default function CleaningSchedulePage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <Eyebrow style={{ display: 'block', marginBottom: 4 }}>OPERATIONS</Eyebrow>
-          <h1 className="admin-page-title">Cleaning Schedule</h1>
+          <h1 className="admin-page-title">Weekly Cleaning Schedule</h1>
+          <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: '4px 0 0' }}>
+            Create & manage cleaning sessions. Assign workers and track progress.
+          </p>
         </div>
         <button
           type="button"
@@ -196,7 +199,7 @@ export default function CleaningSchedulePage() {
               {loading ? '—' : stats.scheduled}
             </p>
             <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', margin: 0 }}>
-              SCHEDULED
+              AWAITING WORKERS
             </p>
           </div>
         </Card>
@@ -221,7 +224,7 @@ export default function CleaningSchedulePage() {
               {loading ? '—' : stats.inProgress}
             </p>
             <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', margin: 0 }}>
-              IN PROGRESS
+              CLEANING IN PROGRESS
             </p>
           </div>
         </Card>
@@ -246,7 +249,7 @@ export default function CleaningSchedulePage() {
               {loading ? '—' : stats.done}
             </p>
             <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', margin: 0 }}>
-              COMPLETED
+              ALL CARS CLEANED
             </p>
           </div>
         </Card>
@@ -444,7 +447,7 @@ export default function CleaningSchedulePage() {
                   type="text"
                   value={form.societyName}
                   onChange={e => setForm({ ...form, societyName: e.target.value })}
-                  placeholder="Uniworld City"
+                  placeholder="e.g., Uniworld City, Lodha Group"
                   style={inputStyle}
                 />
               </div>
@@ -466,7 +469,7 @@ export default function CleaningSchedulePage() {
                   type="text"
                   value={form.tower}
                   onChange={e => setForm({ ...form, tower: e.target.value })}
-                  placeholder="Tower A"
+                  placeholder="e.g., Tower A, Tower B"
                   style={inputStyle}
                 />
               </div>

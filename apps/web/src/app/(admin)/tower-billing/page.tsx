@@ -137,6 +137,9 @@ export default function TowerBillingPage() {
         <div>
           <Eyebrow style={{ display: 'block', marginBottom: 4 }}>BILLING</Eyebrow>
           <h1 className="admin-page-title">Tower Pricing</h1>
+          <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: '4px 0 0' }}>
+            Set monthly cleaning fees for each tower
+          </p>
         </div>
         <button
           type="button"
@@ -157,7 +160,7 @@ export default function TowerBillingPage() {
           }}
         >
           <Icon name="plus" size={14} color="var(--pc-ink)" />
-          Add Tower
+          Add Pricing
         </button>
       </div>
 
@@ -173,7 +176,7 @@ export default function TowerBillingPage() {
           type="text"
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
-          placeholder="Search society or tower…"
+          placeholder="Search by society name or tower…"
           style={{
             width: '100%',
             paddingLeft: 36,
@@ -229,7 +232,7 @@ export default function TowerBillingPage() {
                 margin: '0 0 20px',
               }}
             >
-              {editing ? 'Edit Tower' : 'Add Tower Pricing'}
+              {editing ? 'Edit Tower Pricing' : 'Add Tower Pricing'}
             </h2>
 
             <form style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -239,7 +242,7 @@ export default function TowerBillingPage() {
                   type="text"
                   value={form.societyName}
                   onChange={e => setForm({ ...form, societyName: e.target.value })}
-                  placeholder="e.g. Uniworld City"
+                  placeholder="e.g., Uniworld City, Lodha Group"
                   style={inputStyle}
                 />
               </div>
@@ -262,7 +265,7 @@ export default function TowerBillingPage() {
                   type="text"
                   value={form.tower}
                   onChange={e => setForm({ ...form, tower: e.target.value })}
-                  placeholder="e.g. Tower A"
+                  placeholder="e.g., Tower A, Tower B, North Wing"
                   style={inputStyle}
                   readOnly={!!editing}
                 />
@@ -274,7 +277,7 @@ export default function TowerBillingPage() {
                   type="number"
                   value={form.monthlyFee}
                   onChange={e => setForm({ ...form, monthlyFee: parseInt(e.target.value) || 0 })}
-                  placeholder="500"
+                  placeholder="450"
                   min="0"
                   step="10"
                   style={inputStyle}
@@ -287,7 +290,7 @@ export default function TowerBillingPage() {
                   type="text"
                   value={form.cleaningSchedule}
                   onChange={e => setForm({ ...form, cleaningSchedule: e.target.value })}
-                  placeholder="Mon, Wed, Fri · 9:00 AM"
+                  placeholder="Mon, Wed, Fri · 9:00 AM - 12:00 PM"
                   style={inputStyle}
                 />
               </div>
@@ -311,7 +314,7 @@ export default function TowerBillingPage() {
                     opacity: saving ? 0.6 : 1,
                   }}
                 >
-                  {saving ? 'Saving…' : editing ? 'Save Changes' : 'Add Tower'}
+                  {saving ? 'Saving…' : editing ? 'Save Changes' : 'Add Pricing'}
                 </button>
                 <button
                   type="button"
@@ -364,7 +367,7 @@ export default function TowerBillingPage() {
                 cursor: 'pointer',
               }}
             >
-              Add Tower
+              Add Pricing
             </button>
           </div>
         ) : (

@@ -161,10 +161,10 @@ export default function PendingApprovalsPage() {
     <div className="admin-page-root">
       {/* Header */}
       <div>
-        <Eyebrow style={{ display: 'block', marginBottom: 4 }}>ENROLLMENT</Eyebrow>
+        <Eyebrow style={{ display: 'block', marginBottom: 4 }}>CUSTOMERS</Eyebrow>
         <h1 className="admin-page-title">Pending Approvals</h1>
         <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg-3)', margin: '8px 0 0' }}>
-          Review and approve self-signup requests from customers
+          Review new signup requests and verify customer details before approval
         </p>
       </div>
 
@@ -433,12 +433,12 @@ export default function PendingApprovalsPage() {
 
             <div style={{ background: 'var(--pc-card-hi)', borderRadius: 8, padding: 12, marginBottom: 20 }}>
               <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)', margin: 0 }}>
-                <strong style={{ color: 'var(--pc-fg)' }}>Checklist before approving:</strong>
+                <strong style={{ color: 'var(--pc-fg)' }}>Before approving, verify:</strong>
                 <br />
-                ☐ Called customer to verify details<br />
-                ☐ Confirmed car & address<br />
-                ☐ Discussed payment method<br />
-                ☐ Entered payment details below
+                ☐ Called customer to confirm details<br />
+                ☐ Verified car registration & address<br />
+                ☐ Discussed monthly fee & payment method<br />
+                ☐ Recorded payment details below
               </p>
             </div>
 
