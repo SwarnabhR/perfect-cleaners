@@ -108,6 +108,12 @@ export default function BookingsPage() {
     setCancelling(null);
   }
 
+  async function markAsPaid(bookingId: string) {
+    try {
+      await updateDoc(doc(db, 'bookings', bookingId), { paymentStatus: 'paid', updatedAt: serverTimestamp() });
+    } catch (err: any) { console.error('[Bookings] mark as paid failed:', err.message); }
+  }
+
   const filtered = bookings
     .filter(b => filter === 'All' || STATUS_LABELS[b.status] === filter)
     .filter(b => {
@@ -184,7 +190,7 @@ export default function BookingsPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--pc-line)' }}>
-                  {['Booking ID', 'Customer', 'Service', 'Date & Time', 'Worker', 'Amount', 'Status', ''].map(h => (
+                  {['Booking ID', 'Customer', 'Service', 'Date & Time', 'Worker', 'Amount', 'Status', 'Payment', ''].map(h => (
                     <th key={h} style={{ padding: '13px 18px', textAlign: 'left', fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -230,6 +236,21 @@ export default function BookingsPage() {
                     </td>
                     <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg)', fontWeight: 600, whiteSpace: 'nowrap' }}>₹{b.priceBreakdown?.total?.toLocaleString('en-IN') ?? '—'}</td>
                     <td style={{ padding: '13px 18px' }}><StatusPill status={STATUS_LABELS[b.status] ?? b.status} /></td>
+                    <td style={{ padding: '13px 18px', whiteSpace: 'nowrap' }}>
+                      {b.paymentStatus === 'paid' ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 6, background: 'var(--pc-sage-subtle)', fontFamily: 'var(--pc-sans)', fontSize: 12, fontWeight: 600, color: 'var(--pc-sage-hi)' }}>
+                          <Icon name="check" size={14} color="currentColor" /> Paid
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => markAsPaid(b.id)}
+                          style={{ padding: '4px 12px', borderRadius: 6, border: '1px solid var(--pc-warning)', background: 'transparent', fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-warning)', cursor: 'pointer' }}
+                        >
+                          Mark paid
+                        </button>
+                      )}
+                    </td>
                     <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
                       {!['done', 'cancelled'].includes(b.status) && (
                         cancelling === b.id ? (
