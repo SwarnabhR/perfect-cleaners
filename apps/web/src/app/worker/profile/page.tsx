@@ -162,11 +162,10 @@ export default function WorkerProfilePage() {
       </div>
 
       {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
         {[
-          { icon: 'briefcase',    label: 'Total Jobs',  value: worker?.totalJobs ?? 0 },
-          { icon: 'star',         label: 'Rating',      value: (worker?.rating ?? 0).toFixed(1) },
-          { icon: 'indian-rupee', label: 'This Month',  value: `₹${(worker?.earnings?.month ?? 0).toLocaleString('en-IN')}` },
+          { icon: 'briefcase', label: 'Total Jobs', value: worker?.totalJobs ?? 0 },
+          { icon: 'star',      label: 'Rating',     value: (worker?.rating ?? 0).toFixed(1) },
         ].map(({ icon, label: lbl, value }) => (
           <Card key={lbl} style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 6, textAlign: 'center' }}>
             <Icon name={icon} size={15} color="var(--pc-fg-3)" style={{ margin: '0 auto' }} />

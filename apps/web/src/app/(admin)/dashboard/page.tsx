@@ -208,7 +208,6 @@ export default function DashboardPage() {
               <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', fontWeight: 600, color: 'var(--pc-fg)', margin: '0 0 var(--pc-space-1)' }}>{w.name}</p>
               <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)', margin: 0 }}>{w.totalJobs ?? 0} jobs · ★ {w.rating?.toFixed(2) ?? '—'}</p>
             </div>
-            <span style={{ fontFamily: 'var(--pc-serif)', fontSize: 'var(--pc-text-lg)', color: 'var(--pc-fg)' }}>{w.earnings?.week ? `₹${w.earnings.week.toLocaleString('en-IN')}` : '—'}</span>
           </div>
         ))}
       </Card>
