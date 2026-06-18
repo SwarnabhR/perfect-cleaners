@@ -124,7 +124,7 @@ export default function CleaningSchedulePage() {
       await setDoc(
         doc(db, 'cleaningSessions', id),
         {
-          status: 'in_progress' as CleaningSessionStatus,
+          status: 'inprogress' as CleaningSessionStatus,
           startedAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         },
@@ -139,7 +139,7 @@ export default function CleaningSchedulePage() {
 
   const stats = {
     scheduled: sessions.filter(s => s.status === 'scheduled').length,
-    inProgress: sessions.filter(s => s.status === 'in_progress').length,
+    inProgress: sessions.filter(s => s.status === 'inprogress').length,
     done: sessions.filter(s => s.status === 'done').length,
   };
 
@@ -254,7 +254,7 @@ export default function CleaningSchedulePage() {
 
       {/* Filter */}
       <div style={{ display: 'flex', gap: 6 }}>
-        {(['all', 'scheduled', 'in_progress', 'done'] as const).map(status => (
+        {(['all', 'scheduled', 'inprogress', 'done'] as const).map(status => (
           <button
             key={status}
             type="button"
