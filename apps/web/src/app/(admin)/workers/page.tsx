@@ -230,13 +230,10 @@ function WorkerDetailPanel({
         {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           {[
-            { label: 'Jobs Done',           value: worker.totalJobs ?? 0 },
-            { label: 'Cars Done Today',     value: worker.carsCompletedToday ?? 0 },
-            { label: 'Rating',              value: worker.rating != null ? `${worker.rating.toFixed(1)} / 5.0` : '—' },
-            { label: 'Today (Earnings)',    value: worker.earnings?.today  ? `₹${worker.earnings.today.toLocaleString('en-IN')}`  : '₹0' },
-            { label: 'This Week',           value: worker.earnings?.week   ? `₹${worker.earnings.week.toLocaleString('en-IN')}`   : '₹0' },
-            { label: 'This Month',          value: worker.earnings?.month  ? `₹${worker.earnings.month.toLocaleString('en-IN')}` : '₹0' },
-            { label: 'Joined',              value: fmt((worker as any).createdAt) },
+            { label: 'Jobs Done',       value: worker.totalJobs ?? 0 },
+            { label: 'Cars Done Today', value: worker.carsCompletedToday ?? 0 },
+            { label: 'Rating',          value: worker.rating != null ? `${worker.rating.toFixed(1)} / 5.0` : '—' },
+            { label: 'Joined',          value: fmt((worker as any).createdAt) },
           ].map(({ label, value }) => (
             <div key={label} style={{ background: 'var(--pc-card-hi)', borderRadius: 8, padding: '10px 12px' }}>
               <p style={{ ...monoLabel, margin: '0 0 4px' }}>{label}</p>

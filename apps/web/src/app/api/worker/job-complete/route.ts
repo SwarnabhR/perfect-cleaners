@@ -37,8 +37,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    // Use server-side price — never trust client-submitted totals
-    const earned     = (bookingData.priceBreakdown?.total as number | undefined) ?? 0;
     const customerId = bookingData.customerId as string | undefined;
     const serviceIds = bookingData.serviceIds as string[] | undefined;
 
@@ -48,15 +46,12 @@ export async function POST(req: NextRequest) {
 
     const writes: Promise<unknown>[] = [];
 
-    // Credit worker earnings
+    // Update worker job stats (salary-based, no earnings tracking)
     writes.push(
       db.doc(`workers/${workerId}`).update({
-        totalJobs:           FieldValue.increment(1),
-        carsCompletedToday:  FieldValue.increment(1),
-        'earnings.today':    FieldValue.increment(earned),
-        'earnings.week':     FieldValue.increment(earned),
-        'earnings.month':    FieldValue.increment(earned),
-        updatedAt:           FieldValue.serverTimestamp(),
+        totalJobs:          FieldValue.increment(1),
+        carsCompletedToday: FieldValue.increment(1),
+        updatedAt:          FieldValue.serverTimestamp(),
       }),
     );
 
