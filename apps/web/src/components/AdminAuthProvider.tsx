@@ -34,8 +34,25 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   }, [pathname]);
 
   async function signOut() {
-    await fbSignOut(auth);
-    router.replace('/login');
+    try {
+      // Get current token and revoke it server-side
+      const idToken = await auth.currentUser?.getIdToken();
+      if (idToken) {
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${idToken}`,
+            'Content-Type': 'application/json',
+          },
+        }).catch(err => console.error('[logout] API call failed:', err));
+      }
+    } catch (err) {
+      console.error('[signOut] error during logout:', err);
+    } finally {
+      // Clear client-side auth state
+      await fbSignOut(auth);
+      router.replace('/login');
+    }
   }
 
   if (loading) {
