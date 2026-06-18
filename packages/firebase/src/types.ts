@@ -239,6 +239,7 @@ export interface Promotion {
 export interface SocietyBillingConfig {
   id: string;
   societyId: string;
+  societyName: string;         // e.g. "Uniworld City"
   tower: string;                // e.g. "Tower A"
   monthlyFee: number;          // ₹500, ₹600, etc
   currency: 'INR';
