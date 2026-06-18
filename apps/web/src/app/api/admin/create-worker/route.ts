@@ -55,13 +55,14 @@ export async function POST(req: NextRequest) {
 
     // Create the workers document
     await workerRef.set({
-      id:        uid,
-      name:      name.trim(),
-      phone:     formattedPhone,
-      isOnline:  false,
-      totalJobs: 0,
-      earnings:  { today: 0, week: 0, month: 0 },
-      createdAt: FieldValue.serverTimestamp(),
+      id:                   uid,
+      name:                 name.trim(),
+      phone:                formattedPhone,
+      isOnline:             false,
+      totalJobs:            0,
+      carsCompletedToday:   0,
+      earnings:             { today: 0, week: 0, month: 0 },
+      createdAt:            FieldValue.serverTimestamp(),
     });
 
     // Write customers/{uid} with role:'worker' so the mobile app routes to the
