@@ -92,6 +92,7 @@ const NAV = [
   { label: 'Tower Billing', href: '/tower-billing', icon: 'credit-card'    },
   { label: 'Approvals',   href: '/pending-approvals', icon: 'check-circle' },
   { label: 'Schedule',    href: '/cleaning-schedule', icon: 'calendar'     },
+  { label: 'Enrollments', href: '/customer-enrollments', icon: 'users'     },
   // Individual Bookings (Legacy)
   { label: 'Bookings',    href: '/bookings',       icon: 'calendar'         },
   { label: 'Sessions',    href: '/sessions',       icon: 'car'              },
