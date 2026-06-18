@@ -2,13 +2,23 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## ⚠️ Current Focus — DO NOT TOUCH
+## ⚠️ Current Focus
 
-**`apps/mobile/` is frozen.** Do not read, edit, or create any files under `apps/mobile/` unless the user explicitly asks. All active development is on the web app (`apps/web/`) and shared packages.
+**`apps/mobile/` is frozen except for:** Society cleaning program features (self-signup, unavailability management, real-time car list). All other mobile work must stop until society system is complete.
+
+**Active Development:**
+- `apps/web/` — Admin dashboard for society management + billing
+- `packages/firebase/src/types.ts` — New society data models
+- `apps/mobile/` (society features only) — Customer self-signup, worker real-time UI
 
 ## What This Project Is
 
-**Perfect Cleaners** is a premium car wash & detailing service (Delhi NCR). This repo is a Turborepo monorepo containing the production apps and a reference design system.
+**Perfect Cleaners** is a premium car wash & detailing service (Delhi NCR) with two business models:
+
+1. **Individual Bookings** — On-demand car wash (customer initiates)
+2. **Society Cleaning Program** — Recurring weekly cleanings for residential societies (PRIMARY - being built)
+
+This repo is a Turborepo monorepo containing the production apps and a reference design system.
 
 | Surface | Path | Stack |
 |---|---|---|
@@ -300,6 +310,76 @@ design-system/assets/service-coating-b.png    ← mirror-gloss reflection on coa
 ```
 
 All generated images are also copied to `apps/web/public/` so Next.js can serve them directly as `/image-name.png`.
+
+## Society Cleaning Program Architecture
+
+**NEW (Q2 2024):** Recurring weekly cleaning program for residential societies.
+
+### Admin Dashboard (`apps/web/src/app/(admin)/`)
+
+**New Routes:**
+- `/societies-mgmt` — Society & tower configuration
+- `/tower-billing` — Set monthly fee per tower
+- `/pending-approvals` — Self-signup review queue
+- `/cleaning-schedule` — Weekly schedule + worker assignment
+
+**Data Collections:**
+- `societyBillingConfig` — Monthly fee per tower (configurable by admin)
+- `customerSocietyRecords` — Customer enrollment (status: pending/active/paused/inactive)
+- `pendingApprovals` — Self-signup requests awaiting admin call + verification
+- `cleaningSessions` — Weekly cleaning assignments (enhanced with real-time tracking)
+
+### Customer Flow
+
+**Two Enrollment Paths:**
+
+1. **Bulk Import** (Admin)
+   - Upload CSV: name, phone, tower, car plate, make/model
+   - Auto-added with status: `active`
+
+2. **Self-Signup** (Mobile App)
+   - Discover society → Select tower → Fill form → Submit
+   - Status: `pending` (not visible to workers)
+   - Admin review → Phone call to verify → Type payment details → Approve
+   - Status: `active` → Added to next cleaning session
+
+### Unavailability System
+
+**Three Flexible Options:**
+
+1. **Skip Date** — "Don't clean my car on Monday"
+   - One-time, auto-reverts next session
+
+2. **Reschedule Slot** — "Clean my car Friday 2 PM instead of Monday 9 AM"
+   - One-time change this week only
+
+3. **Permanent Time** — "Always clean at 7 AM (I leave at 8)"
+   - Overrides tower default time
+   - Until customer changes it
+
+### Worker Real-Time Cleaning
+
+**Multi-Worker Support:**
+- One tower can be cleaned by 1-3+ workers in parallel
+- Shared car list with Firestore listeners
+- When Worker A marks car done → All workers see instant update
+- Progress: 45/300 cars done (live)
+- Time grouping: 7 AM slot | 9 AM slot | 2 PM slot
+
+### Billing & Notifications
+
+**Monthly Billing:**
+- Billing date: 1st of every month
+- Monthly fee: Configurable per tower (₹500, ₹600, etc)
+- Payment method: Phone payment (manual collection)
+- Admin marks as "Paid" in dashboard
+
+**Notifications:**
+- Approval: SMS + in-app ("You're approved! Starting [date]…")
+- Car cleaned: SMS + in-app ("Your car is clean")
+- Reminder: "Cleaning scheduled Mon/Wed/Fri"
+
+---
 
 ## Reference UI Kits (design-system/)
 

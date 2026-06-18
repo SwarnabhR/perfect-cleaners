@@ -232,3 +232,129 @@ export interface Promotion {
   validUntil: Date;
   isActive: boolean;
 }
+
+// ─── SOCIETY-BASED CLEANING SYSTEM ────────────────────────────────────────
+
+// Billing configuration per tower (admin-set pricing)
+export interface SocietyBillingConfig {
+  id: string;
+  societyId: string;
+  tower: string;                // e.g. "Tower A"
+  monthlyFee: number;          // ₹500, ₹600, etc
+  currency: 'INR';
+  billingDay: number;          // 1 (1st of month)
+  cleaningSchedule: string;    // "Mon, Wed, Fri · 9:00 AM"
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Customer enrollment in society cleaning program
+export interface CustomerSocietyRecord {
+  id: string;
+  customerId: string;
+  societyId: string;
+  societyName: string;
+  tower: string;
+  cars: Array<{
+    plate: string;           // e.g. "DL 01 AB 1234"
+    make: string;
+    model: string;
+  }>;
+
+  // Preferred cleaning time (overrides tower default)
+  preferredCleaningTime: number; // 7, 9, 14 (hours in 24h format)
+
+  // Signup source and status
+  signupSource: 'bulk_import' | 'self_signup';
+  status: 'pending' | 'active' | 'paused' | 'inactive';
+
+  // Billing & payment
+  monthlyFee: number;
+  lastBilledDate?: Date;
+  nextBillingDate: Date;
+  paymentStatus: 'not_verified' | 'verified' | 'pending_payment' | 'paid';
+  paymentMethod?: string;       // 'phone', 'upi', 'card'
+  paymentNotes?: string;        // Admin notes: "Called on Jun 10, will pay by Jun 15"
+
+  // Unavailability rules
+  skipDates: Date[];           // One-time skips
+  rescheduledSlots: Array<{
+    date: Date;
+    fromTime: number;          // 9 (original slot)
+    toTime: number;            // 14 (new slot)
+  }>;
+  permanentTime?: number;      // Override preferredCleaningTime
+
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Pending self-signup requests (admin approval queue)
+export interface PendingApproval {
+  id: string;
+  societyId: string;
+  societyName: string;
+  tower: string;
+
+  // Customer info
+  customerId?: string;         // null for completely new signup
+  customerName: string;
+  customerPhone: string;       // +91 format
+  customerEmail?: string;
+
+  // Vehicle info
+  carPlate: string;
+  carMake: string;
+  carModel: string;
+
+  // Preferences
+  preferredCleaningTime: number; // 7, 9, 14
+
+  // Approval workflow
+  status: 'pending' | 'approved' | 'rejected';
+  rejectionReason?: string;
+  approvedAt?: Date;
+  approvedBy?: string;         // Admin ID
+
+  submittedAt: Date;
+}
+
+// Enhanced CleaningSession with real-time tracking
+export interface CleaningSessionCar {
+  customerId: string;
+  carPlate: string;
+  carMake: string;
+  carModel: string;
+  preferredTime: number;       // What customer prefers (7, 9, 14)
+  status: 'pending' | 'in_progress' | 'done' | 'skipped';
+  cleanedBy?: string;          // Worker ID who cleaned it
+  cleanedAt?: Date;
+}
+
+export interface CleaningSessionEnhanced {
+  id: string;
+  societyId: string;
+  societyName: string;
+  tower: string;
+  scheduledDate: Date;
+
+  // Status
+  status: CleaningSessionStatus;
+  startedAt?: Date;
+  completedAt?: Date;
+
+  // Real-time car tracking
+  cars: CleaningSessionCar[];
+  totalCars: number;
+  completedCars: number;
+  skippedCars: number;
+
+  // Multi-worker support
+  workerIds: string[];         // Can have 1-3+ workers
+  workerNames: string[];
+
+  // Metadata
+  createdAt: Date;
+  updatedAt: Date;
+}
+
