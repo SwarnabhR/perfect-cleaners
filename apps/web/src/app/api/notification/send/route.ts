@@ -3,6 +3,7 @@ import { getFirestore, doc, setDoc, serverTimestamp, collection, query, where, g
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { sendSMSViaTwilio, normalizePhoneNumber } from '@/lib/twilio';
+import { sendSMSVia91msg, normalizePhoneFor91msg } from '@/lib/91msg';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -33,20 +34,26 @@ interface SMSResponse {
 
 async function sendSMS(phone: string, message: string): Promise<SMSResponse> {
   try {
-    // Normalize phone to E.164 format (+91XXXXXXXXXX)
-    const normalizedPhone = normalizePhoneNumber(phone);
+    const provider = process.env.SMS_PROVIDER || 'twilio'; // Default: twilio
 
-    // Send via Twilio
-    const result = await sendSMSViaTwilio(normalizedPhone, message);
+    if (provider === '91msg') {
+      // Use 91msg (Indian SMS gateway)
+      const normalizedPhone = normalizePhoneFor91msg(phone);
+      const result = await sendSMSVia91msg(normalizedPhone, message);
 
-    if (result.success) {
       return {
-        success: true,
+        success: result.success,
         messageId: result.messageId,
+        error: result.error,
       };
     } else {
+      // Default: Use Twilio
+      const normalizedPhone = normalizePhoneNumber(phone);
+      const result = await sendSMSViaTwilio(normalizedPhone, message);
+
       return {
-        success: false,
+        success: result.success,
+        messageId: result.messageId,
         error: result.error,
       };
     }
