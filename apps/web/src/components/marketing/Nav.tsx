@@ -205,25 +205,6 @@ export default function Nav() {
           gap: 'clamp(var(--pc-space-3), 2vw, var(--pc-space-6))',
           flexShrink: 0,
         }}>
-          <Link
-            href="/book"
-            className="pc-nav-desktop pc-nav-book-now"
-            style={{
-              fontFamily: 'var(--pc-mono)',
-              fontSize: 'var(--pc-text-xs)',
-              letterSpacing: '0.14em',
-              textTransform: 'uppercase',
-              color: 'var(--pc-warm)',
-              border: '1px solid var(--pc-line-warm)',
-              borderRadius: '999px',
-              padding: 'var(--pc-space-2) var(--pc-space-5)',
-              whiteSpace: 'nowrap',
-              textDecoration: 'none',
-              transition: 'border-color var(--pc-dur-fast) var(--pc-ease), background var(--pc-dur-fast) var(--pc-ease), transform var(--pc-dur-fast) var(--pc-ease)',
-            }}
-          >
-            {t.nav.bookNow}
-          </Link>
 
           {/* Theme toggle — desktop */}
           <button
@@ -382,33 +363,7 @@ export default function Nav() {
           padding: 'var(--pc-space-6) var(--pc-screen-pad-lg) var(--pc-space-8)',
           borderTop: '1px solid var(--pc-line-faint)',
         }}>
-          <p style={{
-            fontFamily: 'var(--pc-mono)',
-            fontSize: 'var(--pc-text-xs)',
-            letterSpacing: '0.14em',
-            textTransform: 'uppercase',
-            color: 'var(--pc-fg-4)',
-            margin: '0 0 var(--pc-space-4)',
-          }}>
-            {t.nav.location}
-          </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-3)' }}>
-            <Link
-              href="/book"
-              onClick={() => setMenuOpen(false)}
-              className="pc-nav-drawer-cta"
-              style={{
-                display: 'block', textAlign: 'center',
-                padding: 'var(--pc-space-4) 0', borderRadius: '999px',
-                background: 'var(--pc-warm)', color: 'var(--pc-ink)',
-                fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)',
-                letterSpacing: '0.16em', textTransform: 'uppercase',
-                textDecoration: 'none',
-                transition: 'background var(--pc-dur-fast) var(--pc-ease), transform var(--pc-dur-fast) var(--pc-ease)',
-              }}
-            >
-              {t.nav.bookNow}
-            </Link>
             <Link
               href={user ? '/account' : '/signin'}
               onClick={() => setMenuOpen(false)}

@@ -63,7 +63,7 @@ export default function CTASection() {
         </p>
         <div className="pc-cta-btns" style={{ display: 'flex', gap: 'var(--pc-space-2)', flexWrap: 'wrap' }}>
           <Link
-            href="/book"
+            href="/for-societies"
             className="pc-hero-cta-primary"
             style={{
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -74,22 +74,6 @@ export default function CTASection() {
               fontWeight: 600, letterSpacing: 'var(--pc-track-wide)',
               textTransform: 'uppercase', textDecoration: 'none',
               transition: 'background var(--pc-dur-fast) var(--pc-ease), box-shadow var(--pc-dur-fast) var(--pc-ease)',
-            }}
-          >
-            {c.bookNow}
-          </Link>
-          <Link
-            href="/for-societies"
-            className="pc-hero-cta-ghost"
-            style={{
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              padding: 'var(--pc-space-4) var(--pc-space-6)',
-              background: 'transparent', color: 'var(--pc-fg)',
-              border: '1px solid currentColor', borderRadius: 'var(--pc-radius-pill)',
-              fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)',
-              fontWeight: 500, letterSpacing: 'var(--pc-track-wide)',
-              textTransform: 'uppercase', textDecoration: 'none',
-              transition: 'background var(--pc-dur-fast) var(--pc-ease), border-color var(--pc-dur-fast) var(--pc-ease)',
             }}
           >
             {c.getInTouch}

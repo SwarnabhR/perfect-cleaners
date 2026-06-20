@@ -43,7 +43,7 @@ export default function PremiumSection() {
         </div>
         <div style={{ display: 'flex', gap: 'var(--pc-space-2)', flexShrink: 0, flexWrap: 'wrap' }}>
           <Link
-            href="/book"
+            href="/for-societies"
             className="pc-hero-cta-primary"
             style={{
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',

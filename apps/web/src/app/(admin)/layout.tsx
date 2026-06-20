@@ -92,10 +92,8 @@ const NAV = [
   { label: 'Tower Billing', href: '/tower-billing', icon: 'credit-card'    },
   { label: 'Approvals',   href: '/pending-approvals', icon: 'check-circle' },
   { label: 'Schedule',    href: '/cleaning-schedule', icon: 'calendar'     },
+  { label: 'Live Cleaning', href: '/live-cleaning', icon: 'activity'      },
   { label: 'Enrollments', href: '/customer-enrollments', icon: 'users'     },
-  // Individual Bookings (Legacy)
-  { label: 'Bookings',    href: '/bookings',       icon: 'calendar'         },
-  { label: 'Sessions',    href: '/sessions',       icon: 'car'              },
   // People & Services
   { label: 'Customers',   href: '/customers',      icon: 'users'            },
   { label: 'Workers',     href: '/workers',        icon: 'hard-hat'         },
@@ -104,7 +102,6 @@ const NAV = [
   { label: 'Analytics',   href: '/analytics',      icon: 'bar-chart-2'      },
   // Support & Config
   { label: 'Notifications', href: '/notifications', icon: 'mail'            },
-  { label: 'Activity',    href: '/cleaning-logs',  icon: 'list-checks'      },
   { label: 'Services',    href: '/services-mgmt',  icon: 'sparkles'         },
   { label: 'Promotions',  href: '/promotions',     icon: 'tag'              },
   { label: 'Settings',    href: '/settings',       icon: 'settings'         },
@@ -315,7 +312,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
 
             {/* Search */}
             <form
-              onSubmit={e => { e.preventDefault(); if (searchQuery.trim()) { router.push(`/bookings?search=${encodeURIComponent(searchQuery.trim())}`); setSearchQuery(''); } }}
+              onSubmit={e => { e.preventDefault(); if (searchQuery.trim()) { router.push(`/live-cleaning`); setSearchQuery(''); } }}
               style={{ flex: 1, maxWidth: 400 }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pc-space-2)', background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 'var(--pc-radius-pill)', padding: 'var(--pc-space-2) var(--pc-space-4)' }}>
@@ -325,7 +322,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
                   type="search"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Search bookings…"
+                  placeholder="Search cleaning sessions…"
                   style={{ border: 'none', background: 'transparent', outline: 'none', fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg)', flex: 1, minWidth: 0 }}
                 />
               </div>

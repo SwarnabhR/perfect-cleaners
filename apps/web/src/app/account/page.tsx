@@ -304,7 +304,7 @@ export default function AccountPage() {
 
           <div style={{ display: 'flex', gap: 'var(--pc-space-3)', alignItems: 'center', flexWrap: 'wrap' }}>
             <Link
-              href="/book"
+              href="/for-societies"
               style={{
                 display: 'inline-flex', alignItems: 'center',
                 padding: '10px 20px',
@@ -420,7 +420,7 @@ export default function AccountPage() {
             }}>
               Book your first premium wash or detailing session — takes under two minutes.
             </p>
-            <Link href="/book" style={{
+            <Link href="/for-societies" style={{
               display: 'inline-flex', alignItems: 'center',
               padding: '12px 28px',
               background: 'var(--pc-warm)', color: 'var(--pc-ink)',
@@ -429,7 +429,7 @@ export default function AccountPage() {
               letterSpacing: '0.06em', textTransform: 'uppercase',
               textDecoration: 'none',
             }}>
-              Book now →
+              Join a society →
             </Link>
           </div>
         ) : (

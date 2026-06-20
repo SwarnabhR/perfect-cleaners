@@ -48,7 +48,7 @@ export default function USP() {
         </p>
         <div style={{ display: 'flex', gap: 'var(--pc-space-2)', marginTop: 'var(--pc-space-1)', flexWrap: 'wrap' }}>
           <Link
-            href="/book"
+            href="/for-societies"
             className="pc-hero-cta-primary"
             style={{
               display: 'inline-flex',
