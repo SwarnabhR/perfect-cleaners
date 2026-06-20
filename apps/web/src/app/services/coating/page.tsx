@@ -21,14 +21,14 @@ export default function CeramicCoatingPage() {
         <div style={{ padding: '40px var(--pc-screen-pad-lg) 0', display: 'grid', gridTemplateColumns: '1fr 1.05fr', gap: 32, alignItems: 'stretch' }} className="pc-sf-grid">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 22, paddingTop: 22 }}>
             <Eyebrow>{p.eyebrow}</Eyebrow>
-            <div style={{ fontFamily: 'var(--pc-serif)', fontSize: 'clamp(36px, 5vw, 64px)', lineHeight: 1.04, color: '#fff', letterSpacing: '-0.02em' }}>
+            <div style={{ fontFamily: 'var(--pc-serif)', fontSize: 'clamp(36px, 5vw, 64px)', lineHeight: 1.04, color: 'var(--pc-fg)', letterSpacing: '-0.02em' }}>
               {p.headline}
             </div>
             <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 15, color: 'var(--pc-fg-2)', lineHeight: 1.5, maxWidth: 440 }}>
               {p.sub}
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <Link href="/book" style={{
+              <Link href="/for-societies" style={{
                 background: 'var(--pc-warm)', color: 'var(--pc-ink)', borderRadius: 999, padding: '14px 26px',
                 fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 500, textDecoration: 'none',
               }}>
