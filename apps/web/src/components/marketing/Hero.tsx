@@ -32,7 +32,7 @@ export default function Hero() {
           border: '1px solid var(--pc-line)', borderRadius: 999,
           padding: '5px 12px 5px 5px',
         }}>
-          <span style={{
+          <span aria-hidden="true" style={{
             width: 6, height: 6, borderRadius: '50%',
             background: 'var(--pc-sage-hi)', display: 'block', flexShrink: 0,
           }} />

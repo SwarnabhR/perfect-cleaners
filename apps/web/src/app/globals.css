@@ -305,6 +305,17 @@ main, section, article, aside, header, footer, nav, div {
   border-radius: var(--pc-radius-xs);
 }
 
+/* Inputs suppress the default outline via inline style (outline:'none').
+   Restore keyboard focus rings with !important so screen-keyboard users
+   still see the indicator — this is a justified a11y override. */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--pc-sage) !important;
+  outline-offset: 2px;
+  border-radius: var(--pc-radius-xs);
+}
+
 ::selection {
   background-color: rgba(74, 94, 68, 0.35);
   color: var(--pc-fg);

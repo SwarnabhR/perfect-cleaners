@@ -104,7 +104,7 @@ export default function WorkerDashboard() {
             color: worker?.isOnline ? 'var(--pc-success)' : 'var(--pc-fg-3)',
           }}
         >
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: worker?.isOnline ? 'var(--pc-success)' : 'var(--pc-fg-4)' }} />
+          <div aria-hidden="true" style={{ width: 8, height: 8, borderRadius: '50%', background: worker?.isOnline ? 'var(--pc-success)' : 'var(--pc-fg-4)' }} />
           {worker?.isOnline ? 'Online' : 'Go Online'}
         </button>
       </div>

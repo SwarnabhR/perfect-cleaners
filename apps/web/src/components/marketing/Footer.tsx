@@ -112,7 +112,7 @@ export default function Footer() {
       </div>
 
       {/* Quick links */}
-      <div>
+      <nav aria-label="Quick links">
         <Eyebrow>{f.quickLinksLabel}</Eyebrow>
         <div style={{ marginTop: 'var(--pc-space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-3)' }}>
           {f.quickLinks.map((label, i) => (
@@ -121,10 +121,10 @@ export default function Footer() {
             </Link>
           ))}
         </div>
-      </div>
+      </nav>
 
       {/* Official */}
-      <div>
+      <nav aria-label="Contact and legal">
         <Eyebrow>{f.officialLabel}</Eyebrow>
         <div style={{ marginTop: 'var(--pc-space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-3)' }}>
           {f.official.map((label, i) => {
@@ -140,10 +140,10 @@ export default function Footer() {
             );
           })}
         </div>
-      </div>
+      </nav>
 
       {/* Booking */}
-      <div>
+      <nav aria-label="Booking">
         <Eyebrow>{f.bookingLabel}</Eyebrow>
         <div style={{ marginTop: 'var(--pc-space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-3)' }}>
           {f.booking.slice(1).map((label, i) => (
@@ -152,7 +152,7 @@ export default function Footer() {
             </Link>
           ))}
         </div>
-      </div>
+      </nav>
     </footer>
   );
 }

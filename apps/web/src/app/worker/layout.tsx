@@ -71,7 +71,7 @@ function WorkerShell({ children }: { children: React.ReactNode }) {
             background: worker.isOnline ? 'rgba(111,174,106,0.15)' : 'var(--pc-card)',
             border: `1px solid ${worker.isOnline ? 'rgba(111,174,106,0.4)' : 'var(--pc-line)'}`,
           }}>
-            <div style={{
+            <div aria-hidden="true" style={{
               width: 7, height: 7, borderRadius: '50%',
               background: worker.isOnline ? 'var(--pc-success)' : 'var(--pc-fg-4)',
             }} />

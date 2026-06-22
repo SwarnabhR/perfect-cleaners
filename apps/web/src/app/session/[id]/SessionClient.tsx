@@ -37,26 +37,34 @@ function PCMark() {
   );
 }
 
+const POLL_INITIAL_MS = 5_000;
+const POLL_MAX_MS     = 60_000;
+
 export default function SessionClient({ initialSession, sessionId }: Props) {
   const [session, setSession] = useState<SessionData>(initialSession);
   const [acting,  setActing]  = useState(false);
   const [error,   setError]   = useState('');
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timerRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const intervalRef = useRef(POLL_INITIAL_MS);
 
-  const refresh = useCallback(async () => {
+  const poll = useCallback(async () => {
     try {
       const res  = await fetch(`/api/session/${sessionId}`, { cache: 'no-store' });
-      if (!res.ok) return;
+      if (!res.ok) throw new Error('non-ok');
       const data = await res.json();
       setSession(s => ({ ...s, ...data }));
-    } catch { /* best-effort */ }
+      intervalRef.current = POLL_INITIAL_MS;        // reset to fast on success
+    } catch {
+      intervalRef.current = Math.min(intervalRef.current * 2, POLL_MAX_MS); // backoff
+    }
+    timerRef.current = setTimeout(poll, intervalRef.current);
   }, [sessionId]);
 
-  // Poll every 5 s for live updates (other workers/admin may change the doc)
+  // Start polling on mount; clean up on unmount
   useEffect(() => {
-    pollRef.current = setInterval(refresh, 5000);
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, [refresh]);
+    timerRef.current = setTimeout(poll, intervalRef.current);
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [poll]);
 
   async function sendAction(action: 'start' | 'increment' | 'complete') {
     setActing(true);
@@ -170,7 +178,7 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
         border: `1px solid ${statusColor}`,
         marginBottom: 40,
       }}>
-        <span style={{ width: 6, height: 6, borderRadius: '50%', background: statusColor, display: 'inline-block' }} />
+        <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: '50%', background: statusColor, display: 'inline-block' }} />
         <span style={{ fontFamily: 'inherit', fontSize: 12, color: statusColor, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
           {status === 'scheduled' ? 'Scheduled' : status === 'inprogress' ? 'In progress' : 'Done'}
         </span>
