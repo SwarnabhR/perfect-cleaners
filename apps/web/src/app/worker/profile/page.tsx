@@ -240,10 +240,10 @@ export default function WorkerProfilePage() {
         <Eyebrow>SUPPORT</Eyebrow>
         {[
           { icon: 'message-circle', label: 'Raise a complaint',   href: 'mailto:support@perfectcleaners.in?subject=Worker Complaint' },
-          { icon: 'file-text',      label: 'Privacy Policy',      href: 'https://perfectcleaners.in/privacy' },
-          { icon: 'book-open',      label: 'Terms of Service',    href: 'https://perfectcleaners.in/terms' },
+          { icon: 'file-text',      label: 'Privacy Policy',      href: 'https://perfectcleaners.co.in/privacy' },
+          { icon: 'book-open',      label: 'Terms of Service',    href: 'https://perfectcleaners.co.in/terms' },
         ].map(({ icon, label: lbl, href }) => (
-          <a key={lbl} href={href} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid var(--pc-line-faint)', textDecoration: 'none', color: 'var(--pc-fg-2)' }}>
+          <a key={lbl} href={href} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid var(--pc-line-faint)', textDecoration: 'none', color: 'var(--pc-fg-2)' }}>
             <Icon name={icon} size={14} color="var(--pc-fg-4)" />
             <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 14 }}>{lbl}</span>
             <Icon name="external-link" size={12} color="var(--pc-fg-4)" style={{ marginLeft: 'auto' }} />

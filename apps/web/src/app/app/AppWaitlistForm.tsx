@@ -50,7 +50,7 @@ export default function AppWaitlistForm() {
         borderRadius: 'var(--pc-radius-md)',
         maxWidth: 460,
       }}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none"
              stroke="var(--pc-sage-hi)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <path d="M20 6 9 17l-5-5"/>
         </svg>
@@ -71,18 +71,19 @@ export default function AppWaitlistForm() {
       </p>
 
       {/* Platform toggle */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+      <div role="group" aria-label="Platform" style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
         {PLATFORMS.map(p => (
           <button
             key={p.id}
             type="button"
+            aria-pressed={platform === p.id}
             onClick={() => setPlatform(p.id)}
             style={{
               padding: '7px 16px',
               borderRadius: 'var(--pc-radius-pill)',
               border: `1px solid ${platform === p.id ? 'var(--pc-sage-hi)' : 'var(--pc-line-strong)'}`,
-              background: platform === p.id ? 'var(--pc-sage-subtle)' : 'transparent',
-              color: platform === p.id ? 'var(--pc-sage-on-tint)' : 'var(--pc-fg-3)',
+              background: platform === p.id ? 'color-mix(in srgb, var(--pc-sage) 15%, transparent)' : 'transparent',
+              color: platform === p.id ? 'var(--pc-sage-hi)' : 'var(--pc-fg-3)',
               fontFamily: 'var(--pc-mono)', fontSize: 10.5, letterSpacing: '0.06em',
               textTransform: 'uppercase', cursor: 'pointer',
               transition: 'all 0.15s ease',
@@ -96,7 +97,8 @@ export default function AppWaitlistForm() {
       {/* Phone input + submit */}
       <div style={{ display: 'flex', gap: 10 }}>
         <div style={{ display: 'flex', flex: 1 }}>
-          <span style={{
+          <label htmlFor="waitlist-phone" style={{ display: 'none' }}>Mobile number</label>
+          <span aria-hidden="true" style={{
             display: 'flex', alignItems: 'center',
             padding: '12px 12px 12px 14px',
             background: 'var(--pc-card)',
@@ -106,8 +108,10 @@ export default function AppWaitlistForm() {
             color: 'var(--pc-fg-3)', userSelect: 'none', flexShrink: 0,
           }}>+91</span>
           <input
+            id="waitlist-phone"
             type="tel" inputMode="numeric" maxLength={10}
             placeholder="98765 43210" value={phone}
+            aria-label="+91 mobile number"
             onChange={e => { setPhone(e.target.value.replace(/\D/g, '')); setError(''); }}
             style={{
               flex: 1, padding: '12px 14px', boxSizing: 'border-box',
@@ -139,7 +143,7 @@ export default function AppWaitlistForm() {
       </div>
 
       {error && (
-        <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-danger)', marginTop: 8 }}>
+        <p role="alert" style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-danger)', marginTop: 8 }}>
           {error}
         </p>
       )}

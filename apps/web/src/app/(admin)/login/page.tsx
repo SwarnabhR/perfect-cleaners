@@ -1,19 +1,13 @@
 'use client';
 import { useState } from 'react';
 import { Suspense } from 'react';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, AuthError } from 'firebase/auth';
 import { auth } from '@pc/firebase';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Icon from '@/components/ui/Icon';
 
-// Username → Firebase email/password mapping.
-// Add more entries here as you create additional admin accounts.
-const ADMIN_CREDENTIALS: Record<string, { email: string; password: string }> = {
-  admin: { email: 'admin@perfectcleaners.in', password: '123456' },
-};
-
 function AdminLoginForm() {
-  const [username, setUsername] = useState('');
+  const [email,    setEmail]    = useState('');
   const [password, setPassword] = useState('');
   const [error,    setError]    = useState('');
   const [loading,  setLoading]  = useState(false);
@@ -26,25 +20,14 @@ function AdminLoginForm() {
     setError('');
     setLoading(true);
     try {
-      const creds = ADMIN_CREDENTIALS[username.trim().toLowerCase()];
-      const email    = creds?.email    ?? username.trim();
-      const realPass = creds ? creds.password : password;
-
-      // If a known username was matched, ignore whatever the user typed as
-      // password and use the stored one — the UX password is just a gate.
-      if (creds && password !== '123456') {
-        setError('Invalid username or password.');
-        setLoading(false);
-        return;
-      }
-
-      await signInWithEmailAndPassword(auth, email, realPass);
+      await signInWithEmailAndPassword(auth, email.trim(), password);
       router.replace(redirectTo);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const code = (err as AuthError)?.code;
       setError(
-        err?.code === 'auth/invalid-credential' || err?.code === 'auth/user-not-found'
-          ? 'Invalid username or password.'
-          : err?.message ?? 'Sign-in failed. Please try again.',
+        code === 'auth/invalid-credential' || code === 'auth/user-not-found'
+          ? 'Invalid email or password.'
+          : err instanceof Error ? err.message : 'Sign-in failed. Please try again.',
       );
     } finally {
       setLoading(false);
@@ -92,25 +75,27 @@ function AdminLoginForm() {
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div>
-            <label style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
-              Username
+            <label htmlFor="admin-email" style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
+              Email
             </label>
             <input
-              type="text"
-              value={username}
-              onChange={e => setUsername(e.target.value)}
+              id="admin-email"
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
               required
-              autoComplete="username"
-              placeholder="admin"
+              autoComplete="email"
+              placeholder="admin@perfectcleaners.in"
               style={inputStyle}
             />
           </div>
 
           <div>
-            <label style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
+            <label htmlFor="admin-password" style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
               Password
             </label>
             <input
+              id="admin-password"
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
@@ -121,7 +106,7 @@ function AdminLoginForm() {
           </div>
 
           {error && (
-            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-danger)', margin: 0 }}>
+            <p role="alert" style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-danger)', margin: 0 }}>
               {error}
             </p>
           )}
