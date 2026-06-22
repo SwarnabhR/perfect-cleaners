@@ -1,3 +1,4 @@
+import { toErrMsg } from '@/lib/api-error';
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { FieldValue } from 'firebase-admin/firestore';
@@ -72,8 +73,8 @@ export async function POST(req: NextRequest) {
     ]);
 
     return NextResponse.json({ ok: true, paymentId: razorpay_payment_id });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[settle-balance]', err);
-    return NextResponse.json({ error: err?.message ?? 'Server error.' }, { status: 500 });
+    return NextResponse.json({ error: toErrMsg(err) }, { status: 500 });
   }
 }

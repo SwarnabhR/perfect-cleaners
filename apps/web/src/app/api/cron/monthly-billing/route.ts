@@ -80,8 +80,8 @@ export async function GET(req: NextRequest) {
         // );
 
         processed++;
-      } catch (err: any) {
-        console.error('[CRON] Billing error for', docSnap.id, ':', err.message);
+      } catch (err: unknown) {
+        console.error('[CRON] Billing error for', docSnap.id, ':', err instanceof Error ? err.message : String(err));
         errors++;
       }
     }
@@ -98,10 +98,10 @@ export async function GET(req: NextRequest) {
       },
       { status: 200 }
     );
-  } catch (err: any) {
-    console.error('[CRON] Monthly billing failed:', err.message);
+  } catch (err: unknown) {
+    console.error('[CRON] Monthly billing failed:', err instanceof Error ? err.message : String(err));
     return NextResponse.json(
-      { error: 'Billing failed', details: err.message },
+      { error: 'Billing failed', details: err instanceof Error ? err.message : String(err) },
       { status: 500 }
     );
   }

@@ -18,8 +18,8 @@ export async function POST(req: NextRequest) {
     await adminAuth().revokeRefreshTokens(uid);
 
     return NextResponse.json({ ok: true, message: 'Successfully logged out.' });
-  } catch (err: any) {
-    console.error('[logout]', err.message);
+  } catch (err: unknown) {
+    console.error('[logout]', err instanceof Error ? err.message : String(err));
     // Even if revocation fails, client has signed out, so return success
     return NextResponse.json({ ok: true });
   }

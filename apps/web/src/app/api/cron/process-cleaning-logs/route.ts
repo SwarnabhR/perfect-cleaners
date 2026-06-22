@@ -113,8 +113,8 @@ export async function GET(req: NextRequest) {
       }
 
       processed++;
-    } catch (err: any) {
-      errors.push(`${logId}: ${err?.message}`);
+    } catch (err: unknown) {
+      errors.push(`${logId}: ${err instanceof Error ? err.message : String(err)}`);
       console.error(`[process-cleaning-logs] error for ${logId}:`, err);
     }
   }

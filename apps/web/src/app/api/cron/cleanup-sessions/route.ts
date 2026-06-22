@@ -1,3 +1,4 @@
+import { toErrMsg } from '@/lib/api-error';
 import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminFirestore } from '@/lib/firebase/admin';
@@ -53,8 +54,8 @@ export async function GET(req: NextRequest) {
 
     console.log(`[cleanup-sessions] auto-closed ${stale.length} stale sessions`);
     return NextResponse.json({ ok: true, closed: stale.length });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[cleanup-sessions]', err);
-    return NextResponse.json({ error: err?.message ?? 'Server error.' }, { status: 500 });
+    return NextResponse.json({ error: toErrMsg(err) }, { status: 500 });
   }
 }

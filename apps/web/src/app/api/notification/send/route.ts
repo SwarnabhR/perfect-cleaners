@@ -57,9 +57,9 @@ async function sendSMS(phone: string, message: string): Promise<SMSResponse> {
         error: result.error,
       };
     }
-  } catch (err: any) {
-    console.error('[Notification] SMS send failed:', err.message);
-    return { success: false, error: err.message };
+  } catch (err: unknown) {
+    console.error('[Notification] SMS send failed:', err instanceof Error ? err.message : String(err));
+    return { success: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
 
@@ -96,8 +96,8 @@ async function storeNotification(payload: NotificationPayload, smsResponse: SMSR
       sentAt: serverTimestamp(),
     });
     return notificationId;
-  } catch (err: any) {
-    console.error('[Notification Store] Failed:', err.message);
+  } catch (err: unknown) {
+    console.error('[Notification Store] Failed:', err instanceof Error ? err.message : String(err));
     throw err;
   }
 }
@@ -132,10 +132,10 @@ export async function POST(req: NextRequest) {
       },
       { status: smsResponse.success ? 200 : 206 }
     );
-  } catch (err: any) {
-    console.error('[/api/notification/send] Error:', err.message);
+  } catch (err: unknown) {
+    console.error('[/api/notification/send] Error:', err instanceof Error ? err.message : String(err));
     return NextResponse.json(
-      { error: 'Failed to send notification', details: err.message },
+      { error: 'Failed to send notification', details: err instanceof Error ? err.message : String(err) },
       { status: 500 }
     );
   }

@@ -1,3 +1,4 @@
+import { toErrMsg } from '@/lib/api-error';
 import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminFirestore } from '@/lib/firebase/admin';
@@ -30,9 +31,9 @@ export async function GET(
       startedAt:     data.startedAt?.toDate?.()?.toISOString() ?? null,
       completedAt:   data.completedAt?.toDate?.()?.toISOString() ?? null,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[session/GET]', err);
-    return NextResponse.json({ error: err?.message ?? 'Server error.' }, { status: 500 });
+    return NextResponse.json({ error: toErrMsg(err) }, { status: 500 });
   }
 }
 
@@ -89,8 +90,8 @@ export async function POST(
       startedAt:     u.startedAt?.toDate?.()?.toISOString() ?? null,
       completedAt:   u.completedAt?.toDate?.()?.toISOString() ?? null,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[session/POST]', err);
-    return NextResponse.json({ error: err?.message ?? 'Server error.' }, { status: 500 });
+    return NextResponse.json({ error: toErrMsg(err) }, { status: 500 });
   }
 }

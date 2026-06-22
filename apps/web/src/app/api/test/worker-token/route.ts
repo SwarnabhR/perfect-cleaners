@@ -1,3 +1,4 @@
+import { toErrMsg } from '@/lib/api-error';
 import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth } from '@/lib/firebase/admin';
 
@@ -23,7 +24,7 @@ export async function GET(req: NextRequest) {
   try {
     const token = await adminAuth().createCustomToken(uid);
     return NextResponse.json({ token });
-  } catch (err: any) {
-    return NextResponse.json({ error: err?.message ?? 'Failed to create token.' }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: toErrMsg(err, 'Failed to create token.') }, { status: 500 });
   }
 }

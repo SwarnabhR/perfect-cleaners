@@ -1,3 +1,4 @@
+import { toErrMsg } from '@/lib/api-error';
 import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth } from '@/lib/firebase/admin';
 
@@ -70,8 +71,8 @@ export async function POST(req: NextRequest) {
     const customToken = await adminAuth().createCustomToken(uid, { phone: `+91${phone}` });
     return NextResponse.json({ token: customToken });
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[verify-otp] Unhandled error:', err);
-    return NextResponse.json({ error: err?.message ?? 'Server error. Please try again.' }, { status: 500 });
+    return NextResponse.json({ error: toErrMsg(err, 'Server error. Please try again.') }, { status: 500 });
   }
 }

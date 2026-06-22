@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
       currency: data.currency,
       keyId,                    // needed by the client for Razorpay checkout
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[create-order]', err);
     return NextResponse.json({ error: 'Server error.' }, { status: 500 });
   }

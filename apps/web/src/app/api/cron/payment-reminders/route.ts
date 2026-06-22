@@ -57,8 +57,8 @@ export async function GET(req: NextRequest) {
         // Message: "💳 Payment reminder: ₹500 due for this month's cleanings. Call us to pay."
 
         sent++;
-      } catch (err: any) {
-        console.error('[CRON] Payment reminder error for', docSnap.id, ':', err.message);
+      } catch (err: unknown) {
+        console.error('[CRON] Payment reminder error for', docSnap.id, ':', err instanceof Error ? err.message : String(err));
         errors++;
       }
     }
@@ -75,10 +75,10 @@ export async function GET(req: NextRequest) {
       },
       { status: 200 }
     );
-  } catch (err: any) {
-    console.error('[CRON] Payment reminders failed:', err.message);
+  } catch (err: unknown) {
+    console.error('[CRON] Payment reminders failed:', err instanceof Error ? err.message : String(err));
     return NextResponse.json(
-      { error: 'Payment reminders failed', details: err.message },
+      { error: 'Payment reminders failed', details: err instanceof Error ? err.message : String(err) },
       { status: 500 }
     );
   }

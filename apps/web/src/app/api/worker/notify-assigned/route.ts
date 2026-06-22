@@ -1,3 +1,4 @@
+import { toErrMsg } from '@/lib/api-error';
 import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminFirestore, adminMessaging, adminAuth } from '@/lib/firebase/admin';
@@ -65,8 +66,8 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ ok: true });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[notify-assigned]', err);
-    return NextResponse.json({ error: err?.message ?? 'Server error.' }, { status: 500 });
+    return NextResponse.json({ error: toErrMsg(err) }, { status: 500 });
   }
 }

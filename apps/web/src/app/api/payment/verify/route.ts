@@ -1,3 +1,4 @@
+import { toErrMsg } from '@/lib/api-error';
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { FieldValue } from 'firebase-admin/firestore';
@@ -174,8 +175,8 @@ export async function POST(req: NextRequest) {
     await batch.commit().catch(err => console.error('[verify-payment] stats write failed:', err));
 
     return NextResponse.json({ bookingRef });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[verify-payment]', err);
-    return NextResponse.json({ error: err?.message ?? 'Server error.' }, { status: 500 });
+    return NextResponse.json({ error: toErrMsg(err) }, { status: 500 });
   }
 }

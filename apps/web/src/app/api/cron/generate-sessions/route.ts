@@ -130,13 +130,13 @@ export async function GET(req: NextRequest) {
             } as any);
 
             sessionsCreated++;
-          } catch (err: any) {
-            console.error('[CRON] Session creation error:', err.message);
+          } catch (err: unknown) {
+            console.error('[CRON] Session creation error:', err instanceof Error ? err.message : String(err));
             errors++;
           }
         }
-      } catch (err: any) {
-        console.error('[CRON] Society processing error:', err.message);
+      } catch (err: unknown) {
+        console.error('[CRON] Society processing error:', err instanceof Error ? err.message : String(err));
         errors++;
       }
     }
@@ -153,10 +153,10 @@ export async function GET(req: NextRequest) {
       },
       { status: 200 }
     );
-  } catch (err: any) {
-    console.error('[CRON] Generate sessions failed:', err.message);
+  } catch (err: unknown) {
+    console.error('[CRON] Generate sessions failed:', err instanceof Error ? err.message : String(err));
     return NextResponse.json(
-      { error: 'Session generation failed', details: err.message },
+      { error: 'Session generation failed', details: err instanceof Error ? err.message : String(err) },
       { status: 500 }
     );
   }

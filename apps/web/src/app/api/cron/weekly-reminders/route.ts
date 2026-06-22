@@ -70,8 +70,8 @@ export async function GET(req: NextRequest) {
         // );
 
         sent++;
-      } catch (err: any) {
-        console.error('[CRON] Weekly reminder error for', docSnap.id, ':', err.message);
+      } catch (err: unknown) {
+        console.error('[CRON] Weekly reminder error for', docSnap.id, ':', err instanceof Error ? err.message : String(err));
         errors++;
       }
     }
@@ -89,10 +89,10 @@ export async function GET(req: NextRequest) {
       },
       { status: 200 }
     );
-  } catch (err: any) {
-    console.error('[CRON] Weekly reminders failed:', err.message);
+  } catch (err: unknown) {
+    console.error('[CRON] Weekly reminders failed:', err instanceof Error ? err.message : String(err));
     return NextResponse.json(
-      { error: 'Weekly reminders failed', details: err.message },
+      { error: 'Weekly reminders failed', details: err instanceof Error ? err.message : String(err) },
       { status: 500 }
     );
   }

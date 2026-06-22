@@ -75,7 +75,7 @@ export default function ContactForm() {
             background: 'rgba(74,94,68,0.12)', border: '1px solid var(--pc-sage-hi)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+            <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none"
                  stroke="var(--pc-sage-hi)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20 6 9 17l-5-5"/>
             </svg>
@@ -106,33 +106,33 @@ export default function ContactForm() {
 
         <div className="pc-contact-field-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--pc-space-4)' }}>
           <div>
-            <label style={label}>Full Name *</label>
+            <label htmlFor="cf-name" style={label}>Full Name *</label>
             <input
-              type="text" value={name} onChange={e => setName(e.target.value)}
+              id="cf-name" type="text" value={name} onChange={e => setName(e.target.value)}
               placeholder="Your name" required style={input}
             />
           </div>
           <div>
-            <label style={label}>Phone</label>
+            <label htmlFor="cf-phone" style={label}>Phone</label>
             <input
-              type="tel" value={phone} onChange={e => setPhone(e.target.value)}
+              id="cf-phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)}
               placeholder="+91 98765 43210" inputMode="tel" style={input}
             />
           </div>
         </div>
 
         <div>
-          <label style={label}>Email</label>
+          <label htmlFor="cf-email" style={label}>Email</label>
           <input
-            type="email" value={email} onChange={e => setEmail(e.target.value)}
+            id="cf-email" type="email" value={email} onChange={e => setEmail(e.target.value)}
             placeholder="you@example.com" style={input}
           />
         </div>
 
         <div>
-          <label style={label}>Enquiry Type</label>
+          <label htmlFor="cf-service" style={label}>Enquiry Type</label>
           <select
-            value={service} onChange={e => setService(e.target.value)}
+            id="cf-service" value={service} onChange={e => setService(e.target.value)}
             style={{ ...input, appearance: 'none', WebkitAppearance: 'none', cursor: 'pointer' }}
           >
             <option value="">Select an enquiry type…</option>
@@ -141,16 +141,16 @@ export default function ContactForm() {
         </div>
 
         <div>
-          <label style={label}>Message *</label>
+          <label htmlFor="cf-message" style={label}>Message *</label>
           <textarea
-            rows={5} value={message} onChange={e => setMessage(e.target.value)}
+            id="cf-message" rows={5} value={message} onChange={e => setMessage(e.target.value)}
             placeholder="Tell us about your society, or describe your service requirement…"
             required style={{ ...input, resize: 'none' }}
           />
         </div>
 
         {error && (
-          <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-danger)', margin: 0 }}>
+          <p role="alert" style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-danger)', margin: 0 }}>
             {error}
           </p>
         )}
