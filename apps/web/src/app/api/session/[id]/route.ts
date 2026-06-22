@@ -1,7 +1,7 @@
 import { toErrMsg } from '@/lib/api-error';
 import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
-import { adminFirestore } from '@/lib/firebase/admin';
+import { adminFirestore, adminAuth } from '@/lib/firebase/admin';
 
 export async function GET(
   _req: NextRequest,
@@ -42,9 +42,20 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { id }    = await params;
+    const { id } = await params;
+
+    // Only authenticated workers may mutate session state
+    const bearer = (req.headers.get('authorization') ?? '').replace(/^Bearer\s+/, '');
+    if (!bearer) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+    const decoded = await adminAuth().verifyIdToken(bearer);
+
+    const db  = adminFirestore();
+    const workerSnap = await db.collection('workers').doc(decoded.uid).get();
+    if (!workerSnap.exists) {
+      return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
+    }
+
     const { action } = await req.json();
-    const db         = adminFirestore();
     const ref        = db.collection('cleaningSessions').doc(id);
     const snap       = await ref.get();
 

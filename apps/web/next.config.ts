@@ -23,7 +23,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source:      '/',
-        has:         [{ type: 'host', value: 'admin.perfectcleaners.in' }],
+        has:         [{ type: 'host', value: 'admin.perfectcleaners.co.in' }],
         destination: '/dashboard',
         permanent:   false,
       },

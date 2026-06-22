@@ -31,8 +31,8 @@ export async function POST(req: NextRequest) {
     try {
       const existing = await adminAuth().getUserByPhoneNumber(formattedPhone);
       uid = existing.uid;
-    } catch (e: any) {
-      if (e.code === 'auth/user-not-found') {
+    } catch (e: unknown) {
+      if ((e as { code?: string })?.code === 'auth/user-not-found') {
         const created = await adminAuth().createUser({ phoneNumber: formattedPhone });
         uid = created.uid;
       } else {

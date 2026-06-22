@@ -32,10 +32,7 @@ export async function POST(req: NextRequest) {
 
     if (verifyData?.type !== 'success') {
       console.error('[verify-otp] MSG91 rejected token:', JSON.stringify(verifyData));
-      return NextResponse.json(
-        { error: `OTP check failed: ${verifyData?.message ?? verifyData?.type ?? 'unknown'}` },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: 'OTP verification failed. Please try again.' }, { status: 400 });
     }
 
     // Bind the verified mobile to the submitted phone — prevents a valid OTP
@@ -62,8 +59,8 @@ export async function POST(req: NextRequest) {
     try {
       const existing = await adminAuth().getUserByPhoneNumber(`+91${phone}`);
       uid = existing.uid;
-    } catch (e: any) {
-      if (e.code === 'auth/user-not-found') {
+    } catch (e: unknown) {
+      if ((e as { code?: string })?.code === 'auth/user-not-found') {
         const created = await adminAuth().createUser({ phoneNumber: `+91${phone}` });
         uid = created.uid;
       } else {
