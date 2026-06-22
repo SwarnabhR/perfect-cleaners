@@ -3,7 +3,14 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**", "build/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**", "build/**"],
+      "env": [
+        "MSG91_AUTH_KEY",
+        "FIREBASE_ADMIN_PROJECT_ID",
+        "FIREBASE_ADMIN_CLIENT_EMAIL",
+        "FIREBASE_ADMIN_PRIVATE_KEY",
+        "CRON_SECRET"
+      ]
     },
     "dev": {
       "cache": false,

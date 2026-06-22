@@ -8,6 +8,12 @@ const SERVICE_IMAGES: Record<string, [string, string]> = {
   '03': ['/service-coating-a.png',   '/service-coating-b.png'],
 };
 
+const SERVICE_ALTS: Record<string, [string, string]> = {
+  '01': ['Microfibre cloth cleaning a leather seat during interior detailing', 'Dashboard and carbon trim wipe during interior detailing'],
+  '02': ['Foam mitt exterior hand wash on car bodywork',                       'Water beading on freshly waxed paint after exterior wash'],
+  '03': ['Ceramic coating applicator pad applied to car paint',                'Mirror-gloss reflection on ceramic coated paintwork'],
+};
+
 interface ServiceFeatureProps {
   num: string;
   name: string;
@@ -18,6 +24,7 @@ interface ServiceFeatureProps {
 
 export default function ServiceFeature({ num, name, price, title, body }: ServiceFeatureProps) {
   const [imgA, imgB] = SERVICE_IMAGES[num] ?? [null, null];
+  const [altA, altB] = SERVICE_ALTS[num] ?? [name, name];
 
   return (
     <div style={{
@@ -41,11 +48,11 @@ export default function ServiceFeature({ num, name, price, title, body }: Servic
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-2)', minHeight: 148 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--pc-space-2)' }}>
             <div style={{ height: 140, borderRadius: 'var(--pc-radius-sm)', overflow: 'hidden', border: '1px solid var(--pc-line)', position: 'relative' }}>
-              {imgA && <Image src={imgA} alt={name} fill sizes="(max-width: 768px) 50vw, 18vw" style={{ objectFit: 'cover' }} />}
+              {imgA && <Image src={imgA} alt={altA} fill sizes="(max-width: 768px) 50vw, 18vw" style={{ objectFit: 'cover' }} />}
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 50%, rgba(14,13,11,0.55) 100%)' }} />
             </div>
             <div style={{ height: 140, borderRadius: 'var(--pc-radius-sm)', overflow: 'hidden', border: '1px solid var(--pc-line)', position: 'relative' }}>
-              {imgB && <Image src={imgB} alt={name} fill sizes="(max-width: 768px) 50vw, 18vw" style={{ objectFit: 'cover' }} />}
+              {imgB && <Image src={imgB} alt={altB} fill sizes="(max-width: 768px) 50vw, 18vw" style={{ objectFit: 'cover' }} />}
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 50%, rgba(14,13,11,0.55) 100%)' }} />
             </div>
           </div>
@@ -53,7 +60,7 @@ export default function ServiceFeature({ num, name, price, title, body }: Servic
 
         {/* Portrait image */}
         <div className="pc-sf-portrait" style={{ height: 280, borderRadius: 'var(--pc-radius-sm)', overflow: 'hidden', border: '1px solid var(--pc-line)', position: 'relative' }}>
-          {imgA && <Image src={imgA} alt={name} fill sizes="(max-width: 768px) 100vw, 30vw" style={{ objectFit: 'cover', objectPosition: 'center top' }} />}
+          {imgA && <Image src={imgA} alt={altA} fill sizes="(max-width: 768px) 100vw, 30vw" style={{ objectFit: 'cover', objectPosition: 'center top' }} />}
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 60%, rgba(14,13,11,0.5) 100%)' }} />
         </div>
 

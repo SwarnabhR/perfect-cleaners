@@ -123,7 +123,11 @@ function WorkerShell({ children }: { children: React.ReactNode }) {
 
 export default function WorkerLayout({ children }: { children: React.ReactNode }) {
   return (
-    <Suspense>
+    <Suspense fallback={
+      <div style={{ minHeight: '100vh', background: 'var(--pc-ink)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-4)' }}>Loading…</span>
+      </div>
+    }>
       <WorkerAuthProvider>
         <WorkerShell>{children}</WorkerShell>
       </WorkerAuthProvider>
