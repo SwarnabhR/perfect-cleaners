@@ -1,22 +1,28 @@
-/**
- * Notification service
- * Sends SMS and in-app notifications to users
- */
-
 type NotificationType = 'approval' | 'car_cleaned' | 'weekly_reminder' | 'payment_reminder';
 
 interface NotificationPayload {
   type: NotificationType;
   recipientPhone: string;
   recipientName: string;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
+}
+
+async function buildHeaders(): Promise<HeadersInit> {
+  try {
+    const { auth } = await import('@pc/firebase');
+    const token = await auth.currentUser?.getIdToken();
+    if (token) return { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+  } catch {
+    // Not authenticated — request will be rejected by the API route
+  }
+  return { 'Content-Type': 'application/json' };
 }
 
 export async function sendNotification(payload: NotificationPayload): Promise<boolean> {
   try {
     const response = await fetch('/api/notification/send', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await buildHeaders(),
       body: JSON.stringify(payload),
     });
 

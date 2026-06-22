@@ -2,7 +2,7 @@ import { toErrMsg } from '@/lib/api-error';
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { FieldValue } from 'firebase-admin/firestore';
-import { adminFirestore } from '@/lib/firebase/admin';
+import { adminFirestore, adminAuth } from '@/lib/firebase/admin';
 import { notifySocietyWorkers } from '@/lib/notify-society-workers';
 
 export async function POST(req: NextRequest) {
@@ -14,6 +14,24 @@ export async function POST(req: NextRequest) {
       booking,             // full booking payload from the client
       walletUsed = 0,      // amount deducted from PC wallet (silent, not on invoice)
     } = await req.json();
+
+    // Verify caller identity — extract Firebase ID token if present
+    const bearer = (req.headers.get('authorization') ?? '').replace(/^Bearer\s+/, '');
+    let verifiedUid: string | null = null;
+    if (bearer) {
+      try {
+        const decoded = await adminAuth().verifyIdToken(bearer);
+        verifiedUid = decoded.uid;
+      } catch {
+        // Invalid token — continue as guest (wallet use will be blocked below)
+      }
+    }
+
+    // Wallet deduction requires a verified identity so we can't be tricked
+    // into draining someone else's balance via a spoofed customerId.
+    if (walletUsed > 0 && !verifiedUid) {
+      return NextResponse.json({ error: 'Authentication required for wallet payments.' }, { status: 401 });
+    }
 
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
     if (!keySecret) {
@@ -51,9 +69,25 @@ export async function POST(req: NextRequest) {
     const suffix     = String(Math.floor(1000 + Math.random() * 9000));
     const bookingRef = `PC-${suffix}`;
 
+    // Resolve customerId: server-verified UID takes precedence over anything the
+    // client sends — prevents a booking being created under a different user's account.
+    const customerId: string = verifiedUid ?? booking.customerId ?? `phone:${booking.customerPhone}`;
+
+    // If wallet was used, verify the customer actually has enough balance.
+    // Cap at the real balance to prevent over-deduction even if the client lies.
+    let cappedWalletUsed = 0;
+    if (walletUsed > 0 && verifiedUid) {
+      const customerSnap = await db.collection('customers').doc(verifiedUid).get();
+      const actualBalance = (customerSnap.data()?.walletBalance ?? 0) as number;
+      cappedWalletUsed = Math.min(Math.abs(walletUsed), actualBalance);
+      if (cappedWalletUsed <= 0) {
+        return NextResponse.json({ error: 'Insufficient wallet balance.' }, { status: 400 });
+      }
+    }
+
     const bookingDoc = await db.collection('bookings').add({
       bookingRef,
-      customerId:    booking.customerId ?? `phone:${booking.customerPhone}`,
+      customerId,
       customerName:  booking.customerName,
       customerPhone: `+91${booking.customerPhone}`,
       serviceIds:    [booking.serviceId],
@@ -95,7 +129,6 @@ export async function POST(req: NextRequest) {
     }
 
     // In-app notification for authenticated customers (mirrors onBookingCreated Cloud Function)
-    const customerId = booking.customerId;
     if (customerId && !customerId.startsWith('phone:')) {
       const svc     = (booking.serviceId ?? 'service').replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
       const dateStr = new Date(booking.scheduledAt).toLocaleDateString('en-IN', {
@@ -150,10 +183,10 @@ export async function POST(req: NextRequest) {
         .catch(err => console.error('[verify-payment] SMS failed:', err));
     }
 
-    // Silently deduct wallet balance if used
-    if (walletUsed > 0 && customerId && !customerId.startsWith('phone:')) {
-      db.collection('customers').doc(customerId).update({
-        walletBalance: FieldValue.increment(-Math.abs(walletUsed)),
+    // Deduct wallet balance using the server-verified amount (cappedWalletUsed)
+    if (cappedWalletUsed > 0 && verifiedUid) {
+      db.collection('customers').doc(verifiedUid).update({
+        walletBalance: FieldValue.increment(-cappedWalletUsed),
       }).catch(err => console.error('[verify-payment] wallet deduct failed:', err));
     }
 
@@ -163,7 +196,7 @@ export async function POST(req: NextRequest) {
     batch.set(logRef, {
       bookingId:    bookingDoc.id,
       bookingRef,
-      customerId:   booking.customerId ?? `phone:${booking.customerPhone}`,
+      customerId,
       customerName: booking.customerName ?? '',
       customerPhone:`+91${booking.customerPhone}`,
       amount:       total,
