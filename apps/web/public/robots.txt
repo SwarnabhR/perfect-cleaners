@@ -1,15 +1,6 @@
+# This file is superseded by /robots.ts (Next.js dynamic route).
+# See apps/web/src/app/robots.ts for the authoritative rules.
+
 User-agent: *
 Allow: /
-
-# Block admin routes from indexing
-Disallow: /dashboard
-Disallow: /bookings
-Disallow: /workers
-Disallow: /customers
-Disallow: /services-mgmt
-Disallow: /promotions
-Disallow: /analytics
-Disallow: /settings
-Disallow: /api/
-
-Sitemap: https://perfectcleaners.in/sitemap.xml
+Sitemap: https://perfectcleaners.co.in/sitemap.xml

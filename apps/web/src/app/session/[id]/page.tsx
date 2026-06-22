@@ -1,8 +1,28 @@
+import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 import { adminFirestore } from '@/lib/firebase/admin';
 import SessionClient from './SessionClient';
 
 interface Props {
   params: Promise<{ id: string }>;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  try {
+    const db   = adminFirestore();
+    const snap = await db.collection('cleaningSessions').doc(id).get();
+    if (!snap.exists) return { title: 'Session Not Found' };
+    const data = snap.data()!;
+    const name = [data.tower, data.societyName].filter(Boolean).join(' · ');
+    return {
+      title: `Cleaning Session — ${name}`,
+      description: `Track the cleaning progress for ${name}.`,
+      robots: { index: false, follow: false },
+    };
+  } catch {
+    return { title: 'Cleaning Session' };
+  }
 }
 
 export default async function SessionPage({ params }: Props) {
@@ -12,9 +32,7 @@ export default async function SessionPage({ params }: Props) {
     const db   = adminFirestore();
     const snap = await db.collection('cleaningSessions').doc(id).get();
 
-    if (!snap.exists) {
-      return <NotFound message="Session not found." />;
-    }
+    if (!snap.exists) notFound();
 
     const data    = snap.data()!;
     const session = {
@@ -34,17 +52,6 @@ export default async function SessionPage({ params }: Props) {
 
     return <SessionClient initialSession={session} sessionId={id} />;
   } catch {
-    return <NotFound message="Unable to load session." />;
+    notFound();
   }
-}
-
-function NotFound({ message }: { message: string }) {
-  return (
-    <div style={{
-      minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontFamily: 'var(--font-sans, sans-serif)', color: 'rgba(255,255,255,0.5)', fontSize: 14,
-    }}>
-      {message}
-    </div>
-  );
 }

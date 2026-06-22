@@ -7,7 +7,17 @@ import { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Contact Us',
-  description: 'Get in touch for questions, custom quotes, or partnerships.',
+  description: 'Get in touch with Perfect Cleaners for questions, custom quotes, or service partnerships in Delhi NCR.',
+  openGraph: {
+    title: 'Contact Perfect Cleaners — Delhi NCR',
+    description: 'Get in touch for questions, custom quotes, or partnerships.',
+    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'Perfect Cleaners — Premium Car Detailing' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Contact Perfect Cleaners — Delhi NCR',
+    description: 'Get in touch for questions, custom quotes, or partnerships.',
+  },
 };
 
 const CONTACT_ITEMS = [

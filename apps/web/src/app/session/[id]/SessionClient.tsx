@@ -31,7 +31,7 @@ function formatDate(iso: string | null): string {
 function PCMark() {
   return (
     <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden>
-      <rect width="28" height="28" rx="6" fill="#4A5E44" />
+      <rect width="28" height="28" rx="6" fill="var(--pc-sage)" />
       <text x="14" y="20" textAnchor="middle" fontFamily="Georgia,serif" fontSize="14" fill="#fff" letterSpacing="-1">PC</text>
     </svg>
   );
@@ -87,14 +87,14 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
   const offset = CIR * (1 - pct);
 
   const statusColor =
-    status === 'done'       ? '#4A5E44' :
-    status === 'inprogress' ? '#C9A961' :
+    status === 'done'       ? 'var(--pc-sage)' :
+    status === 'inprogress' ? 'var(--pc-gold)' :
     'rgba(255,255,255,0.35)';
 
   return (
     <div style={{
       minHeight: '100dvh',
-      background: '#0E0D0B',
+      background: 'var(--pc-ink)',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
@@ -166,7 +166,7 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
       <div style={{
         display: 'inline-flex', alignItems: 'center', gap: 6,
         padding: '5px 14px', borderRadius: 999,
-        background: status === 'done' ? 'rgba(74,94,68,0.2)' : status === 'inprogress' ? 'rgba(201,169,97,0.15)' : 'rgba(255,255,255,0.06)',
+        background: status === 'done' ? 'color-mix(in srgb, var(--pc-sage) 20%, transparent)' : status === 'inprogress' ? 'color-mix(in srgb, var(--pc-gold) 15%, transparent)' : 'rgba(255,255,255,0.06)',
         border: `1px solid ${statusColor}`,
         marginBottom: 40,
       }}>
@@ -189,7 +189,7 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
             onClick={() => sendAction('start')}
             style={{
               width: '100%', padding: '18px 0', borderRadius: 14, border: 'none',
-              background: acting ? 'rgba(255,255,255,0.08)' : '#4A5E44',
+              background: acting ? 'rgba(255,255,255,0.08)' : 'var(--pc-sage)',
               fontFamily: 'inherit', fontSize: 15, fontWeight: 600,
               color: acting ? 'rgba(255,255,255,0.3)' : '#fff',
               cursor: acting ? 'default' : 'pointer',
@@ -209,11 +209,11 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
               onClick={() => sendAction('increment')}
               style={{
                 width: '100%', padding: '22px 0', borderRadius: 14, border: 'none',
-                background: acting || allDone ? 'rgba(255,255,255,0.06)' : 'rgba(201,169,97,0.15)',
+                background: acting || allDone ? 'rgba(255,255,255,0.06)' : 'color-mix(in srgb, var(--pc-gold) 15%, transparent)',
                 borderWidth: 1, borderStyle: 'solid',
-                borderColor: acting || allDone ? 'rgba(255,255,255,0.1)' : '#C9A961',
+                borderColor: acting || allDone ? 'rgba(255,255,255,0.1)' : 'var(--pc-gold)',
                 fontFamily: 'inherit', fontSize: 16, fontWeight: 700,
-                color: acting || allDone ? 'rgba(255,255,255,0.25)' : '#C9A961',
+                color: acting || allDone ? 'rgba(255,255,255,0.25)' : 'var(--pc-gold)',
                 cursor: acting || allDone ? 'default' : 'pointer',
                 letterSpacing: '0.04em',
                 transition: 'opacity 0.2s ease',
@@ -242,7 +242,7 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
 
         {status === 'done' && (
           <div style={{ textAlign: 'center', padding: '16px 0' }}>
-            <p style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: '#4A5E44', margin: '0 0 4px' }}>Session complete</p>
+            <p style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: 'var(--pc-sage)', margin: '0 0 4px' }}>Session complete</p>
             <p style={{ fontFamily: 'inherit', fontSize: 13, color: 'rgba(255,255,255,0.3)', margin: 0 }}>
               {completedCars} car{completedCars !== 1 ? 's' : ''} cleaned
             </p>

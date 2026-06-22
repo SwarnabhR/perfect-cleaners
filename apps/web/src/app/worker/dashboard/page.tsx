@@ -4,10 +4,10 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   collection, query, where, onSnapshot,
-  doc, updateDoc, orderBy, limit, Timestamp,
+  doc, updateDoc, orderBy, limit, Timestamp, getDocs,
 } from 'firebase/firestore';
 import { db } from '@pc/firebase';
-import type { CleaningLog } from '@pc/firebase';
+import type { CleaningLog, Customer } from '@pc/firebase';
 import { useWorkerAuth } from '@/components/WorkerAuthProvider';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
@@ -21,9 +21,9 @@ function todayStart() {
   return Timestamp.fromDate(d);
 }
 
-function formatTime(ts: any): string {
+function formatTime(ts: Timestamp | Date | null | undefined): string {
   if (!ts) return '—';
-  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  const d = ts instanceof Timestamp ? ts.toDate() : new Date(ts);
   return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 }
 
@@ -58,14 +58,12 @@ export default function WorkerDashboard() {
       where('societyId', '==', worker.assignedSocietyId),
     );
     // One-time fetch is enough for the denominator
-    import('firebase/firestore').then(({ getDocs }) =>
-      getDocs(q).then(snap => {
-        const carCount = snap.docs.reduce(
-          (sum, d) => sum + ((d.data().vehicles as any[])?.length ?? 0), 0,
-        );
-        setTotal(carCount);
-      }).catch(() => {}),
-    );
+    getDocs(q).then(snap => {
+      const carCount = snap.docs.reduce(
+        (sum, d) => sum + ((d.data() as Customer).vehicles?.length ?? 0), 0,
+      );
+      setTotal(carCount);
+    }).catch(() => {});
   }, [worker?.assignedSocietyId]);
 
   async function toggleOnline() {
@@ -205,7 +203,7 @@ export default function WorkerDashboard() {
                     </p>
                   </div>
                   <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', flexShrink: 0 }}>
-                    {formatTime(log.cleanedAt)}
+                    {formatTime(log.cleanedAt as unknown as Timestamp)}
                   </span>
                 </div>
               </Card>

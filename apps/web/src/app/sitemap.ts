@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 
-const BASE = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://perfectcleaners.in';
+const BASE = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://perfectcleaners.co.in';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();

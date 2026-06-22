@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, limit, onSnapshot, Timestamp } from 'firebase/firestore';
 import { db } from '@pc/firebase';
 import type { Booking, Worker, BookingStatus } from '@pc/firebase';
 import Card from '@/components/ui/Card';
@@ -16,9 +16,16 @@ const STATUS_LABEL: Record<BookingStatus, string> = {
   arrived: 'Arrived', inprogress: 'In Progress', done: 'Done', cancelled: 'Cancelled',
 };
 
-function formatTime(ts: any): string {
-  if (!ts) return '—';
-  const d = ts.toDate ? ts.toDate() : new Date(ts);
+type MaybeTimestamp = Timestamp | Date | null | undefined;
+
+function toDate(ts: MaybeTimestamp): Date | null {
+  if (!ts) return null;
+  return ts instanceof Timestamp ? ts.toDate() : new Date(ts);
+}
+
+function formatTime(ts: MaybeTimestamp): string {
+  const d = toDate(ts);
+  if (!d) return '—';
   return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 }
 
@@ -29,8 +36,8 @@ function buildSparkline(bookings: LiveBooking[], W = 800, H = 200): { line: stri
   const now = Date.now();
   const dayMs = 86_400_000;
   for (const b of bookings) {
-    const ts = (b as any).createdAt;
-    const t  = ts?.toDate ? ts.toDate().getTime() : new Date(ts ?? 0).getTime();
+    const ts = b.createdAt as unknown as MaybeTimestamp;
+    const t  = toDate(ts)?.getTime() ?? 0;
     const daysAgo = Math.floor((now - t) / dayMs);
     if (daysAgo >= 0 && daysAgo < DAYS) buckets[DAYS - 1 - daysAgo]++;
   }
@@ -183,10 +190,10 @@ export default function DashboardPage() {
                 {recentBookings.map(b => (
                   <tr key={b.id} style={{ borderBottom: '1px solid var(--pc-line)' }}>
                     <td style={{ padding: 'var(--pc-space-3) var(--pc-space-5)', fontFamily: 'var(--pc-mono)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)', whiteSpace: 'nowrap' }}>#{b.id.slice(0, 8).toUpperCase()}</td>
-                    <td style={{ padding: 'var(--pc-space-3) var(--pc-space-5)', fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg)', whiteSpace: 'nowrap' }}>{(b as any).customerName ?? b.customerId.slice(0, 10)}</td>
+                    <td style={{ padding: 'var(--pc-space-3) var(--pc-space-5)', fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg)', whiteSpace: 'nowrap' }}>{b.customerName ?? b.customerId.slice(0, 10)}</td>
                     <td style={{ padding: 'var(--pc-space-3) var(--pc-space-5)', fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg-2)', whiteSpace: 'nowrap' }}>{b.serviceIds?.[0]?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) ?? '—'}</td>
-                    <td style={{ padding: 'var(--pc-space-3) var(--pc-space-5)', fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg-2)', whiteSpace: 'nowrap' }}>{formatTime((b as any).scheduledAt)}</td>
-                    <td style={{ padding: 'var(--pc-space-3) var(--pc-space-5)', fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg-2)', whiteSpace: 'nowrap' }}>{(b as any).workerName ?? 'Unassigned'}</td>
+                    <td style={{ padding: 'var(--pc-space-3) var(--pc-space-5)', fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg-2)', whiteSpace: 'nowrap' }}>{formatTime(b.scheduledAt as unknown as MaybeTimestamp)}</td>
+                    <td style={{ padding: 'var(--pc-space-3) var(--pc-space-5)', fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg-2)', whiteSpace: 'nowrap' }}>{b.workerName ?? 'Unassigned'}</td>
                     <td style={{ padding: 'var(--pc-space-3) var(--pc-space-5)' }}><StatusPill status={STATUS_LABEL[b.status] ?? b.status} /></td>
                   </tr>
                 ))}

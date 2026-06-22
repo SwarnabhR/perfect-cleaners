@@ -21,7 +21,7 @@ const sans = Inter_Tight({
   display:  'swap',
 });
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://perfectcleaners.in';
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://perfectcleaners.co.in';
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
