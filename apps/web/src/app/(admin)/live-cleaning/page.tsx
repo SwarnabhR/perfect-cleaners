@@ -102,7 +102,7 @@ export default function LiveCleaningPage() {
         carModel: car.carModel,
         preferredTime: car.preferredTime,
         status: car.status,
-        unavailable: (car as any).unavailable || false,
+        unavailable: Boolean((car as unknown as Record<string, unknown>)['unavailable']),
         societyName: session.societyName,
         tower: session.tower,
       });
@@ -129,8 +129,8 @@ export default function LiveCleaningPage() {
         ) ?? [];
 
       await updateDoc(sessionRef, { cars: newCars });
-    } catch (err: any) {
-      console.error('[LiveCleaning] toggle failed:', err.message);
+    } catch (err: unknown) {
+      console.error('[LiveCleaning] toggle failed:', err instanceof Error ? err.message : err);
     } finally {
       setToggling(null);
     }

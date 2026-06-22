@@ -25,9 +25,12 @@ function workerStatus(w: LiveWorker): string {
   return 'Available';
 }
 
-function fmt(ts: any): string {
+type MaybeTs = { toDate?(): Date } | Date | string | number | null | undefined;
+function fmt(ts: MaybeTs): string {
   if (!ts) return '—';
-  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  const d = (ts as { toDate?(): Date }).toDate
+    ? (ts as { toDate(): Date }).toDate()
+    : new Date(ts as string | number | Date);
   return d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
 }
 

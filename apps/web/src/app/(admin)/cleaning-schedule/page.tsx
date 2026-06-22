@@ -100,12 +100,12 @@ export default function CleaningSchedulePage() {
         workerNames: [], // TODO: Fetch worker names
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-      } as any);
+      });
 
       setCreating(false);
       setForm(BLANK_FORM);
-    } catch (err: any) {
-      console.error('[CleaningSchedule] create failed:', err.message);
+    } catch (err: unknown) {
+      console.error('[CleaningSchedule] create failed:', err instanceof Error ? err.message : err);
     } finally {
       setSaving(false);
     }
@@ -114,8 +114,8 @@ export default function CleaningSchedulePage() {
   async function handleDeleteSession(id: string) {
     try {
       await deleteDoc(doc(db, 'cleaningSessions', id));
-    } catch (err: any) {
-      console.error('[CleaningSchedule] delete failed:', err.message);
+    } catch (err: unknown) {
+      console.error('[CleaningSchedule] delete failed:', err instanceof Error ? err.message : err);
     }
   }
 
@@ -130,8 +130,8 @@ export default function CleaningSchedulePage() {
         },
         { merge: true }
       );
-    } catch (err: any) {
-      console.error('[CleaningSchedule] start failed:', err.message);
+    } catch (err: unknown) {
+      console.error('[CleaningSchedule] start failed:', err instanceof Error ? err.message : err);
     }
   }
 

@@ -19,59 +19,61 @@ export async function POST(req: NextRequest) {
     const decoded = await adminAuth().verifyIdToken(idToken);
     const workerId = decoded.uid;
 
-    const db = adminFirestore();
+    const db          = adminFirestore();
+    const bookingRef  = db.collection('bookings').doc(bookingId);
+    const workerRef   = db.doc(`workers/${workerId}`);
 
-    // Read the booking server-side — verify ownership and get authoritative values
-    const bookingSnap = await db.collection('bookings').doc(bookingId).get();
-    if (!bookingSnap.exists) {
+    // Pre-flight read for ownership check and to extract data for the notification.
+    // The transaction re-reads before writing, so any racing update is still safe.
+    const initialSnap = await bookingRef.get();
+    if (!initialSnap.exists) {
       return NextResponse.json({ error: 'Booking not found.' }, { status: 404 });
     }
-    const bookingData = bookingSnap.data()!;
+    const initialData = initialSnap.data()!;
 
-    // Only the assigned worker may complete this booking
-    if (bookingData.workerId !== workerId) {
+    if (initialData.workerId !== workerId) {
       return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
     }
 
-    // Idempotency: if already done, return success without re-crediting earnings
-    if (bookingData.status === 'done') {
-      return NextResponse.json({ ok: true });
-    }
-
-    const customerId = bookingData.customerId as string | undefined;
-    const serviceIds = bookingData.serviceIds as string[] | undefined;
-
+    const customerId = initialData.customerId as string | undefined;
+    const serviceIds = initialData.serviceIds as string[] | undefined;
     const svc = ((serviceIds?.[0] ?? 'service') as string)
       .replace(/-/g, ' ')
       .replace(/\b\w/g, (c: string) => c.toUpperCase());
 
-    const writes: Promise<unknown>[] = [];
-
-    // Update worker job stats (salary-based, no earnings tracking)
-    writes.push(
-      db.doc(`workers/${workerId}`).update({
+    // Atomic: check idempotency and write booking status + worker stats together.
+    // Without a transaction, two concurrent calls could both read status !== 'done'
+    // and both increment totalJobs, producing a double-counted stat.
+    let alreadyDone = false;
+    await db.runTransaction(async (t) => {
+      const snap = await t.get(bookingRef);
+      if (snap.data()?.status === 'done') {
+        alreadyDone = true;
+        return;
+      }
+      t.update(bookingRef, { status: 'done', completedAt: FieldValue.serverTimestamp() });
+      t.update(workerRef, {
         totalJobs:          FieldValue.increment(1),
         carsCompletedToday: FieldValue.increment(1),
         activeBookingId:    FieldValue.delete(),
         updatedAt:          FieldValue.serverTimestamp(),
-      }),
-    );
+      });
+    });
 
-    // In-app notification to customer
+    if (alreadyDone) return NextResponse.json({ ok: true });
+
+    // Customer notification — best-effort, outside the transaction
     if (customerId && !customerId.startsWith('phone:')) {
-      writes.push(
-        db.collection('customers').doc(customerId).collection('notifications').add({
-          type:      'job_complete',
-          title:     'Job complete',
-          body:      `Your ${svc} is done. Tap to rate your experience.`,
-          read:      false,
-          createdAt: FieldValue.serverTimestamp(),
-          bookingId,
-        }),
-      );
+      db.collection('customers').doc(customerId).collection('notifications').add({
+        type:      'job_complete',
+        title:     'Job complete',
+        body:      `Your ${svc} is done. Tap to rate your experience.`,
+        read:      false,
+        createdAt: FieldValue.serverTimestamp(),
+        bookingId,
+      }).catch(err => console.error('[job-complete] notification write failed:', err));
     }
 
-    await Promise.all(writes);
     return NextResponse.json({ ok: true });
   } catch (err: unknown) {
     console.error('[job-complete]', err);

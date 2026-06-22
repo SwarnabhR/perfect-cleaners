@@ -90,12 +90,10 @@ export async function sendSMSVia91msg(toPhone: string, message: string): Promise
         error: `HTTP ${response.status}: ${text}`,
       };
     }
-  } catch (err: any) {
-    console.error('[91msg] Exception:', err.message);
-    return {
-      success: false,
-      error: err.message,
-    };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[91msg] Exception:', msg);
+    return { success: false, error: msg };
   }
 }
 
@@ -134,7 +132,7 @@ export async function check91msgBalance(): Promise<number | null> {
     // This is a placeholder - 91msg may not have a balance API
     // Check their docs for availability
     return null;
-  } catch (err) {
+  } catch {
     return null;
   }
 }

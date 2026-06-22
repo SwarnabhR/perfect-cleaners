@@ -16,9 +16,12 @@ type StatusFilter = 'All' | 'Active' | 'Inactive';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function formatDate(ts: any): string {
+type MaybeTimestamp = { toDate?(): Date } | Date | string | number | null | undefined;
+function formatDate(ts: MaybeTimestamp): string {
   if (!ts) return '—';
-  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  const d = (ts as { toDate?(): Date }).toDate
+    ? (ts as { toDate(): Date }).toDate()
+    : new Date(ts as string | number | Date);
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
@@ -151,8 +154,8 @@ function SocietyFormModal({
     try {
       await onSave(fromDraft(draft));
       onClose();
-    } catch (e: any) {
-      setErr(e.message ?? 'Something went wrong.');
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : 'Something went wrong.');
     } finally { setBusy(false); }
   }
 

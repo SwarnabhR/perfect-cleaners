@@ -106,8 +106,8 @@ export default function TowerBillingPage() {
         updatedAt: serverTimestamp(),
       });
       closeForm();
-    } catch (err: any) {
-      console.error('[TowerBilling] save failed:', err.message);
+    } catch (err: unknown) {
+      console.error('[TowerBilling] save failed:', err instanceof Error ? err.message : err);
     } finally {
       setSaving(false);
     }
@@ -116,8 +116,8 @@ export default function TowerBillingPage() {
   async function handleDelete(id: string) {
     try {
       await deleteDoc(doc(db, 'societyBillingConfig', id));
-    } catch (err: any) {
-      console.error('[TowerBilling] delete failed:', err.message);
+    } catch (err: unknown) {
+      console.error('[TowerBilling] delete failed:', err instanceof Error ? err.message : err);
     }
   }
 

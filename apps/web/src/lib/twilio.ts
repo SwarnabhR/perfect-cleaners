@@ -77,31 +77,20 @@ export async function sendSMSViaTwilio(toPhone: string, message: string): Promis
       };
     }
 
-    const data = (await response.json()) as any;
+    interface TwilioMessage { sid?: string; status?: string; }
+    const data = (await response.json()) as TwilioMessage;
 
     if (data.sid) {
-      console.log('[Twilio] SMS sent successfully:', {
-        to: toPhone,
-        messageId: data.sid,
-        status: data.status,
-      });
-      return {
-        success: true,
-        messageId: data.sid,
-      };
+      console.log('[Twilio] SMS sent successfully:', { to: toPhone, messageId: data.sid, status: data.status });
+      return { success: true, messageId: data.sid };
     } else {
       console.error('[Twilio] Unexpected response:', data);
-      return {
-        success: false,
-        error: 'Unexpected API response',
-      };
+      return { success: false, error: 'Unexpected API response' };
     }
-  } catch (err: any) {
-    console.error('[Twilio] Exception:', err.message);
-    return {
-      success: false,
-      error: err.message,
-    };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[Twilio] Exception:', msg);
+    return { success: false, error: msg };
   }
 }
 
@@ -159,9 +148,9 @@ export async function checkSMSStatus(messageSid: string): Promise<string> {
       return 'unknown';
     }
 
-    const data = (await response.json()) as any;
-    return data.status; // queued, sending, sent, failed, delivered, undelivered, receiving, received
-  } catch (err) {
+    const data = (await response.json()) as { status?: string };
+    return data.status ?? 'unknown';
+  } catch {
     return 'unknown';
   }
 }

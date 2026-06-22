@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@pc/firebase';
+import { collection, query, where, getDocs, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { db, auth } from '@pc/firebase';
 import type { PendingApproval, CustomerSocietyRecord } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
@@ -78,65 +78,68 @@ export default function PendingApprovalsPage() {
     setSaving(true);
 
     try {
-      // Generate a new customerId if not existing
       const customerId = approval.customerId || `customer_${approval.id}`;
+
+      // Look up fee and schedule for this society + tower from billing config
+      const configSnap = await getDocs(
+        query(
+          collection(db, 'societyBillingConfig'),
+          where('societyId', '==', approval.societyId),
+          where('tower',     '==', approval.tower),
+        )
+      );
+      const billingConfig    = configSnap.docs[0]?.data();
+      const monthlyFee       = (billingConfig?.monthlyFee       as number | undefined) ?? 500;
+      const cleaningSchedule = (billingConfig?.cleaningSchedule as string | undefined) ?? 'Mon, Wed, Fri · 9:00 AM';
 
       // 1. Create CustomerSocietyRecord
       const recordId = `${customerId}_${approval.societyId}_${approval.tower}`;
       await setDoc(doc(db, 'customerSocietyRecords', recordId), {
         customerId,
-        societyId: approval.societyId,
-        societyName: approval.societyName,
-        tower: approval.tower,
-        cars: [
-          {
-            plate: approval.carPlate,
-            make: approval.carMake,
-            model: approval.carModel,
-          },
-        ],
+        societyId:             approval.societyId,
+        societyName:           approval.societyName,
+        tower:                 approval.tower,
+        cars: [{ plate: approval.carPlate, make: approval.carMake, model: approval.carModel }],
         preferredCleaningTime: approval.preferredCleaningTime,
-        signupSource: 'self_signup',
-        status: 'active',
-        monthlyFee: 500, // Will be fetched from societyBillingConfig
-        nextBillingDate: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
-        paymentStatus: 'verified',
-        paymentMethod: form.paymentMethod,
-        paymentNotes: form.paymentNotes,
-        skipDates: [],
-        rescheduledSlots: [],
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      } as any);
+        signupSource:          'self_signup',
+        status:                'active',
+        monthlyFee,
+        nextBillingDate:       new Date(Date.now() + 24 * 60 * 60 * 1000),
+        paymentStatus:         'verified',
+        paymentMethod:         form.paymentMethod,
+        paymentNotes:          form.paymentNotes,
+        skipDates:             [],
+        rescheduledSlots:      [],
+        createdAt:             serverTimestamp(),
+        updatedAt:             serverTimestamp(),
+      });
 
       // 2. Update PendingApproval to approved
       await setDoc(
         doc(db, 'pendingApprovals', approval.id),
         {
-          status: 'approved',
+          status:     'approved',
           approvedAt: serverTimestamp(),
-          approvedBy: 'admin', // TODO: Get actual admin UID
+          approvedBy: auth.currentUser?.uid ?? 'unknown',
         },
-        { merge: true }
+        { merge: true },
       );
 
       // 3. Send SMS notification to customer
-      const nextWeekDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN', {
-        month: 'short',
-        day: 'numeric',
-      });
+      const nextWeekDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+        .toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
       await notifyApproval(
         approval.customerPhone,
         approval.customerName,
         approval.societyName,
         approval.tower,
-        'Mon, Wed, Fri · 9:00 AM', // TODO: Fetch from societyBillingConfig
-        nextWeekDate
+        cleaningSchedule,
+        nextWeekDate,
       );
 
       closeApprovalForm();
-    } catch (err: any) {
-      console.error('[PendingApprovals] approve failed:', err.message);
+    } catch (err: unknown) {
+      console.error('[PendingApprovals] approve failed:', err instanceof Error ? err.message : err);
     } finally {
       setSaving(false);
     }
@@ -152,8 +155,8 @@ export default function PendingApprovalsPage() {
         },
         { merge: true }
       );
-    } catch (err: any) {
-      console.error('[PendingApprovals] reject failed:', err.message);
+    } catch (err: unknown) {
+      console.error('[PendingApprovals] reject failed:', err instanceof Error ? err.message : err);
     }
   }
 

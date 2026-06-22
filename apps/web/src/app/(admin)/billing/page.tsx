@@ -20,7 +20,7 @@ interface PaymentLog {
   customerPhone?:string;
   amount:       number;
   type:         'online_booking' | 'manual_dues';
-  paidAt:       any;
+  paidAt:       Timestamp | Date | string | null;
 }
 
 interface CustomerRow {
@@ -44,16 +44,19 @@ function fmt(n: number) {
   return `₹${n.toLocaleString('en-IN')}`;
 }
 
-function fmtDate(ts: any) {
-  if (!ts) return '—';
-  const d = ts.toDate ? ts.toDate() : new Date(ts);
-  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+type MaybeTs = { toDate?(): Date } | Date | string | number | null | undefined;
+function tsToDate(ts: MaybeTs): Date {
+  return (ts as { toDate?(): Date }).toDate
+    ? (ts as { toDate(): Date }).toDate()
+    : new Date(ts as string | number | Date);
 }
-
-function fmtTime(ts: any) {
+function fmtDate(ts: MaybeTs) {
+  if (!ts) return '—';
+  return tsToDate(ts).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+function fmtTime(ts: MaybeTs) {
   if (!ts) return '';
-  const d = ts.toDate ? ts.toDate() : new Date(ts);
-  return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  return tsToDate(ts).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 }
 
 const monoLabel: React.CSSProperties = {
@@ -82,7 +85,7 @@ export default function BillingPage() {
         // Today's income computed from logs
         const start = todayStart().toMillis();
         const todayTotal = rows.reduce((sum, l) => {
-          const ms = l.paidAt?.toMillis?.() ?? 0;
+          const ms = (l.paidAt as Timestamp | null)?.toMillis?.() ?? 0;
           return ms >= start ? sum + (l.amount ?? 0) : sum;
         }, 0);
         setTodayIncome(todayTotal);

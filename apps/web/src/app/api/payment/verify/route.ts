@@ -85,7 +85,15 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const bookingDoc = await db.collection('bookings').add({
+    // Pre-generate the booking doc ref so it can join the same WriteBatch as
+    // the payment log and income stats — all three commit atomically or none do.
+    const bookingDocRef = db.collection('bookings').doc();
+    const logRef        = db.collection('paymentLogs').doc();
+    const statsRef      = db.collection('stats').doc('income');
+
+    const batch = db.batch();
+
+    batch.set(bookingDocRef, {
       bookingRef,
       customerId,
       customerName:  booking.customerName,
@@ -121,14 +129,32 @@ export async function POST(req: NextRequest) {
       updatedAt:      new Date(),
     });
 
-    // Increment promo usedCount if a code was applied
+    batch.set(logRef, {
+      bookingId:    bookingDocRef.id,
+      bookingRef,
+      customerId,
+      customerName: booking.customerName ?? '',
+      customerPhone:`+91${booking.customerPhone}`,
+      amount:       total,
+      type:         'online_booking',
+      paidAt:       FieldValue.serverTimestamp(),
+    });
+
+    batch.set(statsRef, { totalIncome: FieldValue.increment(total) }, { merge: true });
+
+    // Single commit — booking + payment record + stats are written together or not at all
+    await batch.commit();
+
+    const bookingDocId = bookingDocRef.id;
+
+    // ── Best-effort side effects (none of these block the response) ────────────
+
     if (booking.promoId) {
       db.collection('promotions').doc(booking.promoId).update({
         usedCount: FieldValue.increment(1),
       }).catch(err => console.error('[verify-payment] promo increment failed:', err));
     }
 
-    // In-app notification for authenticated customers (mirrors onBookingCreated Cloud Function)
     if (customerId && !customerId.startsWith('phone:')) {
       const svc     = (booking.serviceId ?? 'service').replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
       const dateStr = new Date(booking.scheduledAt).toLocaleDateString('en-IN', {
@@ -140,11 +166,10 @@ export async function POST(req: NextRequest) {
         body:      `${bookingRef} · ${svc} on ${dateStr}. Payment received — ₹${total.toLocaleString('en-IN')} via UPI.`,
         read:      false,
         createdAt: FieldValue.serverTimestamp(),
-        bookingId: bookingDoc.id,
+        bookingId: bookingDocId,
       }).catch(err => console.error('[verify-payment] notification write failed:', err));
     }
 
-    // Notify workers assigned to this society (best-effort)
     if (booking.societyId) {
       const svc     = (booking.serviceId ?? 'service').replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
       const dateStr = new Date(booking.scheduledAt).toLocaleDateString('en-IN', {
@@ -154,11 +179,10 @@ export async function POST(req: NextRequest) {
         type:      'new_booking',
         title:     'New booking',
         body:      `${bookingRef} · ${svc} on ${dateStr}.`,
-        bookingId: bookingDoc.id,
+        bookingId: bookingDocId,
       }).catch(() => {});
     }
 
-    // SMS confirmation via MSG91 (best-effort — never blocks the response)
     const phone   = booking.customerPhone?.replace(/\D/g, '');
     const authKey = process.env.MSG91_AUTH_KEY;
     if (phone && phone.length >= 10 && authKey) {
@@ -183,29 +207,11 @@ export async function POST(req: NextRequest) {
         .catch(err => console.error('[verify-payment] SMS failed:', err));
     }
 
-    // Deduct wallet balance using the server-verified amount (cappedWalletUsed)
     if (cappedWalletUsed > 0 && verifiedUid) {
       db.collection('customers').doc(verifiedUid).update({
         walletBalance: FieldValue.increment(-cappedWalletUsed),
       }).catch(err => console.error('[verify-payment] wallet deduct failed:', err));
     }
-
-    // Record payment in paymentLogs and update income stats
-    const batch = db.batch();
-    const logRef = db.collection('paymentLogs').doc();
-    batch.set(logRef, {
-      bookingId:    bookingDoc.id,
-      bookingRef,
-      customerId,
-      customerName: booking.customerName ?? '',
-      customerPhone:`+91${booking.customerPhone}`,
-      amount:       total,
-      type:         'online_booking',
-      paidAt:       FieldValue.serverTimestamp(),
-    });
-    const statsRef = db.collection('stats').doc('income');
-    batch.set(statsRef, { totalIncome: FieldValue.increment(total) }, { merge: true });
-    await batch.commit().catch(err => console.error('[verify-payment] stats write failed:', err));
 
     return NextResponse.json({ bookingRef });
   } catch (err: unknown) {

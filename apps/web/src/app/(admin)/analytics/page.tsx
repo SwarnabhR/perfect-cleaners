@@ -10,9 +10,12 @@ import Icon from '@/components/ui/Icon';
 type LiveBooking = Booking & { id: string };
 type RangeKey = '7D' | '30D' | '90D' | 'All';
 
-function toDate(ts: any): Date | null {
+type MaybeTs = { toDate?(): Date } | Date | string | number | null | undefined;
+function toDate(ts: MaybeTs): Date | null {
   if (!ts) return null;
-  return ts.toDate ? ts.toDate() : new Date(ts);
+  return (ts as { toDate?(): Date }).toDate
+    ? (ts as { toDate(): Date }).toDate()
+    : new Date(ts as string | number | Date);
 }
 function rangeStart(r: RangeKey): Date | null {
   if (r === 'All') return null;

@@ -11,7 +11,7 @@ interface Notification {
   type: 'approval' | 'car_cleaned' | 'weekly_reminder' | 'payment_reminder';
   recipientPhone: string;
   recipientName: string;
-  data: Record<string, any>;
+  data: Record<string, string>;
   status: 'sent' | 'failed';
   messageId?: string;
   error?: string;
@@ -29,7 +29,7 @@ function NotificationTypeIcon({ type }: { type: string }) {
   return <Icon name={config.name as any} size={16} color={config.color} />;
 }
 
-function NotificationMessage({ type, data }: { type: string; data: Record<string, any> }) {
+function NotificationMessage({ type, data }: { type: string; data: Record<string, string> }) {
   switch (type) {
     case 'approval':
       return `Approved: ${data.societyName} · ${data.tower} · Starting ${data.startDate}`;
