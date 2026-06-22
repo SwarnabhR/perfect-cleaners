@@ -4,7 +4,8 @@ export async function POST(req: NextRequest) {
   try {
     const { amount, receipt } = await req.json();
 
-    if (!amount || amount < 1) {
+    const MAX_INR = 100_000; // ₹1,00,000 per order
+    if (!amount || amount < 1 || amount > MAX_INR || !Number.isFinite(amount)) {
       return NextResponse.json({ error: 'Invalid amount.' }, { status: 400 });
     }
 

@@ -43,14 +43,18 @@ export async function POST(req: NextRequest) {
     // MSG91 returns `mobile` with the country code (e.g. "919876543210") on success.
     // Only block when the field is present AND doesn't match; log when it's absent
     // so we know if MSG91 changes their response shape.
+    // MSG91 returns `mobile` with the country code (e.g. "919876543210") on success.
+    // We reject if the field is absent — an OTP token for phone A must not be
+    // reusable to authenticate as phone B, and a missing field makes that check impossible.
     const returnedMobile = String(verifyData.mobile ?? '').replace(/\D/g, '');
     const expectedMobile = `91${phone}`;
-    if (returnedMobile && returnedMobile !== expectedMobile) {
-      console.error('[verify-otp] phone binding mismatch:', { returnedMobile, expectedMobile });
+    if (!returnedMobile) {
+      console.error('[verify-otp] MSG91 did not return mobile — rejecting to enforce phone binding');
       return NextResponse.json({ error: 'Phone verification failed.' }, { status: 400 });
     }
-    if (!returnedMobile) {
-      console.warn('[verify-otp] MSG91 did not return mobile — phone binding not enforced for this request');
+    if (returnedMobile !== expectedMobile) {
+      console.error('[verify-otp] phone binding mismatch:', { returnedMobile, expectedMobile });
+      return NextResponse.json({ error: 'Phone verification failed.' }, { status: 400 });
     }
 
     // Find or create the Firebase Auth user for this phone number
@@ -64,7 +68,7 @@ export async function POST(req: NextRequest) {
         uid = created.uid;
       } else {
         console.error('[verify-otp] Firebase Admin user lookup/create failed:', e);
-        return NextResponse.json({ error: `Firebase user error: ${e.message}` }, { status: 500 });
+        return NextResponse.json({ error: 'Verification failed. Please try again.' }, { status: 500 });
       }
     }
 

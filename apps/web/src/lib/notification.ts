@@ -21,16 +21,14 @@ export async function sendNotification(payload: NotificationPayload): Promise<bo
     });
 
     if (!response.ok) {
-      console.warn('[Notification]', response.statusText);
-      // Return true even if failed, since we logged it
-      return true;
+      console.warn('[Notification] HTTP error:', response.status, response.statusText);
+      return false;
     }
 
     const result = await response.json();
-    return result.success ?? true;
-  } catch (err: any) {
-    console.error('[Notification] Send failed:', err.message);
-    // Fail silently - notifications are nice-to-have, not critical
+    return result.success === true;
+  } catch (err: unknown) {
+    console.error('[Notification] Send failed:', err instanceof Error ? err.message : err);
     return false;
   }
 }
