@@ -85,7 +85,7 @@ export default function ContactForm() {
           </h3>
           <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg-2)', lineHeight: 1.6, maxWidth: 320, margin: 0 }}>
             We'll get back to you within one business day. For urgent enquiries call{' '}
-            <a href="tel:+919876543210" style={{ color: 'var(--pc-fg)' }}>+91 98765 43210</a>.
+            <a href="tel:+9197711241629" style={{ color: 'var(--pc-fg)' }}>+91 97711241629</a>.
           </p>
         </div>
       </Card>
@@ -116,7 +116,7 @@ export default function ContactForm() {
             <label htmlFor="cf-phone" style={label}>Phone</label>
             <input
               id="cf-phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)}
-              placeholder="+91 98765 43210" inputMode="tel" style={input}
+              placeholder="+91 97711241629" inputMode="tel" style={input}
             />
           </div>
         </div>

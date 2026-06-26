@@ -29,7 +29,7 @@ const CONTACT_ITEMS = [
   {
     icon: 'phone',
     label: 'Call Us',
-    lines: ['+91 98765 43210', 'Mon–Sun: 9:00 AM – 9:00 PM IST'],
+    lines: ['+91 97711241629', 'Mon–Sun: 9:00 AM – 9:00 PM IST'],
   },
   {
     icon: 'mail',
