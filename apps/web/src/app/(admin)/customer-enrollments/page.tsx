@@ -343,7 +343,10 @@ export default function CustomerEnrollmentsPage() {
                       <PaymentStatusBadge status={record.paymentStatus} />
                     </td>
                     <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)' }}>
-                      {new Date(record.nextBillingDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+                      {(typeof (record.nextBillingDate as { toDate?: unknown }).toDate === 'function'
+        ? (record.nextBillingDate as { toDate: () => Date }).toDate()
+        : new Date(record.nextBillingDate as string | number | Date)
+      ).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
                     </td>
                     <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
                       {record.paymentStatus === 'pending_payment' && (

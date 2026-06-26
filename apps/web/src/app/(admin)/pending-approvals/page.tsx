@@ -46,6 +46,8 @@ export default function PendingApprovalsPage() {
   const [approvals, setApprovals] = useState<LiveApproval[]>([]);
   const [loading, setLoading] = useState(true);
   const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
   const [form, setForm] = useState<ApprovalForm>(BLANK_FORM);
   const [saving, setSaving] = useState(false);
 
@@ -345,7 +347,10 @@ export default function PendingApprovalsPage() {
                   <div>
                     <p style={monoLabel}>Submitted</p>
                     <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)', margin: 0 }}>
-                      {new Date(approval.submittedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                      {(typeof (approval.submittedAt as { toDate?: unknown }).toDate === 'function'
+                    ? (approval.submittedAt as { toDate: () => Date }).toDate()
+                    : new Date(approval.submittedAt as string | number | Date)
+                  ).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                     </p>
                   </div>
                 </div>
@@ -372,7 +377,7 @@ export default function PendingApprovalsPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleReject(approval.id, 'Not qualified')}
+                    onClick={() => { setRejectingId(approval.id); setRejectReason(''); }}
                     style={{
                       flex: 1,
                       padding: '10px 0',
@@ -522,6 +527,56 @@ export default function PendingApprovalsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Reject Reason Modal */}
+      {rejectingId && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          onClick={() => setRejectingId(null)}
+        >
+          <div
+            style={{ background: 'var(--pc-card)', borderRadius: 16, border: '1px solid var(--pc-line)', padding: 'clamp(16px,5vw,28px)', width: '100%', maxWidth: 420 }}
+            onClick={e => e.stopPropagation()}
+          >
+            <h2 style={{ fontFamily: 'var(--pc-serif)', fontSize: 20, fontWeight: 400, color: 'var(--pc-fg)', margin: '0 0 16px' }}>
+              Reject Signup
+            </h2>
+            <p style={monoLabel}>Rejection Reason</p>
+            <textarea
+              value={rejectReason}
+              onChange={e => setRejectReason(e.target.value)}
+              placeholder="e.g., Unverifiable address, duplicate account…"
+              style={{ ...inputStyle, minHeight: 80, resize: 'vertical', fontFamily: 'var(--pc-sans)' } as React.CSSProperties}
+            />
+            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <button
+                type="button"
+                disabled={!rejectReason.trim()}
+                onClick={async () => {
+                  await handleReject(rejectingId, rejectReason.trim() || 'Rejected');
+                  setRejectingId(null);
+                }}
+                style={{
+                  flex: 1, padding: '11px 0', borderRadius: 999,
+                  background: 'var(--pc-danger)', border: 'none',
+                  fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600,
+                  color: '#fff', cursor: !rejectReason.trim() ? 'not-allowed' : 'pointer',
+                  opacity: !rejectReason.trim() ? 0.5 : 1,
+                }}
+              >
+                Confirm Reject
+              </button>
+              <button
+                type="button"
+                onClick={() => setRejectingId(null)}
+                style={{ padding: '11px 20px', borderRadius: 999, background: 'transparent', border: '1px solid currentColor', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}

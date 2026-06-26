@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot, doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, runTransaction } from 'firebase/firestore';
 import { db } from '@pc/firebase';
 import type { CleaningSessionEnhanced, CleaningSessionCar } from '@pc/firebase';
 import Card from '@/components/ui/Card';
@@ -122,13 +122,15 @@ export default function LiveCleaningPage() {
 
     try {
       const sessionRef = doc(db, 'cleaningSessions', car.sessionId);
-      const newCars = sessions
-        .find(s => s.id === car.sessionId)
-        ?.cars.map((c, idx) =>
+      await runTransaction(db, async tx => {
+        const snap = await tx.get(sessionRef);
+        if (!snap.exists()) return;
+        const currentCars = (snap.data().cars ?? []) as Record<string, unknown>[];
+        const newCars = currentCars.map((c, idx) =>
           idx === car.carIndex ? { ...c, unavailable: !car.unavailable } : c
-        ) ?? [];
-
-      await updateDoc(sessionRef, { cars: newCars });
+        );
+        tx.update(sessionRef, { cars: newCars });
+      });
     } catch (err: unknown) {
       console.error('[LiveCleaning] toggle failed:', err instanceof Error ? err.message : err);
     } finally {

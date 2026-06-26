@@ -48,12 +48,19 @@ const inputStyle: React.CSSProperties = {
   outline: 'none',
 };
 
-function formatDate(date: Date): string {
-  return new Date(date).toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' });
+function toDate(value: unknown): Date {
+  if (value && typeof (value as { toDate?: () => Date }).toDate === 'function') {
+    return (value as { toDate: () => Date }).toDate();
+  }
+  return new Date(value as string | number | Date);
 }
 
-function formatTime(date: Date): string {
-  return new Date(date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+function formatDate(date: unknown): string {
+  return toDate(date).toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+function formatTime(date: unknown): string {
+  return toDate(date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 }
 
 export default function CleaningSchedulePage() {

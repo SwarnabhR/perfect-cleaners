@@ -196,7 +196,7 @@ export default function TowerBillingPage() {
       </div>
 
       {/* Form Modal */}
-      {editing !== undefined && (
+      {editing !== null && (
         <div
           style={{
             position: 'fixed',

@@ -1,7 +1,8 @@
 'use client';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { onAuthStateChanged, signOut as fbSignOut, type User } from 'firebase/auth';
-import { auth } from '@pc/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '@pc/firebase';
 import { useRouter, usePathname } from 'next/navigation';
 
 interface AdminAuthCtx {
@@ -21,15 +22,27 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    return onAuthStateChanged(auth, u => {
+    return onAuthStateChanged(auth, async u => {
+      if (!u) {
+        setUser(null);
+        setLoading(false);
+        if (pathname !== '/login') router.replace(`/login?from=${encodeURIComponent(pathname)}`);
+        return;
+      }
+
+      // Verify the signed-in user exists in the admins collection
+      const adminSnap = await getDoc(doc(db, 'admins', u.uid));
+      if (!adminSnap.exists()) {
+        await fbSignOut(auth);
+        setUser(null);
+        setLoading(false);
+        router.replace('/login?error=unauthorized');
+        return;
+      }
+
       setUser(u);
       setLoading(false);
-      if (!u && pathname !== '/login') {
-        router.replace(`/login?from=${encodeURIComponent(pathname)}`);
-      }
-      if (u && pathname === '/login') {
-        router.replace('/dashboard');
-      }
+      if (pathname === '/login') router.replace('/dashboard');
     });
   }, [pathname]);
 
