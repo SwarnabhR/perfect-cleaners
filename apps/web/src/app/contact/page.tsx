@@ -29,7 +29,7 @@ const CONTACT_ITEMS = [
   {
     icon: 'phone',
     label: 'Call Us',
-    lines: ['+91 97711241629', 'Mon–Sun: 9:00 AM – 9:00 PM IST'],
+    lines: ['+91 97711241629', 'Mon–Sun: 6:00 AM – 4:00 PM IST'],
   },
   {
     icon: 'mail',
@@ -115,9 +115,9 @@ export default function ContactPage() {
               <Eyebrow>HOURS</Eyebrow>
               <div style={{ marginTop: 'var(--pc-space-3)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-2)' }}>
                 {[
-                  ['Monday – Friday', '9:00 AM – 9:00 PM'],
-                  ['Saturday', '8:00 AM – 10:00 PM'],
-                  ['Sunday', '10:00 AM – 7:00 PM'],
+                  ['Monday – Friday', '6:00 AM – 4:00 PM'],
+                  ['Saturday', '6:00 AM – 4:00 PM'],
+                  ['Sunday', '6:00 AM – 4:00 PM'],
                 ].map(([day, time]) => (
                   <div key={day} style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg-2)' }}>{day}</span>

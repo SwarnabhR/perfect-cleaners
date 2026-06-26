@@ -56,7 +56,7 @@ const en = {
     officialLabel:    'OFFICIAL',
     bookingLabel:     'BOOKING',
     quickLinks:       ['Services', 'Exterior Wash', 'Interior Detailing', 'Painting & Coating', 'Terms of Service', 'Privacy Policy'],
-    official:         ['Ghaziabad, Delhi NCR', '+91 97711241629', '09:00 – 21:00 IST'],
+    official:         ['Ghaziabad, Delhi NCR', '+91 97711241629', '06:00 – 16:00 IST'],
     booking:          ['Book Now', 'For Societies'],
   },
   common: {
