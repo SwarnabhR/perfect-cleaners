@@ -51,6 +51,7 @@ export default function TermsPage() {
         </p>
 
         <Section title="1. Acceptance of Terms">
+          <p>Perfect Cleaners is owned and operated by <strong style={{ color: 'var(--pc-fg)' }}>Anil Kanojiya</strong>, founder and proprietor, with its principal place of business in Ghaziabad, Uttar Pradesh.</p>
           <p>By booking a service, creating an account, or using the Perfect Cleaners website or mobile application, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our services.</p>
           <p>Perfect Cleaners ("we," "our," or "us") reserves the right to modify these terms at any time. Continued use of our services following any changes constitutes your acceptance of the revised terms.</p>
         </Section>
@@ -91,7 +92,7 @@ export default function TermsPage() {
         </Section>
 
         <Section title="9. Contact">
-          <p>For questions about these Terms of Service, please contact us at <a href="mailto:hello@perfectcleaners.in" style={{ color: 'var(--pc-fg)', textDecoration: 'underline', textUnderlineOffset: 3 }}>hello@perfectcleaners.in</a> or call <a href="tel:+919876543210" style={{ color: 'var(--pc-fg)', textDecoration: 'underline', textUnderlineOffset: 3 }}>+91 98765 43210</a>.</p>
+          <p>For questions about these Terms of Service, please contact <strong style={{ color: 'var(--pc-fg)' }}>Anil Kanojiya</strong> (Founder & Owner) at <a href="mailto:hello@perfectcleaners.in" style={{ color: 'var(--pc-fg)', textDecoration: 'underline', textUnderlineOffset: 3 }}>hello@perfectcleaners.in</a> or call <a href="tel:+9197711241629" style={{ color: 'var(--pc-fg)', textDecoration: 'underline', textUnderlineOffset: 3 }}>+91 97711241629</a>.</p>
         </Section>
 
       </main>

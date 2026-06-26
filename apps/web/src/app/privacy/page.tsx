@@ -50,7 +50,11 @@ export default function PrivacyPage() {
           Effective date: {EFFECTIVE}
         </p>
 
-        <Section title="1. Information We Collect">
+        <Section title="1. About Us">
+          <p>Perfect Cleaners is owned and operated by <strong style={{ color: 'var(--pc-fg)' }}>Anil Kanojiya</strong>, founder and proprietor, with its principal place of business in Ghaziabad, Uttar Pradesh, India. This Privacy Policy explains how we collect, use, and protect your personal data.</p>
+        </Section>
+
+        <Section title="2. Information We Collect">
           <p>When you use Perfect Cleaners, we collect information you provide directly:</p>
           <ul style={{ paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 6 }}>
             <li><strong style={{ color: 'var(--pc-fg)' }}>Identity:</strong> Full name, mobile number.</li>
@@ -61,7 +65,7 @@ export default function PrivacyPage() {
           </ul>
         </Section>
 
-        <Section title="2. How We Use Your Information">
+        <Section title="3. How We Use Your Information">
           <p>We use your information to:</p>
           <ul style={{ paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 6 }}>
             <li>Process and confirm your bookings.</li>
@@ -73,7 +77,7 @@ export default function PrivacyPage() {
           <p>We do not sell your personal information to third parties.</p>
         </Section>
 
-        <Section title="3. Data Sharing">
+        <Section title="4. Data Sharing">
           <p>We share your data only as necessary to deliver our services:</p>
           <ul style={{ paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 6 }}>
             <li><strong style={{ color: 'var(--pc-fg)' }}>Service technicians:</strong> Name, vehicle details, and address to carry out the booking.</li>
@@ -83,17 +87,17 @@ export default function PrivacyPage() {
           </ul>
         </Section>
 
-        <Section title="4. Data Storage and Security">
+        <Section title="5. Data Storage and Security">
           <p>Your data is stored on Google Firebase servers located in the asia-south1 (Mumbai) region. We use industry-standard encryption for data in transit (TLS) and at rest.</p>
           <p>We retain your data for as long as your account is active or as needed to provide services. You may request deletion of your account and associated data at any time.</p>
         </Section>
 
-        <Section title="5. Cookies and Tracking">
+        <Section title="6. Cookies and Tracking">
           <p>Our website uses minimal cookies necessary for authentication and session management. We use Vercel Analytics for anonymous, privacy-respecting traffic analysis — no personal data is used for advertising tracking.</p>
           <p>You can disable cookies in your browser settings; this may affect the functionality of our platform.</p>
         </Section>
 
-        <Section title="6. Your Rights">
+        <Section title="7. Your Rights">
           <p>Under applicable Indian data protection law, you have the right to:</p>
           <ul style={{ paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 6 }}>
             <li>Access the personal data we hold about you.</li>
@@ -104,16 +108,16 @@ export default function PrivacyPage() {
           <p>To exercise these rights, contact us at <a href="mailto:hello@perfectcleaners.in" style={{ color: 'var(--pc-fg)', textDecoration: 'underline', textUnderlineOffset: 3 }}>hello@perfectcleaners.in</a>.</p>
         </Section>
 
-        <Section title="7. Children's Privacy">
+        <Section title="8. Children's Privacy">
           <p>Our services are not directed at children under 18. We do not knowingly collect personal information from minors. If you believe a minor has provided us with data, please contact us immediately.</p>
         </Section>
 
-        <Section title="8. Changes to This Policy">
+        <Section title="9. Changes to This Policy">
           <p>We may update this Privacy Policy periodically. We will notify you of significant changes via the app or email. Continued use of our services after such notice constitutes acceptance of the updated policy.</p>
         </Section>
 
-        <Section title="9. Contact">
-          <p>For privacy-related questions or requests, contact our data protection point of contact at <a href="mailto:hello@perfectcleaners.in" style={{ color: 'var(--pc-fg)', textDecoration: 'underline', textUnderlineOffset: 3 }}>hello@perfectcleaners.in</a> or write to us at our registered address in Ghaziabad, Uttar Pradesh.</p>
+        <Section title="10. Contact">
+          <p>For privacy-related questions or requests, contact <strong style={{ color: 'var(--pc-fg)' }}>Anil Kanojiya</strong> (Founder & Owner) at <a href="mailto:hello@perfectcleaners.in" style={{ color: 'var(--pc-fg)', textDecoration: 'underline', textUnderlineOffset: 3 }}>hello@perfectcleaners.in</a> or call <a href="tel:+9197711241629" style={{ color: 'var(--pc-fg)', textDecoration: 'underline', textUnderlineOffset: 3 }}>+91 97711241629</a>, or write to us at our registered address in Ghaziabad, Uttar Pradesh.</p>
         </Section>
 
       </main>

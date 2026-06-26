@@ -8,12 +8,12 @@ import { useI18n } from '@/i18n';
 import styles from './Footer.module.css';
 
 const QUICK_LINKS_HREFS  = ['/services', '/services/exterior', '/services/interior', '/services/coating', '/terms', '/privacy'];
-const OFFICIAL_HREFS     = [undefined, 'tel:+919876543210', undefined] as (string | undefined)[];
+const OFFICIAL_HREFS     = [undefined, 'tel:+9197711241629', undefined] as (string | undefined)[];
 const BOOKING_HREFS      = ['/for-societies'];
 
 const SOCIAL_LINKS = [
   { icon: 'camera',  href: 'https://instagram.com', ariaLabel: 'Instagram' },
-  { icon: 'phone',   href: 'tel:+919876543210',     ariaLabel: 'Call us'   },
+  { icon: 'phone',   href: 'tel:+9197711241629',     ariaLabel: 'Call us'   },
   { icon: 'shield',  href: '/about',                ariaLabel: 'About'     },
   { icon: 'star',    href: '/about',                ariaLabel: 'About us'  },
 ] as const;
