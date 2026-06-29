@@ -56,8 +56,14 @@ function SignInContent() {
   const [error,     setError]     = useState('');
   const [countdown, setCountdown] = useState(0);
 
-  const { ready }  = useMsg91();
+  const { ready, configured, loadError }  = useMsg91();
   const redirectTo = searchParams.get('from') ?? '/account';
+
+  const widgetError = !configured
+    ? 'Verification service is not configured. Please add NEXT_PUBLIC_MSG91_WIDGET_ID and NEXT_PUBLIC_MSG91_WIDGET_TOKEN.'
+    : loadError
+      ? 'OTP verification service could not load. Refresh or contact support.'
+      : '';
 
   // Skip login if already signed in (and profile is complete)
   useEffect(() => {
@@ -223,7 +229,7 @@ function SignInContent() {
                 style={{ ...inputBase, borderRadius: '0 var(--pc-radius-sm) var(--pc-radius-sm) 0', flex: 1 }}
               />
             </div>
-            <ErrorMsg msg={error} />
+            <ErrorMsg msg={error || widgetError} />
             <button type="submit" disabled={busy || phone.length < 10 || !ready} style={primaryBtn}>
               {busy ? 'Sending…' : !ready ? 'Loading…' : 'Send Code →'}
             </button>

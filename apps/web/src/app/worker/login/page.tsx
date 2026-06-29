@@ -14,8 +14,14 @@ type Step = 'phone' | 'otp';
 function WorkerLoginContent() {
   const router       = useRouter();
   const searchParams = useSearchParams();
-  const { ready }    = useMsg91();
+  const { ready, configured, loadError }    = useMsg91();
   const redirectTo   = searchParams.get('from') ?? '/worker/dashboard';
+
+  const widgetError = !configured
+    ? 'Verification service is not configured. Please add NEXT_PUBLIC_MSG91_WIDGET_ID and NEXT_PUBLIC_MSG91_WIDGET_TOKEN.'
+    : loadError
+      ? 'OTP verification service could not load. Refresh or contact support.'
+      : '';
 
   const [step,      setStep]      = useState<Step>('phone');
   const [phone,     setPhone]     = useState('');
@@ -143,7 +149,11 @@ function WorkerLoginContent() {
                 style={{ ...inp, borderRadius: '0 var(--pc-radius-sm) var(--pc-radius-sm) 0', flex: 1 }}
               />
             </div>
-            {error && <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-danger)', marginTop: 8 }}>{error}</p>}
+            {(error || widgetError) && (
+              <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-danger)', marginTop: 8 }}>
+                {error || widgetError}
+              </p>
+            )}
             <button type="submit" disabled={busy || phone.length < 10 || !ready} style={{
               width: '100%', marginTop: 20, padding: '13px 0', borderRadius: 999,
               background: (busy || phone.length < 10 || !ready) ? 'var(--pc-warm-3)' : 'var(--pc-warm)',

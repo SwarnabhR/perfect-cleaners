@@ -41,7 +41,13 @@ function Err({ msg }: { msg: string }) {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: AuthBottomSheetProps) {
-  const { ready } = useMsg91();
+  const { ready, configured, loadError } = useMsg91();
+
+  const widgetError = !configured
+    ? 'Verification service is not configured. Please add NEXT_PUBLIC_MSG91_WIDGET_ID and NEXT_PUBLIC_MSG91_WIDGET_TOKEN.'
+    : loadError
+      ? 'OTP verification service could not load. Refresh the page or contact support.'
+      : '';
 
   const [step,      setStep]      = useState<Step>('phone');
   const [phone,     setPhone]     = useState('');
@@ -93,7 +99,7 @@ export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: A
   function handleSendCode(e: React.FormEvent) {
     e.preventDefault();
     if (!ready || !window.sendOtp) {
-      setError('Verification service is loading. Please wait a moment and try again.');
+      setError(widgetError || 'Verification service is loading. Please wait a moment and try again.');
       return;
     }
     setError(''); setBusy(true);

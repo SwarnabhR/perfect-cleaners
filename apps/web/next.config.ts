@@ -63,7 +63,7 @@ const nextConfig: NextConfig = {
           "font-src 'self' https://fonts.gstatic.com data:",
           "img-src 'self' data: blob: https:",
           "connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com https://*.vercel-analytics.com https://verify.msg91.com https://verify.phone91.com https://control.msg91.com wss:",
-          "frame-src 'none'",
+          "frame-src https://verify.msg91.com https://verify.phone91.com",
           "object-src 'none'",
           "base-uri 'self'",
           "form-action 'self'",
