@@ -24,9 +24,12 @@ function tier(spent: number): string {
   return 'Bronze';
 }
 
-function formatJoined(ts: any): string {
+type MaybeTs = { toDate?(): Date } | Date | string | number | null | undefined;
+function formatJoined(ts: MaybeTs): string {
   if (!ts) return '—';
-  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  const d = (ts as { toDate?(): Date }).toDate
+    ? (ts as { toDate(): Date }).toDate()
+    : new Date(ts as string | number | Date);
   return d.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
 }
 

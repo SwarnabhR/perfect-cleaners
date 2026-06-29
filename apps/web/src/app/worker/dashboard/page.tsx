@@ -47,7 +47,7 @@ export default function WorkerDashboard() {
     return onSnapshot(q, snap => {
       setLogs(snap.docs.map(d => ({ id: d.id, ...d.data() } as LogRow)));
       setLoading(false);
-    }, () => setLoading(false));
+    }, err => { console.warn('[WorkerDashboard] logs listener:', err); setLoading(false); });
   }, [user]);
 
   // Total subscribed cars in assigned society (for progress denominator)
@@ -63,7 +63,7 @@ export default function WorkerDashboard() {
         (sum, d) => sum + ((d.data() as Customer).vehicles?.length ?? 0), 0,
       );
       setTotal(carCount);
-    }).catch(() => {});
+    }).catch(err => console.warn('[WorkerDashboard] car count fetch:', err));
   }, [worker?.assignedSocietyId]);
 
   async function toggleOnline() {

@@ -78,8 +78,8 @@ export default function ServicesMgmtPage() {
         await updateDoc(doc(db, 'services', editing.id), { ...form, updatedAt: serverTimestamp() });
       }
       closeForm();
-    } catch (err: any) {
-      console.error('[Services] save failed:', err.message);
+    } catch (err: unknown) {
+      console.error('[Services] save failed:', err instanceof Error ? err.message : err);
     } finally {
       setSaving(false);
     }

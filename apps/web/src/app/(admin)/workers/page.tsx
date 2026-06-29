@@ -87,8 +87,8 @@ function WorkerFormModal({
     try {
       await onSave(name.trim(), phone.replace(/\D/g, ''));
       onClose();
-    } catch (e: any) {
-      setErr(e.message ?? 'Something went wrong.');
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : 'Something went wrong.');
     } finally {
       setBusy(false);
     }

@@ -347,8 +347,8 @@ export default function PendingApprovalsPage() {
                   <div>
                     <p style={monoLabel}>Submitted</p>
                     <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)', margin: 0 }}>
-                      {(typeof (approval.submittedAt as { toDate?: unknown }).toDate === 'function'
-                    ? (approval.submittedAt as { toDate: () => Date }).toDate()
+                      {(typeof (approval.submittedAt as unknown as { toDate?: unknown }).toDate === 'function'
+                    ? (approval.submittedAt as unknown as { toDate: () => Date }).toDate()
                     : new Date(approval.submittedAt as string | number | Date)
                   ).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                     </p>

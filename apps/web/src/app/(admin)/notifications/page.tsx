@@ -26,7 +26,7 @@ function NotificationTypeIcon({ type }: { type: string }) {
     payment_reminder: { name: 'credit-card', color: 'var(--pc-danger)' },
   };
   const config = iconMap[type] || { name: 'message-square', color: 'var(--pc-fg-3)' };
-  return <Icon name={config.name as any} size={16} color={config.color} />;
+  return <Icon name={config.name} size={16} color={config.color} />;
 }
 
 function NotificationMessage({ type, data }: { type: string; data: Record<string, string> }) {

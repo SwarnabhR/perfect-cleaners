@@ -20,24 +20,28 @@ const STATUS_COLORS: Record<string, string> = {
 function promoStatus(p: LivePromo): string {
   if (!p.isActive) return 'Paused';
   const now = Date.now();
-  const from  = (p.validFrom  as any)?.toDate?.()?.getTime() ?? 0;
-  const until = (p.validUntil as any)?.toDate?.()?.getTime() ?? Infinity;
+  type HasToDate = { toDate?(): Date };
+  const from  = ((p.validFrom  as unknown as HasToDate)?.toDate?.()?.getTime()) ?? 0;
+  const until = ((p.validUntil as unknown as HasToDate)?.toDate?.()?.getTime()) ?? Infinity;
   if (now < from)  return 'Scheduled';
   if (now > until) return 'Expired';
   if (p.maxUses > 0 && p.usedCount >= p.maxUses) return 'Used Up';
   return 'Active';
 }
 
-function formatDate(ts: any): string {
-  if (!ts) return 'No expiry';
-  const d = ts.toDate ? ts.toDate() : new Date(ts);
-  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+type MaybeTs = { toDate?(): Date } | Date | string | number | null | undefined;
+function tsToDate(ts: MaybeTs): Date {
+  return (ts as { toDate?(): Date }).toDate
+    ? (ts as { toDate(): Date }).toDate()
+    : new Date(ts as string | number | Date);
 }
-
-function toDateInput(ts: any): string {
+function formatDate(ts: MaybeTs): string {
+  if (!ts) return 'No expiry';
+  return tsToDate(ts).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+function toDateInput(ts: MaybeTs): string {
   if (!ts) return '';
-  const d = ts.toDate ? ts.toDate() : new Date(ts);
-  return d.toISOString().slice(0, 10);
+  return tsToDate(ts).toISOString().slice(0, 10);
 }
 
 function generateCode(): string {
@@ -119,8 +123,8 @@ export default function PromotionsPage() {
         await updateDoc(doc(db, 'promotions', editing.id), { ...data, updatedAt: serverTimestamp() });
       }
       closeForm();
-    } catch (err: any) {
-      console.error('[Promos] save failed:', err.message);
+    } catch (err: unknown) {
+      console.error('[Promos] save failed:', err instanceof Error ? err.message : err);
     } finally {
       setSaving(false);
     }

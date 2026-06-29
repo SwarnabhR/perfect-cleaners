@@ -89,8 +89,8 @@ export default function CustomerEnrollmentsPage() {
         { merge: true }
       );
       setMarkingPaidId(null);
-    } catch (err: any) {
-      console.error('[CustomerEnrollments] mark paid failed:', err.message);
+    } catch (err: unknown) {
+      console.error('[CustomerEnrollments] mark paid failed:', err instanceof Error ? err.message : err);
     }
   }
 
@@ -343,8 +343,8 @@ export default function CustomerEnrollmentsPage() {
                       <PaymentStatusBadge status={record.paymentStatus} />
                     </td>
                     <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)' }}>
-                      {(typeof (record.nextBillingDate as { toDate?: unknown }).toDate === 'function'
-        ? (record.nextBillingDate as { toDate: () => Date }).toDate()
+                      {(typeof (record.nextBillingDate as unknown as { toDate?: unknown }).toDate === 'function'
+        ? (record.nextBillingDate as unknown as { toDate: () => Date }).toDate()
         : new Date(record.nextBillingDate as string | number | Date)
       ).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
                     </td>
