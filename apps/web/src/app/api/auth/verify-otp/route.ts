@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
 
     if (verifyData?.type !== 'success') {
       console.error('[verify-otp] MSG91 rejected token:', JSON.stringify(verifyData));
-      return NextResponse.json({ error: 'OTP verification failed. Please try again.' }, { status: 400 });
+      return NextResponse.json({ error: 'OTP verification failed. Please try again.', _debug: verifyData }, { status: 400 });
     }
 
     // Bind the verified mobile to the submitted phone — prevents a valid OTP
