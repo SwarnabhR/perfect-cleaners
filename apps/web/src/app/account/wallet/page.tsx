@@ -239,9 +239,10 @@ export default function WalletPage() {
           scrollbarWidth: 'none' as any,
         }}>
           {[
-            { label: 'Bookings', href: '/account'         },
-            { label: 'Profile',  href: '/account/profile' },
-            { label: 'Bill',     href: '/account/wallet'  },
+            { label: 'Schedule', href: '/account/cleaning' },
+            { label: 'Bookings', href: '/account'          },
+            { label: 'Profile',  href: '/account/profile'  },
+            { label: 'Bill',     href: '/account/wallet'   },
           ].map(tab => (
             <Link key={tab.href} href={tab.href} style={tabStyle(pathname === tab.href)}>
               {tab.label}

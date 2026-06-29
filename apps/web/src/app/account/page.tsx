@@ -303,20 +303,6 @@ export default function AccountPage() {
           </div>
 
           <div style={{ display: 'flex', gap: 'var(--pc-space-3)', alignItems: 'center', flexWrap: 'wrap' }}>
-            <Link
-              href="/for-societies"
-              style={{
-                display: 'inline-flex', alignItems: 'center',
-                padding: '10px 20px',
-                background: 'var(--pc-warm)', color: 'var(--pc-ink)',
-                border: 'none', borderRadius: 999,
-                fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600,
-                letterSpacing: '0.06em', textTransform: 'uppercase',
-                textDecoration: 'none', whiteSpace: 'nowrap',
-              }}
-            >
-              Book a service →
-            </Link>
             <button
               type="button"
               onClick={handleSignOut}
@@ -343,9 +329,10 @@ export default function AccountPage() {
           scrollbarWidth: 'none' as any,
         }}>
           {[
-            { label: 'Bookings', href: '/account'         },
-            { label: 'Profile',  href: '/account/profile' },
-            { label: 'Bill',     href: '/account/wallet'  },
+            { label: 'Schedule', href: '/account/cleaning' },
+            { label: 'Bookings', href: '/account'          },
+            { label: 'Profile',  href: '/account/profile'  },
+            { label: 'Bill',     href: '/account/wallet'   },
           ].map(tab => {
             const active = pathname === tab.href;
             return (

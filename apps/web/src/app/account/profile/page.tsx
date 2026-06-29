@@ -265,9 +265,10 @@ export default function ProfilePage() {
         {/* Tab bar */}
         <div style={{ display: 'flex', gap: 'var(--pc-space-1)', borderBottom: '1px solid var(--pc-line)', overflowX: 'auto', WebkitOverflowScrolling: 'touch' as any, scrollbarWidth: 'none' as any }}>
           {[
-            { label: 'Bookings', href: '/account'         },
-            { label: 'Profile',  href: '/account/profile' },
-            { label: 'Bill',     href: '/account/wallet'  },
+            { label: 'Schedule', href: '/account/cleaning' },
+            { label: 'Bookings', href: '/account'          },
+            { label: 'Profile',  href: '/account/profile'  },
+            { label: 'Bill',     href: '/account/wallet'   },
           ].map(tab => {
             const active = pathname === tab.href;
             return (
