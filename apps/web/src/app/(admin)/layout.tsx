@@ -103,6 +103,7 @@ const NAV = [
   { label: 'Analytics',   href: '/analytics',      icon: 'bar-chart-2'      },
   // Support & Config
   { label: 'Inquiries',    href: '/inquiries',     icon: 'message-circle'   },
+  { label: 'Waitlist',     href: '/waitlist',      icon: 'smartphone'       },
   { label: 'Notifications', href: '/notifications', icon: 'mail'            },
   { label: 'Services',    href: '/services-mgmt',  icon: 'sparkles'         },
   { label: 'Promotions',  href: '/promotions',     icon: 'tag'              },
