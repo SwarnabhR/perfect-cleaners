@@ -87,6 +87,7 @@ function SidebarFooter() {
 
 const NAV = [
   { label: 'Dashboard',   href: '/dashboard',       icon: 'layout-dashboard' },
+  { label: 'Bookings',    href: '/bookings',         icon: 'calendar-check'  },
   // Society Cleaning Program
   { label: 'Societies',   href: '/societies-mgmt',  icon: 'building-2'      },
   { label: 'Tower Billing', href: '/tower-billing', icon: 'credit-card'    },
