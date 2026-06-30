@@ -221,7 +221,7 @@ function SelfSignupForm({
         </div>
 
         {/* Car details */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 12 }}>
           <div>
             <label style={fieldLabel}>Car plate *</label>
             <input
