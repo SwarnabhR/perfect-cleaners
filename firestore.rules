@@ -146,6 +146,46 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // ── Society cleaning programme ────────────────────────────────────────────
+
+    // Customer enrolment records.
+    // Customers read and lightly update their own record (time pref, skip dates).
+    // Admin SDK (cron + approval flow) writes via backend and bypasses these rules.
+    // Customers may create their own record during self-signup.
+    match /customerSocietyRecords/{recordId} {
+      allow read:   if isAdmin()
+        || (isSignedIn() && resource.data.customerId == request.auth.uid);
+      allow create: if isSignedIn()
+        && request.resource.data.customerId == request.auth.uid;
+      allow update: if isAdmin()
+        || (isSignedIn()
+            && resource.data.customerId == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['permanentTime', 'preferredCleaningTime',
+                          'skipDates', 'rescheduledSlots', 'updatedAt']));
+      allow delete: if isAdmin();
+    }
+
+    // Self-signup requests awaiting admin review.
+    // Any signed-in customer may create a request for themselves; only admins
+    // may read the queue and manage approvals.
+    match /pendingApprovals/{approvalId} {
+      allow create: if isSignedIn()
+        && request.resource.data.customerId == request.auth.uid;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Tower billing configuration — admin-managed only.
+    match /societyBillingConfig/{docId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Monthly billing records created by the billing cron (Admin SDK).
+    // Admin-only on the client side.
+    match /billingRecords/{docId} {
+      allow read, write: if isAdmin();
+    }
+
     // ── Cleaning sessions ─────────────────────────────────────────────────────
     // Workers assigned to a session may read and update it (status, counts).
     // Admins have full access.  No client-side creates — admin/backend only.
@@ -209,6 +249,12 @@ service cloud.firestore {
     match /appWaitlist/{docId} {
       allow create:      if request.resource.data.phone    is string
                          && request.resource.data.platform is string;
+      allow read, write: if isAdmin();
+    }
+
+    // ── Notification history (sent by admin / approval flow) ─────────────────
+    // Written by the Admin SDK via /api/notification/send; admin-only read.
+    match /notifications/{docId} {
       allow read, write: if isAdmin();
     }
 

@@ -410,28 +410,32 @@ export default function CleaningPage() {
       collection(db, 'customerSocietyRecords'),
       where('customerId', '==', user.uid),
     );
-    return onSnapshot(q, snap => {
-      if (snap.empty) { setRecord(null); return; }
-      const d    = snap.docs[0];
-      const data = d.data();
-      const rec: CustomerSocietyRecord & { id: string } = {
-        ...(data as any),
-        id: d.id,
-        skipDates:        (data.skipDates ?? []).map(toDate),
-        rescheduledSlots: (data.rescheduledSlots ?? []).map((s: any) => ({
-          ...s, date: toDate(s.date),
-        })),
-        createdAt:       toDate(data.createdAt),
-        updatedAt:       toDate(data.updatedAt),
-        nextBillingDate: toDate(data.nextBillingDate),
-        lastBilledDate:  data.lastBilledDate ? toDate(data.lastBilledDate) : undefined,
-      };
-      setRecord(rec);
-      // Fetch society to get the cleaning day schedule
-      getDoc(doc(db, 'societies', rec.societyId)).then(s => {
-        if (s.exists()) setSchedule(s.data().cleaningSchedule ?? '');
-      });
-    });
+    return onSnapshot(
+      q,
+      snap => {
+        if (snap.empty) { setRecord(null); return; }
+        const d    = snap.docs[0];
+        const data = d.data();
+        const rec: CustomerSocietyRecord & { id: string } = {
+          ...(data as any),
+          id: d.id,
+          skipDates:        (data.skipDates ?? []).map(toDate),
+          rescheduledSlots: (data.rescheduledSlots ?? []).map((s: any) => ({
+            ...s, date: toDate(s.date),
+          })),
+          createdAt:       toDate(data.createdAt),
+          updatedAt:       toDate(data.updatedAt),
+          nextBillingDate: toDate(data.nextBillingDate),
+          lastBilledDate:  data.lastBilledDate ? toDate(data.lastBilledDate) : undefined,
+        };
+        setRecord(rec);
+        getDoc(doc(db, 'societies', rec.societyId)).then(s => {
+          if (s.exists()) setSchedule(s.data().cleaningSchedule ?? '');
+        });
+      },
+      // On error (e.g. permission denied) treat as not enrolled so the page isn't blank
+      () => setRecord(null),
+    );
   }, [user?.uid]);
 
   // Recent cleaning logs (last 5)
@@ -509,6 +513,20 @@ export default function CleaningPage() {
         </div>
 
         <TabBar pathname={pathname} />
+
+        {/* ── Loading ──────────────────────────────────────────────────────── */}
+        {record === 'loading' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-4)' }}>
+            {[120, 80, 160].map(w => (
+              <div key={w} style={{
+                height: 18, width: `${w}px`, maxWidth: '100%',
+                background: 'var(--pc-card)', borderRadius: 6,
+                animation: 'pulse 1.5s ease-in-out infinite',
+              }} />
+            ))}
+            <div style={{ height: 120, background: 'var(--pc-card)', borderRadius: 'var(--pc-radius-md)', marginTop: 8 }} />
+          </div>
+        )}
 
         {/* ── Not enrolled ──────────────────────────────────────────────────── */}
         {record === null && (
