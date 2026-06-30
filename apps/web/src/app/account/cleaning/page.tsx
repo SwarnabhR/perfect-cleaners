@@ -63,11 +63,11 @@ function toDate(v: any): Date {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const TIME_OPTIONS = [
-  { label: '7:00 AM', value: 7 },
-  { label: '9:00 AM', value: 9 },
-  { label: '2:00 PM', value: 14 },
-];
+const TIME_OPTIONS = Array.from({ length: 10 }, (_, i) => {
+  const h = i + 7; // 7 through 16
+  const label = h === 12 ? '12:00 PM' : h < 12 ? `${h}:00 AM` : `${h - 12}:00 PM`;
+  return { label, value: h };
+});
 
 const ACCOUNT_TABS = [
   { label: 'Schedule', href: '/account/cleaning' },
@@ -87,6 +87,65 @@ const metaLabel: React.CSSProperties = {
   fontFamily: 'var(--pc-mono)', fontSize: 9.5, letterSpacing: '0.08em',
   textTransform: 'uppercase', color: 'var(--pc-fg-4)', margin: 0,
 };
+
+// ─── Time preference section ──────────────────────────────────────────────────
+
+function TimePreferenceSection({
+  activeTime,
+  saving,
+  onSelect,
+  locked = false,
+}: {
+  activeTime: number;
+  saving: boolean;
+  onSelect: (h: number) => void;
+  locked?: boolean;
+}) {
+  return (
+    <section>
+      <p style={sectionLabel}>PREFERRED CLEANING TIME</p>
+      <div style={{ background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 'var(--pc-radius-md)', padding: 'var(--pc-space-5)' }}>
+        {locked && (
+          <div style={{ marginBottom: 'var(--pc-space-4)', padding: 'var(--pc-space-3) var(--pc-space-4)', background: 'color-mix(in srgb, var(--pc-warning) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--pc-warning) 25%, transparent)', borderRadius: 'var(--pc-radius-sm)' }}>
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-warning)', margin: 0, lineHeight: 1.5 }}>
+              Your preference is saved and will take effect once your enrolment is approved.
+            </p>
+          </div>
+        )}
+        <p style={{ ...metaLabel, marginBottom: 14 }}>Select your preferred slot</p>
+        {/* 5-col grid — wraps to fewer cols on narrow screens */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 8 }}>
+          {TIME_OPTIONS.map(opt => {
+            const selected = activeTime === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                disabled={saving || locked}
+                onClick={() => onSelect(opt.value)}
+                style={{
+                  padding: '10px 0', borderRadius: 8, textAlign: 'center',
+                  background: selected ? 'var(--pc-sage)' : 'var(--pc-ink-raised)',
+                  border: `1px solid ${selected ? 'var(--pc-sage-hi)' : 'var(--pc-line)'}`,
+                  fontFamily: 'var(--pc-sans)', fontSize: 13,
+                  color: selected ? 'var(--pc-sage-ink)' : 'var(--pc-fg-3)',
+                  cursor: saving || locked ? 'default' : 'pointer',
+                  opacity: saving ? 0.5 : 1,
+                  transition: 'background 0.15s ease, border-color 0.15s ease, color 0.15s ease',
+                }}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+        <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-4)', margin: '14px 0 0', lineHeight: 1.5 }}>
+          Workers will arrive at this time on your scheduled cleaning days. Changes apply from the next session.
+        </p>
+      </div>
+    </section>
+  );
+}
 
 // ─── Tab bar ──────────────────────────────────────────────────────────────────
 
@@ -276,6 +335,14 @@ export default function CleaningPage() {
               </p>
             </div>
 
+            {/* Time preference — editable even before approval */}
+            <TimePreferenceSection
+              activeTime={activeTime}
+              saving={saving}
+              onSelect={savePermanentTime}
+              locked={false}
+            />
+
             {/* Still show the summary of what was submitted */}
             <section>
               <p style={sectionLabel}>SUBMITTED DETAILS</p>
@@ -417,40 +484,11 @@ export default function CleaningPage() {
             )}
 
             {/* Cleaning time preference */}
-            <section>
-              <p style={sectionLabel}>CLEANING PREFERENCES</p>
-              <div style={{ background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 'var(--pc-radius-md)', padding: 'var(--pc-space-5)' }}>
-                <p style={{ ...metaLabel, marginBottom: 14 }}>Preferred cleaning time</p>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {TIME_OPTIONS.map(opt => {
-                    const selected = activeTime === opt.value;
-                    return (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        disabled={saving}
-                        onClick={() => savePermanentTime(opt.value)}
-                        style={{
-                          padding: '9px 20px', borderRadius: 999,
-                          background: selected ? 'var(--pc-sage)' : 'transparent',
-                          border: `1px solid ${selected ? 'var(--pc-sage-hi)' : 'var(--pc-line-strong)'}`,
-                          fontFamily: 'var(--pc-sans)', fontSize: 13,
-                          color: selected ? 'var(--pc-sage-ink)' : 'var(--pc-fg-3)',
-                          cursor: saving ? 'not-allowed' : 'pointer',
-                          opacity: saving ? 0.5 : 1,
-                          transition: 'background 0.15s ease, border-color 0.15s ease, color 0.15s ease',
-                        }}
-                      >
-                        {opt.label}
-                      </button>
-                    );
-                  })}
-                </div>
-                <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-4)', margin: '12px 0 0', lineHeight: 1.5 }}>
-                  Workers will clean your car at this time on scheduled days. Changes apply from the next cleaning.
-                </p>
-              </div>
-            </section>
+            <TimePreferenceSection
+              activeTime={activeTime}
+              saving={saving}
+              onSelect={savePermanentTime}
+            />
           </>
         )}
 
