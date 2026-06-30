@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@pc/firebase';
 import Card from '@/components/ui/Card';
@@ -191,9 +191,8 @@ export default function InquiriesPage() {
               </thead>
               <tbody>
                 {filtered.map((inquiry, idx) => (
-                  <>
+                  <React.Fragment key={inquiry.id}>
                     <tr
-                      key={inquiry.id}
                       className="pc-table-row"
                       style={{ borderBottom: idx < filtered.length - 1 ? '1px solid var(--pc-line)' : 'none', cursor: 'pointer' }}
                       onClick={() => setExpanded(e => e === inquiry.id ? null : inquiry.id)}
@@ -233,7 +232,7 @@ export default function InquiriesPage() {
                       </td>
                     </tr>
                     {expanded === inquiry.id && (
-                      <tr key={`${inquiry.id}-exp`} style={{ background: 'var(--pc-card-hi)' }}>
+                      <tr style={{ background: 'var(--pc-card-hi)' }}>
                         <td colSpan={6} style={{ padding: '14px 20px' }}>
                           <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, color: 'var(--pc-fg-4)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 8px' }}>FULL MESSAGE</p>
                           <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg)', lineHeight: 1.7, margin: 0, whiteSpace: 'pre-wrap' }}>{inquiry.message}</p>
@@ -252,7 +251,7 @@ export default function InquiriesPage() {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>

@@ -55,10 +55,10 @@ export default function WaitlistPage() {
   }).length;
 
   const kpis = [
-    { label: 'Total Signups', value: entries.length, icon: 'smartphone', color: 'var(--pc-info)'    },
-    { label: 'Android',       value: androidCount,   icon: 'cpu',        color: 'var(--pc-sage-hi)' },
-    { label: 'iOS',           value: iosCount,       icon: 'apple',      color: 'var(--pc-fg-2)'    },
-    { label: 'Today',         value: todayCount,     icon: 'sun',        color: 'var(--pc-warning)'  },
+    { label: 'Total Signups', value: entries.length, icon: 'smartphone',   color: 'var(--pc-info)'    },
+    { label: 'Android',       value: androidCount,   icon: 'activity',     color: 'var(--pc-sage-hi)' },
+    { label: 'iOS',           value: iosCount,       icon: 'circle-dot',   color: 'var(--pc-fg-2)'    },
+    { label: 'Today',         value: todayCount,     icon: 'sun',          color: 'var(--pc-warning)'  },
   ];
 
   const filtered = entries.filter(e => {
