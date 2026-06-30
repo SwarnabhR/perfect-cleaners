@@ -341,7 +341,11 @@ export default function PendingApprovalsPage() {
                   <div>
                     <p style={monoLabel}>Preferred Time</p>
                     <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)', margin: 0 }}>
-                      {String(approval.preferredCleaningTime).padStart(2, '0')}:00 AM
+                      {approval.preferredCleaningTime === 12
+                        ? '12:00 PM'
+                        : approval.preferredCleaningTime > 12
+                          ? `${approval.preferredCleaningTime - 12}:00 PM`
+                          : `${approval.preferredCleaningTime}:00 AM`}
                     </p>
                   </div>
                   <div>

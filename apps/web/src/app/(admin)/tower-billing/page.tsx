@@ -50,9 +50,10 @@ const monoLabel: React.CSSProperties = {
 export default function TowerBillingPage() {
   const [configs, setConfigs] = useState<LiveBillingConfig[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState<LiveBillingConfig | null>(null);
-  const [form, setForm] = useState<FormData>(BLANK_FORM);
-  const [saving, setSaving] = useState(false);
+  const [editing,   setEditing]   = useState<LiveBillingConfig | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [form,      setForm]      = useState<FormData>(BLANK_FORM);
+  const [saving,    setSaving]    = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
@@ -72,6 +73,7 @@ export default function TowerBillingPage() {
   function openAdd() {
     setForm(BLANK_FORM);
     setEditing(null);
+    setModalOpen(true);
   }
 
   function openEdit(config: LiveBillingConfig) {
@@ -83,10 +85,12 @@ export default function TowerBillingPage() {
       cleaningSchedule: config.cleaningSchedule,
     });
     setEditing(config);
+    setModalOpen(true);
   }
 
   function closeForm() {
     setEditing(null);
+    setModalOpen(false);
     setForm(BLANK_FORM);
   }
 
@@ -196,7 +200,7 @@ export default function TowerBillingPage() {
       </div>
 
       {/* Form Modal */}
-      {editing !== null && (
+      {modalOpen && (
         <div
           style={{
             position: 'fixed',

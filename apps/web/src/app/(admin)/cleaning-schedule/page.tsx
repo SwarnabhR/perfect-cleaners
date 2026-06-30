@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { collection, query, orderBy, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@pc/firebase';
-import type { CleaningSessionEnhanced, CleaningSessionStatus } from '@pc/firebase';
+import type { CleaningSessionEnhanced, CleaningSessionStatus, Worker } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
@@ -63,13 +63,16 @@ function formatTime(date: unknown): string {
   return toDate(date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 }
 
+type LiveWorker = Worker & { id: string };
+
 export default function CleaningSchedulePage() {
-  const [sessions, setSessions] = useState<LiveSession[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [sessions,     setSessions]     = useState<LiveSession[]>([]);
+  const [workers,      setWorkers]      = useState<LiveWorker[]>([]);
+  const [loading,      setLoading]      = useState(true);
   const [filterStatus, setFilterStatus] = useState<CleaningSessionStatus | 'all'>('all');
-  const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState<CreateSessionForm>(BLANK_FORM);
-  const [saving, setSaving] = useState(false);
+  const [creating,     setCreating]     = useState(false);
+  const [form,         setForm]         = useState<CreateSessionForm>(BLANK_FORM);
+  const [saving,       setSaving]       = useState(false);
 
   useEffect(() => {
     return onSnapshot(
@@ -85,6 +88,14 @@ export default function CleaningSchedulePage() {
     );
   }, []);
 
+  useEffect(() => {
+    return onSnapshot(
+      collection(db, 'workers'),
+      snap => setWorkers(snap.docs.map(d => ({ id: d.id, ...d.data() } as LiveWorker))),
+      err => console.warn('[CleaningSchedule] workers:', err.message),
+    );
+  }, []);
+
   async function handleCreateSession() {
     if (!form.societyId.trim() || !form.tower.trim() || form.workerIds.length === 0 || saving) return;
     setSaving(true);
@@ -92,6 +103,8 @@ export default function CleaningSchedulePage() {
     try {
       const scheduledDate = new Date(form.scheduledDate);
       const sessionId = `${form.societyId}_${form.tower}_${form.scheduledDate}`;
+      const selectedWorkers = workers.filter(w => form.workerIds.includes(w.id));
+      const workerNames = selectedWorkers.map(w => w.name);
 
       await setDoc(doc(db, 'cleaningSessions', sessionId), {
         societyId: form.societyId.trim(),
@@ -104,7 +117,7 @@ export default function CleaningSchedulePage() {
         completedCars: 0,
         skippedCars: 0,
         workerIds: form.workerIds,
-        workerNames: [], // TODO: Fetch worker names
+        workerNames,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
@@ -493,18 +506,38 @@ export default function CleaningSchedulePage() {
 
               <div>
                 <p style={monoLabel}>Assign Workers</p>
-                <div style={{ background: 'var(--pc-card-hi)', borderRadius: 8, padding: 12 }}>
-                  <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-2)', margin: '0 0 8px' }}>
-                    Enter worker IDs (comma-separated)
-                  </p>
-                  <input
-                    type="text"
-                    placeholder="worker1, worker2, worker3"
-                    onChange={e => setForm({ ...form, workerIds: e.target.value.split(',').map(w => w.trim()).filter(Boolean) })}
-                    style={inputStyle}
-                  />
-                  <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-4)', margin: '8px 0 0' }}>
-                    Selected: {form.workerIds.length} worker(s)
+                <div style={{ background: 'var(--pc-card-hi)', borderRadius: 8, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {workers.length === 0 ? (
+                    <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)', margin: 0 }}>
+                      No workers found. Add workers first.
+                    </p>
+                  ) : workers.map(w => {
+                    const checked = form.workerIds.includes(w.id);
+                    return (
+                      <label
+                        key={w.id}
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '6px 8px', borderRadius: 6, background: checked ? 'color-mix(in srgb, var(--pc-sage) 10%, transparent)' : 'transparent', border: `1px solid ${checked ? 'var(--pc-sage-hi)' : 'transparent'}`, transition: 'background 0.15s' }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => setForm(f => ({
+                            ...f,
+                            workerIds: checked
+                              ? f.workerIds.filter(id => id !== w.id)
+                              : [...f.workerIds, w.id],
+                          }))}
+                          style={{ accentColor: 'var(--pc-sage)', width: 15, height: 15, flexShrink: 0 }}
+                        />
+                        <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)', flex: 1 }}>{w.name}</span>
+                        <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-4)' }}>
+                          {w.isOnline ? '● Online' : '○ Offline'}
+                        </span>
+                      </label>
+                    );
+                  })}
+                  <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-4)', margin: '4px 0 0' }}>
+                    {form.workerIds.length} worker{form.workerIds.length !== 1 ? 's' : ''} selected
                   </p>
                 </div>
               </div>
