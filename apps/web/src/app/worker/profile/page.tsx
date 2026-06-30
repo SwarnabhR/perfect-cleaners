@@ -239,7 +239,7 @@ export default function WorkerProfilePage() {
       <Card style={{ padding: 'var(--pc-space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-3)' }}>
         <Eyebrow>SUPPORT</Eyebrow>
         {[
-          { icon: 'message-circle', label: 'Raise a complaint',   href: 'mailto:support@perfectcleaners.in?subject=Worker Complaint' },
+          { icon: 'message-circle', label: 'Raise a complaint',   href: 'mailto:hello@perfectcleaners.in?subject=Worker Complaint' },
           { icon: 'file-text',      label: 'Privacy Policy',      href: 'https://perfectcleaners.co.in/privacy' },
           { icon: 'book-open',      label: 'Terms of Service',    href: 'https://perfectcleaners.co.in/terms' },
         ].map(({ icon, label: lbl, href }) => (
