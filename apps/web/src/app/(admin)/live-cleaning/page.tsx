@@ -14,18 +14,11 @@ interface CarWithSession extends CleaningSessionCar {
   sessionDate: Date;
 }
 
-const TIME_SLOTS = [7, 9, 14] as const;
-
-function formatTime(hour: number): string {
-  return `${hour.toString().padStart(2, '0')}:00`;
-}
-
 function getTimeSlotLabel(hour: number): string {
-  const time = formatTime(hour);
-  if (hour === 7) return `${time} (Morning)`;
-  if (hour === 9) return `${time} (Mid-morning)`;
-  if (hour === 14) return `${time} (Afternoon)`;
-  return time;
+  const h12 = hour % 12 || 12;
+  const ampm = hour < 12 ? 'AM' : 'PM';
+  const label = hour < 12 ? 'Morning' : hour < 17 ? 'Afternoon' : 'Evening';
+  return `${h12}:00 ${ampm} (${label})`;
 }
 
 interface CarListItem {
@@ -85,7 +78,6 @@ export default function LiveCleaningPage() {
   });
 
   const carsBySlot = new Map<number, CarListItem[]>();
-  TIME_SLOTS.forEach(slot => carsBySlot.set(slot, []));
 
   filteredSessions.forEach(session => {
     (session.cars ?? []).forEach((car, idx) => {
@@ -109,12 +101,15 @@ export default function LiveCleaningPage() {
     });
   });
 
-  TIME_SLOTS.forEach(slot => {
-    const cars = carsBySlot.get(slot)!;
+  // Sort: available cars first, then unavailable
+  carsBySlot.forEach((cars, slot) => {
     const available = cars.filter(c => !c.unavailable);
     const unavailable = cars.filter(c => c.unavailable);
     carsBySlot.set(slot, [...available, ...unavailable]);
   });
+
+  // Derive sorted list of time slots from data (no longer hardcoded)
+  const dynamicTimeSlots = [...carsBySlot.keys()].sort((a, b) => a - b);
 
   async function toggleUnavailable(car: CarListItem) {
     if (toggling) return;
@@ -212,8 +207,13 @@ export default function LiveCleaningPage() {
           Loading…
         </Card>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 20 }}>
-          {TIME_SLOTS.map(slot => {
+        dynamicTimeSlots.length === 0 ? (
+          <Card style={{ padding: 48, textAlign: 'center', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)' }}>
+            No cars scheduled for today. Start a cleaning session from the Schedule page.
+          </Card>
+        ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
+          {dynamicTimeSlots.map(slot => {
             const cars = carsBySlot.get(slot) ?? [];
             const availableCount = cars.filter(c => !c.unavailable).length;
 
@@ -320,6 +320,7 @@ export default function LiveCleaningPage() {
             );
           })}
         </div>
+        )
       )}
     </div>
   );

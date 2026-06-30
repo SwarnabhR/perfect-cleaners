@@ -253,6 +253,7 @@ export interface SocietyBillingConfig {
 export interface CustomerSocietyRecord {
   id: string;
   customerId: string;
+  customerName?: string;        // denormalized from PendingApproval at approval time
   societyId: string;
   societyName: string;
   tower: string;

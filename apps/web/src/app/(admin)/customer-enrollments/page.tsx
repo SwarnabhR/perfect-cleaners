@@ -101,7 +101,8 @@ export default function CustomerEnrollmentsPage() {
     return (
       r.societyName.toLowerCase().includes(q) ||
       r.tower.toLowerCase().includes(q) ||
-      r.customerId.toLowerCase().includes(q)
+      r.customerId.toLowerCase().includes(q) ||
+      (r.customerName ?? '').toLowerCase().includes(q)
     );
   });
 
@@ -327,6 +328,9 @@ export default function CustomerEnrollmentsPage() {
                   <tr key={record.id} style={{ borderBottom: idx < filtered.length - 1 ? '1px solid var(--pc-line)' : 'none' }}>
                     <td style={{ padding: '13px 18px' }}>
                       <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 500, color: 'var(--pc-fg)', margin: 0 }}>
+                        {record.customerName ?? '—'}
+                      </p>
+                      <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-4)', margin: '2px 0 0' }}>
                         {record.customerId.slice(0, 8)}
                       </p>
                     </td>

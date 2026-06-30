@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { collection, query, orderBy, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@pc/firebase';
-import type { CleaningSessionEnhanced, CleaningSessionStatus, Worker } from '@pc/firebase';
+import type { CleaningSessionEnhanced, CleaningSessionStatus, Worker, Society } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
@@ -63,11 +63,13 @@ function formatTime(date: unknown): string {
   return toDate(date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 }
 
-type LiveWorker = Worker & { id: string };
+type LiveWorker  = Worker  & { id: string };
+type LiveSociety = Society & { id: string };
 
 export default function CleaningSchedulePage() {
   const [sessions,     setSessions]     = useState<LiveSession[]>([]);
   const [workers,      setWorkers]      = useState<LiveWorker[]>([]);
+  const [societies,    setSocieties]    = useState<LiveSociety[]>([]);
   const [loading,      setLoading]      = useState(true);
   const [filterStatus, setFilterStatus] = useState<CleaningSessionStatus | 'all'>('all');
   const [creating,     setCreating]     = useState(false);
@@ -93,6 +95,14 @@ export default function CleaningSchedulePage() {
       collection(db, 'workers'),
       snap => setWorkers(snap.docs.map(d => ({ id: d.id, ...d.data() } as LiveWorker))),
       err => console.warn('[CleaningSchedule] workers:', err.message),
+    );
+  }, []);
+
+  useEffect(() => {
+    return onSnapshot(
+      collection(db, 'societies'),
+      snap => setSocieties(snap.docs.map(d => ({ id: d.id, ...d.data() } as LiveSociety))),
+      err => console.warn('[CleaningSchedule] societies:', err.message),
     );
   }, []);
 
@@ -461,37 +471,69 @@ export default function CleaningSchedulePage() {
             </h2>
 
             <form style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* Society dropdown — auto-fills ID and name */}
               <div>
-                <p style={monoLabel}>Society Name</p>
-                <input
-                  type="text"
-                  value={form.societyName}
-                  onChange={e => setForm({ ...form, societyName: e.target.value })}
-                  placeholder="e.g., Uniworld City, Lodha Group"
-                  style={inputStyle}
-                />
+                <p style={monoLabel}>Society</p>
+                {societies.length === 0 ? (
+                  <input
+                    type="text"
+                    value={form.societyName}
+                    onChange={e => setForm({ ...form, societyName: e.target.value, societyId: e.target.value })}
+                    placeholder="Society name (no societies in DB yet)"
+                    style={inputStyle}
+                  />
+                ) : (
+                  <select
+                    value={form.societyId}
+                    onChange={e => {
+                      const selected = societies.find(s => s.id === e.target.value);
+                      setForm(f => ({
+                        ...f,
+                        societyId: selected?.id ?? '',
+                        societyName: selected?.name ?? '',
+                        tower: '',
+                      }));
+                    }}
+                    style={inputStyle}
+                  >
+                    <option value="">Select a society…</option>
+                    {societies.map(s => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                )}
               </div>
 
-              <div>
-                <p style={monoLabel}>Society ID</p>
-                <input
-                  type="text"
-                  value={form.societyId}
-                  onChange={e => setForm({ ...form, societyId: e.target.value })}
-                  placeholder="Firebase ID"
-                  style={inputStyle}
-                />
-              </div>
-
+              {/* Tower dropdown — populated from selected society */}
               <div>
                 <p style={monoLabel}>Tower</p>
-                <input
-                  type="text"
-                  value={form.tower}
-                  onChange={e => setForm({ ...form, tower: e.target.value })}
-                  placeholder="e.g., Tower A, Tower B"
-                  style={inputStyle}
-                />
+                {(() => {
+                  const selectedSociety = societies.find(s => s.id === form.societyId);
+                  const towers = selectedSociety?.towers ?? [];
+                  if (towers.length === 0) {
+                    return (
+                      <input
+                        type="text"
+                        value={form.tower}
+                        onChange={e => setForm({ ...form, tower: e.target.value })}
+                        placeholder="e.g., Tower A, Tower B"
+                        style={inputStyle}
+                      />
+                    );
+                  }
+                  return (
+                    <select
+                      value={form.tower}
+                      onChange={e => setForm({ ...form, tower: e.target.value })}
+                      style={inputStyle}
+                    >
+                      <option value="">Select a tower…</option>
+                      {towers.map(t => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                  );
+                })()}
               </div>
 
               <div>

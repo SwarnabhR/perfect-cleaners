@@ -936,5 +936,26 @@ html {
 
 @media (max-width: 479px) {
   .kpi-grid-4 { grid-template-columns: 1fr 1fr; }
-  .kpi-grid-3 { grid-template-columns: 1fr; }
+  .kpi-grid-3 { grid-template-columns: 1fr 1fr; }
+}
+
+/* ====================================================================
+   Admin responsive — live-cleaning card grid
+   ==================================================================== */
+
+@media (max-width: 600px) {
+  .live-cleaning-slots {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Enrollment search+filter row stacks on mobile */
+@media (max-width: 639px) {
+  .enrollment-search-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .enrollment-search-row > div:first-child {
+    min-width: unset !important;
+  }
 }

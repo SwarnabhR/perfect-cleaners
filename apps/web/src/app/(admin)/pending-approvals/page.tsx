@@ -98,6 +98,7 @@ export default function PendingApprovalsPage() {
       const recordId = `${customerId}_${approval.societyId}_${approval.tower}`;
       await setDoc(doc(db, 'customerSocietyRecords', recordId), {
         customerId,
+        customerName:          approval.customerName,
         societyId:             approval.societyId,
         societyName:           approval.societyName,
         tower:                 approval.tower,
@@ -174,82 +175,35 @@ export default function PendingApprovalsPage() {
       </div>
 
       {/* Stats */}
-      <div className="kpi-grid-3">
-        <Card style={{ padding: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 10,
-              background: 'var(--pc-card-hi)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <Icon name="hourglass" size={18} color="var(--pc-warning)" />
+      {(() => {
+        const todayMs = new Date().setHours(0,0,0,0);
+        const todayNew = approvals.filter(a => {
+          const ts = (a.submittedAt as unknown as { toDate?: () => Date });
+          const d = typeof ts?.toDate === 'function' ? ts.toDate() : new Date(a.submittedAt as unknown as string);
+          return d.getTime() >= todayMs;
+        }).length;
+        const societies = new Set(approvals.map(a => a.societyId)).size;
+        const kpis = [
+          { label: 'Awaiting Approval', value: loading ? '—' : String(approvals.length), icon: 'hourglass', color: 'var(--pc-warning)' },
+          { label: 'New Today',          value: loading ? '—' : String(todayNew),          icon: 'phone',     color: 'var(--pc-info)'    },
+          { label: 'Societies',          value: loading ? '—' : String(societies),          icon: 'building-2',color: 'var(--pc-sage)'   },
+        ];
+        return (
+          <div className="kpi-grid-3">
+            {kpis.map(({ label, value, icon, color }) => (
+              <Card key={label} style={{ padding: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--pc-card-hi)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Icon name={icon} size={18} color={color} />
+                </div>
+                <div>
+                  <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 22, color: 'var(--pc-fg)', margin: '0 0 2px' }}>{value}</p>
+                  <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', margin: 0 }}>{label}</p>
+                </div>
+              </Card>
+            ))}
           </div>
-          <div>
-            <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 22, color: 'var(--pc-fg)', margin: '0 0 2px' }}>
-              {loading ? '—' : approvals.length}
-            </p>
-            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', margin: 0 }}>
-              AWAITING APPROVAL
-            </p>
-          </div>
-        </Card>
-
-        <Card style={{ padding: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 10,
-              background: 'var(--pc-card-hi)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <Icon name="phone" size={18} color="var(--pc-info)" />
-          </div>
-          <div>
-            <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 22, color: 'var(--pc-fg)', margin: '0 0 2px' }}>
-              —
-            </p>
-            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', margin: 0 }}>
-              CALL & VERIFY
-            </p>
-          </div>
-        </Card>
-
-        <Card style={{ padding: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 10,
-              background: 'var(--pc-card-hi)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <Icon name="user-plus" size={18} color="var(--pc-sage)" />
-          </div>
-          <div>
-            <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 22, color: 'var(--pc-fg)', margin: '0 0 2px' }}>
-              —
-            </p>
-            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', margin: 0 }}>
-              APPROVE
-            </p>
-          </div>
-        </Card>
-      </div>
+        );
+      })()}
 
       {/* List */}
       <Card style={{ padding: 0, overflow: 'hidden' }}>
