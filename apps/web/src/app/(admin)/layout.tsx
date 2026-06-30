@@ -102,6 +102,7 @@ const NAV = [
   { label: 'Billing',     href: '/billing',        icon: 'indian-rupee'    },
   { label: 'Analytics',   href: '/analytics',      icon: 'bar-chart-2'      },
   // Support & Config
+  { label: 'Inquiries',    href: '/inquiries',     icon: 'message-circle'   },
   { label: 'Notifications', href: '/notifications', icon: 'mail'            },
   { label: 'Services',    href: '/services-mgmt',  icon: 'sparkles'         },
   { label: 'Promotions',  href: '/promotions',     icon: 'tag'              },

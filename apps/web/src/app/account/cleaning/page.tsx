@@ -3,11 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import {
-  collection, query, where, onSnapshot, doc, getDoc, updateDoc,
+  collection, query, where, onSnapshot, doc, getDoc, updateDoc, addDoc, getDocs,
   serverTimestamp, orderBy, limit,
 } from 'firebase/firestore';
 import { db } from '@pc/firebase';
-import type { CustomerSocietyRecord, CleaningLog } from '@pc/firebase';
+import type { CustomerSocietyRecord, CleaningLog, Society } from '@pc/firebase';
 import Link from 'next/link';
 import Nav from '@/components/marketing/Nav';
 import Footer from '@/components/marketing/Footer';
@@ -87,6 +87,214 @@ const metaLabel: React.CSSProperties = {
   fontFamily: 'var(--pc-mono)', fontSize: 9.5, letterSpacing: '0.08em',
   textTransform: 'uppercase', color: 'var(--pc-fg-4)', margin: 0,
 };
+
+// ─── Self-signup form ─────────────────────────────────────────────────────────
+
+type LiveSociety = Society & { id: string };
+
+const inputStyle: React.CSSProperties = {
+  width: '100%', boxSizing: 'border-box',
+  padding: '10px 14px',
+  background: 'var(--pc-ink-raised)',
+  border: '1px solid var(--pc-line)',
+  borderRadius: 8,
+  fontFamily: 'var(--pc-sans)', fontSize: 13,
+  color: 'var(--pc-fg)', outline: 'none',
+};
+
+function SelfSignupForm({
+  userId,
+  userPhone,
+  userName,
+}: {
+  userId: string;
+  userPhone: string | null;
+  userName: string | null;
+}) {
+  const [societies, setSocieties] = useState<LiveSociety[]>([]);
+  const [name, setName] = useState(userName ?? '');
+  const [societyId, setSocietyId] = useState('');
+  const [tower, setTower] = useState('');
+  const [plate, setPlate] = useState('');
+  const [make, setMake] = useState('');
+  const [model, setModel] = useState('');
+  const [preferredTime, setPreferredTime] = useState(9);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    getDocs(query(collection(db, 'societies'), where('isActive', '==', true)))
+      .then(snap => setSocieties(snap.docs.map(d => ({ id: d.id, ...d.data() } as LiveSociety))))
+      .catch(() => {});
+  }, []);
+
+  const selectedSociety = societies.find(s => s.id === societyId) ?? null;
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim() || !societyId || !tower || !plate.trim()) {
+      setError('Please fill in all required fields.');
+      return;
+    }
+    setError(''); setSubmitting(true);
+    try {
+      const carPlate = plate.trim().toUpperCase();
+      const societyName = selectedSociety?.name ?? '';
+
+      await addDoc(collection(db, 'pendingApprovals'), {
+        societyId, societyName, tower,
+        customerId:            userId,
+        customerName:          name.trim(),
+        customerPhone:         userPhone ?? '',
+        carPlate, carMake: make.trim(), carModel: model.trim(),
+        preferredCleaningTime: preferredTime,
+        status:                'pending',
+        submittedAt:           serverTimestamp(),
+      });
+
+      await addDoc(collection(db, 'customerSocietyRecords'), {
+        customerId:            userId,
+        societyId, societyName, tower,
+        cars: [{ plate: carPlate, make: make.trim(), model: model.trim() }],
+        preferredCleaningTime: preferredTime,
+        signupSource:          'self_signup',
+        status:                'pending',
+        monthlyFee:            0,
+        nextBillingDate:       new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        paymentStatus:         'not_verified',
+        skipDates:             [],
+        rescheduledSlots:      [],
+        createdAt:             serverTimestamp(),
+        updatedAt:             serverTimestamp(),
+      });
+      // The onSnapshot listener on this page will detect the new record and switch to the pending UI.
+    } catch (err: unknown) {
+      setError('Something went wrong. Please try again.');
+      console.error('[SelfSignup]', err);
+      setSubmitting(false);
+    }
+  }
+
+  const fieldLabel: React.CSSProperties = {
+    fontFamily: 'var(--pc-mono)', fontSize: 9.5, letterSpacing: '0.08em',
+    textTransform: 'uppercase', color: 'var(--pc-fg-4)', display: 'block', marginBottom: 6,
+  };
+
+  return (
+    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-6)' }}>
+      <div style={{ background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 'var(--pc-radius-md)', padding: 'var(--pc-space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-5)' }}>
+
+        {/* Your name */}
+        <div>
+          <label style={fieldLabel}>Your name *</label>
+          <input
+            type="text" required value={name} onChange={e => setName(e.target.value)}
+            placeholder="Full name" style={inputStyle}
+          />
+        </div>
+
+        {/* Society + tower */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div>
+            <label style={fieldLabel}>Society *</label>
+            <select
+              required value={societyId}
+              onChange={e => { setSocietyId(e.target.value); setTower(''); }}
+              style={{ ...inputStyle, cursor: 'pointer' }}
+            >
+              <option value="">Select society…</option>
+              {societies.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={fieldLabel}>Tower *</label>
+            <select
+              required value={tower}
+              onChange={e => setTower(e.target.value)}
+              disabled={!selectedSociety}
+              style={{ ...inputStyle, cursor: selectedSociety ? 'pointer' : 'not-allowed', opacity: selectedSociety ? 1 : 0.5 }}
+            >
+              <option value="">Select tower…</option>
+              {(selectedSociety?.towers ?? []).map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* Car details */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+          <div>
+            <label style={fieldLabel}>Car plate *</label>
+            <input
+              type="text" required value={plate} onChange={e => setPlate(e.target.value)}
+              placeholder="DL 01 AB 1234" style={inputStyle}
+            />
+          </div>
+          <div>
+            <label style={fieldLabel}>Make</label>
+            <input
+              type="text" value={make} onChange={e => setMake(e.target.value)}
+              placeholder="Maruti, Honda…" style={inputStyle}
+            />
+          </div>
+          <div>
+            <label style={fieldLabel}>Model</label>
+            <input
+              type="text" value={model} onChange={e => setModel(e.target.value)}
+              placeholder="Swift, City…" style={inputStyle}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Time preference */}
+      <div>
+        <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--pc-fg-3)', margin: '0 0 14px' }}>PREFERRED CLEANING TIME</p>
+        <div style={{ background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 'var(--pc-radius-md)', padding: 'var(--pc-space-5)' }}>
+          <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--pc-fg-4)', margin: '0 0 14px' }}>Select your preferred slot</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 8 }}>
+            {TIME_OPTIONS.map(opt => {
+              const selected = preferredTime === opt.value;
+              return (
+                <button key={opt.value} type="button" onClick={() => setPreferredTime(opt.value)} style={{
+                  padding: '10px 0', borderRadius: 8, textAlign: 'center',
+                  background: selected ? 'var(--pc-sage)' : 'var(--pc-ink-raised)',
+                  border: `1px solid ${selected ? 'var(--pc-sage-hi)' : 'var(--pc-line)'}`,
+                  fontFamily: 'var(--pc-sans)', fontSize: 13,
+                  color: selected ? 'var(--pc-sage-ink)' : 'var(--pc-fg-3)',
+                  cursor: 'pointer',
+                  transition: 'background 0.15s ease, border-color 0.15s ease, color 0.15s ease',
+                }}>
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {error && (
+        <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-danger)', margin: 0 }}>{error}</p>
+      )}
+
+      <button
+        type="submit" disabled={submitting}
+        style={{
+          padding: '14px 28px', borderRadius: 999,
+          background: submitting ? 'var(--pc-card-hi)' : 'var(--pc-warm)',
+          border: 'none', color: 'var(--pc-ink)',
+          fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 600,
+          letterSpacing: '0.04em', textTransform: 'uppercase',
+          cursor: submitting ? 'not-allowed' : 'pointer',
+          opacity: submitting ? 0.7 : 1,
+          transition: 'background 0.15s ease, opacity 0.15s ease',
+          alignSelf: 'flex-start',
+        }}
+      >
+        {submitting ? 'Submitting…' : 'Request Enrolment'}
+      </button>
+    </form>
+  );
+}
 
 // ─── Time preference section ──────────────────────────────────────────────────
 
@@ -304,20 +512,24 @@ export default function CleaningPage() {
 
         {/* ── Not enrolled ──────────────────────────────────────────────────── */}
         {record === null && (
-          <div style={{ textAlign: 'center', padding: 'var(--pc-space-20) var(--pc-space-6)', background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 'var(--pc-radius-md)' }}>
-            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--pc-fg-4)', marginBottom: 12 }}>
-              [NOT ENROLLED]
-            </p>
-            <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 28, color: 'var(--pc-fg)', letterSpacing: '-0.02em', marginBottom: 12 }}>
-              Join the society programme.
-            </p>
-            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg-3)', lineHeight: 1.6, maxWidth: 360, margin: '0 auto 28px' }}>
-              Register your society and get your car cleaned every week — no booking, no chasing.
-            </p>
-            <Link href="/for-societies" style={{ display: 'inline-flex', alignItems: 'center', padding: '12px 28px', background: 'var(--pc-warm)', color: 'var(--pc-ink)', borderRadius: 999, fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', textDecoration: 'none' }}>
-              Learn more →
-            </Link>
-          </div>
+          <>
+            <div>
+              <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--pc-fg-4)', margin: '0 0 8px' }}>[NOT ENROLLED]</p>
+              <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 26, color: 'var(--pc-fg)', letterSpacing: '-0.02em', margin: '0 0 6px' }}>
+                Join the society programme.
+              </p>
+              <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg-3)', lineHeight: 1.6, margin: 0 }}>
+                Your car gets cleaned every week — no booking, no chasing. Fill in your details and we'll call to confirm.
+              </p>
+            </div>
+            {user && (
+              <SelfSignupForm
+                userId={user.uid}
+                userPhone={user.phoneNumber}
+                userName={user.displayName}
+              />
+            )}
+          </>
         )}
 
         {/* ── Pending approval ──────────────────────────────────────────────── */}

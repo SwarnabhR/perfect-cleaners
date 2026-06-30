@@ -40,6 +40,12 @@ export async function GET(req: NextRequest) {
 
         for (const cleaningDate of cleaningDates) {
           try {
+            const sessionId = `${societyId}_${tower}_${cleaningDate.toISOString().split('T')[0]}`;
+
+            // Skip if a session already exists — never overwrite an active or completed session
+            const existing = await db.collection('cleaningSessions').doc(sessionId).get();
+            if (existing.exists) continue;
+
             const cars = customersSnap.docs
               .map(docSnap => {
                 const customer = docSnap.data();
@@ -59,7 +65,6 @@ export async function GET(req: NextRequest) {
               })
               .filter(Boolean);
 
-            const sessionId = `${societyId}_${tower}_${cleaningDate.toISOString().split('T')[0]}`;
             await db.collection('cleaningSessions').doc(sessionId).set({
               societyId,
               societyName:   config.societyName,
