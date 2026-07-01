@@ -6,8 +6,16 @@ import type { CustomerSocietyRecord } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
+import StatusPill from '@/components/ui/StatusPill';
 
 type LiveRecord = CustomerSocietyRecord & { id: string };
+
+const ENROLLMENT_STATUS_LABEL: Record<string, string> = {
+  pending:  'Pending',
+  active:   'Active',
+  paused:   'Paused',
+  inactive: 'Cancelled',
+};
 
 const monoLabel: React.CSSProperties = {
   fontFamily: 'var(--pc-mono)',
@@ -91,6 +99,22 @@ export default function CustomerEnrollmentsPage() {
       setMarkingPaidId(null);
     } catch (err: unknown) {
       console.error('[CustomerEnrollments] mark paid failed:', err instanceof Error ? err.message : err);
+    }
+  }
+
+  async function handleToggleStatus(record: LiveRecord) {
+    const nextStatus = record.status === 'active' ? 'paused' : 'active';
+    try {
+      await setDoc(
+        doc(db, 'customerSocietyRecords', record.id),
+        {
+          status: nextStatus,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+    } catch (err: unknown) {
+      console.error('[CustomerEnrollments] toggle status failed:', err instanceof Error ? err.message : err);
     }
   }
 
@@ -228,7 +252,7 @@ export default function CustomerEnrollmentsPage() {
       </div>
 
       {/* Search & Filter */}
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+      <div className="enrollment-search-row" style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: 300 }}>
           <Icon
             name="search"
@@ -259,7 +283,7 @@ export default function CustomerEnrollmentsPage() {
           />
         </div>
 
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {['all', 'verified', 'pending_payment', 'paid'].map(status => (
             <button
               key={status}
@@ -304,7 +328,7 @@ export default function CustomerEnrollmentsPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--pc-line)' }}>
-                  {['Customer', 'Society', 'Tower', 'Car', 'Payment', 'Next Billing', 'Action'].map(h => (
+                  {['Customer', 'Society', 'Tower', 'Car', 'Status', 'Payment', 'Next Billing', 'Action'].map(h => (
                     <th
                       key={h}
                       style={{
@@ -344,6 +368,9 @@ export default function CustomerEnrollmentsPage() {
                       {record.cars[0]?.plate || '—'}
                     </td>
                     <td style={{ padding: '13px 18px' }}>
+                      <StatusPill status={ENROLLMENT_STATUS_LABEL[record.status] ?? record.status} />
+                    </td>
+                    <td style={{ padding: '13px 18px' }}>
                       <PaymentStatusBadge status={record.paymentStatus} />
                     </td>
                     <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)' }}>
@@ -353,30 +380,56 @@ export default function CustomerEnrollmentsPage() {
       ).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
                     </td>
                     <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
-                      {record.paymentStatus === 'pending_payment' && (
-                        <button
-                          type="button"
-                          onClick={() => setMarkingPaidId(record.id)}
-                          style={{
-                            padding: '4px 10px',
-                            borderRadius: 6,
-                            background: 'var(--pc-sage)',
-                            border: 'none',
-                            fontFamily: 'var(--pc-sans)',
-                            fontSize: 11,
-                            fontWeight: 600,
-                            color: 'var(--pc-sage-ink)',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          Mark Paid
-                        </button>
-                      )}
-                      {record.paymentStatus === 'paid' && (
-                        <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-sage)', fontWeight: 600 }}>
-                          ✓ Paid
-                        </span>
-                      )}
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        {record.status === 'pending' && (
+                          <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-4)' }}>
+                            See Pending Approvals
+                          </span>
+                        )}
+                        {record.paymentStatus === 'pending_payment' && (
+                          <button
+                            type="button"
+                            onClick={() => setMarkingPaidId(record.id)}
+                            style={{
+                              padding: '4px 10px',
+                              borderRadius: 6,
+                              background: 'var(--pc-sage)',
+                              border: 'none',
+                              fontFamily: 'var(--pc-sans)',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              color: 'var(--pc-sage-ink)',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Mark Paid
+                          </button>
+                        )}
+                        {record.paymentStatus === 'paid' && (
+                          <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-sage)', fontWeight: 600 }}>
+                            ✓ Paid
+                          </span>
+                        )}
+                        {(record.status === 'active' || record.status === 'paused') && (
+                          <button
+                            type="button"
+                            onClick={() => handleToggleStatus(record)}
+                            style={{
+                              padding: '4px 10px',
+                              borderRadius: 6,
+                              background: 'transparent',
+                              border: `1px solid ${record.status === 'active' ? 'var(--pc-warning)' : 'var(--pc-sage-hi)'}`,
+                              fontFamily: 'var(--pc-sans)',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              color: record.status === 'active' ? 'var(--pc-warning)' : 'var(--pc-sage-hi)',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {record.status === 'active' ? 'Pause' : 'Resume'}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

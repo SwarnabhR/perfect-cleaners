@@ -6,7 +6,7 @@ import {
 } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { db } from '@pc/firebase';
-import type { Worker, Society, WorkerEarnings } from '@pc/firebase';
+import type { Worker, Society } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
@@ -326,7 +326,6 @@ function WorkerDetailPanel({
 
 export default function WorkersPage() {
   const [workers,        setWorkers]        = useState<LiveWorker[]>([]);
-  const [earnings,       setEarnings]       = useState<Record<string, WorkerEarnings>>({});
   const [societies,      setSocieties]      = useState<LiveSociety[]>([]);
   const [selectedWorker, setSelectedWorker] = useState<LiveWorker | null>(null);
   const [editingWorker,  setEditingWorker]  = useState<LiveWorker | null>(null);
@@ -356,19 +355,6 @@ export default function WorkersPage() {
           : err.message);
         setLoading(false);
       },
-    );
-  }, []);
-
-  // Pay figures live in a separate admin-only collection, keyed by worker ID.
-  useEffect(() => {
-    return onSnapshot(
-      collection(db, 'workerEarnings'),
-      snap => {
-        const map: Record<string, WorkerEarnings> = {};
-        snap.docs.forEach(d => { map[d.id] = d.data() as WorkerEarnings; });
-        setEarnings(map);
-      },
-      err => console.warn('[Workers] earnings:', err.message),
     );
   }, []);
 
@@ -533,7 +519,7 @@ export default function WorkersPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--pc-line)' }}>
-                  {['Worker', 'Phone', 'Status', 'Society', 'Jobs Done', 'Cars Today', 'Rating', 'This Month', 'Joined'].map(h => (
+                  {['Worker', 'Phone', 'Status', 'Society', 'Jobs Done', 'Cars Today', 'Rating', 'Joined'].map(h => (
                     <th key={h} style={{
                       padding: '13px 18px', textAlign: 'left',
                       fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)',
@@ -579,9 +565,6 @@ export default function WorkersPage() {
                     </td>
                     <td style={{ padding: '13px 18px' }}>
                       <StarRating value={w.rating ?? 0} />
-                    </td>
-                    <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg-2)' }}>
-                      {earnings[w.id]?.month ? `₹${earnings[w.id].month.toLocaleString('en-IN')}` : '—'}
                     </td>
                     <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)' }}>
                       {fmt((w as any).createdAt)}

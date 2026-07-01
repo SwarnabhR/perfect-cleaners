@@ -81,8 +81,7 @@ service cloud.firestore {
       allow create, delete: if isAdmin();
       // Workers may update only operational/preference fields (isOnline, fcmToken, name, phone).
       // totalJobs (a stat) is written exclusively by the server-side API
-      // (job-complete route) — never by the client SDK. Pay figures live entirely
-      // in the separate workerEarnings collection below, not on this document.
+      // (job-complete route) — never by the client SDK.
       allow update:         if isAdmin()
         || (isOwner(workerId)
             && !request.resource.data.diff(resource.data)
@@ -100,14 +99,6 @@ service cloud.firestore {
       match /addresses/{addressId} {
         allow read, write: if isOwner(workerId) || isAdmin();
       }
-    }
-
-    // Worker pay figures — deliberately a separate top-level collection (not a
-    // field on the worker doc above) so a worker cannot read their own earnings
-    // even via direct Firestore access. Admin dashboard only; written by the
-    // reset-earnings cron and create-worker API (Admin SDK bypasses these rules).
-    match /workerEarnings/{workerId} {
-      allow read, write: if isAdmin();
     }
 
     // ── Bookings ──────────────────────────────────────────────────────────────

@@ -60,7 +60,6 @@ const WORKERS = [
     id: 'demo_worker_ravi_001',
     name: 'Ravi Kumar', phone: '+919876501001',
     isOnline: true, activeBookingId: null, rating: 4.8, totalJobs: 312,
-    earnings: { today: 1200, week: 7400, month: 28600 },
     assignedSocietyId: 'demo_society_uniworld_001', assignedSocietyName: 'Uniworld City',
     createdAt: ts(180),
   },
@@ -68,7 +67,6 @@ const WORKERS = [
     id: 'demo_worker_suresh_002',
     name: 'Suresh Yadav', phone: '+919876501002',
     isOnline: true, activeBookingId: 'demo_booking_019', rating: 4.5, totalJobs: 187,
-    earnings: { today: 800, week: 5200, month: 19800 },
     assignedSocietyId: 'demo_society_mahagun_003', assignedSocietyName: 'Mahagun Moderne',
     createdAt: ts(130),
   },
@@ -76,7 +74,6 @@ const WORKERS = [
     id: 'demo_worker_aakash_003',
     name: 'Aakash Singh', phone: '+919876501003',
     isOnline: true, activeBookingId: null, rating: 4.7, totalJobs: 241,
-    earnings: { today: 1400, week: 6800, month: 24200 },
     assignedSocietyId: 'demo_society_uniworld_001', assignedSocietyName: 'Uniworld City',
     createdAt: ts(210),
   },
@@ -84,7 +81,6 @@ const WORKERS = [
     id: 'demo_worker_manoj_004',
     name: 'Manoj Sharma', phone: '+919876501004',
     isOnline: false, activeBookingId: null, rating: 4.3, totalJobs: 98,
-    earnings: { today: 0, week: 3100, month: 12400 },
     assignedSocietyId: 'demo_society_mahagun_003', assignedSocietyName: 'Mahagun Moderne',
     createdAt: ts(90),
   },
@@ -92,7 +88,6 @@ const WORKERS = [
     id: 'demo_worker_deepak_005',
     name: 'Deepak Verma', phone: '+919876501005',
     isOnline: true, activeBookingId: null, rating: 4.9, totalJobs: 428,
-    earnings: { today: 1800, week: 9200, month: 34500 },
     assignedSocietyId: 'demo_society_dlf_002', assignedSocietyName: 'DLF Capital Greens',
     createdAt: ts(365),
   },
@@ -319,21 +314,6 @@ async function seedCollection(col, records) {
   return { created, skipped };
 }
 
-// Pay figures live in a separate admin-only collection, never on the worker doc.
-async function seedWorkerEarnings(records) {
-  let created = 0, skipped = 0;
-  for (const w of records) {
-    if (!w.earnings) continue;
-    const docRef = db.collection('workerEarnings').doc(w.id);
-    const snap = await docRef.get();
-    if (snap.exists) { skipped++; continue; }
-    await docRef.set(w.earnings);
-    created++;
-    console.log(`  ✓  workerEarnings/${w.id}`);
-  }
-  return { created, skipped };
-}
-
 async function updateWorkerSocieties() {
   for (const w of WORKERS) {
     if (!w.assignedSocietyId) continue;
@@ -351,8 +331,7 @@ async function updateWorkerSocieties() {
 
 console.log('\n🔧  Seeding demo data into Firestore…\n');
 
-const wRes = await seedCollection('workers', WORKERS.map(({ earnings, ...rest }) => rest));
-await seedWorkerEarnings(WORKERS);
+const wRes = await seedCollection('workers', WORKERS);
 const cRes = await seedCollection('customers', CUSTOMERS);
 const sRes = await seedCollection('societies', SOCIETIES);
 const bRes = await seedCollection('bookings',  BOOKINGS);

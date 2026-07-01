@@ -24,5 +24,4 @@ export type {
   Vehicle,
   VehicleType,
   Worker,
-  WorkerEarnings,
 } from './types';

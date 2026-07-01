@@ -454,6 +454,7 @@ export default function CleaningSchedulePage() {
                 key={session.id}
                 style={{
                   display: 'flex',
+                  flexWrap: 'wrap',
                   alignItems: 'center',
                   gap: 16,
                   padding: 16,
@@ -461,7 +462,7 @@ export default function CleaningSchedulePage() {
                 }}
               >
                 {/* Date & Status */}
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: '1 1 200px', minWidth: 200 }}>
                   <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 600, color: 'var(--pc-fg)', margin: '0 0 4px' }}>
                     {formatDate(session.scheduledDate)}
                   </p>
@@ -492,7 +493,7 @@ export default function CleaningSchedulePage() {
                 </div>
 
                 {/* Actions */}
-                <div style={{ display: 'flex', gap: 6 }}>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {session.status === 'scheduled' && (
                     <button
                       type="button"

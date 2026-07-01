@@ -140,10 +140,6 @@ await db.collection('workers').doc(workerUid).set({
 });
 console.log(`     workers/${workerUid}`);
 
-// Pay figures live in a separate admin-only collection, never on the worker doc.
-await db.collection('workerEarnings').doc(workerUid).set({ today: 0, week: 800, month: 4200 });
-console.log(`     workerEarnings/${workerUid}`);
-
 const customerUid = await createPhoneUser(CUSTOMER_USER);
 await db.collection('customers').doc(customerUid).set({
   id:        customerUid,

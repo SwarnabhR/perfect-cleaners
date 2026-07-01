@@ -197,7 +197,7 @@ Web UI primitives live in `apps/web/src/components/ui/`:
 
 All Firestore document types are defined in `packages/firebase/src/types.ts`. Use those types everywhere — never inline ad-hoc interfaces for Booking, Worker, Customer, etc.
 
-Key types: `Booking`, `Customer`, `Worker`, `Vehicle`, `Service`, `Promotion`, `BookingAddress`, `PriceBreakdown`, `BookingPhotos`, `WorkerEarnings`.
+Key types: `Booking`, `Customer`, `Worker`, `Vehicle`, `Service`, `Promotion`, `BookingAddress`, `PriceBreakdown`, `BookingPhotos`.
 Key union types: `BookingStatus` (`pending | assigned | enroute | inprogress | done | cancelled`), `VehicleType`, `ServiceCategory`.
 
 Firebase credentials go in `.env.local` (Next.js) and `.env` (Expo — uses `EXPO_PUBLIC_*` prefix). Both prefixes are handled automatically by `packages/firebase/src/config.ts`.
