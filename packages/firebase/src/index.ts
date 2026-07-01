@@ -11,6 +11,7 @@ export type {
   CleaningSessionStatus,
   Customer,
   CustomerSocietyRecord,
+  DayOfWeek,
   GeoPoint,
   PendingApproval,
   PriceBreakdown,

@@ -6,7 +6,13 @@ import { adminFirestore, adminAuth } from '@/lib/firebase/admin';
 import { sendSMSViaTwilio, normalizePhoneNumber } from '@/lib/twilio';
 import { sendSMSVia91msg, normalizePhoneFor91msg } from '@/lib/91msg';
 
-type NotificationType = 'approval' | 'car_cleaned' | 'weekly_reminder' | 'payment_reminder';
+type NotificationType = 'approval' | 'car_cleaned' | 'weekly_reminder' | 'payment_reminder' | 'cleaning_missed';
+
+const MISSED_REASON_LABELS: Record<string, string> = {
+  holiday: 'holiday',
+  worker_unavailable: 'worker unavailable',
+  other: 'unforeseen issue',
+};
 
 interface NotificationPayload {
   type: NotificationType;
@@ -44,6 +50,10 @@ function buildMessage(type: NotificationType, data: Record<string, unknown>): st
       return `🧹 Cleaning reminder: Your car will be cleaned ${data.schedule}. -Perfect Cleaners`;
     case 'payment_reminder':
       return `💳 Payment reminder: ₹${data.amount} due for this month's cleanings. Call us to pay. -Perfect Cleaners`;
+    case 'cleaning_missed': {
+      const reasonLabel = MISSED_REASON_LABELS[String(data.reason)] ?? 'an issue on our end';
+      return `🧹 Sorry, your cleaning today was skipped (${reasonLabel}). Next cleaning: ${data.nextDateLabel}. -Perfect Cleaners`;
+    }
     default:
       return 'Message from Perfect Cleaners';
   }

@@ -7,7 +7,7 @@ import {
   serverTimestamp, orderBy, limit,
 } from 'firebase/firestore';
 import { db } from '@pc/firebase';
-import type { CustomerSocietyRecord, CleaningLog, Society } from '@pc/firebase';
+import type { CustomerSocietyRecord, CleaningLog, Society, DayOfWeek } from '@pc/firebase';
 import Link from 'next/link';
 import Nav from '@/components/marketing/Nav';
 import Footer from '@/components/marketing/Footer';
@@ -15,16 +15,19 @@ import { useCustomerAuth } from '@/lib/auth/CustomerAuthContext';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const DAY_MAP: Record<string, number> = {
+const DAY_MAP: Record<string, DayOfWeek> = {
   Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
 };
 
-function parseScheduleDays(schedule: string): number[] {
+const DAY_ORDER: DayOfWeek[] = [0, 1, 2, 3, 4, 5, 6];
+const DAY_LABELS: Record<DayOfWeek, string> = { 0: 'Sun', 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat' };
+
+function parseScheduleDays(schedule: string): DayOfWeek[] {
   const daysPart = schedule.split('·')[0] ?? '';
   return daysPart
     .split(',')
     .map(d => DAY_MAP[d.trim()])
-    .filter((n): n is number => n !== undefined);
+    .filter((n): n is DayOfWeek => n !== undefined);
 }
 
 function getUpcomingDates(dayIndices: number[], n: number): Date[] {
@@ -119,6 +122,8 @@ function SelfSignupForm({
   const [make, setMake] = useState('');
   const [model, setModel] = useState('');
   const [preferredTime, setPreferredTime] = useState(9);
+  const [towerDays, setTowerDays] = useState<DayOfWeek[]>([]);
+  const [preferredDays, setPreferredDays] = useState<DayOfWeek[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -127,6 +132,23 @@ function SelfSignupForm({
       .then(snap => setSocieties(snap.docs.map(d => ({ id: d.id, ...d.data() } as LiveSociety))))
       .catch(() => {});
   }, []);
+
+  // Fetch the tower's admin-configured allowed cleaning days once both are picked.
+  useEffect(() => {
+    if (!societyId || !tower) { setTowerDays([]); setPreferredDays([]); return; }
+    getDocs(query(
+      collection(db, 'societyBillingConfig'),
+      where('societyId', '==', societyId),
+      where('tower', '==', tower),
+    )).then(snap => {
+      const config = snap.docs[0]?.data();
+      const days = (config?.cleaningDays as DayOfWeek[] | undefined)?.length
+        ? (config!.cleaningDays as DayOfWeek[])
+        : parseScheduleDays((config?.cleaningSchedule as string | undefined) ?? '');
+      setTowerDays(days);
+      setPreferredDays(days);
+    }).catch(() => { setTowerDays([]); setPreferredDays([]); });
+  }, [societyId, tower]);
 
   const selectedSociety = societies.find(s => s.id === societyId) ?? null;
 
@@ -148,15 +170,18 @@ function SelfSignupForm({
         customerPhone:         userPhone ?? '',
         carPlate, carMake: make.trim(), carModel: model.trim(),
         preferredCleaningTime: preferredTime,
+        preferredCleaningDays: preferredDays,
         status:                'pending',
         submittedAt:           serverTimestamp(),
       });
 
       await addDoc(collection(db, 'customerSocietyRecords'), {
         customerId:            userId,
+        customerPhone:         userPhone ?? '',
         societyId, societyName, tower,
         cars: [{ plate: carPlate, make: make.trim(), model: model.trim() }],
         preferredCleaningTime: preferredTime,
+        preferredCleaningDays: preferredDays,
         signupSource:          'self_signup',
         status:                'pending',
         monthlyFee:            0,
@@ -245,6 +270,36 @@ function SelfSignupForm({
           </div>
         </div>
       </div>
+
+      {/* Day preference — only once a tower's allowed days are known */}
+      {towerDays.length > 0 && (
+        <div>
+          <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--pc-fg-3)', margin: '0 0 14px' }}>PREFERRED CLEANING DAYS</p>
+          <div style={{ background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 'var(--pc-radius-md)', padding: 'var(--pc-space-5)' }}>
+            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--pc-fg-4)', margin: '0 0 14px' }}>This tower is cleaned on</p>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {DAY_ORDER.filter(d => towerDays.includes(d)).map(day => {
+                const selected = preferredDays.includes(day);
+                return (
+                  <button key={day} type="button" onClick={() => setPreferredDays(days => {
+                    const next = selected ? days.filter(d => d !== day) : [...days, day];
+                    return next.length > 0 ? next : days;
+                  })} style={{
+                    padding: '10px 16px', borderRadius: 8, textAlign: 'center',
+                    background: selected ? 'var(--pc-sage)' : 'var(--pc-ink-raised)',
+                    border: `1px solid ${selected ? 'var(--pc-sage-hi)' : 'var(--pc-line)'}`,
+                    fontFamily: 'var(--pc-sans)', fontSize: 13,
+                    color: selected ? 'var(--pc-sage-ink)' : 'var(--pc-fg-3)',
+                    cursor: 'pointer',
+                  }}>
+                    {DAY_LABELS[day]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Time preference */}
       <div>
@@ -355,6 +410,70 @@ function TimePreferenceSection({
   );
 }
 
+// ─── Day preference section ───────────────────────────────────────────────────
+
+function CleaningDaysSection({
+  allowedDays,
+  activeDays,
+  saving,
+  onSave,
+}: {
+  allowedDays: DayOfWeek[];
+  activeDays: DayOfWeek[];
+  saving: boolean;
+  onSave: (days: DayOfWeek[]) => void;
+}) {
+  const [selected, setSelected] = useState<DayOfWeek[]>(activeDays);
+
+  useEffect(() => { setSelected(activeDays); }, [activeDays.join(',')]);
+
+  function toggle(day: DayOfWeek) {
+    const next = selected.includes(day) ? selected.filter(d => d !== day) : [...selected, day];
+    if (next.length === 0) return;
+    setSelected(next);
+    onSave(next);
+  }
+
+  if (allowedDays.length === 0) return null;
+
+  return (
+    <section>
+      <p style={sectionLabel}>PREFERRED CLEANING DAYS</p>
+      <div style={{ background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 'var(--pc-radius-md)', padding: 'var(--pc-space-5)' }}>
+        <p style={{ ...metaLabel, marginBottom: 14 }}>Your tower is cleaned on</p>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {DAY_ORDER.filter(d => allowedDays.includes(d)).map(day => {
+            const isSelected = selected.includes(day);
+            return (
+              <button
+                key={day}
+                type="button"
+                disabled={saving}
+                onClick={() => toggle(day)}
+                style={{
+                  padding: '10px 16px', borderRadius: 8, textAlign: 'center',
+                  background: isSelected ? 'var(--pc-sage)' : 'var(--pc-ink-raised)',
+                  border: `1px solid ${isSelected ? 'var(--pc-sage-hi)' : 'var(--pc-line)'}`,
+                  fontFamily: 'var(--pc-sans)', fontSize: 13,
+                  color: isSelected ? 'var(--pc-sage-ink)' : 'var(--pc-fg-3)',
+                  cursor: saving ? 'default' : 'pointer',
+                  opacity: saving ? 0.5 : 1,
+                  transition: 'background 0.15s ease, border-color 0.15s ease, color 0.15s ease',
+                }}
+              >
+                {DAY_LABELS[day]}
+              </button>
+            );
+          })}
+        </div>
+        <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-4)', margin: '14px 0 0', lineHeight: 1.5 }}>
+          Only the days your tower is cleaned on can be selected. Changes apply from the next session.
+        </p>
+      </div>
+    </section>
+  );
+}
+
 // ─── Tab bar ──────────────────────────────────────────────────────────────────
 
 function TabBar({ pathname }: { pathname: string }) {
@@ -394,10 +513,11 @@ export default function CleaningPage() {
   const pathname = usePathname();
 
   type RecordState = (CustomerSocietyRecord & { id: string }) | null | 'loading';
-  const [record,   setRecord]   = useState<RecordState>('loading');
-  const [schedule, setSchedule] = useState('');
-  const [logs,     setLogs]     = useState<(CleaningLog & { id: string })[]>([]);
-  const [saving,   setSaving]   = useState(false);
+  const [record,     setRecord]     = useState<RecordState>('loading');
+  const [schedule,   setSchedule]   = useState('');
+  const [towerDays,  setTowerDays]  = useState<DayOfWeek[]>([]);
+  const [logs,       setLogs]       = useState<(CleaningLog & { id: string })[]>([]);
+  const [saving,     setSaving]     = useState(false);
 
   useEffect(() => {
     if (!loading && !user) router.replace('/signin?from=/account/cleaning');
@@ -432,6 +552,17 @@ export default function CleaningPage() {
         getDoc(doc(db, 'societies', rec.societyId)).then(s => {
           if (s.exists()) setSchedule(s.data().cleaningSchedule ?? '');
         });
+        getDocs(query(
+          collection(db, 'societyBillingConfig'),
+          where('societyId', '==', rec.societyId),
+          where('tower', '==', rec.tower),
+        )).then(cfgSnap => {
+          const config = cfgSnap.docs[0]?.data();
+          const days = (config?.cleaningDays as DayOfWeek[] | undefined)?.length
+            ? (config!.cleaningDays as DayOfWeek[])
+            : parseScheduleDays((config?.cleaningSchedule as string | undefined) ?? '');
+          setTowerDays(days);
+        }).catch(() => {});
       },
       // On error (e.g. permission denied) treat as not enrolled so the page isn't blank
       () => setRecord(null),
@@ -479,6 +610,16 @@ export default function CleaningPage() {
     setSaving(false);
   }
 
+  async function savePreferredDays(days: DayOfWeek[]) {
+    if (!record || record === 'loading' || days.length === 0) return;
+    setSaving(true);
+    await updateDoc(doc(db, 'customerSocietyRecords', record.id), {
+      preferredCleaningDays: days,
+      updatedAt:             serverTimestamp(),
+    });
+    setSaving(false);
+  }
+
   if (loading || record === 'loading') return (
     <div style={{ minHeight: '100vh', background: 'var(--pc-ink)', display: 'flex', flexDirection: 'column' }}>
       <Nav />
@@ -486,8 +627,12 @@ export default function CleaningPage() {
   );
   if (!user) return null;
 
-  const dayIndices    = schedule ? parseScheduleDays(schedule) : [];
-  const upcomingDates = dayIndices.length > 0 ? getUpcomingDates(dayIndices, 6) : [];
+  const fallbackDays  = schedule ? parseScheduleDays(schedule) : [];
+  const allowedDays   = towerDays.length > 0 ? towerDays : fallbackDays;
+  const preferredDays = record?.preferredCleaningDays?.length
+    ? record.preferredCleaningDays
+    : allowedDays;
+  const upcomingDates = preferredDays.length > 0 ? getUpcomingDates(preferredDays, 6) : [];
   const activeTime    = record
     ? (record.permanentTime ?? record.preferredCleaningTime ?? 9)
     : 9;
@@ -551,7 +696,13 @@ export default function CleaningPage() {
               </p>
             </div>
 
-            {/* Time preference — editable even before approval */}
+            {/* Day + time preference — editable even before approval */}
+            <CleaningDaysSection
+              allowedDays={allowedDays}
+              activeDays={preferredDays}
+              saving={saving}
+              onSave={savePreferredDays}
+            />
             <TimePreferenceSection
               activeTime={activeTime}
               saving={saving}
@@ -617,7 +768,7 @@ export default function CleaningPage() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--pc-space-4)', paddingTop: 'var(--pc-space-3)', borderTop: '1px solid var(--pc-line)' }}>
                   {[
-                    { label: 'Cleaning days', val: schedule.split('·')[0]?.trim() || '—' },
+                    { label: 'Cleaning days', val: preferredDays.length ? DAY_ORDER.filter(d => preferredDays.includes(d)).map(d => DAY_LABELS[d]).join(', ') : '—' },
                     { label: 'Your slot',     val: formatTime(activeTime) },
                     { label: 'Monthly fee',   val: `₹${record.monthlyFee.toLocaleString('en-IN')}` },
                   ].map(({ label, val }) => (
@@ -698,6 +849,14 @@ export default function CleaningPage() {
                 </div>
               </section>
             )}
+
+            {/* Cleaning day preference */}
+            <CleaningDaysSection
+              allowedDays={allowedDays}
+              activeDays={preferredDays}
+              saving={saving}
+              onSave={savePreferredDays}
+            />
 
             {/* Cleaning time preference */}
             <TimePreferenceSection

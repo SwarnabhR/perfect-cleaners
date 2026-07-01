@@ -20,10 +20,11 @@ export async function GET(req: NextRequest) {
     for (const societyDoc of societiesSnap.docs) {
       try {
         const config = societyDoc.data();
-        const { societyId, tower, cleaningSchedule } = config;
+        const { societyId, tower, cleaningSchedule, cleaningDays } = config;
 
-        const daysMatch = (cleaningSchedule as string).match(/^(.*?)\s*·/);
-        const daysStr = daysMatch ? daysMatch[1] : 'Mon, Wed, Fri';
+        const weekdays: number[] = Array.isArray(cleaningDays) && cleaningDays.length > 0
+          ? cleaningDays
+          : parseWeekdaysFromSchedule(cleaningSchedule as string);
 
         const customersSnap = await db
           .collection('customerSocietyRecords')
@@ -36,7 +37,7 @@ export async function GET(req: NextRequest) {
         const nextWeekStart = new Date(today);
         nextWeekStart.setDate(today.getDate() + ((1 - today.getDay() + 7) % 7));
 
-        const cleaningDates = getCleaningDatesForNextWeek(nextWeekStart, daysStr);
+        const cleaningDates = getCleaningDatesForNextWeek(nextWeekStart, weekdays);
 
         for (const cleaningDate of cleaningDates) {
           try {
@@ -54,6 +55,11 @@ export async function GET(req: NextRequest) {
                   return skip.toDateString() === cleaningDate.toDateString();
                 });
                 if (skipDate) return null;
+
+                // Unset/empty preferredCleaningDays means "every day the tower is cleaned".
+                const preferredDays = customer.preferredCleaningDays as number[] | undefined;
+                if (preferredDays?.length && !preferredDays.includes(cleaningDate.getDay())) return null;
+
                 return {
                   customerId:    customer.customerId,
                   carPlate:      customer.cars?.[0]?.plate  || '',
@@ -107,14 +113,18 @@ export async function GET(req: NextRequest) {
   }
 }
 
-function getCleaningDatesForNextWeek(startDate: Date, scheduleStr: string): Date[] {
-  const dates: Date[] = [];
+function parseWeekdaysFromSchedule(scheduleStr: string): number[] {
   const dayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
-  const weekdays = scheduleStr
+  const daysMatch = scheduleStr?.match(/^(.*?)\s*·/);
+  const daysStr = daysMatch ? daysMatch[1] : (scheduleStr || 'Mon, Wed, Fri');
+  return daysStr
     .split(',')
     .map(d => dayMap[d.trim()])
     .filter((d): d is number => d !== undefined);
+}
 
+function getCleaningDatesForNextWeek(startDate: Date, weekdays: number[]): Date[] {
+  const dates: Date[] = [];
   for (let i = 0; i < 7; i++) {
     const date = new Date(startDate);
     date.setDate(date.getDate() + i);

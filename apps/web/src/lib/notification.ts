@@ -1,4 +1,4 @@
-type NotificationType = 'approval' | 'car_cleaned' | 'weekly_reminder' | 'payment_reminder';
+type NotificationType = 'approval' | 'car_cleaned' | 'weekly_reminder' | 'payment_reminder' | 'cleaning_missed';
 
 interface NotificationPayload {
   type: NotificationType;
@@ -107,6 +107,32 @@ export async function notifyWeeklyReminder(
       customerId: customerPhone,
       schedule,
       societyName,
+    },
+  });
+}
+
+/**
+ * Send cleaning-missed notification
+ * "🧹 Sorry, your cleaning today was skipped (worker unavailable). Next cleaning: Jun 14."
+ */
+export async function notifyCleaningMissed(
+  customerPhone: string,
+  customerName: string,
+  societyName: string,
+  tower: string,
+  reason: string,
+  nextDateLabel?: string,
+) {
+  return sendNotification({
+    type: 'cleaning_missed',
+    recipientPhone: customerPhone,
+    recipientName: customerName,
+    data: {
+      customerId: customerPhone,
+      societyName,
+      tower,
+      reason,
+      nextDateLabel: nextDateLabel ?? 'your next scheduled day',
     },
   });
 }

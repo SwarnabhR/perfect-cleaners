@@ -2,13 +2,21 @@
 import { useEffect, useState } from 'react';
 import { collection, query, where, getDocs, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '@pc/firebase';
-import type { PendingApproval, CustomerSocietyRecord } from '@pc/firebase';
+import type { PendingApproval, CustomerSocietyRecord, DayOfWeek } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
 import { notifyApproval } from '@/lib/notification';
 
 type LiveApproval = PendingApproval & { id: string };
+
+const DAY_ORDER: DayOfWeek[] = [0, 1, 2, 3, 4, 5, 6];
+const DAY_LABELS: Record<DayOfWeek, string> = { 0: 'Sun', 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat' };
+
+function formatDays(days: DayOfWeek[] | undefined): string {
+  if (!days || days.length === 0) return 'All tower days';
+  return DAY_ORDER.filter(d => days.includes(d)).map(d => DAY_LABELS[d]).join(', ');
+}
 
 interface ApprovalForm {
   paymentMethod: string;
@@ -99,11 +107,13 @@ export default function PendingApprovalsPage() {
       await setDoc(doc(db, 'customerSocietyRecords', recordId), {
         customerId,
         customerName:          approval.customerName,
+        customerPhone:         approval.customerPhone,
         societyId:             approval.societyId,
         societyName:           approval.societyName,
         tower:                 approval.tower,
         cars: [{ plate: approval.carPlate, make: approval.carMake, model: approval.carModel }],
         preferredCleaningTime: approval.preferredCleaningTime,
+        preferredCleaningDays: approval.preferredCleaningDays ?? [],
         signupSource:          'self_signup',
         status:                'active',
         monthlyFee,
@@ -300,6 +310,12 @@ export default function PendingApprovalsPage() {
                         : approval.preferredCleaningTime > 12
                           ? `${approval.preferredCleaningTime - 12}:00 PM`
                           : `${approval.preferredCleaningTime}:00 AM`}
+                    </p>
+                  </div>
+                  <div>
+                    <p style={monoLabel}>Preferred Days</p>
+                    <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)', margin: 0 }}>
+                      {formatDays(approval.preferredCleaningDays)}
                     </p>
                   </div>
                   <div>

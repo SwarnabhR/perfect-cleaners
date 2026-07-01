@@ -11,6 +11,7 @@ const PALETTE: Record<string, { text: string; bg: string; border: string }> = {
   'In Progress': { text: 'var(--pc-sage)',    bg: 'rgba(74,94,68,0.12)',    border: 'rgba(74,94,68,0.2)'    },
   'Done':        { text: 'var(--pc-success)', bg: 'rgba(111,174,106,0.12)', border: 'rgba(111,174,106,0.2)' },
   'Cancelled':   { text: 'var(--pc-danger)',  bg: 'rgba(201,85,78,0.12)',   border: 'rgba(201,85,78,0.2)'   },
+  'Missed':      { text: 'var(--pc-danger)',  bg: 'rgba(201,85,78,0.12)',   border: 'rgba(201,85,78,0.2)'   },
   // Subscription status
   'Active':      { text: 'var(--pc-success)', bg: 'rgba(111,174,106,0.12)', border: 'rgba(111,174,106,0.2)' },
   'Paused':      { text: 'var(--pc-fg-3)',    bg: 'rgba(150,150,140,0.08)', border: 'rgba(150,150,140,0.14)'},

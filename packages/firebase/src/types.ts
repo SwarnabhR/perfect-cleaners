@@ -104,7 +104,11 @@ export interface Worker {
 
 // A single day's cleaning assignment for a worker at a society.
 // Created by admin; worker marks it in-progress then done.
-export type CleaningSessionStatus = 'scheduled' | 'inprogress' | 'done';
+// 'missed' — the session didn't happen (society holiday, worker no-show); see missedReason.
+export type CleaningSessionStatus = 'scheduled' | 'inprogress' | 'done' | 'missed';
+
+// 0 = Sunday … 6 = Saturday, matches JS Date.getDay().
+export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 export interface CleaningSession {
   id: string;
@@ -119,6 +123,8 @@ export interface CleaningSession {
   completedCars: number;     // incremented as cleaningLogs are written
   startedAt?: Date;
   completedAt?: Date;
+  missedReason?: 'holiday' | 'worker_unavailable' | 'other';
+  missedNotes?: string;
   createdAt: Date;
 }
 
@@ -244,7 +250,8 @@ export interface SocietyBillingConfig {
   monthlyFee: number;          // ₹500, ₹600, etc
   currency: 'INR';
   billingDay: number;          // 1 (1st of month)
-  cleaningSchedule: string;    // "Mon, Wed, Fri · 9:00 AM"
+  cleaningDays: DayOfWeek[];   // admin-configured allowed cleaning days for this tower
+  cleaningSchedule: string;    // display string derived from cleaningDays, e.g. "Mon, Wed, Fri · 9:00 AM"
   createdAt: Date;
   updatedAt: Date;
 }
@@ -254,6 +261,7 @@ export interface CustomerSocietyRecord {
   id: string;
   customerId: string;
   customerName?: string;        // denormalized from PendingApproval at approval time
+  customerPhone?: string;       // denormalized, +91 format — needed to send notifications
   societyId: string;
   societyName: string;
   tower: string;
@@ -265,6 +273,9 @@ export interface CustomerSocietyRecord {
 
   // Preferred cleaning time (overrides tower default)
   preferredCleaningTime: number; // 7, 9, 14 (hours in 24h format)
+  // Preferred cleaning days, subset of the tower's SocietyBillingConfig.cleaningDays.
+  // Unset/empty means "all of the tower's cleaning days" (legacy/bulk-imported behavior).
+  preferredCleaningDays?: DayOfWeek[];
 
   // Signup source and status
   signupSource: 'bulk_import' | 'self_signup';
@@ -311,6 +322,7 @@ export interface PendingApproval {
 
   // Preferences
   preferredCleaningTime: number; // 7, 9, 14
+  preferredCleaningDays?: DayOfWeek[];
 
   // Approval workflow
   status: 'pending' | 'approved' | 'rejected';
@@ -344,6 +356,8 @@ export interface CleaningSessionEnhanced {
   status: CleaningSessionStatus;
   startedAt?: Date;
   completedAt?: Date;
+  missedReason?: 'holiday' | 'worker_unavailable' | 'other';
+  missedNotes?: string;
 
   // Real-time car tracking
   cars: CleaningSessionCar[];

@@ -2,19 +2,39 @@
 import { useEffect, useState } from 'react';
 import { collection, query, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@pc/firebase';
-import type { SocietyBillingConfig } from '@pc/firebase';
+import type { SocietyBillingConfig, DayOfWeek } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
 
 type LiveBillingConfig = SocietyBillingConfig & { id: string };
 
+const DAY_ORDER: DayOfWeek[] = [0, 1, 2, 3, 4, 5, 6];
+const DAY_LABELS: Record<DayOfWeek, string> = { 0: 'Sun', 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat' };
+const NAME_TO_DAY: Record<string, DayOfWeek> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+
+function parseDaysFromSchedule(schedule: string): DayOfWeek[] {
+  const daysPart = schedule.split('·')[0] ?? '';
+  return daysPart.split(',').map(d => NAME_TO_DAY[d.trim()]).filter((d): d is DayOfWeek => d !== undefined);
+}
+
+function parseTimeFromSchedule(schedule: string): string {
+  const parts = schedule.split('·');
+  return parts.length > 1 ? parts[1].trim() : '9:00 AM';
+}
+
+function buildScheduleString(days: DayOfWeek[], time: string): string {
+  const label = [...days].sort((a, b) => a - b).map(d => DAY_LABELS[d]).join(', ');
+  return time ? `${label} · ${time}` : label;
+}
+
 interface FormData {
   societyId: string;
   societyName: string;
   tower: string;
   monthlyFee: number;
-  cleaningSchedule: string;
+  cleaningDays: DayOfWeek[];
+  cleaningTime: string;
 }
 
 const BLANK_FORM: FormData = {
@@ -22,7 +42,8 @@ const BLANK_FORM: FormData = {
   societyName: '',
   tower: '',
   monthlyFee: 0,
-  cleaningSchedule: 'Mon, Wed, Fri · 9:00 AM',
+  cleaningDays: [1, 3, 5],
+  cleaningTime: '9:00 AM',
 };
 
 const inputStyle: React.CSSProperties = {
@@ -82,7 +103,8 @@ export default function TowerBillingPage() {
       societyName: config.societyName,
       tower: config.tower,
       monthlyFee: config.monthlyFee,
-      cleaningSchedule: config.cleaningSchedule,
+      cleaningDays: config.cleaningDays?.length ? config.cleaningDays : parseDaysFromSchedule(config.cleaningSchedule),
+      cleaningTime: parseTimeFromSchedule(config.cleaningSchedule),
     });
     setEditing(config);
     setModalOpen(true);
@@ -95,7 +117,7 @@ export default function TowerBillingPage() {
   }
 
   async function handleSave() {
-    if (!form.societyId.trim() || !form.tower.trim() || form.monthlyFee <= 0 || saving) return;
+    if (!form.societyId.trim() || !form.tower.trim() || form.monthlyFee <= 0 || form.cleaningDays.length === 0 || saving) return;
     setSaving(true);
     try {
       const docId = editing?.id || `${form.societyId}_${form.tower}`;
@@ -104,7 +126,8 @@ export default function TowerBillingPage() {
         societyName: form.societyName.trim(),
         tower: form.tower.trim(),
         monthlyFee: form.monthlyFee,
-        cleaningSchedule: form.cleaningSchedule.trim(),
+        cleaningDays: form.cleaningDays,
+        cleaningSchedule: buildScheduleString(form.cleaningDays, form.cleaningTime.trim()),
         currency: 'INR',
         billingDay: 1,
         updatedAt: serverTimestamp(),
@@ -289,12 +312,48 @@ export default function TowerBillingPage() {
               </div>
 
               <div>
-                <p style={monoLabel}>Cleaning Schedule</p>
+                <p style={monoLabel}>Allowed Cleaning Days</p>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {DAY_ORDER.map(day => {
+                    const checked = form.cleaningDays.includes(day);
+                    return (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() => setForm(f => ({
+                          ...f,
+                          cleaningDays: checked
+                            ? f.cleaningDays.filter(d => d !== day)
+                            : [...f.cleaningDays, day],
+                        }))}
+                        style={{
+                          padding: '8px 12px',
+                          borderRadius: 8,
+                          border: `1px solid ${checked ? 'var(--pc-sage-hi)' : 'var(--pc-line)'}`,
+                          background: checked ? 'var(--pc-sage)' : 'var(--pc-card-hi)',
+                          color: checked ? 'var(--pc-sage-ink)' : 'var(--pc-fg-2)',
+                          fontFamily: 'var(--pc-sans)',
+                          fontSize: 13,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {DAY_LABELS[day]}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-4)', margin: '6px 0 0' }}>
+                  Customers can only choose a preferred day from this set.
+                </p>
+              </div>
+
+              <div>
+                <p style={monoLabel}>Cleaning Time</p>
                 <input
                   type="text"
-                  value={form.cleaningSchedule}
-                  onChange={e => setForm({ ...form, cleaningSchedule: e.target.value })}
-                  placeholder="Mon, Wed, Fri · 9:00 AM - 12:00 PM"
+                  value={form.cleaningTime}
+                  onChange={e => setForm({ ...form, cleaningTime: e.target.value })}
+                  placeholder="9:00 AM"
                   style={inputStyle}
                 />
               </div>
@@ -303,7 +362,7 @@ export default function TowerBillingPage() {
                 <button
                   type="button"
                   onClick={handleSave}
-                  disabled={saving || !form.societyId || !form.tower || form.monthlyFee <= 0}
+                  disabled={saving || !form.societyId || !form.tower || form.monthlyFee <= 0 || form.cleaningDays.length === 0}
                   style={{
                     flex: 1,
                     padding: '11px 0',

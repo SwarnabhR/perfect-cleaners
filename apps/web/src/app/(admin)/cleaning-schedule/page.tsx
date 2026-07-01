@@ -1,12 +1,19 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { collection, query, orderBy, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, getDocs, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@pc/firebase';
 import type { CleaningSessionEnhanced, CleaningSessionStatus, Worker, Society } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
 import StatusPill from '@/components/ui/StatusPill';
+import { notifyCleaningMissed } from '@/lib/notification';
+
+const MISSED_REASONS: { value: 'holiday' | 'worker_unavailable' | 'other'; label: string }[] = [
+  { value: 'holiday',            label: 'Society holiday' },
+  { value: 'worker_unavailable', label: 'Worker unavailable' },
+  { value: 'other',              label: 'Other' },
+];
 
 type LiveSession = CleaningSessionEnhanced & { id: string };
 
@@ -75,6 +82,12 @@ export default function CleaningSchedulePage() {
   const [creating,     setCreating]     = useState(false);
   const [form,         setForm]         = useState<CreateSessionForm>(BLANK_FORM);
   const [saving,       setSaving]       = useState(false);
+  const [reassigning,  setReassigning]  = useState<LiveSession | null>(null);
+  const [reassignIds,  setReassignIds]  = useState<string[]>([]);
+  const [markingMissed, setMarkingMissed] = useState<LiveSession | null>(null);
+  const [missedReason, setMissedReason] = useState<'holiday' | 'worker_unavailable' | 'other'>('worker_unavailable');
+  const [missedNotes,  setMissedNotes]  = useState('');
+  const [missedBusy,   setMissedBusy]   = useState(false);
 
   useEffect(() => {
     return onSnapshot(
@@ -162,6 +175,98 @@ export default function CleaningSchedulePage() {
       );
     } catch (err: unknown) {
       console.error('[CleaningSchedule] start failed:', err instanceof Error ? err.message : err);
+    }
+  }
+
+  function openReassign(session: LiveSession) {
+    setReassigning(session);
+    setReassignIds(session.workerIds ?? []);
+  }
+
+  async function handleReassignWorkers() {
+    if (!reassigning || reassignIds.length === 0 || saving) return;
+    setSaving(true);
+    try {
+      const selectedWorkers = workers.filter(w => reassignIds.includes(w.id));
+      await setDoc(
+        doc(db, 'cleaningSessions', reassigning.id),
+        {
+          workerIds: reassignIds,
+          workerNames: selectedWorkers.map(w => w.name),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+      setReassigning(null);
+    } catch (err: unknown) {
+      console.error('[CleaningSchedule] reassign failed:', err instanceof Error ? err.message : err);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function openMarkMissed(session: LiveSession) {
+    setMarkingMissed(session);
+    setMissedReason('worker_unavailable');
+    setMissedNotes('');
+  }
+
+  async function handleMarkMissed() {
+    if (!markingMissed || missedBusy) return;
+    setMissedBusy(true);
+    try {
+      await setDoc(
+        doc(db, 'cleaningSessions', markingMissed.id),
+        {
+          status: 'missed' as CleaningSessionStatus,
+          missedReason,
+          missedNotes: missedNotes.trim(),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      // Find the next scheduled session for this tower, for a friendlier notification.
+      const nextSnap = await getDocs(query(
+        collection(db, 'cleaningSessions'),
+        where('societyId', '==', markingMissed.societyId),
+        where('tower', '==', markingMissed.tower),
+        where('status', '==', 'scheduled'),
+        orderBy('scheduledDate', 'asc'),
+        limit(1),
+      ));
+      const nextDate = nextSnap.docs[0]?.data().scheduledDate;
+      const nextDateLabel = nextDate
+        ? (nextDate.toDate?.() ?? new Date(nextDate)).toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' })
+        : undefined;
+
+      // Notify the affected customers, best-effort — skip anyone we don't have a phone number for.
+      const customerIds = [...new Set(markingMissed.cars.map(c => c.customerId))];
+      if (customerIds.length > 0) {
+        const recordsSnap = await getDocs(query(
+          collection(db, 'customerSocietyRecords'),
+          where('societyId', '==', markingMissed.societyId),
+          where('tower', '==', markingMissed.tower),
+        ));
+        for (const recordDoc of recordsSnap.docs) {
+          const rec = recordDoc.data();
+          if (!customerIds.includes(rec.customerId) || !rec.customerPhone) continue;
+          await notifyCleaningMissed(
+            rec.customerPhone,
+            rec.customerName ?? 'there',
+            markingMissed.societyName,
+            markingMissed.tower,
+            missedReason,
+            nextDateLabel,
+          );
+        }
+      }
+
+      setMarkingMissed(null);
+    } catch (err: unknown) {
+      console.error('[CleaningSchedule] mark missed failed:', err instanceof Error ? err.message : err);
+    } finally {
+      setMissedBusy(false);
     }
   }
 
@@ -407,6 +512,42 @@ export default function CleaningSchedulePage() {
                       Start
                     </button>
                   )}
+                  {(session.status === 'scheduled' || session.status === 'inprogress') && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => openReassign(session)}
+                        style={{
+                          padding: '8px 14px',
+                          borderRadius: 6,
+                          background: 'transparent',
+                          border: '1px solid var(--pc-line)',
+                          fontFamily: 'var(--pc-sans)',
+                          fontSize: 12,
+                          color: 'var(--pc-fg-2)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Reassign
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openMarkMissed(session)}
+                        style={{
+                          padding: '8px 14px',
+                          borderRadius: 6,
+                          background: 'transparent',
+                          border: '1px solid var(--pc-warning)',
+                          fontFamily: 'var(--pc-sans)',
+                          fontSize: 12,
+                          color: 'var(--pc-warning)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Mark Missed
+                      </button>
+                    </>
+                  )}
                   <button
                     type="button"
                     onClick={() => handleDeleteSession(session.id)}
@@ -623,6 +764,140 @@ export default function CleaningSchedulePage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Reassign Workers Modal */}
+      {reassigning && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          onClick={() => setReassigning(null)}
+        >
+          <div
+            style={{ background: 'var(--pc-card)', borderRadius: 16, border: '1px solid var(--pc-line)', padding: 'clamp(16px,5vw,28px)', width: '100%', maxWidth: 420, maxHeight: '90vh', overflowY: 'auto' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <h2 style={{ fontFamily: 'var(--pc-serif)', fontSize: 22, fontWeight: 400, color: 'var(--pc-fg)', margin: '0 0 8px' }}>
+              Reassign Workers
+            </h2>
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: '0 0 20px' }}>
+              {reassigning.societyName} · {reassigning.tower} · {formatDate(reassigning.scheduledDate)}
+            </p>
+
+            <div style={{ background: 'var(--pc-card-hi)', borderRadius: 8, padding: 12, display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+              {workers.length === 0 ? (
+                <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)', margin: 0 }}>No workers found.</p>
+              ) : workers.map(w => {
+                const checked = reassignIds.includes(w.id);
+                return (
+                  <label
+                    key={w.id}
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '6px 8px', borderRadius: 6, background: checked ? 'color-mix(in srgb, var(--pc-sage) 10%, transparent)' : 'transparent', border: `1px solid ${checked ? 'var(--pc-sage-hi)' : 'transparent'}` }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => setReassignIds(ids => checked ? ids.filter(id => id !== w.id) : [...ids, w.id])}
+                      style={{ accentColor: 'var(--pc-sage)', width: 15, height: 15, flexShrink: 0 }}
+                    />
+                    <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)', flex: 1 }}>{w.name}</span>
+                    <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-4)' }}>
+                      {w.isOnline ? '● Online' : '○ Offline'}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                type="button"
+                onClick={handleReassignWorkers}
+                disabled={saving || reassignIds.length === 0}
+                style={{
+                  flex: 1, padding: '11px 0', borderRadius: 999,
+                  background: 'var(--pc-warm)', border: 'none',
+                  fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600,
+                  color: 'var(--pc-ink)', cursor: saving ? 'not-allowed' : 'pointer',
+                  opacity: saving ? 0.6 : 1,
+                }}
+              >
+                {saving ? 'Saving…' : 'Save'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setReassigning(null)}
+                style={{ padding: '11px 20px', borderRadius: 999, background: 'transparent', border: '1px solid currentColor', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mark Missed Modal */}
+      {markingMissed && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          onClick={() => setMarkingMissed(null)}
+        >
+          <div
+            style={{ background: 'var(--pc-card)', borderRadius: 16, border: '1px solid var(--pc-line)', padding: 'clamp(16px,5vw,28px)', width: '100%', maxWidth: 420, maxHeight: '90vh', overflowY: 'auto' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <h2 style={{ fontFamily: 'var(--pc-serif)', fontSize: 22, fontWeight: 400, color: 'var(--pc-fg)', margin: '0 0 8px' }}>
+              Mark Cleaning Missed
+            </h2>
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: '0 0 20px' }}>
+              {markingMissed.societyName} · {markingMissed.tower} · {formatDate(markingMissed.scheduledDate)}. Affected residents will be notified with the reason below.
+            </p>
+
+            <p style={monoLabel}>Reason</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+              {MISSED_REASONS.map(r => (
+                <label
+                  key={r.value}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '8px 10px', borderRadius: 6, background: missedReason === r.value ? 'color-mix(in srgb, var(--pc-warning) 10%, transparent)' : 'var(--pc-card-hi)', border: `1px solid ${missedReason === r.value ? 'var(--pc-warning)' : 'transparent'}` }}
+                >
+                  <input type="radio" name="missedReason" checked={missedReason === r.value} onChange={() => setMissedReason(r.value)} style={{ accentColor: 'var(--pc-warning)' }} />
+                  <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)' }}>{r.label}</span>
+                </label>
+              ))}
+            </div>
+
+            <p style={monoLabel}>Notes (optional)</p>
+            <textarea
+              value={missedNotes}
+              onChange={e => setMissedNotes(e.target.value)}
+              placeholder="e.g., Diwali holiday, worker called in sick"
+              style={{ ...inputStyle, minHeight: 70, resize: 'vertical', marginBottom: 20 } as React.CSSProperties}
+            />
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                type="button"
+                onClick={handleMarkMissed}
+                disabled={missedBusy}
+                style={{
+                  flex: 1, padding: '11px 0', borderRadius: 999,
+                  background: 'var(--pc-danger)', border: 'none',
+                  fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600,
+                  color: '#fff', cursor: missedBusy ? 'not-allowed' : 'pointer',
+                  opacity: missedBusy ? 0.6 : 1,
+                }}
+              >
+                {missedBusy ? 'Marking…' : 'Mark Missed & Notify'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setMarkingMissed(null)}
+                style={{ padding: '11px 20px', borderRadius: 999, background: 'transparent', border: '1px solid currentColor', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
