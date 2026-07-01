@@ -319,6 +319,21 @@ async function seedCollection(col, records) {
   return { created, skipped };
 }
 
+// Pay figures live in a separate admin-only collection, never on the worker doc.
+async function seedWorkerEarnings(records) {
+  let created = 0, skipped = 0;
+  for (const w of records) {
+    if (!w.earnings) continue;
+    const docRef = db.collection('workerEarnings').doc(w.id);
+    const snap = await docRef.get();
+    if (snap.exists) { skipped++; continue; }
+    await docRef.set(w.earnings);
+    created++;
+    console.log(`  ✓  workerEarnings/${w.id}`);
+  }
+  return { created, skipped };
+}
+
 async function updateWorkerSocieties() {
   for (const w of WORKERS) {
     if (!w.assignedSocietyId) continue;
@@ -336,7 +351,8 @@ async function updateWorkerSocieties() {
 
 console.log('\n🔧  Seeding demo data into Firestore…\n');
 
-const wRes = await seedCollection('workers',   WORKERS);
+const wRes = await seedCollection('workers', WORKERS.map(({ earnings, ...rest }) => rest));
+await seedWorkerEarnings(WORKERS);
 const cRes = await seedCollection('customers', CUSTOMERS);
 const sRes = await seedCollection('societies', SOCIETIES);
 const bRes = await seedCollection('bookings',  BOOKINGS);

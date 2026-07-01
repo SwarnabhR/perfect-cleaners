@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 import { Tabs } from 'expo-router';
-import { Briefcase, Wallet, User } from 'lucide-react-native';
+import { Briefcase, User } from 'lucide-react-native';
 import { layout } from '@pc/tokens';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../../theme';
@@ -40,13 +40,6 @@ export default function WorkerTabsLayout() {
           options={{ title: 'Jobs', tabBarIcon: ({ color, size, focused }) => (
             <View style={{ alignItems: 'center', gap: 6 }}>
               <Briefcase size={size} color={color} strokeWidth={1.5} />
-              <View style={{ width: 4, height: 4, borderRadius: 999, backgroundColor: c.fg, opacity: focused ? 1 : 0 }} />
-            </View>
-          )}} />
-        <Tabs.Screen name="earnings"
-          options={{ title: 'Earnings', tabBarIcon: ({ color, size, focused }) => (
-            <View style={{ alignItems: 'center', gap: 6 }}>
-              <Wallet size={size} color={color} strokeWidth={1.5} />
               <View style={{ width: 4, height: 4, borderRadius: 999, backgroundColor: c.fg, opacity: focused ? 1 : 0 }} />
             </View>
           )}} />

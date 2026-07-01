@@ -78,6 +78,9 @@ export interface Customer {
   createdAt: Date;
 }
 
+// Doc shape for the admin-only `workerEarnings/{workerId}` collection.
+// Deliberately NOT a field on `Worker` — workers must not be able to read
+// their own pay figures, even directly via Firestore, only their stats.
 export interface WorkerEarnings {
   today: number;
   week: number;
@@ -98,7 +101,6 @@ export interface Worker {
   rating: number;
   totalJobs: number;
   carsCompletedToday: number;
-  earnings: WorkerEarnings;
   createdAt: Date;
 }
 

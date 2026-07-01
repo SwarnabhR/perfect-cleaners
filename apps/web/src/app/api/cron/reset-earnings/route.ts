@@ -21,26 +21,36 @@ export async function GET(req: NextRequest) {
     return ist.getUTCDate() === 1;
   })();
 
-  const fields: Record<string, number> = { 'earnings.today': 0, 'carsCompletedToday': 0 };
-  if (isMonday)       fields['earnings.week']  = 0;
-  if (isFirstOfMonth) fields['earnings.month'] = 0;
+  const earningsFields: Record<string, number> = { today: 0 };
+  if (isMonday)       earningsFields.week  = 0;
+  if (isFirstOfMonth) earningsFields.month = 0;
 
-  console.log('[reset-earnings] resetting:', Object.keys(fields).join(', '));
-
-  const snap = await db.collection('workers').get();
-  if (snap.empty) {
-    console.log('[reset-earnings] no workers');
-    return NextResponse.json({ ok: true, workers: 0 });
-  }
+  console.log('[reset-earnings] resetting stat carsCompletedToday and earnings:', Object.keys(earningsFields).join(', '));
 
   // Batch writes — Firestore caps at 500 ops per batch
   const CHUNK = 499;
-  for (let i = 0; i < snap.docs.length; i += CHUNK) {
+
+  // Stat field lives on the worker doc itself (worker-readable).
+  const workersSnap = await db.collection('workers').get();
+  for (let i = 0; i < workersSnap.docs.length; i += CHUNK) {
     const batch = db.batch();
-    snap.docs.slice(i, i + CHUNK).forEach(d => batch.update(d.ref, fields));
+    workersSnap.docs.slice(i, i + CHUNK).forEach(d => batch.update(d.ref, { carsCompletedToday: 0 }));
     await batch.commit();
   }
 
-  console.log(`[reset-earnings] done — ${snap.docs.length} workers reset`);
-  return NextResponse.json({ ok: true, workers: snap.docs.length, fields: Object.keys(fields) });
+  // Pay figures live in the separate admin-only workerEarnings collection.
+  const earningsSnap = await db.collection('workerEarnings').get();
+  for (let i = 0; i < earningsSnap.docs.length; i += CHUNK) {
+    const batch = db.batch();
+    earningsSnap.docs.slice(i, i + CHUNK).forEach(d => batch.update(d.ref, earningsFields));
+    await batch.commit();
+  }
+
+  console.log(`[reset-earnings] done — ${workersSnap.docs.length} workers, ${earningsSnap.docs.length} earnings records reset`);
+  return NextResponse.json({
+    ok: true,
+    workers: workersSnap.docs.length,
+    earningsRecords: earningsSnap.docs.length,
+    earningsFields: Object.keys(earningsFields),
+  });
 }

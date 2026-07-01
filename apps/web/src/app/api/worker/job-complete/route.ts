@@ -4,7 +4,9 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { adminFirestore, adminAuth } from '@/lib/firebase/admin';
 
 // Called by the worker job detail page when status advances to 'done'.
-// Credits worker earnings and writes an in-app notification to the customer.
+// Increments the worker's totalJobs/carsCompletedToday stats and writes an
+// in-app notification to the customer. Pay figures are a separate, admin-only
+// concern — see workerEarnings collection — and are not touched here.
 export async function POST(req: NextRequest) {
   try {
     const { bookingId } = await req.json();

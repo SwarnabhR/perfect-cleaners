@@ -78,8 +78,6 @@ export default function WorkerCleaningLogsPage() {
     );
   }, [user, dateFilter]);
 
-  const totalEarned = logs.reduce((sum, l) => sum + (l.servicePrice ?? 0), 0);
-
   return (
     <div style={{ padding: 'var(--pc-space-5) var(--pc-screen-pad-lg) var(--pc-space-10)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-5)' }}>
 
@@ -119,10 +117,9 @@ export default function WorkerCleaningLogsPage() {
       </div>
 
       {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
         {[
           { label: 'Cars Cleaned', value: loading ? '—' : String(logs.length), icon: 'check-circle' },
-          { label: 'Earned',       value: loading ? '—' : `₹${totalEarned.toLocaleString('en-IN')}`, icon: 'indian-rupee' },
         ].map(s => (
           <Card key={s.label} style={{ padding: 14, display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--pc-sage-subtle, rgba(74,94,68,0.15))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -161,7 +158,7 @@ export default function WorkerCleaningLogsPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--pc-line)' }}>
-                  {['Time', 'Unit', 'Resident', 'Vehicle', 'Type', 'Earned'].map(h => (
+                  {['Time', 'Unit', 'Resident', 'Vehicle', 'Type'].map(h => (
                     <th key={h} style={{ padding: '11px 16px', textAlign: 'left', fontFamily: 'var(--pc-sans)', fontSize: 10.5, color: 'var(--pc-fg-3)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
                       {h}
                     </th>
@@ -206,9 +203,6 @@ export default function WorkerCleaningLogsPage() {
                       }}>
                         {log.serviceType?.toUpperCase() ?? '—'}
                       </span>
-                    </td>
-                    <td style={{ padding: '11px 16px', fontFamily: 'var(--pc-serif)', fontSize: 14, color: 'var(--pc-success)', whiteSpace: 'nowrap' }}>
-                      {log.servicePrice ? `+₹${log.servicePrice.toLocaleString('en-IN')}` : '—'}
                     </td>
                   </tr>
                 ))}

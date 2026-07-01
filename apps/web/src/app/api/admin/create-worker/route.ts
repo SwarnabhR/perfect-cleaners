@@ -62,9 +62,11 @@ export async function POST(req: NextRequest) {
       isOnline:             false,
       totalJobs:            0,
       carsCompletedToday:   0,
-      earnings:             { today: 0, week: 0, month: 0 },
       createdAt:            FieldValue.serverTimestamp(),
     });
+
+    // Pay figures live in a separate admin-only collection — never on the worker doc itself.
+    await db.collection('workerEarnings').doc(uid).set({ today: 0, week: 0, month: 0 });
 
     // Write customers/{uid} with role:'worker' so the mobile app routes to the
     // worker tab group when this phone number signs in.

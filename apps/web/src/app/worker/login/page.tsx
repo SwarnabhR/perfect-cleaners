@@ -132,7 +132,7 @@ function WorkerLoginContent() {
               Worker sign in.
             </h1>
             <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: '0 0 28px', lineHeight: 1.6 }}>
-              Enter your registered mobile number to access your jobs and earnings.
+              Enter your registered mobile number to access your jobs and schedule.
             </p>
             <label style={{ display: 'block', fontFamily: 'var(--pc-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--pc-fg-3)', marginBottom: 8 }}>
               Mobile number
