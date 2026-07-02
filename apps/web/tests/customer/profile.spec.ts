@@ -1,4 +1,6 @@
 import { test, expect } from '../fixtures/customer';
+import { test as base, expect as baseExpect } from '@playwright/test';
+import { signInWithBypassToken } from '../lib/auth-bypass';
 
 test.describe('Customer Profile', () => {
 
@@ -98,6 +100,84 @@ test.describe('Customer Profile', () => {
     await expect(link).toBeVisible({ timeout: 20_000 });
     const href = await link.getAttribute('href');
     expect(href).toBe('/account');
+  });
+
+});
+
+// ── Address CRUD — full add / set-primary / delete round trip ────────────────
+//
+// Uses a fresh customer identity (not the shared TEST_CUSTOMER_UID) so this
+// doesn't leave permanent address clutter on the identity every other
+// customer test in the suite reuses, and so the "zero addresses" starting
+// state is guaranteed rather than assumed.
+
+base.describe('Customer Profile — address CRUD', () => {
+
+  base('add, set primary, and delete a saved address', async ({ page }) => {
+    const ts    = Date.now();
+    const uid   = `pw_test_customer_${ts}`;
+    const phone = `+919${String(ts).slice(-9)}`;
+
+    await page.goto('/signin');
+    await signInWithBypassToken(page, uid, { persistence: 'session', phone });
+    await page.waitForURL('**/account', { timeout: 15_000 });
+    await page.click('a:has-text("Profile")');
+    await page.waitForURL('**/account/profile');
+
+    // Zero-addresses empty state for a brand-new customer
+    await baseExpect(page.locator('text=No saved addresses yet.')).toBeVisible({ timeout: 10_000 });
+
+    await page.click('button:has-text("+ Add address")');
+    const societyTrigger = page.locator('button:has-text("Select your society…")');
+    await baseExpect(societyTrigger).toBeVisible({ timeout: 5_000 });
+    await societyTrigger.click();
+    const firstOption = page.locator('ul[role="listbox"] li[role="option"]').first();
+    await baseExpect(firstOption).toBeVisible({ timeout: 5_000 });
+    const societyName = (await firstOption.textContent())?.trim() ?? '';
+    await firstOption.click();
+
+    await page.fill('input[placeholder="e.g. 1204"]', 'PWTEST-101');
+    const saveBtn = page.locator('button:has-text("Save Address")');
+    await baseExpect(saveBtn).toBeEnabled();
+    await saveBtn.click();
+
+    // New card appears live (onSnapshot), empty state is gone
+    const card = page.locator('text=Flat PWTEST-101');
+    await baseExpect(card).toBeVisible({ timeout: 10_000 });
+    await baseExpect(page.locator('text=No saved addresses yet.')).not.toBeVisible();
+    if (societyName) await baseExpect(page.locator(`text=${societyName}`).first()).toBeVisible();
+
+    // First address has no "Set primary" button (nothing to compare against yet)
+    // — add a second one to exercise Set primary meaningfully.
+    await page.click('button:has-text("+ Add address")');
+    await societyTrigger.click();
+    await page.locator('ul[role="listbox"] li[role="option"]').first().click();
+    await page.fill('input[placeholder="e.g. 1204"]', 'PWTEST-202');
+    await page.click('button:has-text("Save Address")');
+    await baseExpect(page.locator('text=Flat PWTEST-202')).toBeVisible({ timeout: 10_000 });
+
+    // Scoping to the exact card (not a broader ancestor that happens to
+    // contain both cards' text): must contain this address's own text, must
+    // NOT contain the other address's text, and must contain a Delete button
+    // (present once per card) — narrows a generic `div` match down to one element.
+    function cardFor(plate: string, otherPlate: string) {
+      return page.locator('div')
+        .filter({ hasText: `Flat ${plate}` })
+        .filter({ hasNotText: `Flat ${otherPlate}` })
+        .filter({ has: page.locator('button:has-text("Delete")') })
+        .last();
+    }
+
+    // Set the second address as primary
+    const secondCard = cardFor('PWTEST-202', 'PWTEST-101');
+    await secondCard.locator('button:has-text("Set primary")').click();
+    await baseExpect(secondCard.locator('text=PRIMARY')).toBeVisible({ timeout: 8_000 });
+
+    // Delete the first (now-non-primary) address
+    const firstCard = cardFor('PWTEST-101', 'PWTEST-202');
+    await firstCard.locator('button:has-text("Delete")').click();
+    await baseExpect(page.locator('text=Flat PWTEST-101')).not.toBeVisible({ timeout: 8_000 });
+    await baseExpect(page.locator('text=Flat PWTEST-202')).toBeVisible();
   });
 
 });

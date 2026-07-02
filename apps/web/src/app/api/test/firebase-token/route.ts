@@ -18,6 +18,10 @@ export async function GET(req: NextRequest) {
   if (!uid) {
     return NextResponse.json({ error: 'uid query param required.' }, { status: 400 });
   }
+  // Optional — lets a test stamp a synthetic phone onto a brand-new UID (one
+  // with no matching workers/{uid} doc), e.g. to exercise a fresh customer's
+  // phone-keyed bookings query realistically instead of leaving it null.
+  const explicitPhone = req.nextUrl.searchParams.get('phone');
 
   try {
     // WorkerAuthProvider gates on user.phoneNumber (queries `workers` by
@@ -27,7 +31,7 @@ export async function GET(req: NextRequest) {
     // onto the Auth user first so the provider's lookup succeeds. No-op for
     // customer UIDs, which are gated by uid alone.
     const workerDoc = await adminFirestore().collection('workers').doc(uid).get();
-    const phone = workerDoc.exists ? (workerDoc.data()?.phone as string | undefined) : undefined;
+    const phone = explicitPhone || (workerDoc.exists ? (workerDoc.data()?.phone as string | undefined) : undefined);
     if (phone) {
       try {
         await adminAuth().updateUser(uid, { phoneNumber: phone });

@@ -1,4 +1,7 @@
 import { test, expect } from '../fixtures/worker';
+import { test as base, expect as baseExpect } from '@playwright/test';
+import { signInWithBypassToken } from '../lib/auth-bypass';
+import { adminDb, Timestamp, PW_TEST_PREFIX } from '../lib/firestore-admin';
 
 test.describe('Worker Dashboard', () => {
 
@@ -89,6 +92,55 @@ test.describe('Worker Dashboard', () => {
       await goOnline.click();
       await expect(online).toBeVisible({ timeout: 15_000 });
     }
+  });
+
+});
+
+// ── Empty states (fresh, isolated workers) ────────────────────────────────────
+
+base.describe('Worker Dashboard — empty states', () => {
+
+  base('shows "No society assigned." for a worker with no assignedSocietyId', async ({ page }) => {
+    const ts    = Date.now();
+    const uid   = `pw_test_worker_${ts}`;
+    const phone = `+919${String(ts).slice(-9)}`;
+    await adminDb().collection('workers').doc(uid).set({
+      name: `${PW_TEST_PREFIX}NoSociety Worker`,
+      phone, isOnline: false, rating: 5, totalJobs: 0,
+      createdAt: Timestamp.now(),
+      // assignedSocietyId intentionally omitted
+    });
+
+    await page.goto('/worker/login');
+    await signInWithBypassToken(page, uid);
+    await page.waitForURL('**/worker/dashboard', { timeout: 15_000 });
+
+    await baseExpect(page.locator('text=No society assigned.')).toBeVisible({ timeout: 10_000 });
+    await baseExpect(page.locator('text=ASSIGNED SOCIETY')).not.toBeVisible();
+  });
+
+  base('shows "No cleans logged yet." for a worker assigned to a society with zero cleans today', async ({ page }) => {
+    const societiesSnap = await adminDb().collection('societies').where('isActive', '==', true).limit(1).get();
+    if (societiesSnap.empty) { base.skip(true, 'No active society to assign'); return; }
+    const society = societiesSnap.docs[0];
+
+    const ts    = Date.now();
+    const uid   = `pw_test_worker_${ts}`;
+    const phone = `+919${String(ts).slice(-9)}`;
+    await adminDb().collection('workers').doc(uid).set({
+      name: `${PW_TEST_PREFIX}ZeroCleans Worker`,
+      phone, isOnline: false, rating: 5, totalJobs: 0,
+      assignedSocietyId:   society.id,
+      assignedSocietyName: society.data().name,
+      createdAt: Timestamp.now(),
+    });
+
+    await page.goto('/worker/login');
+    await signInWithBypassToken(page, uid);
+    await page.waitForURL('**/worker/dashboard', { timeout: 15_000 });
+
+    await baseExpect(page.locator('text=ASSIGNED SOCIETY')).toBeVisible({ timeout: 10_000 });
+    await baseExpect(page.locator('text=No cleans logged yet.')).toBeVisible({ timeout: 10_000 });
   });
 
 });

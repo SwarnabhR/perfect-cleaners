@@ -1,4 +1,7 @@
 import { test, expect } from '../fixtures/worker';
+import { test as base, expect as baseExpect } from '@playwright/test';
+import { signInWithBypassToken } from '../lib/auth-bypass';
+import { adminDb, Timestamp, PW_TEST_PREFIX } from '../lib/firestore-admin';
 
 /**
  * Job detail tests require at least one job assigned to the test worker.
@@ -99,6 +102,138 @@ test.describe('Worker Job Detail', () => {
     await page.goto('/worker/job/nonexistent-booking-id-xyz');
     await page.waitForLoadState('load');
     await expect(page.locator('text=Booking not found.')).toBeVisible({ timeout: 10_000 });
+  });
+
+});
+
+// ── Full status pipeline walk (fresh, isolated worker + seeded booking) ──────
+//
+// The shared TEST_WORKER_UID may or may not have real jobs assigned, and
+// even if it does, driving one through assigned→done here would corrupt
+// state other worker tests in this suite rely on (SlideToConfirm actually
+// mutates the booking). A dedicated worker + booking, seeded per test,
+// avoids both problems and guarantees the full pipeline is reachable.
+
+function freshWorker() {
+  const ts = Date.now();
+  return { uid: `pw_test_worker_${ts}`, phone: `+919${String(ts).slice(-9)}` };
+}
+
+async function seedWorkerAndBooking(opts: {
+  workerPhone: string;
+  workerUid: string;
+  bookingId: string;
+  customerPhone?: string;
+  address: Record<string, unknown>;
+  paymentStatus: 'pending' | 'paid';
+}) {
+  await adminDb().collection('workers').doc(opts.workerUid).set({
+    name: `${PW_TEST_PREFIX}Pipeline Worker`,
+    phone: opts.workerPhone,
+    isOnline: false,
+    rating: 5,
+    totalJobs: 0,
+    createdAt: Timestamp.now(),
+  });
+  await adminDb().collection('bookings').doc(opts.bookingId).set({
+    customerId:    `${PW_TEST_PREFIX}customer`,
+    workerId:      opts.workerUid,
+    serviceIds:    ['exterior-wash'],
+    vehicle:       { id: 'v1', make: 'Maruti', model: 'Swift', year: 2022, type: 'hatchback', registration: 'DL01PWTEST', color: 'White' },
+    status:        'assigned',
+    scheduledAt:   Timestamp.now(),
+    address:       opts.address,
+    priceBreakdown: { subtotal: 500, tax: 0, total: 500 },
+    paymentStatus: opts.paymentStatus,
+    photos:        { before: [], after: [] },
+    createdAt:     Timestamp.now(),
+    updatedAt:     Timestamp.now(),
+    bookingRef:    `PC-${opts.bookingId.slice(0, 6).toUpperCase()}`,
+    customerName:  `${PW_TEST_PREFIX}Customer`,
+    ...(opts.customerPhone ? { customerPhone: opts.customerPhone } : {}),
+  });
+}
+
+base.describe('Worker Job Detail — full status pipeline', () => {
+
+  base('walks assigned → enroute → arrived → inprogress → done, updating the pipeline and button label at each step', async ({ page }) => {
+    const { uid, phone } = freshWorker();
+    const bookingId = `pw_test_booking_${Date.now()}`;
+    await seedWorkerAndBooking({
+      workerPhone: phone, workerUid: uid, bookingId,
+      customerPhone: '+919876543210',
+      address: { line1: '101 Test Street', city: 'Ghaziabad', pincode: '201001', coordinates: { latitude: 0, longitude: 0 } },
+      paymentStatus: 'pending',
+    });
+
+    await page.goto('/worker/login');
+    await signInWithBypassToken(page, uid);
+    await page.waitForURL('**/worker/dashboard', { timeout: 15_000 });
+    await page.goto(`/worker/job/${bookingId}`);
+
+    const steps: Array<[string, string]> = [
+      ['Assigned',    'On My Way →'],
+      ['En Route',    "I've Arrived →"],
+      ['Arrived',     'Start Job →'],
+      ['In Progress', 'Mark Complete →'],
+    ];
+
+    for (const [stepLabel, buttonLabel] of steps) {
+      // All pipeline step labels are always rendered; the current one just
+      // gets styling — assert presence, not exclusivity.
+      await baseExpect(page.locator(`text=${stepLabel}`)).toBeVisible({ timeout: 10_000 });
+      const actionBtn = page.locator(`button:has-text("${buttonLabel}")`);
+      await baseExpect(actionBtn).toBeVisible({ timeout: 10_000 });
+      await actionBtn.click();
+    }
+
+    // Marking complete redirects to the dashboard
+    await page.waitForURL('**/worker/dashboard', { timeout: 15_000 });
+
+    const finalStatus = (await adminDb().collection('bookings').doc(bookingId).get()).data()?.status;
+    baseExpect(finalStatus).toBe('done');
+  });
+
+  base('shows "(pay at service)" for a pending payment, and hides the Call link when no customer phone is on file', async ({ page }) => {
+    const { uid, phone } = freshWorker();
+    const bookingId = `pw_test_booking_${Date.now()}`;
+    await seedWorkerAndBooking({
+      workerPhone: phone, workerUid: uid, bookingId,
+      // No customerPhone at all
+      address: { line1: '55 No-Phone Lane', city: 'Noida', pincode: '201301', coordinates: { latitude: 0, longitude: 0 } },
+      paymentStatus: 'pending',
+    });
+
+    await page.goto('/worker/login');
+    await signInWithBypassToken(page, uid);
+    await page.waitForURL('**/worker/dashboard', { timeout: 15_000 });
+    await page.goto(`/worker/job/${bookingId}`);
+
+    await baseExpect(page.locator('text=(pay at service)')).toBeVisible({ timeout: 10_000 });
+    await baseExpect(page.locator('a[href^="tel:"]')).not.toBeVisible();
+  });
+
+  base('shows "(paid)" for a paid booking, a Call link for a customer with a phone, and a society-formatted address', async ({ page }) => {
+    const { uid, phone } = freshWorker();
+    const bookingId = `pw_test_booking_${Date.now()}`;
+    await seedWorkerAndBooking({
+      workerPhone: phone, workerUid: uid, bookingId,
+      customerPhone: '+919812345678',
+      address: { line1: '', societyName: `${PW_TEST_PREFIX}Society`, tower: 'Tower B', flatNo: '404', coordinates: { latitude: 0, longitude: 0 } },
+      paymentStatus: 'paid',
+    });
+
+    await page.goto('/worker/login');
+    await signInWithBypassToken(page, uid);
+    await page.waitForURL('**/worker/dashboard', { timeout: 15_000 });
+    await page.goto(`/worker/job/${bookingId}`);
+
+    await baseExpect(page.locator('text=(paid)')).toBeVisible({ timeout: 10_000 });
+    const callLink = page.locator('a[href^="tel:"]');
+    await baseExpect(callLink).toBeVisible();
+    baseExpect(await callLink.getAttribute('href')).toBe('tel:+919812345678');
+    await baseExpect(page.locator(`text=Tower B`)).toBeVisible();
+    await baseExpect(page.locator(`text=${PW_TEST_PREFIX}Society`)).toBeVisible();
   });
 
 });

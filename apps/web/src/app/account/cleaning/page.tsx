@@ -35,7 +35,10 @@ function getUpcomingDates(dayIndices: number[], n: number): Date[] {
   const cursor = new Date();
   cursor.setHours(0, 0, 0, 0);
   cursor.setDate(cursor.getDate() + 1); // start from tomorrow
-  while (dates.length < n) {
+  // Bounded to just over a year — if dayIndices is empty or malformed (e.g.
+  // stale/hand-edited Firestore data), the loop would otherwise never reach
+  // `n` matches and hang the tab indefinitely.
+  for (let scanned = 0; dates.length < n && scanned < 400; scanned++) {
     if (dayIndices.includes(cursor.getDay())) dates.push(new Date(cursor));
     cursor.setDate(cursor.getDate() + 1);
   }

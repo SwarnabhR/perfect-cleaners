@@ -45,13 +45,19 @@ export function firebaseConfigFromEnv() {
  * Pass `persistence: 'session'` for customer flows (matches
  * CustomerAuthContext's browserSessionPersistence) — omit it for worker/admin,
  * which use Firebase's default (indexedDB) persistence.
+ *
+ * Pass `phone` (E.164, e.g. `+91900000...`) to stamp a synthetic phone onto
+ * a brand-new UID — useful for fresh-account tests whose pages key queries
+ * off `user.phoneNumber` (customer bookings, worker's `workers` lookup),
+ * which would otherwise stay null for a UID that never went through real OTP.
  */
 export async function signInWithBypassToken(
   page: Page,
   uid: string,
-  opts: { persistence?: 'session' } = {},
+  opts: { persistence?: 'session'; phone?: string } = {},
 ) {
-  const res  = await page.request.get(`/api/test/firebase-token?uid=${uid}`);
+  const phoneParam = opts.phone ? `&phone=${encodeURIComponent(opts.phone)}` : '';
+  const res  = await page.request.get(`/api/test/firebase-token?uid=${uid}${phoneParam}`);
   const body = await res.json();
   if (!res.ok()) throw new Error(`firebase-token failed: ${body.error}`);
 
