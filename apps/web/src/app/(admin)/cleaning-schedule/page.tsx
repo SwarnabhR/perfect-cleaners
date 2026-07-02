@@ -485,7 +485,7 @@ export default function CleaningSchedulePage() {
                 {/* Workers */}
                 <div style={{ textAlign: 'center', minWidth: 100 }}>
                   <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 18, color: 'var(--pc-fg)', margin: '0 0 4px', fontWeight: 600 }}>
-                    {session.workerIds.length}
+                    {session.workerIds?.length ?? 0}
                   </p>
                   <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', margin: 0 }}>
                     WORKERS
