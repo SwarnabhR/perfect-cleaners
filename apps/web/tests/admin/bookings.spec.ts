@@ -33,7 +33,7 @@ test.describe('Admin Bookings', () => {
   });
 
   test('table renders with correct column headers', async ({ page }) => {
-    const headers = ['Booking ID', 'Customer', 'Service', 'Date & Time', 'Worker', 'Amount', 'Status'];
+    const headers = ['Ref', 'Customer', 'Vehicle', 'Worker', 'Status', 'Scheduled', 'Amount', 'Action'];
     for (const h of headers) {
       await expect(page.locator(`th:has-text("${h}")`)).toBeVisible();
     }
@@ -47,21 +47,24 @@ test.describe('Admin Bookings', () => {
     await expect(loading.or(rows.first())).toBeVisible({ timeout: 10_000 });
   });
 
-  test('search from top bar navigates with query param', async ({ page }) => {
+  test('search from top bar navigates to live cleaning board', async ({ page }) => {
+    // Top-bar search (placeholder "Search cleaning sessions…") no longer
+    // targets /bookings with a query param — it always routes to the
+    // live-cleaning board (see apps/web/src/app/(admin)/layout.tsx).
     await page.goto('/dashboard');
-    await page.fill('input[placeholder="Search bookings…"]', 'Amit');
+    await page.fill('input[placeholder="Search cleaning sessions…"]', 'Amit');
     await page.keyboard.press('Enter');
-    await page.waitForURL(/\/bookings\?search=Amit/, { timeout: 5_000 });
-    const chip = page.locator('text="Amit"');
-    await expect(chip).toBeVisible();
+    await page.waitForURL(/\/live-cleaning/, { timeout: 5_000 });
   });
 
   test('search chip can be cleared', async ({ page }) => {
-    await page.goto('/bookings?search=Amit');
-    await expect(page.locator('text="Amit"')).toBeVisible();
-    // "×" close button clears the search
-    await page.click('button:has-text("×")');
-    await expect(page.locator('text="Amit"')).not.toBeVisible();
+    // Bookings has its own local, in-page search input (no URL query param,
+    // no "chip" UI) — verify it accepts and clears text directly.
+    const search = page.locator('input[placeholder="Search by ref, customer, service…"]');
+    await search.fill('Amit');
+    await expect(search).toHaveValue('Amit');
+    await search.fill('');
+    await expect(search).toHaveValue('');
   });
 
 });

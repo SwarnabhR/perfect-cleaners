@@ -16,15 +16,14 @@ test.describe('Admin Settings', () => {
   });
 
   test('business name input is present', async ({ page }) => {
-    await expect(
-      page.locator('input[placeholder*="Perfect Cleaners"]')
-        .or(page.locator('input[placeholder*="business"], input[placeholder*="Business"]'))
-        .first()
-    ).toBeVisible();
+    // The business-info fields have no placeholder text (they're pre-filled
+    // from Firestore/defaults) — locate by the field's own <label> sibling.
+    await expect(page.locator('label:has-text("Business Name") + input')).toBeVisible();
   });
 
   test('notifications toggles section is present', async ({ page }) => {
-    await expect(page.locator('text=NOTIFICATIONS').or(page.locator('text=Notifications'))).toBeVisible();
+    // The section eyebrow reads "NOTIFICATION PREFERENCES", not "NOTIFICATIONS".
+    await expect(page.locator('text=NOTIFICATION PREFERENCES')).toBeVisible();
   });
 
   test('integrations section is present', async ({ page }) => {
@@ -36,9 +35,8 @@ test.describe('Admin Settings', () => {
   });
 
   test('GST number field is present', async ({ page }) => {
-    await expect(
-      page.locator('input[placeholder*="GST"], input[placeholder*="gst"]')
-    ).toBeVisible();
+    // No placeholder attribute on this field — locate by its <label> sibling.
+    await expect(page.locator('label:has-text("GST Number") + input')).toBeVisible();
   });
 
   test('Razorpay integration toggle is present', async ({ page }) => {

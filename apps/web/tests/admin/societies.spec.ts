@@ -59,8 +59,11 @@ test.describe('Admin Societies Management', () => {
   });
 
   test('status filter buttons are visible', async ({ page }) => {
+    // "Inactive" contains "active" as a substring, so a plain :has-text("Active")
+    // locator resolves to both the Active and Inactive buttons (strict-mode
+    // violation) — match the accessible name exactly instead.
     for (const label of ['All', 'Active', 'Inactive']) {
-      await expect(page.locator(`button:has-text("${label}")`)).toBeVisible();
+      await expect(page.getByRole('button', { name: label, exact: true })).toBeVisible();
     }
   });
 

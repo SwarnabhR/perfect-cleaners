@@ -23,14 +23,17 @@ test.describe('Admin Promotions', () => {
   test('clicking Create Promo opens the form (CREATE PROMOTION header visible)', async ({ page }) => {
     await expect(page.locator('button:has-text("Create Promo")')).toBeVisible({ timeout: 20_000 });
     await page.click('button:has-text("Create Promo")');
-    // The Eyebrow shows "CREATE PROMOTION" when the form is in new mode
-    await expect(page.locator('text=CREATE PROMOTION')).toBeVisible({ timeout: 15_000 });
+    // The Eyebrow (a <span>) shows "CREATE PROMOTION" when the form is in new
+    // mode. Scoped to `span` because the form's own submit button reads
+    // "Create Promotion" — same text once case-normalized — which would
+    // otherwise make an unscoped `text=` locator resolve to two elements.
+    await expect(page.locator('span:has-text("CREATE PROMOTION")')).toBeVisible({ timeout: 15_000 });
   });
 
   test('form has code input and Generate button in DOM', async ({ page }) => {
     await expect(page.locator('button:has-text("Create Promo")')).toBeVisible({ timeout: 20_000 });
     await page.click('button:has-text("Create Promo")');
-    await expect(page.locator('text=CREATE PROMOTION')).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('span:has-text("CREATE PROMOTION")')).toBeVisible({ timeout: 15_000 });
     // Scroll into view and check DOM presence — form top may be off-screen below the table
     const codeInput = page.locator('input[placeholder="SHINE10"]');
     await codeInput.scrollIntoViewIfNeeded();
@@ -41,7 +44,7 @@ test.describe('Admin Promotions', () => {
   test('Generate button updates code input value', async ({ page }) => {
     await expect(page.locator('button:has-text("Create Promo")')).toBeVisible({ timeout: 20_000 });
     await page.click('button:has-text("Create Promo")');
-    await expect(page.locator('text=CREATE PROMOTION')).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('span:has-text("CREATE PROMOTION")')).toBeVisible({ timeout: 15_000 });
     const codeInput = page.locator('input[placeholder="SHINE10"]');
     await codeInput.scrollIntoViewIfNeeded();
     const before = await codeInput.inputValue();
@@ -55,15 +58,15 @@ test.describe('Admin Promotions', () => {
   test('form closes via Cancel button', async ({ page }) => {
     await expect(page.locator('button:has-text("Create Promo")')).toBeVisible({ timeout: 20_000 });
     await page.click('button:has-text("Create Promo")');
-    await expect(page.locator('text=CREATE PROMOTION')).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('span:has-text("CREATE PROMOTION")')).toBeVisible({ timeout: 15_000 });
     await page.locator('button:has-text("Cancel")').last().click();
-    await expect(page.locator('text=CREATE PROMOTION')).not.toBeVisible({ timeout: 8_000 });
+    await expect(page.locator('span:has-text("CREATE PROMOTION")')).not.toBeVisible({ timeout: 8_000 });
   });
 
   test('discount type buttons exist in form DOM', async ({ page }) => {
     await expect(page.locator('button:has-text("Create Promo")')).toBeVisible({ timeout: 20_000 });
     await page.click('button:has-text("Create Promo")');
-    await expect(page.locator('text=CREATE PROMOTION')).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('span:has-text("CREATE PROMOTION")')).toBeVisible({ timeout: 15_000 });
     const flatBtn = page.locator('button:has-text("Flat ₹")');
     await flatBtn.scrollIntoViewIfNeeded();
     await expect(flatBtn).toHaveCount(1);
@@ -73,7 +76,7 @@ test.describe('Admin Promotions', () => {
   test('Percentage % button changes discount label', async ({ page }) => {
     await expect(page.locator('button:has-text("Create Promo")')).toBeVisible({ timeout: 20_000 });
     await page.click('button:has-text("Create Promo")');
-    await expect(page.locator('text=CREATE PROMOTION')).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('span:has-text("CREATE PROMOTION")')).toBeVisible({ timeout: 15_000 });
     const pctBtn = page.locator('button:has-text("Percentage %")');
     await pctBtn.scrollIntoViewIfNeeded();
     await pctBtn.click();

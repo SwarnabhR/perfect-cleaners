@@ -43,6 +43,11 @@ test.describe('Customer sign-out', () => {
 
   test('sign-out from /account/profile redirects to homepage', async ({ page }) => {
     await page.goto('/account/profile');
+    // The Profile tab itself has no Sign out control — it lives on the
+    // Bookings tab (/account). Navigate there via the in-page tab link,
+    // matching how a real user would reach sign-out from /account/profile.
+    await page.click('a:has-text("Bookings")');
+    await page.waitForURL('**/account', { timeout: 15_000 });
     await expect(page.locator('button:has-text("Sign out")')).toBeVisible({ timeout: 25_000 });
     await page.click('button:has-text("Sign out")');
     await page.waitForURL('**/', { timeout: 20_000 });
@@ -107,7 +112,10 @@ test.describe('Admin sign-out', () => {
   test('sign-out from admin sidebar redirects to /login', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto('/dashboard');
-    const signOutBtn = page.locator('button[aria-label="Sign out"]');
+    // The admin layout renders TWO copies of the sidebar (desktop-static +
+    // mobile off-canvas drawer), each with its own button[aria-label="Sign out"].
+    // At this desktop viewport only .sidebar-static is actually shown, so scope to it.
+    const signOutBtn = page.locator('.sidebar-static button[aria-label="Sign out"]');
     await expect(signOutBtn).toBeVisible({ timeout: 25_000 });
     await signOutBtn.click();
     await page.waitForURL(/\/login/, { timeout: 20_000 });
@@ -117,13 +125,14 @@ test.describe('Admin sign-out', () => {
   test('sign-out via profile dropdown redirects to /login', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto('/dashboard');
-    await expect(page.locator('.admin-page-root')).toBeVisible({ timeout: 25_000 });
+    await expect(page.locator('header')).toBeVisible({ timeout: 25_000 });
     // Open profile dropdown — last icon button in the header
     const headerBtns = page.locator('header button');
     const count = await headerBtns.count();
     await headerBtns.nth(count - 1).click();
-    await expect(page.locator('button:has-text("Sign out")')).toBeVisible({ timeout: 8_000 });
-    await page.click('button:has-text("Sign out")');
+    const dropdownSignOut = page.locator('button:has-text("Sign out")');
+    await expect(dropdownSignOut).toBeVisible({ timeout: 8_000 });
+    await dropdownSignOut.click();
     await page.waitForURL(/\/login/, { timeout: 20_000 });
     await expect(page.locator('h1')).toContainText('Sign in');
   });
@@ -131,7 +140,7 @@ test.describe('Admin sign-out', () => {
   test('after admin sign-out /dashboard redirects to /login', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto('/dashboard');
-    const signOutBtn = page.locator('button[aria-label="Sign out"]');
+    const signOutBtn = page.locator('.sidebar-static button[aria-label="Sign out"]');
     await expect(signOutBtn).toBeVisible({ timeout: 25_000 });
     await signOutBtn.click();
     await page.waitForURL(/\/login/, { timeout: 20_000 });

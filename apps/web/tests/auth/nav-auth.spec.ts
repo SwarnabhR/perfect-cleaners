@@ -56,7 +56,12 @@ test.describe('Nav — unauthenticated', () => {
     await page.click('button[aria-label="Open navigation"]');
     await expect(page.locator('text=Sign In / Sign Up')).toBeVisible();
     await page.keyboard.press('Escape');
-    await expect(page.locator('text=Sign In / Sign Up')).not.toBeVisible({ timeout: 3_000 });
+    // The drawer never gets display:none — it fades out via an opacity/transform
+    // transition while staying in the DOM, and Playwright's toBeVisible() only
+    // checks for an empty bounding box / visibility:hidden, not opacity, so it
+    // never reports the (still opaque-to-Playwright) drawer as hidden. Assert on
+    // the accessibility state the component actually toggles on close instead.
+    await expect(page.locator('#mobile-nav-drawer')).toHaveAttribute('aria-hidden', 'true', { timeout: 3_000 });
   });
 
   test('nav links navigate to correct marketing pages', async ({ page }) => {

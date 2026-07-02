@@ -24,47 +24,57 @@ test.describe('AuthBottomSheet — Homepage hero', () => {
 
   test('clicking "Sign Up / Log In" opens the auth sheet', async ({ page }) => {
     await page.click('button:has-text("Sign Up / Log In")');
-    await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('[role="dialog"][aria-label="Sign in to continue"]')).toBeVisible({ timeout: 5_000 });
     await expect(page.locator('text=Sign in or create account.')).toBeVisible();
   });
 
   test('auth sheet shows [ACCOUNT] / SIGN IN OR CREATE eyebrow', async ({ page }) => {
     await page.click('button:has-text("Sign Up / Log In")');
-    await expect(page.locator('text=SIGN IN OR CREATE')).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('text="[ACCOUNT] / SIGN IN OR CREATE"')).toBeVisible({ timeout: 5_000 });
   });
 
   test('auth sheet has +91 prefix and phone input', async ({ page }) => {
     await page.click('button:has-text("Sign Up / Log In")');
-    await expect(page.locator('[role="dialog"] text=+91')).toBeVisible({ timeout: 5_000 });
-    await expect(page.locator('[role="dialog"] input[type="tel"]')).toBeVisible();
+    const dialog = page.locator('[role="dialog"][aria-label="Sign in to continue"]');
+    await expect(dialog.locator('text=+91')).toBeVisible({ timeout: 5_000 });
+    await expect(dialog.locator('input[type="tel"]')).toBeVisible();
   });
 
   test('auth sheet Send Code button is disabled with empty phone', async ({ page }) => {
     await page.click('button:has-text("Sign Up / Log In")');
-    const sendBtn = page.locator('[role="dialog"] button[type="submit"]');
+    const sendBtn = page.locator('[role="dialog"][aria-label="Sign in to continue"] button[type="submit"]');
     await expect(sendBtn).toBeDisabled({ timeout: 5_000 });
   });
 
+  // The dialog never unmounts or gets visibility:hidden when closed — at
+  // desktop viewport width (isDesktop=true in the component) it's purely a
+  // CSS opacity/pointer-events fade (AuthBottomSheet.tsx), which Playwright's
+  // toBeVisible() does not treat as "not visible" (it ignores opacity).
+  // Assert on the computed opacity instead.
+
   test('auth sheet closes via close button', async ({ page }) => {
     await page.click('button:has-text("Sign Up / Log In")');
-    await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 5_000 });
+    const dialog = page.locator('[role="dialog"][aria-label="Sign in to continue"]');
+    await expect(dialog).toBeVisible({ timeout: 5_000 });
     await page.click('button[aria-label="Close"]');
-    await expect(page.locator('[role="dialog"]')).not.toBeVisible({ timeout: 3_000 });
+    await expect(dialog).toHaveCSS('opacity', '0', { timeout: 3_000 });
   });
 
   test('auth sheet closes via Escape key', async ({ page }) => {
     await page.click('button:has-text("Sign Up / Log In")');
-    await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 5_000 });
+    const dialog = page.locator('[role="dialog"][aria-label="Sign in to continue"]');
+    await expect(dialog).toBeVisible({ timeout: 5_000 });
     await page.keyboard.press('Escape');
-    await expect(page.locator('[role="dialog"]')).not.toBeVisible({ timeout: 3_000 });
+    await expect(dialog).toHaveCSS('opacity', '0', { timeout: 3_000 });
   });
 
   test('auth sheet closes via backdrop click', async ({ page }) => {
     await page.click('button:has-text("Sign Up / Log In")');
-    await expect(page.locator('[role="dialog"]')).toBeVisible({ timeout: 5_000 });
+    const dialog = page.locator('[role="dialog"][aria-label="Sign in to continue"]');
+    await expect(dialog).toBeVisible({ timeout: 5_000 });
     // Click the backdrop (the blurred overlay behind the sheet)
     await page.mouse.click(10, 10);
-    await expect(page.locator('[role="dialog"]')).not.toBeVisible({ timeout: 3_000 });
+    await expect(dialog).toHaveCSS('opacity', '0', { timeout: 3_000 });
   });
 
   test('auth sheet "No password" disclaimer is shown', async ({ page }) => {
@@ -76,7 +86,7 @@ test.describe('AuthBottomSheet — Homepage hero', () => {
 
   test('auth sheet phone input accepts only digits', async ({ page }) => {
     await page.click('button:has-text("Sign Up / Log In")');
-    const input = page.locator('[role="dialog"] input[type="tel"]');
+    const input = page.locator('[role="dialog"][aria-label="Sign in to continue"] input[type="tel"]');
     await input.fill('abc98765def4321');
     const value = await input.inputValue();
     expect(value).toMatch(/^\d+$/);
@@ -91,9 +101,9 @@ test.describe('AuthBottomSheet — OTP step UI', () => {
   test('entering 10 digits enables Send Code button', async ({ page }) => {
     await page.goto('/');
     await page.click('button:has-text("Sign Up / Log In")');
-    await page.locator('[role="dialog"] input[type="tel"]').fill('9876543210');
+    await page.locator('[role="dialog"][aria-label="Sign in to continue"] input[type="tel"]').fill('9876543210');
     // Button may still say Loading… while MSG91 widget loads
-    const btn = page.locator('[role="dialog"] button[type="submit"]');
+    const btn = page.locator('[role="dialog"][aria-label="Sign in to continue"] button[type="submit"]');
     await page.waitForTimeout(500);
     const label = await btn.textContent();
     // Lenient: disabled is OK only if MSG91 hasn't loaded yet (not because of phone length)

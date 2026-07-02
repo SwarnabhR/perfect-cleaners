@@ -7,16 +7,24 @@ test.describe('Admin Login', () => {
   });
 
   test('renders login form correctly', async ({ page }) => {
+    // The (admin) layout wraps /login in the full sidebar shell, which has
+    // its own <p> tags (sidebar footer name/email) — scope to the one
+    // containing the login subtitle to avoid a strict-mode violation.
     await expect(page.locator('h1')).toContainText('Sign in');
-    await expect(page.locator('p')).toContainText('Operator access only');
+    await expect(page.locator('p', { hasText: 'Operator access only' })).toBeVisible();
     await expect(page.locator('input[type="email"]')).toBeVisible();
     await expect(page.locator('input[type="password"]')).toBeVisible();
     await expect(page.locator('button[type="submit"]')).toContainText('Sign in');
   });
 
   test('shows Perfect Cleaners branding', async ({ page }) => {
-    await expect(page.locator('text=Perfect Cleaners')).toBeVisible();
-    await expect(page.locator('text=Admin')).toBeVisible();
+    // The layout renders both a desktop (.sidebar-static) and an off-canvas
+    // mobile (.sidebar-drawer) copy of the sidebar; the mobile one is
+    // display:none at desktop viewport width but still matches `text=`
+    // locators (which ignore CSS visibility) and sorts first in the DOM —
+    // scope to the visible desktop sidebar to avoid a hidden-element match.
+    await expect(page.locator('.sidebar-static').getByText('Perfect Cleaners').first()).toBeVisible();
+    await expect(page.locator('.sidebar-static').getByText('Admin').first()).toBeVisible();
   });
 
   test('submit button is enabled with empty fields', async ({ page }) => {

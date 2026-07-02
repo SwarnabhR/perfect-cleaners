@@ -12,7 +12,10 @@ test.describe('Customer Sign In', () => {
   });
 
   test('shows [ACCOUNT] / SIGN IN OR CREATE eyebrow', async ({ page }) => {
-    await expect(page.locator('text=SIGN IN OR CREATE')).toBeVisible();
+    // Quoted text= does an exact match; the unquoted substring version also
+    // matched the "Sign in or create account." h1 (case-insensitive substring),
+    // causing a strict-mode violation (2 elements).
+    await expect(page.locator('text="[ACCOUNT] / SIGN IN OR CREATE"')).toBeVisible();
   });
 
   test('shows +91 prefix and phone input', async ({ page }) => {

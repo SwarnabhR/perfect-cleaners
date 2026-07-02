@@ -153,8 +153,12 @@ function AdminShell({ children }: { children: React.ReactNode }) {
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
 
           {/* Top bar */}
+          {/* zIndex 50: must exceed the click-outside overlay's zIndex 49 below —
+              header creates its own stacking context, so its profile/alerts
+              dropdowns (zIndex 100, but scoped to this context) would otherwise
+              render visually on top yet still receive the overlay's clicks. */}
           <header style={{
-            position: 'sticky', top: 0, zIndex: 40,
+            position: 'sticky', top: 0, zIndex: 50,
             display: 'flex', alignItems: 'center', gap: 'var(--pc-space-3)',
             padding: 'var(--pc-space-3) clamp(12px,4vw,var(--pc-space-8))',
             background: 'var(--pc-ink-overlay)', backdropFilter: 'blur(20px)',

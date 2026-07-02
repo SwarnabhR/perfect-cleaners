@@ -16,11 +16,14 @@ test.describe('Admin Workers', () => {
   });
 
   test('search input is visible', async ({ page }) => {
-    await expect(page.locator('input[placeholder*="Search"]')).toBeVisible();
+    // The top bar's own search input ("Search cleaning sessions…") also
+    // matches a generic `placeholder*="Search"` substring, so target the
+    // workers page's own search field by its exact placeholder.
+    await expect(page.locator('input[placeholder="Search by name or phone…"]')).toBeVisible();
   });
 
   test('status filter buttons are visible', async ({ page }) => {
-    for (const label of ['All', 'Online', 'Offline']) {
+    for (const label of ['All', 'Available', 'On Job', 'Off Today']) {
       await expect(page.locator(`button:has-text("${label}")`)).toBeVisible();
     }
   });

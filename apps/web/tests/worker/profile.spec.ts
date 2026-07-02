@@ -18,7 +18,8 @@ test.describe('Worker Profile', () => {
 
   test('name and phone fields are present', async ({ page }) => {
     await expect(page.locator('input[placeholder*="name"], input[placeholder*="Name"]').first()).toBeVisible({ timeout: 8_000 });
-    await expect(page.locator('input[type="tel"]').or(page.locator('input[placeholder*="phone"]'))).toBeVisible();
+    // Mobile number field is a plain readOnly text input (not type="tel"), pre-filled with the number.
+    await expect(page.locator('input[readonly]')).toBeVisible();
   });
 
   test('phone field is read-only', async ({ page }) => {
@@ -35,16 +36,16 @@ test.describe('Worker Profile', () => {
   });
 
   test('Add Address section or saved addresses shown', async ({ page }) => {
-    await expect(
-      page.locator('text=Add address')
-        .or(page.locator('text=SERVICE ADDRESSES'))
-        .or(page.locator('text=Service Addresses'))
-    ).toBeVisible({ timeout: 8_000 });
+    // Page renders a "SAVED ADDRESSES" eyebrow + an "Add" button (icon + text), not "Add address" / "SERVICE ADDRESSES".
+    // exact:true avoids matching the unrelated empty-state text "No saved addresses yet."
+    await expect(page.getByText('SAVED ADDRESSES', { exact: true })).toBeVisible({ timeout: 8_000 });
   });
 
   test('support links are present', async ({ page }) => {
+    // Both a privacy and a terms link exist, so the combined locator legitimately
+    // resolves to two elements — use .first() to avoid a strict-mode violation.
     await expect(
-      page.locator('a[href*="privacy"]').or(page.locator('a[href*="terms"]'))
+      page.locator('a[href*="privacy"], a[href*="terms"]').first()
     ).toBeVisible({ timeout: 8_000 });
   });
 
