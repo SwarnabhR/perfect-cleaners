@@ -30,18 +30,6 @@ export default defineConfig({
   },
 
   projects: [
-    // ── Admin auth setup ───────────────────────────────────────────────────
-    {
-      name: 'setup',
-      testMatch: '**/global-setup.spec.ts',
-    },
-
-    // ── Worker auth setup ──────────────────────────────────────────────────
-    {
-      name: 'worker-setup',
-      testMatch: '**/worker-setup.spec.ts',
-    },
-
     // ── Admin login page — no saved auth state ─────────────────────────────
     {
       name: 'admin-login',
@@ -57,36 +45,26 @@ export default defineConfig({
     },
 
     // ── Admin pages — authenticated ────────────────────────────────────────
-    // timeout: 60s — Firestore pages take 10-12s to load, leaving room for interactions
+    // timeout: 60s — Firestore pages take 10-12s to load, leaving room for interactions.
+    // Auth comes from tests/fixtures/admin.ts (a worker-scoped signed-in
+    // context, signed in once per worker) — spec files import `test` from
+    // there instead of '@playwright/test'. Not storageState: Firebase Auth's
+    // IndexedDB-based session isn't serialized by this Playwright version.
     {
       name: 'admin',
       timeout: 60_000,
-      use:  {
-        ...devices['Desktop Chrome'],
-        storageState: 'tests/.auth/admin.json',
-      },
-      dependencies: ['setup'],
+      use:  { ...devices['Desktop Chrome'] },
       testMatch: '**/admin/**/*.spec.ts',
       testIgnore: '**/admin/login.spec.ts',
     },
 
-    // ── Worker pages — authenticated ───────────────────────────────────────
+    // ── Worker pages — authenticated (see tests/fixtures/worker.ts) ────────
     {
       name: 'worker',
       timeout: 60_000,
-      use:  {
-        ...devices['Desktop Chrome'],
-        storageState: 'tests/.auth/worker.json',
-      },
-      dependencies: ['worker-setup'],
+      use:  { ...devices['Desktop Chrome'] },
       testMatch: '**/worker/**/*.spec.ts',
       testIgnore: '**/worker/login.spec.ts',
-    },
-
-    // ── Customer auth setup ────────────────────────────────────────────────
-    {
-      name: 'customer-setup',
-      testMatch: '**/customer-setup.spec.ts',
     },
 
     // ── Customer sign-in page — no saved auth state ────────────────────────
@@ -96,25 +74,20 @@ export default defineConfig({
       testMatch: '**/customer/signin.spec.ts',
     },
 
-    // ── Customer pages — authenticated ─────────────────────────────────────
+    // ── Customer pages — authenticated (see tests/fixtures/customer.ts) ────
     {
       name: 'customer',
       timeout: 60_000,
-      use:  {
-        ...devices['Desktop Chrome'],
-        storageState: 'tests/.auth/customer.json',
-      },
-      dependencies: ['customer-setup'],
+      use:  { ...devices['Desktop Chrome'] },
       testMatch: '**/customer/**/*.spec.ts',
       testIgnore: '**/customer/signin.spec.ts',
     },
 
-    // ── Auth flows — no stored state; authenticated contexts created inline ─
+    // ── Auth flows — authenticated contexts created via fixtures/inline ────
     {
       name: 'auth',
       timeout: 60_000,
       use:  { ...devices['Desktop Chrome'] },
-      dependencies: ['setup', 'worker-setup', 'customer-setup'],
       testMatch: '**/auth/**/*.spec.ts',
     },
   ],

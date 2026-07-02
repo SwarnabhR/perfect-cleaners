@@ -44,7 +44,6 @@ const WORKER_PROTECTED = [
   '/worker/dashboard',
   '/worker/jobs',
   '/worker/cleaning-logs',
-  '/worker/earnings',
   '/worker/profile',
 ];
 
@@ -78,7 +77,7 @@ const ADMIN_PROTECTED = [
   '/promotions',
   '/analytics',
   '/settings',
-  '/cleaning-logs',
+  '/billing',
 ];
 
 for (const route of ADMIN_PROTECTED) {
@@ -95,7 +94,7 @@ for (const route of ADMIN_PROTECTED) {
 
 // ── Public pages stay accessible ─────────────────────────────────────────────
 
-const PUBLIC_PAGES = ['/', '/plans', '/services', '/about', '/contact', '/faq', '/book', '/signin'];
+const PUBLIC_PAGES = ['/', '/for-societies', '/services', '/about', '/contact', '/faq', '/signin'];
 
 for (const route of PUBLIC_PAGES) {
   test(`${route} is accessible without authentication`, async ({ browser }) => {

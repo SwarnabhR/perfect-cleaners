@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures/customer';
 
 test.describe('Customer Account — Bookings', () => {
 
@@ -26,17 +26,6 @@ test.describe('Customer Account — Bookings', () => {
     await expect(page.locator('text=/\\+91/')).toBeVisible({ timeout: 8_000 });
   });
 
-  test('Book a service CTA is visible', async ({ page }) => {
-    await expect(page.locator('a:has-text("Book a service")')).toBeVisible();
-  });
-
-  test('Book a service links to /book', async ({ page }) => {
-    const link = page.locator('a:has-text("Book a service")');
-    await expect(link).toBeVisible({ timeout: 20_000 });
-    const href = await link.getAttribute('href');
-    expect(href).toBe('/book');
-  });
-
   test('Sign out button is visible', async ({ page }) => {
     await expect(page.locator('button:has-text("Sign out")')).toBeVisible({ timeout: 20_000 });
   });
@@ -48,8 +37,9 @@ test.describe('Customer Account — Bookings', () => {
     expect(page.url()).toMatch(/\/$/);
   });
 
-  test('three account tabs are present', async ({ page }) => {
-    await expect(page.locator('a:has-text("Bookings")')).toBeVisible({ timeout: 20_000 });
+  test('four account tabs are present', async ({ page }) => {
+    await expect(page.locator('a:has-text("Schedule")')).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator('a:has-text("Bookings")')).toBeVisible();
     await expect(page.locator('a:has-text("Profile")')).toBeVisible();
     await expect(page.locator('a:has-text("Bill")')).toBeVisible();
   });
@@ -96,12 +86,13 @@ test.describe('Customer Account — Bookings', () => {
     await expect(page.locator('button:has-text("Cancel booking")')).toBeVisible();
   });
 
-  test('[NO BOOKINGS YET] empty state has Book now CTA', async ({ page }) => {
+  test('[NO BOOKINGS YET] empty state has Join a society CTA', async ({ page }) => {
     const isEmpty = await page.locator('text=Your first wash awaits.').isVisible({ timeout: 8_000 }).catch(() => false);
     if (!isEmpty) { test.skip(true, 'Customer has bookings'); return; }
-    await expect(page.locator('a:has-text("Book now")')).toBeVisible();
-    const href = await page.locator('a:has-text("Book now")').getAttribute('href');
-    expect(href).toBe('/book');
+    const cta = page.locator('a:has-text("Join a society")');
+    await expect(cta).toBeVisible();
+    const href = await cta.getAttribute('href');
+    expect(href).toBe('/for-societies');
   });
 
 });

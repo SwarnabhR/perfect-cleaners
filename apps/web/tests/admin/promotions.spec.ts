@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures/admin';
 
 // The promotions form renders INLINE below the table. After clicking "Create Promo",
 // the form card appears at the bottom of the page. Elements near the TOP of the form

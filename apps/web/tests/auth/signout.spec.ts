@@ -2,20 +2,26 @@
  * Sign-out flow tests — every portal's sign-out button clears auth state
  * and redirects to the correct landing page.
  *
- * Each describe block loads the relevant storageState inline so a single
- * sign-out test doesn't bleed state into the next test.
+ * Deliberately does NOT use the shared worker-scoped fixtures from
+ * tests/fixtures/*.ts — those reuse one signed-in context across every test
+ * in a worker for speed, but a sign-out test destroys that shared session,
+ * which would silently break every other test that reuses it. Each test
+ * here authenticates fresh in its own isolated (default, test-scoped)
+ * context instead.
  */
 import { test, expect } from '@playwright/test';
-import path from 'path';
-
-const ADMIN_AUTH    = path.join(__dirname, '../.auth/admin.json');
-const WORKER_AUTH   = path.join(__dirname, '../.auth/worker.json');
-const CUSTOMER_AUTH = path.join(__dirname, '../.auth/customer.json');
+import { signInWithBypassToken } from '../lib/auth-bypass';
 
 // ── Customer sign-out ─────────────────────────────────────────────────────────
 
 test.describe('Customer sign-out', () => {
-  test.use({ storageState: CUSTOMER_AUTH });
+  test.beforeEach(async ({ page }) => {
+    const uid = process.env.TEST_CUSTOMER_UID;
+    test.skip(!uid, 'TEST_CUSTOMER_UID not set');
+    await page.goto('/signin');
+    await signInWithBypassToken(page, uid!);
+    await page.waitForURL('**/account', { timeout: 15_000 });
+  });
 
   test('sign-out from /account redirects to homepage', async ({ page }) => {
     await page.goto('/account');
@@ -56,7 +62,13 @@ test.describe('Customer sign-out', () => {
 // ── Worker sign-out ───────────────────────────────────────────────────────────
 
 test.describe('Worker sign-out', () => {
-  test.use({ storageState: WORKER_AUTH });
+  test.beforeEach(async ({ page }) => {
+    const uid = process.env.TEST_WORKER_UID;
+    test.skip(!uid, 'TEST_WORKER_UID not set');
+    await page.goto('/worker/login');
+    await signInWithBypassToken(page, uid!);
+    await page.waitForURL('**/worker/dashboard', { timeout: 15_000 });
+  });
 
   test('sign-out from /worker/profile redirects to /worker/login', async ({ page }) => {
     await page.goto('/worker/profile');
@@ -81,7 +93,16 @@ test.describe('Worker sign-out', () => {
 // ── Admin sign-out ────────────────────────────────────────────────────────────
 
 test.describe('Admin sign-out', () => {
-  test.use({ storageState: ADMIN_AUTH });
+  test.beforeEach(async ({ page }) => {
+    const email    = process.env.TEST_ADMIN_EMAIL;
+    const password = process.env.TEST_ADMIN_PASSWORD;
+    test.skip(!email || !password, 'TEST_ADMIN_EMAIL / TEST_ADMIN_PASSWORD not set');
+    await page.goto('/login');
+    await page.fill('input[type="email"]',    email!);
+    await page.fill('input[type="password"]', password!);
+    await page.click('button[type="submit"]');
+    await page.waitForURL('**/dashboard', { timeout: 20_000 });
+  });
 
   test('sign-out from admin sidebar redirects to /login', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });

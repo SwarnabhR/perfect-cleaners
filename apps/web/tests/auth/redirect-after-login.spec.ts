@@ -7,19 +7,11 @@
  * to authenticate programmatically.
  */
 import { test, expect } from '@playwright/test';
+import { signInWithBypassToken } from '../lib/auth-bypass';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-async function signInCustomer(page: any, uid: string) {
-  const res  = await page.request.get(`/api/test/firebase-token?uid=${uid}`);
-  const body = await res.json();
-  if (!res.ok()) throw new Error(`firebase-token failed: ${body.error}`);
-  await page.evaluate(async (token: string) => {
-    const { getApps }                    = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js' as any);
-    const { getAuth, signInWithCustomToken } = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js' as any);
-    await signInWithCustomToken(getAuth(getApps()[0]), token);
-  }, body.token);
-}
+const signInCustomer = signInWithBypassToken;
 
 // ── Customer ?from= redirects ─────────────────────────────────────────────────
 
@@ -95,10 +87,10 @@ test.describe('Sign-in page ?from param', () => {
 
 test.describe('Worker post-login redirect', () => {
 
-  test('landing on /worker/earnings redirects to /worker/login?from=...', async ({ page }) => {
-    await page.goto('/worker/earnings');
+  test('landing on /worker/jobs redirects to /worker/login?from=...', async ({ page }) => {
+    await page.goto('/worker/jobs');
     await page.waitForURL(/\/worker\/login/, { timeout: 10_000 });
-    expect(decodeURIComponent(page.url())).toContain('/worker/earnings');
+    expect(decodeURIComponent(page.url())).toContain('/worker/jobs');
   });
 
   test('landing on /worker/cleaning-logs preserves ?from in redirect', async ({ page }) => {
@@ -111,21 +103,13 @@ test.describe('Worker post-login redirect', () => {
     const uid = process.env.TEST_WORKER_UID;
     if (!uid) { test.skip(true, 'TEST_WORKER_UID not set'); return; }
 
-    await page.goto('/worker/earnings');
+    await page.goto('/worker/jobs');
     await page.waitForURL(/\/worker\/login/, { timeout: 10_000 });
 
-    const res  = await page.request.get(`/api/test/firebase-token?uid=${uid}`);
-    const body = await res.json();
-    if (!res.ok()) throw new Error(`firebase-token failed: ${body.error}`);
+    await signInWithBypassToken(page, uid);
 
-    await page.evaluate(async (token: string) => {
-      const { getApps }                    = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js' as any);
-      const { getAuth, signInWithCustomToken } = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js' as any);
-      await signInWithCustomToken(getAuth(getApps()[0]), token);
-    }, body.token);
-
-    await page.waitForURL('**/worker/earnings', { timeout: 15_000 });
-    expect(page.url()).toContain('/worker/earnings');
+    await page.waitForURL('**/worker/jobs', { timeout: 15_000 });
+    expect(page.url()).toContain('/worker/jobs');
   });
 
 });

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures/worker';
 
 /**
  * Job detail tests require at least one job assigned to the test worker.

@@ -40,6 +40,15 @@ const nextConfig: NextConfig = {
 
   // Security headers — applied to every route
   async headers() {
+    // Dev-only: Playwright's auth-bypass setup specs (customer-setup.spec.ts,
+    // worker-setup.spec.ts) dynamically import the Firebase SDK from gstatic.com
+    // inside the browser to sign in with a custom token without real OTP. That
+    // import is blocked by script-src/connect-src in production. Mirrors the
+    // NODE_ENV production gate already used by /api/test/firebase-token.
+    const isProd = process.env.NODE_ENV === 'production';
+    const scriptSrc  = isProd ? '' : ' https://www.gstatic.com';
+    const connectSrc = isProd ? '' : ' https://www.gstatic.com';
+
     const base = [
       { key: 'X-Frame-Options',         value: 'SAMEORIGIN' },
       { key: 'X-Content-Type-Options',  value: 'nosniff' },
@@ -58,11 +67,11 @@ const nextConfig: NextConfig = {
         key:   'Content-Security-Policy',
         value: [
           "default-src 'self'",
-          "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com https://verify.msg91.com https://verify.phone91.com",
+          `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com https://verify.msg91.com https://verify.phone91.com${scriptSrc}`,
           "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
           "font-src 'self' https://fonts.gstatic.com data:",
           "img-src 'self' data: blob: https:",
-          "connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com https://*.vercel-analytics.com https://verify.msg91.com https://verify.phone91.com https://control.msg91.com wss:",
+          `connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebaseinstallations.googleapis.com https://*.vercel-analytics.com https://verify.msg91.com https://verify.phone91.com https://control.msg91.com wss:${connectSrc}`,
           "frame-src https://verify.msg91.com https://verify.phone91.com",
           "object-src 'none'",
           "base-uri 'self'",

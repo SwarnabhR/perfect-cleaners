@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures/customer';
 
 test.describe('Customer Wallet / Bill', () => {
 
@@ -11,10 +11,18 @@ test.describe('Customer Wallet / Bill', () => {
     await expect(page.locator('h1')).toBeVisible({ timeout: 10_000 });
   });
 
-  test('three account tabs visible', async ({ page }) => {
+  test('four account tabs visible', async ({ page }) => {
+    await expect(page.locator('a:has-text("Schedule")')).toBeVisible();
     await expect(page.locator('a:has-text("Bookings")')).toBeVisible();
     await expect(page.locator('a:has-text("Profile")')).toBeVisible();
     await expect(page.locator('a:has-text("Bill")')).toBeVisible();
+  });
+
+  test('[NO BILLING YET] empty state shown for a never-billed customer', async ({ page }) => {
+    const neverBilled = await page.locator('text=Nothing to show here.').isVisible({ timeout: 8_000 }).catch(() => false);
+    if (!neverBilled) { test.skip(true, 'Test customer has billing history'); return; }
+    await expect(page.locator('text=[NO BILLING YET]')).toBeVisible();
+    await expect(page.locator('text=Nothing to show here.')).toBeVisible();
   });
 
   test('outstanding balance card is shown', async ({ page }) => {

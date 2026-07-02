@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../fixtures/customer';
 
 test.describe('Customer Profile', () => {
 
@@ -11,7 +11,8 @@ test.describe('Customer Profile', () => {
     await expect(page.locator('h1')).toBeVisible({ timeout: 10_000 });
   });
 
-  test('three account tabs are visible', async ({ page }) => {
+  test('four account tabs are visible', async ({ page }) => {
+    await expect(page.locator('a:has-text("Schedule")')).toBeVisible();
     await expect(page.locator('a:has-text("Bookings")')).toBeVisible();
     await expect(page.locator('a:has-text("Profile")')).toBeVisible();
     await expect(page.locator('a:has-text("Bill")')).toBeVisible();
@@ -41,8 +42,8 @@ test.describe('Customer Profile', () => {
     expect(ro !== null || disabled).toBe(true);
   });
 
-  test('Save Changes button is present', async ({ page }) => {
-    await expect(page.locator('button:has-text("Save")')).toBeVisible({ timeout: 8_000 });
+  test('Save Profile button is present', async ({ page }) => {
+    await expect(page.locator('button:has-text("Save Profile")')).toBeVisible({ timeout: 8_000 });
   });
 
   test('Add address button or saved addresses section is visible', async ({ page }) => {
@@ -53,17 +54,18 @@ test.describe('Customer Profile', () => {
     ).toBeVisible({ timeout: 8_000 });
   });
 
-  test('Add address modal opens and has required fields', async ({ page }) => {
+  test('Add address form opens with required fields', async ({ page }) => {
     const addBtn = page.locator('button:has-text("Add address")');
     if (!await addBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
       test.skip(true, 'Add address button not visible');
       return;
     }
     await addBtn.click();
-    await expect(page.locator('input[placeholder*="flat"], input[placeholder*="Flat"], input[placeholder*="house"]').first()).toBeVisible();
-    await expect(page.locator('input[placeholder*="Pincode"], input[placeholder*="pincode"]')).toBeVisible();
-    // Close modal
-    await page.keyboard.press('Escape');
+    await expect(page.locator('input[placeholder="e.g. 1204"]')).toBeVisible();
+    await expect(page.locator('input[placeholder="e.g. G-42"]')).toBeVisible();
+    // Close via the form's own Cancel button (inline form, not a modal — Escape does nothing)
+    await page.locator('button:has-text("Cancel")').click();
+    await expect(page.locator('input[placeholder="e.g. 1204"]')).not.toBeVisible();
   });
 
   test('avatar displays initials of the customer name', async ({ page }) => {
