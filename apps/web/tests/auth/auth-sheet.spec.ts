@@ -15,7 +15,7 @@ test.describe('AuthBottomSheet — Homepage hero', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
   });
 
   test('"Sign Up / Log In" CTA is visible when unauthenticated', async ({ page }) => {

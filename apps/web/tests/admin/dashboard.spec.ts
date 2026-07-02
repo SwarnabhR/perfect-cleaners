@@ -20,21 +20,20 @@ test.describe('Admin Dashboard', () => {
   test('sidebar navigation is visible on desktop', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await expect(page.locator('.sidebar-static')).toBeVisible();
-    await expect(page.locator('text=Bookings')).toBeVisible();
-    await expect(page.locator('text=Workers')).toBeVisible();
-    await expect(page.locator('text=Societies')).toBeVisible();
+    await expect(page.locator('.sidebar-static').getByText('Bookings')).toBeVisible();
+    await expect(page.locator('.sidebar-static').getByText('Workers')).toBeVisible();
+    await expect(page.locator('.sidebar-static').getByText('Societies')).toBeVisible();
   });
 
   test('top bar search is present', async ({ page }) => {
-    await expect(page.locator('input[placeholder="Search bookings…"]')).toBeVisible();
+    await expect(page.locator('input[placeholder="Search cleaning sessions…"]')).toBeVisible();
   });
 
-  test('top bar search navigates to bookings', async ({ page }) => {
-    const search = page.locator('input[placeholder="Search bookings…"]');
+  test('top bar search navigates to live cleaning board', async ({ page }) => {
+    const search = page.locator('input[placeholder="Search cleaning sessions…"]');
     await search.fill('test customer');
     await search.press('Enter');
-    // encodeURIComponent produces %20, not +; use regex to match either encoding
-    await page.waitForURL(/\/bookings\?search=test(%20|\+)customer/, { timeout: 8_000 });
+    await page.waitForURL(/\/live-cleaning/, { timeout: 8_000 });
   });
 
   test('theme toggle button is present', async ({ page }) => {

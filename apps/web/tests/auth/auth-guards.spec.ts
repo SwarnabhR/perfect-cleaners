@@ -100,7 +100,7 @@ for (const route of PUBLIC_PAGES) {
   test(`${route} is accessible without authentication`, async ({ browser }) => {
     const { page, ctx } = await unauthedPage(browser);
     await page.goto(route);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
     // Should NOT redirect to a login page
     expect(page.url()).not.toMatch(/\/(signin|login|worker\/login)\?from/);
     await ctx.close();

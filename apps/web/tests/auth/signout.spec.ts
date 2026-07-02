@@ -72,7 +72,7 @@ test.describe('Worker sign-out', () => {
 
   test('sign-out from /worker/profile redirects to /worker/login', async ({ page }) => {
     await page.goto('/worker/profile');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
     await expect(page.locator('button:has-text("Sign out")')).toBeVisible({ timeout: 10_000 });
     await page.click('button:has-text("Sign out")');
     await page.waitForURL(/\/worker\/login/, { timeout: 10_000 });
@@ -81,7 +81,7 @@ test.describe('Worker sign-out', () => {
 
   test('after worker sign-out protected pages redirect to /worker/login', async ({ page }) => {
     await page.goto('/worker/profile');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
     await page.click('button:has-text("Sign out")');
     await page.waitForURL(/\/worker\/login/, { timeout: 10_000 });
     await page.goto('/worker/dashboard');

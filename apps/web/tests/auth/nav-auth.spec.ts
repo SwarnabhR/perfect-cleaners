@@ -15,7 +15,7 @@ test.describe('Nav — unauthenticated', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.setViewportSize({ width: 1280, height: 800 });
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
   });
 
   test('shows "Sign in" link on desktop', async ({ page }) => {
@@ -81,7 +81,7 @@ customerTest.describe('Nav — authenticated customer', () => {
   customerTest.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.setViewportSize({ width: 1280, height: 800 });
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
   });
 
   customerTest('shows account avatar instead of "Sign in" link', async ({ page }) => {

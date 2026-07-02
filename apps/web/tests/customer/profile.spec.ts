@@ -4,7 +4,7 @@ test.describe('Customer Profile', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto('/account/profile');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
   });
 
   test('renders profile heading', async ({ page }) => {

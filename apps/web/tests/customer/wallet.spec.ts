@@ -4,7 +4,7 @@ test.describe('Customer Wallet / Bill', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto('/account/wallet');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
   });
 
   test('renders Bill heading', async ({ page }) => {

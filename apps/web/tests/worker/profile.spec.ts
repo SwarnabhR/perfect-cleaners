@@ -4,7 +4,7 @@ test.describe('Worker Profile', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto('/worker/profile');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
   });
 
   test('renders page heading', async ({ page }) => {

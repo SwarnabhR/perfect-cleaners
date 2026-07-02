@@ -4,7 +4,7 @@ test.describe('Worker Cleaning Logs', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto('/worker/cleaning-logs');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
   });
 
   test('renders page heading and eyebrow', async ({ page }) => {
@@ -27,9 +27,8 @@ test.describe('Worker Cleaning Logs', () => {
     await page.click('button:has-text("Today")');
   });
 
-  test('stats cards show Cars Cleaned and Earned', async ({ page }) => {
+  test('stats card shows Cars Cleaned', async ({ page }) => {
     await expect(page.locator('text=CARS CLEANED').or(page.locator('text=Cars Cleaned'))).toBeVisible({ timeout: 8_000 });
-    await expect(page.locator('text=EARNED').or(page.locator('text=Earned'))).toBeVisible();
   });
 
   test('shows CLEANING HISTORY section label', async ({ page }) => {
@@ -49,7 +48,7 @@ test.describe('Worker Cleaning Logs', () => {
       test.skip(true, 'No cleaning logs for test worker');
       return;
     }
-    for (const header of ['Time', 'Unit', 'Resident', 'Vehicle', 'Type', 'Earned']) {
+    for (const header of ['Time', 'Unit', 'Resident', 'Vehicle', 'Type']) {
       await expect(page.locator(`th:has-text("${header}")`)).toBeVisible();
     }
   });

@@ -4,7 +4,7 @@ test.describe('Customer Account — Bookings', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto('/account');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
   });
 
   test('unauthenticated access redirects to sign-in', async ({ browser }) => {
@@ -23,19 +23,18 @@ test.describe('Customer Account — Bookings', () => {
   });
 
   test('shows formatted phone number', async ({ page }) => {
-    await expect(page.locator('text=/\\+91/')).toBeVisible({ timeout: 8_000 });
+    // Scoped to <main> — the footer also has a (different) +91 contact number
+    await expect(page.locator('main').locator('text=/\\+91/').first()).toBeVisible({ timeout: 8_000 });
   });
 
   test('Sign out button is visible', async ({ page }) => {
     await expect(page.locator('button:has-text("Sign out")')).toBeVisible({ timeout: 20_000 });
   });
 
-  test('sign out redirects to home', async ({ page }) => {
-    await expect(page.locator('button:has-text("Sign out")')).toBeVisible({ timeout: 20_000 });
-    await page.click('button:has-text("Sign out")');
-    await page.waitForURL('**/', { timeout: 30_000 });
-    expect(page.url()).toMatch(/\/$/);
-  });
+  // Sign-out flow itself is covered in tests/auth/signout.spec.ts, which
+  // authenticates in its own isolated context — this file's tests share one
+  // signed-in page per worker (see tests/fixtures/customer.ts), so actually
+  // signing out here would destroy that session for every later test.
 
   test('four account tabs are present', async ({ page }) => {
     await expect(page.locator('a:has-text("Schedule")')).toBeVisible({ timeout: 20_000 });

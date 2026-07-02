@@ -30,7 +30,7 @@ test.describe('Worker Job Detail', () => {
     if (!jobId) { test.skip(true, 'No jobs assigned to test worker'); return; }
 
     await page.goto(`/worker/job/${jobId}`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
     await expect(page.locator('h1')).toBeVisible({ timeout: 10_000 });
   });
 
@@ -39,7 +39,7 @@ test.describe('Worker Job Detail', () => {
     if (!jobId) { test.skip(true, 'No jobs assigned to test worker'); return; }
 
     await page.goto(`/worker/job/${jobId}`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
     for (const label of ['Assigned', 'En Route', 'In Progress', 'Done']) {
       await expect(page.locator(`text=${label}`)).toBeVisible({ timeout: 10_000 });
     }
@@ -70,7 +70,7 @@ test.describe('Worker Job Detail', () => {
     if (!jobId) { test.skip(true, 'No jobs assigned to test worker'); return; }
 
     await page.goto(`/worker/job/${jobId}`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
 
     const actionBtn = page.locator('button').filter({
       hasText: /On My Way|Start Job|Mark Complete/,
@@ -85,7 +85,7 @@ test.describe('Worker Job Detail', () => {
     if (!jobId) { test.skip(true, 'No jobs assigned to test worker'); return; }
 
     await page.goto(`/worker/job/${jobId}`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
     const callLink = page.locator('a[href^="tel:"]');
     // Only present when customer has a phone number stored
     const hasCall = await callLink.isVisible().catch(() => false);
@@ -97,7 +97,7 @@ test.describe('Worker Job Detail', () => {
 
   test('non-existent job shows "Booking not found"', async ({ page }) => {
     await page.goto('/worker/job/nonexistent-booking-id-xyz');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('load');
     await expect(page.locator('text=Booking not found.')).toBeVisible({ timeout: 10_000 });
   });
 
