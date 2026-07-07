@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures/admin';
+import { adminDb, Timestamp, PW_TEST_PREFIX } from '../lib/firestore-admin';
 
 test.describe('Admin Customer Enrollments', () => {
 
@@ -72,6 +73,53 @@ test.describe('Admin Customer Enrollments', () => {
       return;
     }
     await expect(toggleBtn).toBeVisible();
+  });
+
+});
+
+// ── Cars cleaned this month ────────────────────────────────────────────────
+// Regression coverage: this is the number an admin checking "is this
+// resident actually getting served" wants most, and previously didn't exist
+// anywhere in the admin — not on this page, not on Customers, not on Live
+// Cleaning (which itself was disconnected from cars[]/completedCars — see
+// live-cleaning.spec.ts).
+
+test.describe('Admin Customer Enrollments — cars cleaned this month', () => {
+
+  test('column header is present', async ({ page }) => {
+    await page.goto('/customer-enrollments');
+    await expect(page.locator('.admin-page-root')).toBeVisible();
+    await expect(page.locator('th:has-text("Cleaned (mo.)")')).toBeVisible({ timeout: 15_000 });
+  });
+
+  test('a customer with cleaningLogs this month shows a non-zero count', async ({ page }) => {
+    const customerId = `pw_test_cust_${Date.now()}`;
+    await adminDb().collection('customerSocietyRecords').add({
+      customerId, customerName: `${PW_TEST_PREFIX}Cleaned Customer`, customerPhone: '+919000000000',
+      societyId: 'pw_test_society_cleaned', societyName: `${PW_TEST_PREFIX}Cleaned Society`, tower: 'Tower Cleaned',
+      cars: [{ plate: 'PW 00 CL 0001', make: 'Test', model: 'Car' }],
+      preferredCleaningTime: 9, signupSource: 'bulk_import', status: 'active',
+      monthlyFee: 500, nextBillingDate: Timestamp.now(), paymentStatus: 'verified',
+      skipDates: [], rescheduledSlots: [],
+      createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+    });
+    await adminDb().collection('cleaningLogs').add({
+      societyId: 'pw_test_society_cleaned', societyName: `${PW_TEST_PREFIX}Cleaned Society`,
+      vehicleRegistration: 'PW 00 CL 0001', vehicleMake: 'Test', vehicleModel: 'Car',
+      customerId, customerName: `${PW_TEST_PREFIX}Cleaned Customer`, unitNumber: 'Tower Cleaned',
+      workerId: 'pw_test_worker_cleaned', workerName: `${PW_TEST_PREFIX}Worker`,
+      cleanedAt: Timestamp.now(), serviceType: 'exterior', servicePrice: 0,
+      photoUrls: [], notificationSent: false, billed: true,
+    });
+
+    await page.goto('/customer-enrollments');
+    await expect(page.locator('.admin-page-root')).toBeVisible();
+    // Search by the unique customerId, not the shared "Cleaned Customer" name
+    // — repeat runs of this test otherwise leave multiple same-named rows.
+    await page.fill('input[placeholder="Search by society, tower, or customer ID…"]', customerId);
+    const row = page.locator('tr', { hasText: 'Cleaned Customer' });
+    await expect(row).toBeVisible({ timeout: 15_000 });
+    await expect(row).toContainText('1');
   });
 
 });

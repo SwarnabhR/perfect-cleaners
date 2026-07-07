@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { collection, query, onSnapshot, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@pc/firebase';
 import type { CustomerSocietyRecord } from '@pc/firebase';
 import Card from '@/components/ui/Card';
@@ -65,12 +65,20 @@ function PaymentStatusBadge({ status }: { status: string }) {
   );
 }
 
+function monthStart() {
+  const d = new Date();
+  d.setDate(1);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
 export default function CustomerEnrollmentsPage() {
   const [records, setRecords] = useState<LiveRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
+  const [cleanedThisMonth, setCleanedThisMonth] = useState<Record<string, number>>({});
 
   useEffect(() => {
     return onSnapshot(
@@ -83,6 +91,24 @@ export default function CustomerEnrollmentsPage() {
         console.warn('[CustomerEnrollments]', err.message);
         setLoading(false);
       }
+    );
+  }, []);
+
+  // Cars cleaned this month, per customer — the number an admin actually
+  // wants when checking whether enrolled residents are being served.
+  useEffect(() => {
+    return onSnapshot(
+      query(collection(db, 'cleaningLogs'), where('cleanedAt', '>=', monthStart())),
+      snap => {
+        const counts: Record<string, number> = {};
+        snap.docs.forEach(d => {
+          const cid = d.data().customerId as string | undefined;
+          if (!cid) return;
+          counts[cid] = (counts[cid] ?? 0) + 1;
+        });
+        setCleanedThisMonth(counts);
+      },
+      err => console.warn('[CustomerEnrollments] cleaningLogs listener:', err.message),
     );
   }, []);
 
@@ -328,7 +354,7 @@ export default function CustomerEnrollmentsPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--pc-line)' }}>
-                  {['Customer', 'Society', 'Tower', 'Car', 'Status', 'Payment', 'Next Billing', 'Action'].map(h => (
+                  {['Customer', 'Society', 'Tower', 'Car', 'Cleaned (mo.)', 'Status', 'Payment', 'Next Billing', 'Action'].map(h => (
                     <th
                       key={h}
                       style={{
@@ -366,6 +392,9 @@ export default function CustomerEnrollmentsPage() {
                     </td>
                     <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-mono)', fontSize: 12, color: 'var(--pc-fg-2)' }}>
                       {record.cars[0]?.plate || '—'}
+                    </td>
+                    <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600, color: cleanedThisMonth[record.customerId] ? 'var(--pc-sage-hi)' : 'var(--pc-fg-4)' }}>
+                      {cleanedThisMonth[record.customerId] ?? 0}
                     </td>
                     <td style={{ padding: '13px 18px' }}>
                       <StatusPill status={ENROLLMENT_STATUS_LABEL[record.status] ?? record.status} />

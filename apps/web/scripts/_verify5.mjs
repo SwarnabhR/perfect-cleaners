@@ -1,0 +1,32 @@
+import { chromium } from 'playwright';
+import { readFileSync } from 'node:fs';
+const raw = readFileSync('c:/Users/finst/Projects/perfect-cleaners/apps/web/.env.local', 'utf-8');
+const ENV = {};
+for (const line of raw.split('\n')) {
+  const t = line.trim();
+  if (!t || t.startsWith('#')) continue;
+  const i = t.indexOf('=');
+  if (i === -1) continue;
+  ENV[t.slice(0, i).trim()] = t.slice(i + 1).trim().replace(/^"(.*)"$/, '$1');
+}
+const BASE = 'http://localhost:3000';
+const browser = await chromium.launch();
+const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+const admin = await ctx.newPage();
+await admin.goto(`${BASE}/login`);
+await admin.fill('input[type="email"]', ENV.TEST_ADMIN_EMAIL);
+await admin.fill('input[type="password"]', ENV.TEST_ADMIN_PASSWORD);
+await admin.click('button[type="submit"]');
+await admin.waitForURL('**/dashboard', { timeout: 20000 });
+await admin.goto(`${BASE}/cleaning-schedule`);
+await admin.waitForTimeout(1500);
+await admin.click('text=Create Session');
+await admin.waitForTimeout(400);
+await admin.selectOption('select >> nth=0', { label: 'Uniworld City' });
+await admin.waitForTimeout(300);
+await admin.selectOption('select >> nth=1', { label: 'Tower B' });
+await admin.locator('label', { hasText: 'Swarnabh' }).locator('input[type="checkbox"]').check();
+await admin.locator('form button:has-text("Create Session")').click();
+await admin.waitForTimeout(1500);
+console.log('Created Uniworld City / Tower B session (workerIds-array schema, status=scheduled).');
+await browser.close();

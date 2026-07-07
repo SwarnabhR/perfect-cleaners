@@ -1,11 +1,12 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot, doc, runTransaction } from 'firebase/firestore';
+import { collection, query, where, getDocs, onSnapshot, doc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { db } from '@pc/firebase';
 import type { CleaningSessionEnhanced, CleaningSessionCar } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
+import { notifyCarCleaned } from '@/lib/notification';
 
 interface CarWithSession extends CleaningSessionCar {
   sessionId: string;
@@ -43,6 +44,7 @@ export default function LiveCleaningPage() {
   const [societies, setSocieties] = useState<Set<string>>(new Set());
   const [towers, setTowers] = useState<Set<string>>(new Set());
   const [toggling, setToggling] = useState<string | null>(null);
+  const [marking, setMarking] = useState<string | null>(null);
 
   useEffect(() => {
     return onSnapshot(
@@ -130,6 +132,66 @@ export default function LiveCleaningPage() {
       console.error('[LiveCleaning] toggle failed:', err instanceof Error ? err.message : err);
     } finally {
       setToggling(null);
+    }
+  }
+
+  // Marks a single car clean: flips its status in the session's cars[] and
+  // rolls up completedCars (auto-completing the session once every car is
+  // done), then best-effort SMS's the customer directly.
+  //
+  // Deliberately does NOT write a cleaningLogs doc here: firestore.rules only
+  // allows `create` on that collection when request.auth.uid === the log's
+  // own workerId, so a write authored by an admin session is rejected no
+  // matter what workerId we put in the payload — confirmed by testing this
+  // live before shipping it. Logging (and the billing/FCM pipeline that
+  // depends on it) has to be authored by the assigned worker, which today
+  // only exists on the mobile app. Fixing that for web needs either a
+  // worker-facing per-car action or a rules change to also allow isAdmin()
+  // on cleaningLogs create (matching the sibling cleaningSessions rule) —
+  // deliberately not done here since it changes the live security posture.
+  async function markDone(car: CarListItem) {
+    if (marking) return;
+    const key = `${car.sessionId}-${car.carIndex}`;
+    setMarking(key);
+
+    try {
+      const sessionRef = doc(db, 'cleaningSessions', car.sessionId);
+      await runTransaction(db, async tx => {
+        const snap = await tx.get(sessionRef);
+        if (!snap.exists()) return;
+        const data = snap.data();
+        const currentCars = (data.cars ?? []) as Record<string, unknown>[];
+        if (currentCars[car.carIndex]?.status === 'done') return;
+        const newCars = currentCars.map((c, idx) =>
+          idx === car.carIndex ? { ...c, status: 'done', cleanedAt: new Date() } : c
+        );
+        const completedCars = (data.completedCars ?? 0) + 1;
+        const totalCars = data.totalCars ?? newCars.length;
+        tx.update(sessionRef, {
+          cars: newCars,
+          completedCars,
+          updatedAt: serverTimestamp(),
+          ...(completedCars >= totalCars ? { status: 'done', completedAt: serverTimestamp() } : {}),
+        });
+      });
+
+      // Look up the resident's phone for the SMS — CleaningSessionCar only
+      // carries customerId, not the denormalized contact details.
+      const recordsSnap = await getDocs(query(
+        collection(db, 'customerSocietyRecords'),
+        where('customerId', '==', car.customerId),
+      ));
+      const record = recordsSnap.docs.find(d => d.data().tower === car.tower)?.data()
+        ?? recordsSnap.docs[0]?.data();
+
+      if (record?.customerPhone) {
+        await notifyCarCleaned(record.customerPhone, record.customerName ?? 'there', car.carPlate, car.societyName, car.tower)
+          .catch(err => console.warn('[LiveCleaning] SMS notify failed:', err));
+      }
+    } catch (err: unknown) {
+      console.error('[LiveCleaning] mark done failed:', err instanceof Error ? err.message : err);
+    } finally {
+      setMarking(null);
     }
   }
 
@@ -283,6 +345,36 @@ export default function LiveCleaningPage() {
                             >
                               {car.status}
                             </div>
+
+                            {/* Mark Done Button */}
+                            {car.status !== 'done' && !car.unavailable && (
+                              <button
+                                type="button"
+                                onClick={() => markDone(car)}
+                                disabled={marking === `${car.sessionId}-${car.carIndex}`}
+                                title="Mark clean"
+                                style={{
+                                  padding: '0 10px',
+                                  height: 32,
+                                  borderRadius: 6,
+                                  border: '1px solid var(--pc-sage-hi)',
+                                  background: 'color-mix(in srgb, var(--pc-sage) 15%, transparent)',
+                                  cursor: marking ? 'not-allowed' : 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 6,
+                                  flexShrink: 0,
+                                  opacity: marking === `${car.sessionId}-${car.carIndex}` ? 0.6 : 1,
+                                  fontFamily: 'var(--pc-sans)',
+                                  fontSize: 11,
+                                  fontWeight: 600,
+                                  color: 'var(--pc-sage-hi)',
+                                }}
+                              >
+                                <Icon name="check" size={12} color="var(--pc-sage-hi)" />
+                                Done
+                              </button>
+                            )}
 
                             {/* Mark Unavailable Button */}
                             <button

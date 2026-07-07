@@ -144,3 +144,112 @@ base.describe('Worker Dashboard — empty states', () => {
   });
 
 });
+
+// ── Live session assignments (workerIds[] cleaningSessions, independent of
+// the static assignedSocietyId field) ─────────────────────────────────────────
+//
+// Regression coverage for a bug found by hand: a worker assigned to a
+// cleaningSession via the admin Cleaning Schedule page (which writes
+// workerIds: string[], not the legacy singular workerId) previously never
+// showed up here at all — the dashboard only ever read assignedSocietyId.
+// The dashboard query was added to fix that, but testing it live surfaced a
+// SEPARATE, pre-existing bug one layer down: firestore.rules only grants
+// `cleaningSessions` read access when resource.data.workerId (singular)
+// matches the caller, so a doc written with only workerIds (the array the
+// admin Cleaning Schedule page actually writes) is rejected outright with
+// "Missing or insufficient permissions" — confirmed via the browser console
+// while writing this suite. The three tests below are skipped rather than
+// deleted: they document the exact behavior this feature is supposed to have
+// once that rule is updated to also accept
+// resource.data.workerIds.hasAny([request.auth.uid]) — a security-rules
+// change deliberately left out of this pass since it changes the live
+// project's security posture.
+
+base.describe.skip('Worker Dashboard — live session assignments (blocked on firestore.rules workerIds support)', () => {
+
+  base('shows a session card linking to /session/[id] for a scheduled assignment', async ({ page }) => {
+    const ts  = Date.now();
+    const uid = `pw_test_worker_${ts}`;
+    const phone = `+919${String(ts).slice(-9)}`;
+    await adminDb().collection('workers').doc(uid).set({
+      name: `${PW_TEST_PREFIX}Session Worker`,
+      phone, isOnline: true, rating: 5, totalJobs: 0,
+      createdAt: Timestamp.now(),
+    });
+    const sessionRef = await adminDb().collection('cleaningSessions').add({
+      societyId: 'pw_test_society', societyName: `${PW_TEST_PREFIX}Society`, tower: 'Tower Z',
+      scheduledDate: Timestamp.now(), status: 'scheduled',
+      cars: [], totalCars: 3, completedCars: 0, skippedCars: 0,
+      workerIds: [uid], workerNames: [`${PW_TEST_PREFIX}Session Worker`],
+      createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+    });
+
+    await page.goto('/worker/login');
+    await signInWithBypassToken(page, uid);
+    await page.waitForURL('**/worker/dashboard', { timeout: 15_000 });
+
+    const card = page.locator(`a[href="/session/${sessionRef.id}"]`);
+    await baseExpect(card).toBeVisible({ timeout: 10_000 });
+    await baseExpect(card).toContainText('Tower Z');
+    await baseExpect(card).toContainText('0/3 done');
+  });
+
+  base('assigning one worker to two towers on the same day shows both, plural heading', async ({ page }) => {
+    const ts  = Date.now();
+    const uid = `pw_test_worker_${ts}`;
+    const phone = `+919${String(ts).slice(-9)}`;
+    await adminDb().collection('workers').doc(uid).set({
+      name: `${PW_TEST_PREFIX}MultiTower Worker`,
+      phone, isOnline: true, rating: 5, totalJobs: 0,
+      createdAt: Timestamp.now(),
+    });
+    await adminDb().collection('cleaningSessions').add({
+      societyId: 'pw_test_society_a', societyName: `${PW_TEST_PREFIX}Society A`, tower: 'Tower 1',
+      scheduledDate: Timestamp.now(), status: 'scheduled',
+      cars: [], totalCars: 2, completedCars: 0, skippedCars: 0,
+      workerIds: [uid], workerNames: [`${PW_TEST_PREFIX}MultiTower Worker`],
+      createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+    });
+    await adminDb().collection('cleaningSessions').add({
+      societyId: 'pw_test_society_b', societyName: `${PW_TEST_PREFIX}Society B`, tower: 'Tower 2',
+      scheduledDate: Timestamp.now(), status: 'inprogress',
+      cars: [], totalCars: 4, completedCars: 1, skippedCars: 0,
+      workerIds: [uid], workerNames: [`${PW_TEST_PREFIX}MultiTower Worker`],
+      createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+    });
+
+    await page.goto('/worker/login');
+    await signInWithBypassToken(page, uid);
+    await page.waitForURL('**/worker/dashboard', { timeout: 15_000 });
+
+    await baseExpect(page.locator("text=TODAY'S ASSIGNMENTS (2)")).toBeVisible({ timeout: 10_000 });
+    await baseExpect(page.locator('text=Society A')).toBeVisible();
+    await baseExpect(page.locator('text=Society B')).toBeVisible();
+  });
+
+  base('a session already marked done does not appear in the assignment list', async ({ page }) => {
+    const ts  = Date.now();
+    const uid = `pw_test_worker_${ts}`;
+    const phone = `+919${String(ts).slice(-9)}`;
+    await adminDb().collection('workers').doc(uid).set({
+      name: `${PW_TEST_PREFIX}DoneSession Worker`,
+      phone, isOnline: true, rating: 5, totalJobs: 0,
+      createdAt: Timestamp.now(),
+    });
+    await adminDb().collection('cleaningSessions').add({
+      societyId: 'pw_test_society_done', societyName: `${PW_TEST_PREFIX}Finished Society`, tower: 'Tower Done',
+      scheduledDate: Timestamp.now(), status: 'done', completedAt: Timestamp.now(),
+      cars: [], totalCars: 1, completedCars: 1, skippedCars: 0,
+      workerIds: [uid], workerNames: [`${PW_TEST_PREFIX}DoneSession Worker`],
+      createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+    });
+
+    await page.goto('/worker/login');
+    await signInWithBypassToken(page, uid);
+    await page.waitForURL('**/worker/dashboard', { timeout: 15_000 });
+
+    await baseExpect(page.locator('text=No society assigned.')).toBeVisible({ timeout: 10_000 });
+    await baseExpect(page.locator('text=Finished Society')).not.toBeVisible();
+  });
+
+});

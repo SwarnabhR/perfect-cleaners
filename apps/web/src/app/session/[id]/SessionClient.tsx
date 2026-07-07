@@ -1,5 +1,6 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { auth } from '@pc/firebase';
 
 export interface SessionData {
   id: string;
@@ -70,9 +71,17 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
     setActing(true);
     setError('');
     try {
+      // auth.currentUser is synchronously null for a moment after page load
+      // even when the visitor is genuinely signed in — Firebase restores the
+      // persisted session asynchronously. authStateReady() waits for that
+      // first resolution so a fast click right after load doesn't get
+      // mistaken for "not signed in".
+      await auth.authStateReady();
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) throw new Error('You need to be signed in as the assigned worker to do this.');
       const res  = await fetch(`/api/session/${sessionId}`, {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body:    JSON.stringify({ action }),
       });
       const data = await res.json();

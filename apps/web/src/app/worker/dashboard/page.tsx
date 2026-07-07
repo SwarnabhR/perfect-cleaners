@@ -7,13 +7,14 @@ import {
   doc, updateDoc, orderBy, limit, Timestamp, getDocs,
 } from 'firebase/firestore';
 import { db } from '@pc/firebase';
-import type { CleaningLog, Customer } from '@pc/firebase';
+import type { CleaningLog, Customer, CleaningSessionEnhanced } from '@pc/firebase';
 import { useWorkerAuth } from '@/components/WorkerAuthProvider';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
 
 interface LogRow extends CleaningLog { id: string }
+interface SessionRow extends CleaningSessionEnhanced { id: string }
 
 function todayStart() {
   const d = new Date();
@@ -30,9 +31,27 @@ function formatTime(ts: Timestamp | Date | null | undefined): string {
 export default function WorkerDashboard() {
   const { worker, user } = useWorkerAuth();
   const [logs,     setLogs]     = useState<LogRow[]>([]);
+  const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [total,    setTotal]    = useState(0);
   const [loading,  setLoading]  = useState(true);
   const [toggling, setToggling] = useState(false);
+
+  // Live cleaning sessions this worker is assigned to (any tower/society) —
+  // this is the actual source of truth for assignment, independent of the
+  // single static worker.assignedSocietyId field below. Without this, a
+  // worker assigned to two towers on the same day had no way to see either
+  // one on their own dashboard.
+  useEffect(() => {
+    if (!user) return;
+    const q = query(
+      collection(db, 'cleaningSessions'),
+      where('workerIds', 'array-contains', user.uid),
+      where('status', 'in', ['scheduled', 'inprogress']),
+    );
+    return onSnapshot(q, snap => {
+      setSessions(snap.docs.map(d => ({ id: d.id, ...d.data() } as SessionRow)));
+    }, err => console.warn('[WorkerDashboard] sessions listener:', err));
+  }, [user]);
 
   // Today's cleaning logs for this worker
   useEffect(() => {
@@ -126,6 +145,38 @@ export default function WorkerDashboard() {
           </Card>
         ))}
       </div>
+
+      {/* Live cleaning session assignments — can be more than one tower/society on the same day */}
+      {sessions.length > 0 && (
+        <div>
+          <Eyebrow style={{ display: 'block', marginBottom: 10 }}>
+            {sessions.length > 1 ? `TODAY'S ASSIGNMENTS (${sessions.length})` : "TODAY'S ASSIGNMENT"}
+          </Eyebrow>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {sessions.map(s => (
+              <Link key={s.id} href={`/session/${s.id}`} style={{ textDecoration: 'none' }}>
+                <Card style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 9, background: 'var(--pc-sage)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Icon name="building-2" size={16} color="var(--pc-sage-ink)" />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 600, color: 'var(--pc-fg)', margin: '0 0 2px' }}>
+                      {s.societyName}{s.tower ? ` · ${s.tower}` : ''}
+                    </p>
+                    <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', margin: 0, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                      {s.status === 'inprogress' ? 'In progress' : 'Scheduled'}
+                    </p>
+                  </div>
+                  <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', flexShrink: 0 }}>
+                    {s.completedCars}/{s.totalCars} done
+                  </div>
+                  <Icon name="arrow-right" size={14} color="var(--pc-fg-3)" />
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Society assignment card */}
       {worker?.assignedSocietyId ? (

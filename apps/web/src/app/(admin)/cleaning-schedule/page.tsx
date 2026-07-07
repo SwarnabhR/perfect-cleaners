@@ -119,6 +119,42 @@ export default function CleaningSchedulePage() {
     );
   }, []);
 
+  // Mirrors the cron job's car-list logic (api/cron/generate-sessions) so a
+  // session created by hand from this page carries the same real cars[] /
+  // totalCars the Live Cleaning board and the /session/[id] link depend on —
+  // previously this always wrote an empty array, so neither ever showed anything.
+  async function buildCarsForSession(societyId: string, tower: string, scheduledDate: Date) {
+    const customersSnap = await getDocs(query(
+      collection(db, 'customerSocietyRecords'),
+      where('societyId', '==', societyId),
+      where('tower', '==', tower),
+      where('status', '==', 'active'),
+    ));
+
+    const cars = customersSnap.docs
+      .map(docSnap => {
+        const customer = docSnap.data();
+        const skipDates = (customer.skipDates as unknown[] | undefined) ?? [];
+        const isSkipped = skipDates.some(d => toDate(d).toDateString() === scheduledDate.toDateString());
+        if (isSkipped) return null;
+
+        const preferredDays = customer.preferredCleaningDays as number[] | undefined;
+        if (preferredDays?.length && !preferredDays.includes(scheduledDate.getDay())) return null;
+
+        return {
+          customerId:    customer.customerId as string,
+          carPlate:      customer.cars?.[0]?.plate ?? '',
+          carMake:       customer.cars?.[0]?.make  ?? '',
+          carModel:      customer.cars?.[0]?.model ?? '',
+          preferredTime: (customer.permanentTime ?? customer.preferredCleaningTime ?? 9) as number,
+          status:        'pending' as const,
+        };
+      })
+      .filter((c): c is NonNullable<typeof c> => c !== null);
+
+    return cars;
+  }
+
   async function handleCreateSession() {
     if (!form.societyId.trim() || !form.tower.trim() || form.workerIds.length === 0 || saving) return;
     setSaving(true);
@@ -128,6 +164,7 @@ export default function CleaningSchedulePage() {
       const sessionId = `${form.societyId}_${form.tower}_${form.scheduledDate}`;
       const selectedWorkers = workers.filter(w => form.workerIds.includes(w.id));
       const workerNames = selectedWorkers.map(w => w.name);
+      const cars = await buildCarsForSession(form.societyId.trim(), form.tower.trim(), scheduledDate);
 
       await setDoc(doc(db, 'cleaningSessions', sessionId), {
         societyId: form.societyId.trim(),
@@ -135,8 +172,8 @@ export default function CleaningSchedulePage() {
         tower: form.tower.trim(),
         scheduledDate,
         status: 'scheduled',
-        cars: [],
-        totalCars: 0,
+        cars,
+        totalCars: cars.length,
         completedCars: 0,
         skippedCars: 0,
         workerIds: form.workerIds,

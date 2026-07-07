@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures/admin';
+import { adminDb, Timestamp, PW_TEST_PREFIX } from '../lib/firestore-admin';
 
 test.describe('Admin Cleaning Schedule', () => {
 
@@ -90,6 +91,64 @@ test.describe('Admin Cleaning Schedule', () => {
       return;
     }
     await expect(btn).toBeVisible();
+  });
+
+});
+
+// ── Create Session populates cars[] from active enrollments ────────────────
+// Regression coverage: creating a session here previously always wrote an
+// empty cars[]/totalCars: 0, which meant the Live Cleaning board could never
+// show anything for it and the first "car cleaned" tap anywhere downstream
+// would immediately fail (0 >= 0). This exercises the real create flow end
+// to end against a society/tower with a seeded active enrollment.
+
+test.describe('Admin Cleaning Schedule — Create Session populates cars', () => {
+
+  test('a session created for a tower with an active enrollment gets a non-empty cars[]', async ({ page }) => {
+    const ts = Date.now();
+    const societyId = `pw_test_society_sched_${ts}`;
+    const societyName = `${PW_TEST_PREFIX}Schedule Society ${ts}`; // unique per run — repeat runs otherwise
+    const tower = 'Tower Sched';                                   // pile up societies with identical names,
+    const customerId = `pw_test_cust_sched_${ts}`;                 // and selectOption({label}) picks the first match.
+
+    await adminDb().collection('societies').doc(societyId).set({
+      name: societyName, address: 'Test', city: 'Test', pincode: '000000',
+      towers: [tower], totalUnits: 10, activeResidents: 1, vehicleCount: 1,
+      isActive: true, pricePerWash: 0, cleaningSchedule: 'Mon, Wed, Fri · 9:00 AM',
+      contactPerson: { name: 'Test', phone: '+910000000000', role: 'Facility Manager' },
+      assignedWorkerIds: [], contractStart: Timestamp.now(), createdAt: Timestamp.now(),
+    });
+    await adminDb().collection('customerSocietyRecords').add({
+      customerId, customerName: `${PW_TEST_PREFIX}Sched Customer`, customerPhone: '+919000000001',
+      societyId, societyName, tower,
+      cars: [{ plate: 'PW 00 SC 0001', make: 'Test', model: 'Car' }],
+      preferredCleaningTime: 9, signupSource: 'bulk_import', status: 'active',
+      monthlyFee: 500, nextBillingDate: Timestamp.now(), paymentStatus: 'verified',
+      skipDates: [], rescheduledSlots: [],
+      createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+    });
+
+    await page.goto('/cleaning-schedule');
+    await expect(page.locator('.admin-page-root')).toBeVisible();
+    await page.locator('button:has-text("Create Session")').first().click();
+    await expect(page.locator('text=Create Cleaning Session')).toBeVisible({ timeout: 8_000 });
+    await page.selectOption('select >> nth=0', { label: societyName });
+    await page.selectOption('select >> nth=1', { label: tower });
+    const workerCheckbox = page.locator('label').first().locator('input[type="checkbox"]');
+    if (await workerCheckbox.count() === 0) { test.skip(true, 'No workers available to assign'); return; }
+    await workerCheckbox.check();
+    await page.locator('form button:has-text("Create Session")').click();
+    await expect(page.locator('text=Create Cleaning Session')).not.toBeVisible({ timeout: 8_000 });
+
+    const dateStr = new Date().toISOString().split('T')[0];
+    const sessionId = `${societyId}_${tower}_${dateStr}`;
+    await expect.poll(async () => {
+      const snap = await adminDb().collection('cleaningSessions').doc(sessionId).get();
+      return snap.data()?.totalCars;
+    }, { timeout: 10_000 }).toBe(1);
+
+    const snap = await adminDb().collection('cleaningSessions').doc(sessionId).get();
+    expect(snap.data()?.cars?.[0]?.carPlate).toBe('PW 00 SC 0001');
   });
 
 });
