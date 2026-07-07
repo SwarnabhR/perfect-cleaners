@@ -91,11 +91,12 @@ test.describe('Admin Live Cleaning Task Board — Mark Done', () => {
   });
 
   test('a done car has no Mark Done button and no Mark Unavailable button', async ({ page }) => {
+    const plate = `PW 00 TD ${Date.now() % 100000}`;
     await adminDb().collection('cleaningSessions').add({
       societyId: 'pw_test_society_donecar', societyName: `${PW_TEST_PREFIX}Done Car Society`, tower: 'Tower Done',
       scheduledDate: Timestamp.now(), status: 'inprogress',
       cars: [{
-        customerId: 'pw_test_customer_donecar', carPlate: 'PW 00 TE 0002', carMake: 'Test', carModel: 'Car',
+        customerId: 'pw_test_customer_donecar', carPlate: plate, carMake: 'Test', carModel: 'Car',
         preferredTime: 9, status: 'done',
       }],
       totalCars: 1, completedCars: 1, skippedCars: 0,
@@ -104,8 +105,9 @@ test.describe('Admin Live Cleaning Task Board — Mark Done', () => {
     });
 
     await page.goto('/live-cleaning');
-    await expect(page.locator('p:has-text("Done Car Society")').first()).toBeVisible({ timeout: 15_000 });
-    const row = page.locator('div', { hasText: 'PW 00 TE 0002' }).last();
+    const plateP = page.locator(`p:has-text("${plate}")`);
+    await expect(plateP).toBeVisible({ timeout: 15_000 });
+    const row = plateP.locator('xpath=ancestor::div[2]');
     await expect(row.locator('button:has-text("Done")')).toHaveCount(0);
   });
 
