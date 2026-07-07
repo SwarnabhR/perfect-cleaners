@@ -32,6 +32,16 @@ interface CustomerRow {
   unitNumber?:        string;
 }
 
+interface SocietyDueRow {
+  id:            string;
+  customerName:  string;
+  societyName:   string;
+  tower:         string;
+  unitNumber?:   string;
+  monthlyFee:    number;
+  paymentStatus: string;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function todayStart() {
@@ -69,9 +79,11 @@ const monoLabel: React.CSSProperties = {
 export default function BillingPage() {
   const [logs,          setLogs]          = useState<PaymentLog[]>([]);
   const [customers,     setCustomers]     = useState<CustomerRow[]>([]);
+  const [societyDues,   setSocietyDues]   = useState<SocietyDueRow[]>([]);
   const [totalIncome,   setTotalIncome]   = useState(0);
   const [todayIncome,   setTodayIncome]   = useState(0);
   const [marking,       setMarking]       = useState<string | null>(null);
+  const [markingSociety,setMarkingSociety]= useState<string | null>(null);
   const [filter,        setFilter]        = useState<'all' | 'pending'>('all');
 
   // Live payment logs — most recent 200
@@ -125,6 +137,58 @@ export default function BillingPage() {
     );
   }, []);
 
+  // Live society-programme dues — a completely separate billing system
+  // (monthly flat fee per enrollment, tracked via paymentStatus) that
+  // previously never showed up on this page at all.
+  useEffect(() => {
+    return onSnapshot(
+      query(collection(db, 'customerSocietyRecords'), where('status', '==', 'active')),
+      snap => {
+        setSocietyDues(
+          snap.docs
+            .map(d => {
+              const data = d.data();
+              return {
+                id:            d.id,
+                customerName:  data.customerName ?? '—',
+                societyName:   data.societyName,
+                tower:         data.tower,
+                unitNumber:    data.unitNumber,
+                monthlyFee:    data.monthlyFee ?? 0,
+                paymentStatus: data.paymentStatus ?? 'not_verified',
+              } as SocietyDueRow;
+            })
+            .filter(r => r.paymentStatus !== 'paid' && r.monthlyFee > 0),
+        );
+      },
+    );
+  }, []);
+
+  async function markSocietyDuePaid(due: SocietyDueRow) {
+    if (markingSociety) return;
+    setMarkingSociety(due.id);
+    try {
+      await addDoc(collection(db, 'paymentLogs'), {
+        customerId:   due.id,
+        customerName: due.customerName,
+        amount:       due.monthlyFee,
+        type:         'manual_dues',
+        paidAt:       serverTimestamp(),
+      });
+      const statsRef = doc(db, 'stats', 'income');
+      const snap = await getDoc(statsRef);
+      if (snap.exists()) {
+        await updateDoc(statsRef, { totalIncome: (snap.data().totalIncome ?? 0) + due.monthlyFee });
+      } else {
+        const { setDoc } = await import('firebase/firestore');
+        await setDoc(statsRef, { totalIncome: due.monthlyFee });
+      }
+      await updateDoc(doc(db, 'customerSocietyRecords', due.id), { paymentStatus: 'paid', updatedAt: serverTimestamp() });
+    } finally {
+      setMarkingSociety(null);
+    }
+  }
+
   async function markPaid(customer: CustomerRow) {
     if (marking) return;
     setMarking(customer.id);
@@ -158,7 +222,9 @@ export default function BillingPage() {
     }
   }
 
-  const pendingTotal = customers.reduce((s, c) => s + (c.outstandingBalance ?? 0), 0);
+  const bookingDuesTotal = customers.reduce((s, c) => s + (c.outstandingBalance ?? 0), 0);
+  const societyDuesTotal = societyDues.reduce((s, d) => s + (d.monthlyFee ?? 0), 0);
+  const pendingTotal     = bookingDuesTotal + societyDuesTotal; // the one number that answers "what's owed, total"
 
   const displayed = filter === 'pending'
     ? customers.filter(c => (c.outstandingBalance ?? 0) > 0)
@@ -179,11 +245,12 @@ export default function BillingPage() {
       </div>
 
       {/* KPI cards */}
-      <div className="kpi-grid-3">
+      <div className="kpi-grid-4">
         {[
-          { label: "Today's Collected", value: fmt(todayIncome),  icon: 'sun',          color: 'var(--pc-success)' },
-          { label: 'Total Collected',   value: fmt(totalIncome),  icon: 'indian-rupee', color: 'var(--pc-sage)'    },
-          { label: 'Total Pending Dues',value: fmt(pendingTotal), icon: 'alert-circle', color: 'var(--pc-warning)' },
+          { label: "Today's Collected",  value: fmt(todayIncome),      icon: 'sun',          color: 'var(--pc-success)' },
+          { label: 'Total Collected',    value: fmt(totalIncome),      icon: 'indian-rupee', color: 'var(--pc-sage)'    },
+          { label: 'Total Pending Dues', value: fmt(pendingTotal),     icon: 'alert-circle', color: 'var(--pc-warning)' },
+          { label: 'Society Dues (of total)', value: fmt(societyDuesTotal), icon: 'building-2', color: 'var(--pc-info)' },
         ].map(({ label, value, icon, color }) => (
           <Card key={label} style={{ padding: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
             <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--pc-card-hi)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -285,6 +352,74 @@ export default function BillingPage() {
                           >
                             {isMarking ? 'Saving…' : 'Mark Paid'}
                           </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </div>
+
+      {/* Society billing dues — separate system: monthly flat fee per
+          enrollment, tracked via customerSocietyRecords.paymentStatus rather
+          than a running customers.outstandingBalance. */}
+      <div>
+        <Eyebrow style={{ display: 'block', marginBottom: 12 }}>SOCIETY BILLING DUES</Eyebrow>
+        <Card style={{ padding: 0, overflow: 'hidden' }}>
+          <div className="table-scroll-wrap">
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--pc-line)' }}>
+                  {['Customer', 'Society / Unit', 'Monthly Fee', 'Status', 'Action'].map(h => (
+                    <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {societyDues.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} style={{ padding: '48px 16px', textAlign: 'center', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)' }}>
+                      No outstanding society dues.
+                    </td>
+                  </tr>
+                ) : societyDues.map(due => {
+                  const isMarking = markingSociety === due.id;
+                  return (
+                    <tr key={due.id} style={{ borderBottom: '1px solid var(--pc-line)' }}>
+                      <td style={{ padding: '12px 16px' }}>
+                        <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg)', margin: 0, fontWeight: 500 }}>{due.customerName}</p>
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)', margin: 0 }}>{due.societyName} · {due.tower}</p>
+                        {due.unitNumber && <p style={{ ...monoLabel }}>{due.unitNumber}</p>}
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 600, color: 'var(--pc-warning)' }}>
+                          {fmt(due.monthlyFee)}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px 16px', fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)', textTransform: 'capitalize' }}>
+                        {due.paymentStatus.replace('_', ' ')}
+                      </td>
+                      <td style={{ padding: '8px 16px' }}>
+                        <button
+                          type="button"
+                          disabled={isMarking}
+                          onClick={() => markSocietyDuePaid(due)}
+                          style={{
+                            padding: '6px 14px', borderRadius: 999,
+                            background: isMarking ? 'var(--pc-card-hi)' : 'var(--pc-sage)',
+                            border: 'none',
+                            color: isMarking ? 'var(--pc-fg-3)' : 'var(--pc-sage-ink)',
+                            fontFamily: 'var(--pc-sans)', fontSize: 12, fontWeight: 600,
+                            cursor: isMarking ? 'not-allowed' : 'pointer',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {isMarking ? 'Saving…' : 'Mark Paid'}
+                        </button>
                       </td>
                     </tr>
                   );

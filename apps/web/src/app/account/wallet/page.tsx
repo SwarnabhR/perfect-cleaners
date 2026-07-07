@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { collection, doc, onSnapshot, orderBy, query, limit } from 'firebase/firestore';
@@ -10,20 +10,24 @@ import Footer from '@/components/marketing/Footer';
 import { useCustomerAuth } from '@/lib/auth/CustomerAuthContext';
 
 // ─── Razorpay loader ──────────────────────────────────────────────────────────
+// Disabled for now (see handlePayNow below) — the Razorpay account isn't live
+// yet, and society billing is a phone-payment model (the admin calls and
+// collects) rather than online self-checkout. Left in place, commented out,
+// so online pay-now is a straightforward flip back on once real keys exist.
 
-function loadRazorpay(): Promise<any> {
-  return new Promise(resolve => {
-    if (typeof window !== 'undefined' && (window as any).Razorpay) {
-      resolve((window as any).Razorpay);
-      return;
-    }
-    const script = document.createElement('script');
-    script.src   = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.async = true;
-    script.onload = () => resolve((window as any).Razorpay);
-    document.body.appendChild(script);
-  });
-}
+// function loadRazorpay(): Promise<any> {
+//   return new Promise(resolve => {
+//     if (typeof window !== 'undefined' && (window as any).Razorpay) {
+//       resolve((window as any).Razorpay);
+//       return;
+//     }
+//     const script = document.createElement('script');
+//     script.src   = 'https://checkout.razorpay.com/v1/checkout.js';
+//     script.async = true;
+//     script.onload = () => resolve((window as any).Razorpay);
+//     document.body.appendChild(script);
+//   });
+// }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -69,9 +73,6 @@ export default function WalletPage() {
   const [outstanding, setOutstanding] = useState<number | null>(null);
   const [entries,     setEntries]     = useState<TxEntry[]>([]);
   const [txLoading,   setTxLoading]   = useState(true);
-  const [paying,      setPaying]      = useState(false);
-  const [payError,    setPayError]    = useState<string | null>(null);
-  const [payDone,     setPayDone]     = useState(false);
 
   // Auth guard
   useEffect(() => {
@@ -124,61 +125,68 @@ export default function WalletPage() {
     return unsub;
   }, [user]);
 
-  const handlePayNow = useCallback(async () => {
-    if (!user || (outstanding ?? 0) <= 0) return;
-    setPayError(null);
-    setPaying(true);
-    try {
-      // 1. Create Razorpay order
-      const orderRes = await fetch('/api/payment/create-order', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({
-          amount:  outstanding,
-          receipt: `settle_${user.uid}_${Date.now()}`,
-        }),
-      });
-      const { orderId, keyId, error: orderErr } = await orderRes.json();
-      if (orderErr || !orderId) throw new Error(orderErr ?? 'Could not create order.');
-
-      // 2. Load and open Razorpay checkout
-      const RazorpayCheckout = await loadRazorpay();
-      const rzp = new RazorpayCheckout({
-        key:         keyId,
-        amount:      Math.round((outstanding ?? 0) * 100),
-        currency:    'INR',
-        order_id:    orderId,
-        name:        'Perfect Cleaners',
-        description: 'Settle outstanding balance',
-        prefill:     { contact: user.phoneNumber ?? '' },
-        theme:       { color: '#4A5E44' },
-        modal:       { ondismiss: () => setPaying(false) },
-        handler: async (response: any) => {
-          // 3. Verify and record the payment
-          const idToken   = await user.getIdToken();
-          const verifyRes = await fetch('/api/payment/settle-balance', {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
-            body:    JSON.stringify({
-              razorpay_order_id:   response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature:  response.razorpay_signature,
-              customerId:          user.uid,
-              amount:              outstanding,
-            }),
-          });
-          const { ok, error: verifyErr } = await verifyRes.json();
-          if (!ok) throw new Error(verifyErr ?? 'Payment verification failed.');
-          setPayDone(true);
-          setPaying(false);
-        },
-      });
-      rzp.open();
-    } catch (err: any) {
-      setPayError(err.message ?? 'Payment failed.');
-      setPaying(false);
-    }
-  }, [user, outstanding]);
+  // Online self-checkout is disabled for now — see the Razorpay loader
+  // comment above. Society billing is phone-payment: our team calls to
+  // collect, same as the rest of the enrollment flow. This just surfaces
+  // that expectation instead of opening a checkout sheet.
+  //
+  // Previous online-payment implementation (restore when Razorpay is live):
+  //
+  // const handlePayNow = useCallback(async () => {
+  //   if (!user || (outstanding ?? 0) <= 0) return;
+  //   setPayError(null);
+  //   setPaying(true);
+  //   try {
+  //     // 1. Create Razorpay order
+  //     const orderRes = await fetch('/api/payment/create-order', {
+  //       method:  'POST',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body:    JSON.stringify({
+  //         amount:  outstanding,
+  //         receipt: `settle_${user.uid}_${Date.now()}`,
+  //       }),
+  //     });
+  //     const { orderId, keyId, error: orderErr } = await orderRes.json();
+  //     if (orderErr || !orderId) throw new Error(orderErr ?? 'Could not create order.');
+  //
+  //     // 2. Load and open Razorpay checkout
+  //     const RazorpayCheckout = await loadRazorpay();
+  //     const rzp = new RazorpayCheckout({
+  //       key:         keyId,
+  //       amount:      Math.round((outstanding ?? 0) * 100),
+  //       currency:    'INR',
+  //       order_id:    orderId,
+  //       name:        'Perfect Cleaners',
+  //       description: 'Settle outstanding balance',
+  //       prefill:     { contact: user.phoneNumber ?? '' },
+  //       theme:       { color: '#4A5E44' },
+  //       modal:       { ondismiss: () => setPaying(false) },
+  //       handler: async (response: any) => {
+  //         // 3. Verify and record the payment
+  //         const idToken   = await user.getIdToken();
+  //         const verifyRes = await fetch('/api/payment/settle-balance', {
+  //           method:  'POST',
+  //           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+  //           body:    JSON.stringify({
+  //             razorpay_order_id:   response.razorpay_order_id,
+  //             razorpay_payment_id: response.razorpay_payment_id,
+  //             razorpay_signature:  response.razorpay_signature,
+  //             customerId:          user.uid,
+  //             amount:              outstanding,
+  //           }),
+  //         });
+  //         const { ok, error: verifyErr } = await verifyRes.json();
+  //         if (!ok) throw new Error(verifyErr ?? 'Payment verification failed.');
+  //         setPayDone(true);
+  //         setPaying(false);
+  //       },
+  //     });
+  //     rzp.open();
+  //   } catch (err: any) {
+  //     setPayError(err.message ?? 'Payment failed.');
+  //     setPaying(false);
+  //   }
+  // }, [user, outstanding]);
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: 'var(--pc-ink)', display: 'flex', flexDirection: 'column' }}>
@@ -311,50 +319,33 @@ export default function WalletPage() {
           }}>
             {isPaid
               ? 'All paid up — nothing outstanding.'
-              : 'Added after each wash. Pay anytime — your car keeps getting cleaned.'}
+              : "Added after each wash. Our team will call you to collect — no need to pay through the app."}
           </p>
 
-          {payDone && (
-            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: '#fff', opacity: 0.9, margin: '0 0 16px' }}>
-              Payment received — balance updated.
-            </p>
-          )}
-          {payError && (
-            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-danger)', margin: '0 0 16px' }}>
-              {payError}
-            </p>
-          )}
-
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              onClick={handlePayNow}
-              disabled={isPaid || paying}
-              style={{
+            {!isPaid && (
+              <span style={{
                 display:       'inline-flex',
                 alignItems:    'center',
                 padding:       '10px 24px',
-                background:    isPaid ? 'rgba(255,255,255,0.15)' : 'var(--pc-warm)',
-                color:         isPaid ? '#fff' : 'var(--pc-ink)',
+                background:    'var(--pc-card-hi)',
+                border:        '1px solid var(--pc-line-strong)',
+                color:         'var(--pc-fg-2)',
                 borderRadius:   999,
                 fontFamily:    'var(--pc-sans)',
                 fontSize:       13,
                 fontWeight:     600,
-                letterSpacing: '0.06em',
-                textTransform: 'uppercase',
-                border:        'none',
-                cursor:        isPaid || paying ? 'not-allowed' : 'pointer',
-                opacity:       isPaid || paying ? 0.5 : 1,
-              }}
-            >
-              {paying ? 'Opening checkout…' : isPaid ? 'All clear ✓' : 'Pay now →'}
-            </button>
+                letterSpacing: '0.04em',
+              }}>
+                We'll be in touch to collect this
+              </span>
+            )}
 
             <button
               type="button"
               onClick={() => alert(
                 'Each wash at your society adds a fixed amount to your outstanding balance. ' +
-                'Pay whenever you like — there is no due date. ' +
+                'Our team calls to collect it by phone — there is no in-app payment or due date. ' +
                 'Your car will continue to be cleaned regardless.'
               )}
               style={{

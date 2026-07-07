@@ -150,19 +150,37 @@ service cloud.firestore {
 
     // Customer enrolment records.
     // Customers read and lightly update their own record (time pref, skip dates).
-    // Admin SDK (cron + approval flow) writes via backend and bypasses these rules.
-    // Customers may create their own record during self-signup.
+    // Customers may create their own record during self-signup. Admins may
+    // create one for anybody — the Pending Approvals "Approve" action writes
+    // a record keyed by the *customer's* uid while signed in as the admin,
+    // and the manual "Add customer" flow writes one for a resident who has
+    // no uid at all — neither satisfies customerId == request.auth.uid.
+    //
+    // Claiming: a resident enrolled by phone before ever signing in gets
+    // customerId = `admin_<phone>` (see customer-enrollments' "Add customer"
+    // flow). The first time they sign in, account/cleaning looks this up by
+    // phone and re-keys it to their real uid — allowed only when the
+    // record's own customerPhone matches the caller's OWN verified phone
+    // (from the auth token, not a client-supplied value) and only the
+    // customerId/updatedAt fields change, so nobody can claim someone else's
+    // enrollment or smuggle other field changes in through this path.
     match /customerSocietyRecords/{recordId} {
       allow read:   if isAdmin()
-        || (isSignedIn() && resource.data.customerId == request.auth.uid);
-      allow create: if isSignedIn()
-        && request.resource.data.customerId == request.auth.uid;
+        || (isSignedIn() && resource.data.customerId == request.auth.uid)
+        || (isSignedIn() && resource.data.customerPhone == request.auth.token.phone_number);
+      allow create: if isAdmin()
+        || (isSignedIn() && request.resource.data.customerId == request.auth.uid);
       allow update: if isAdmin()
         || (isSignedIn()
             && resource.data.customerId == request.auth.uid
             && request.resource.data.diff(resource.data).affectedKeys()
                 .hasOnly(['permanentTime', 'preferredCleaningTime', 'preferredCleaningDays',
-                          'skipDates', 'rescheduledSlots', 'updatedAt']));
+                          'skipDates', 'rescheduledSlots', 'updatedAt']))
+        || (isSignedIn()
+            && resource.data.customerId.matches('admin_.*')
+            && resource.data.customerPhone == request.auth.token.phone_number
+            && request.resource.data.customerId == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['customerId', 'updatedAt']));
       allow delete: if isAdmin();
     }
 

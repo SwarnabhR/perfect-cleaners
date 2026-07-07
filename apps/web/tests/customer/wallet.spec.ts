@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/customer';
-import { test as base, expect as baseExpect, type Page } from '@playwright/test';
+import { test as base, expect as baseExpect } from '@playwright/test';
 import { signInWithBypassToken } from '../lib/auth-bypass';
 import { adminDb, Timestamp, PW_TEST_PREFIX } from '../lib/firestore-admin';
 
@@ -44,16 +44,17 @@ test.describe('Customer Wallet / Bill', () => {
     await expect(page.locator('text=/₹/').first()).toBeVisible({ timeout: 8_000 });
   });
 
-  test('Pay Now button is visible when balance is non-zero', async ({ page }) => {
+  test('shows manual-collection messaging when balance is non-zero, "All clear" when settled', async ({ page }) => {
     await page.waitForTimeout(2_000);
     const neverBilled = await page.locator('text=Nothing to show here.').isVisible().catch(() => false);
     if (neverBilled) { test.skip(true, 'Test customer has no billing history yet'); return; }
-    // The button reads "Pay now →" when outstandingBalance > 0, or
-    // "All clear ✓" when settled — there is no literal "No outstanding
-    // balance" copy anywhere in the component.
-    const payBtn   = page.locator('button:has-text("Pay now")');
-    const clearBtn = page.locator('button:has-text("All clear")');
-    await expect(payBtn.or(clearBtn).first()).toBeVisible({ timeout: 10_000 });
+    // Online self-checkout is disabled — payment is collected by phone, not
+    // a "Pay now" button. Non-zero balance shows the "we'll contact you"
+    // pill; a settled balance shows "All clear ✓".
+    const contactPill = page.locator("text=We'll be in touch to collect this");
+    const clearBtn     = page.locator('button:has-text("All clear")');
+    await expect(contactPill.or(clearBtn).first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('button:has-text("Pay now")')).not.toBeVisible();
   });
 
   test('transaction history section is shown', async ({ page }) => {
@@ -87,15 +88,13 @@ test.describe('Customer Wallet / Bill', () => {
 
 });
 
-// ── Pay Now flow — mocked Razorpay, fresh customer with a real balance ────────
+// ── Manual-collection messaging — fresh customer with a real balance ──────────
 //
-// A real Razorpay checkout can't be driven in Playwright (external hosted
-// iframe). Instead: seed a fresh customer with outstandingBalance > 0
-// (needed for the Pay Now button to be enabled at all — see `isPaid` in
-// account/wallet/page.tsx), stub `window.Razorpay` before the page loads so
-// `loadRazorpay()`'s `if (window.Razorpay) resolve(...)` short-circuit picks
-// it up instead of fetching the real checkout.js, and intercept the two
-// backend routes the handler actually calls.
+// Online self-checkout (Razorpay) is disabled for now — see account/wallet's
+// handlePayNow comment. Payment is collected by phone, matching the society
+// billing model, so there's no checkout flow left to drive here; these just
+// confirm the balance card correctly reflects that instead of offering a
+// dead "Pay now" button.
 
 function freshBilledCustomer() {
   const ts = Date.now();
@@ -118,43 +117,11 @@ async function seedBilledCustomer(uid: string, phone: string, outstandingBalance
   });
 }
 
-/** Stubs window.Razorpay so `rzp.open()` synchronously drives one of the real handler's callback paths. */
-async function mockRazorpay(page: Page, mode: 'success' | 'dismiss') {
-  await page.addInitScript((mode) => {
-    (window as any).Razorpay = function (config: any) {
-      return {
-        open: () => {
-          if (mode === 'success') {
-            config.handler({
-              razorpay_order_id:   'order_pw_test',
-              razorpay_payment_id: 'pay_pw_test',
-              razorpay_signature:  'sig_pw_test',
-            });
-          } else {
-            config.modal.ondismiss();
-          }
-        },
-      };
-    };
-  }, mode);
-}
+base.describe('Customer Wallet — manual payment collection', () => {
 
-base.describe('Customer Wallet — Pay Now (mocked Razorpay)', () => {
-
-  base('successful payment updates balance and shows confirmation', async ({ page }) => {
+  base('a non-zero balance shows the contact pill, not a Pay Now button', async ({ page }) => {
     const { uid, phone } = freshBilledCustomer();
     await seedBilledCustomer(uid, phone, 500);
-    await mockRazorpay(page, 'success');
-
-    let createOrderCalled = false;
-    await page.route('**/api/payment/create-order', async route => {
-      const body = route.request().postDataJSON();
-      createOrderCalled = body?.amount === 500;
-      await route.fulfill({ json: { orderId: 'order_pw_test', keyId: 'rzp_test_pw_mock' } });
-    });
-    await page.route('**/api/payment/settle-balance', async route => {
-      await route.fulfill({ json: { ok: true } });
-    });
 
     await page.goto('/signin');
     await signInWithBypassToken(page, uid, { persistence: 'session', phone });
@@ -162,59 +129,22 @@ base.describe('Customer Wallet — Pay Now (mocked Razorpay)', () => {
     await page.click('a:has-text("Bill")');
     await page.waitForURL('**/account/wallet');
 
-    const payBtn = page.locator('button:has-text("Pay now")');
-    await baseExpect(payBtn).toBeVisible({ timeout: 10_000 });
-    await payBtn.click();
-
-    await baseExpect(page.locator('text=Payment received — balance updated.')).toBeVisible({ timeout: 10_000 });
-    baseExpect(createOrderCalled).toBe(true);
+    await baseExpect(page.locator("text=We'll be in touch to collect this")).toBeVisible({ timeout: 10_000 });
+    await baseExpect(page.locator('button:has-text("Pay now")')).not.toBeVisible();
+    await baseExpect(page.locator('text=Our team will call you to collect')).toBeVisible();
   });
 
-  base('dismissing checkout resets the button with no crash', async ({ page }) => {
+  base('the two disabled payment API routes respond 503 rather than attempting Razorpay', async ({ page }) => {
     const { uid, phone } = freshBilledCustomer();
-    await seedBilledCustomer(uid, phone, 300);
-    await mockRazorpay(page, 'dismiss');
-
-    await page.route('**/api/payment/create-order', async route => {
-      await route.fulfill({ json: { orderId: 'order_pw_test_2', keyId: 'rzp_test_pw_mock' } });
-    });
-
+    await seedBilledCustomer(uid, phone, 200);
     await page.goto('/signin');
     await signInWithBypassToken(page, uid, { persistence: 'session', phone });
     await page.waitForURL('**/account', { timeout: 15_000 });
-    await page.click('a:has-text("Bill")');
-    await page.waitForURL('**/account/wallet');
 
-    const payBtn = page.locator('button:has-text("Pay now")');
-    await baseExpect(payBtn).toBeVisible({ timeout: 10_000 });
-    await payBtn.click();
-
-    // ondismiss() sets paying back to false — button returns to its idle label
-    await baseExpect(page.locator('button:has-text("Pay now")')).toBeVisible({ timeout: 8_000 });
-    await baseExpect(page.locator('text=Payment received')).not.toBeVisible();
-  });
-
-  base('order-creation failure shows an error, not a crash', async ({ page }) => {
-    const { uid, phone } = freshBilledCustomer();
-    await seedBilledCustomer(uid, phone, 250);
-    await mockRazorpay(page, 'success');
-
-    await page.route('**/api/payment/create-order', async route => {
-      await route.fulfill({ json: { error: 'Could not create order.' } });
-    });
-
-    await page.goto('/signin');
-    await signInWithBypassToken(page, uid, { persistence: 'session', phone });
-    await page.waitForURL('**/account', { timeout: 15_000 });
-    await page.click('a:has-text("Bill")');
-    await page.waitForURL('**/account/wallet');
-
-    const payBtn = page.locator('button:has-text("Pay now")');
-    await baseExpect(payBtn).toBeVisible({ timeout: 10_000 });
-    await payBtn.click();
-
-    await baseExpect(page.locator('text=Could not create order.')).toBeVisible({ timeout: 8_000 });
-    await baseExpect(payBtn).toBeVisible(); // back to idle, not stuck on "Opening checkout…"
+    const createOrderRes = await page.request.post('/api/payment/create-order', { data: { amount: 200 } });
+    baseExpect(createOrderRes.status()).toBe(503);
+    const settleRes = await page.request.post('/api/payment/settle-balance', { data: { customerId: uid, amount: 200 } });
+    baseExpect(settleRes.status()).toBe(503);
   });
 
   base('"How it works" opens an explanatory dialog', async ({ page }) => {

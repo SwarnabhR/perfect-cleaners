@@ -152,20 +152,16 @@ base.describe('Worker Dashboard — empty states', () => {
 // cleaningSession via the admin Cleaning Schedule page (which writes
 // workerIds: string[], not the legacy singular workerId) previously never
 // showed up here at all — the dashboard only ever read assignedSocietyId.
-// The dashboard query was added to fix that, but testing it live surfaced a
-// SEPARATE, pre-existing bug one layer down: firestore.rules only grants
-// `cleaningSessions` read access when resource.data.workerId (singular)
-// matches the caller, so a doc written with only workerIds (the array the
-// admin Cleaning Schedule page actually writes) is rejected outright with
-// "Missing or insufficient permissions" — confirmed via the browser console
-// while writing this suite. The three tests below are skipped rather than
-// deleted: they document the exact behavior this feature is supposed to have
-// once that rule is updated to also accept
-// resource.data.workerIds.hasAny([request.auth.uid]) — a security-rules
-// change deliberately left out of this pass since it changes the live
-// project's security posture.
+// Testing this live also surfaced a separate, pre-existing bug one layer
+// down: firestore.rules only granted `cleaningSessions` read access when
+// resource.data.workerId (singular) matched the caller, so a doc written
+// with only workerIds (the array the admin Cleaning Schedule page actually
+// writes) was rejected outright with "Missing or insufficient permissions".
+// firestore.rules now also accepts
+// resource.data.workerIds.hasAny([request.auth.uid]) (deployed) — confirmed
+// live via a fresh worker + workerIds-only session before un-skipping these.
 
-base.describe.skip('Worker Dashboard — live session assignments (blocked on firestore.rules workerIds support)', () => {
+base.describe('Worker Dashboard — live session assignments', () => {
 
   base('shows a session card linking to /session/[id] for a scheduled assignment', async ({ page }) => {
     const ts  = Date.now();
@@ -223,8 +219,10 @@ base.describe.skip('Worker Dashboard — live session assignments (blocked on fi
     await page.waitForURL('**/worker/dashboard', { timeout: 15_000 });
 
     await baseExpect(page.locator("text=TODAY'S ASSIGNMENTS (2)")).toBeVisible({ timeout: 10_000 });
-    await baseExpect(page.locator('text=Society A')).toBeVisible();
-    await baseExpect(page.locator('text=Society B')).toBeVisible();
+    // "text=Society A" is a case-insensitive substring match, and "No society
+    // assigned." contains "society a..." too — match the full prefixed name.
+    await baseExpect(page.locator(`text=${PW_TEST_PREFIX}Society A`)).toBeVisible();
+    await baseExpect(page.locator(`text=${PW_TEST_PREFIX}Society B`)).toBeVisible();
   });
 
   base('a session already marked done does not appear in the assignment list', async ({ page }) => {

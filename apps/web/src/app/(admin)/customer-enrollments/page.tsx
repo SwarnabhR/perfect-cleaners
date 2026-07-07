@@ -1,14 +1,29 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, getDoc, onSnapshot, doc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '@pc/firebase';
-import type { CustomerSocietyRecord } from '@pc/firebase';
+import type { CustomerSocietyRecord, Society, DayOfWeek } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
 import StatusPill from '@/components/ui/StatusPill';
+import { notifyApproval } from '@/lib/notification';
 
-type LiveRecord = CustomerSocietyRecord & { id: string };
+type LiveRecord  = CustomerSocietyRecord & { id: string };
+type LiveSociety = Society & { id: string };
+
+const DAY_ORDER: DayOfWeek[] = [0, 1, 2, 3, 4, 5, 6];
+const DAY_LABELS: Record<DayOfWeek, string> = { 0: 'Sun', 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat' };
+const NAME_TO_DAY: Record<string, DayOfWeek> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+function parseDaysFromSchedule(schedule: string): DayOfWeek[] {
+  return (schedule.split('·')[0] ?? '').split(',').map(d => NAME_TO_DAY[d.trim()]).filter((d): d is DayOfWeek => d !== undefined);
+}
+
+const TIME_OPTIONS = Array.from({ length: 10 }, (_, i) => {
+  const h = i + 7; // 7 through 16
+  const label = h === 12 ? '12:00 PM' : h < 12 ? `${h}:00 AM` : `${h - 12}:00 PM`;
+  return { label, value: h };
+});
 
 const ENROLLMENT_STATUS_LABEL: Record<string, string> = {
   pending:  'Pending',
@@ -24,6 +39,13 @@ const monoLabel: React.CSSProperties = {
   textTransform: 'uppercase',
   letterSpacing: '0.06em',
   margin: '0 0 4px',
+};
+
+const inputStyle: React.CSSProperties = {
+  width: '100%', boxSizing: 'border-box', padding: '10px 14px',
+  background: 'var(--pc-card-hi)', border: '1px solid var(--pc-line)',
+  borderRadius: 8, color: 'var(--pc-fg)',
+  fontFamily: 'var(--pc-sans)', fontSize: 14, outline: 'none',
 };
 
 function PaymentStatusBadge({ status }: { status: string }) {
@@ -72,6 +94,314 @@ function monthStart() {
   return d;
 }
 
+// ─── Add Customer modal ─────────────────────────────────────────────────────
+//
+// The only path CLAUDE.md calls "Bulk Import": an admin directly enrolling a
+// resident who has no app account and may never install one, may never give
+// a phone number, but definitely has a car that lives somewhere specific —
+// so tower + unit number (not phone) is the durable identity key here, and
+// the only thing a worker actually needs to find the car on the ground.
+// Writes straight to status: 'active' — the admin keying this in directly
+// *is* the verification step, matching CLAUDE.md's bulk-import semantics.
+
+interface AddCustomerForm {
+  name: string; phone: string;
+  societyId: string; societyName: string; tower: string; unitNumber: string;
+  carPlate: string; carMake: string; carModel: string;
+  preferredTime: number; preferredDays: DayOfWeek[];
+  paymentMethod: string; paymentNotes: string;
+}
+
+const BLANK_ADD_FORM: AddCustomerForm = {
+  name: '', phone: '',
+  societyId: '', societyName: '', tower: '', unitNumber: '',
+  carPlate: '', carMake: '', carModel: '',
+  preferredTime: 9, preferredDays: [],
+  paymentMethod: '', paymentNotes: '',
+};
+
+function AddCustomerModal({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
+  const [societies, setSocieties] = useState<LiveSociety[]>([]);
+  const [form, setForm] = useState<AddCustomerForm>(BLANK_ADD_FORM);
+  const [towerDays, setTowerDays] = useState<DayOfWeek[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  // One-time fetch — this list doesn't need to be live for a modal that's
+  // open for a few seconds at a time.
+  useEffect(() => {
+    getDocs(query(collection(db, 'societies'), where('isActive', '==', true)))
+      .then(snap => setSocieties(snap.docs.map(d => ({ id: d.id, ...d.data() } as LiveSociety))))
+      .catch(() => {});
+  }, []);
+
+  // Tower's admin-configured cleaning days, so the day-picker below only
+  // ever offers valid choices — same constraint the self-signup form applies.
+  useEffect(() => {
+    if (!form.societyId || !form.tower) { setTowerDays([]); return; }
+    getDocs(query(
+      collection(db, 'societyBillingConfig'),
+      where('societyId', '==', form.societyId),
+      where('tower', '==', form.tower),
+    )).then(snap => {
+      const config = snap.docs[0]?.data();
+      const days = (config?.cleaningDays as DayOfWeek[] | undefined)?.length
+        ? (config!.cleaningDays as DayOfWeek[])
+        : parseDaysFromSchedule((config?.cleaningSchedule as string | undefined) ?? '');
+      setTowerDays(days);
+      setForm(f => ({ ...f, preferredDays: days }));
+    }).catch(() => setTowerDays([]));
+  }, [form.societyId, form.tower]);
+
+  const selectedSociety = societies.find(s => s.id === form.societyId) ?? null;
+  const digits = form.phone.replace(/\D/g, '');
+  const hasPhone = digits.length > 0;
+
+  async function handleSubmit() {
+    if (!form.name.trim() || (hasPhone && digits.length !== 10) || !form.societyId || !form.tower
+        || !form.unitNumber.trim() || !form.carPlate.trim() || saving) {
+      setError('Name, society, tower, unit number, and car plate are required. Phone, if given, must be 10 digits.');
+      return;
+    }
+    setError(''); setSaving(true);
+
+    try {
+      // Identity key: phone when we have one, otherwise the unit itself —
+      // a flat doesn't change even when nobody gave us a number to reach it.
+      const identity   = hasPhone ? digits : form.unitNumber.trim().toUpperCase().replace(/\s+/g, '');
+      const customerId = `admin_${identity}`;
+      const recordId    = `${customerId}_${form.societyId}_${form.tower}`;
+
+      const existing = await getDoc(doc(db, 'customerSocietyRecords', recordId));
+      if (existing.exists()) {
+        setError(hasPhone ? 'This phone number is already enrolled in this tower.' : 'This unit is already enrolled in this tower.');
+        setSaving(false);
+        return;
+      }
+
+      const configSnap = await getDocs(query(
+        collection(db, 'societyBillingConfig'),
+        where('societyId', '==', form.societyId),
+        where('tower', '==', form.tower),
+      ));
+      const billingConfig    = configSnap.docs[0]?.data();
+      const monthlyFee       = (billingConfig?.monthlyFee as number | undefined) ?? 500;
+      const cleaningSchedule = (billingConfig?.cleaningSchedule as string | undefined) ?? 'Mon, Wed, Fri · 9:00 AM';
+
+      await setDoc(doc(db, 'customerSocietyRecords', recordId), {
+        customerId,
+        customerName:          form.name.trim(),
+        ...(hasPhone ? { customerPhone: `+91${digits}` } : {}),
+        societyId:             form.societyId,
+        societyName:           form.societyName,
+        tower:                 form.tower,
+        unitNumber:            form.unitNumber.trim(),
+        cars: [{ plate: form.carPlate.trim().toUpperCase(), make: form.carMake.trim(), model: form.carModel.trim() }],
+        preferredCleaningTime: form.preferredTime,
+        preferredCleaningDays: form.preferredDays,
+        signupSource:          'bulk_import',
+        status:                'active',
+        monthlyFee,
+        nextBillingDate:       Timestamp.fromMillis(Date.now() + 24 * 60 * 60 * 1000),
+        paymentStatus:         form.paymentMethod ? 'verified' : 'not_verified',
+        ...(form.paymentMethod ? { paymentMethod: form.paymentMethod } : {}),
+        ...(form.paymentNotes.trim() ? { paymentNotes: form.paymentNotes.trim() } : {}),
+        skipDates:             [],
+        rescheduledSlots:      [],
+        createdAt:             serverTimestamp(),
+        updatedAt:             serverTimestamp(),
+      });
+
+      // Best-effort, and only possible when we actually have a number —
+      // often the only notification a non-app resident ever gets.
+      if (hasPhone) {
+        const nextWeekDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+          .toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+        notifyApproval(`+91${digits}`, form.name.trim(), form.societyName, form.tower, cleaningSchedule, nextWeekDate)
+          .catch(err => console.warn('[AddCustomer] approval SMS failed:', err));
+      }
+
+      onAdded();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Something went wrong.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div
+      style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+      onClick={onClose}
+    >
+      <div
+        style={{ background: 'var(--pc-card)', borderRadius: 16, border: '1px solid var(--pc-line)', padding: 'clamp(16px,5vw,28px)', width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto' }}
+        onClick={e => e.stopPropagation()}
+      >
+        <h2 style={{ fontFamily: 'var(--pc-serif)', fontSize: 22, fontWeight: 400, color: 'var(--pc-fg)', margin: '0 0 6px' }}>
+          Add customer
+        </h2>
+        <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: '0 0 20px', lineHeight: 1.5 }}>
+          For a resident who won't self-sign-up — added straight to Active, no app account needed.
+        </p>
+
+        <form style={{ display: 'flex', flexDirection: 'column', gap: 16 }} onSubmit={e => e.preventDefault()}>
+          <div>
+            <p style={monoLabel}>Full name *</p>
+            <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Resident's name" style={inputStyle} autoFocus />
+          </div>
+
+          <div>
+            <p style={monoLabel}>Mobile number (optional)</p>
+            <div style={{ display: 'flex' }}>
+              <span style={{ display: 'flex', alignItems: 'center', padding: '10px 12px', background: 'var(--pc-card-hi)', border: '1px solid var(--pc-line)', borderRight: 'none', borderRadius: '8px 0 0 8px', fontFamily: 'var(--pc-mono)', fontSize: 13, color: 'var(--pc-fg-3)' }}>+91</span>
+              <input
+                type="tel" inputMode="numeric" maxLength={10} value={digits}
+                onChange={e => setForm(f => ({ ...f, phone: e.target.value.replace(/\D/g, '') }))}
+                placeholder="Leave blank if unknown" style={{ ...inputStyle, borderRadius: '0 8px 8px 0', flex: 1 }}
+              />
+            </div>
+            {!hasPhone && (
+              <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11.5, color: 'var(--pc-fg-4)', margin: '6px 0 0' }}>
+                No approval SMS will be sent without a number — the resident can add one later from their profile.
+              </p>
+            )}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <p style={monoLabel}>Society *</p>
+              <select
+                value={form.societyId} style={{ ...inputStyle, cursor: 'pointer' }}
+                onChange={e => {
+                  const s = societies.find(x => x.id === e.target.value);
+                  setForm(f => ({ ...f, societyId: s?.id ?? '', societyName: s?.name ?? '', tower: '' }));
+                }}
+              >
+                <option value="">Select society…</option>
+                {societies.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <p style={monoLabel}>Tower *</p>
+              <select
+                value={form.tower} disabled={!selectedSociety}
+                onChange={e => setForm(f => ({ ...f, tower: e.target.value }))}
+                style={{ ...inputStyle, cursor: selectedSociety ? 'pointer' : 'not-allowed', opacity: selectedSociety ? 1 : 0.5 }}
+              >
+                <option value="">Select tower…</option>
+                {(selectedSociety?.towers ?? []).map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <p style={monoLabel}>Unit / flat number *</p>
+            <input
+              value={form.unitNumber} onChange={e => setForm(f => ({ ...f, unitNumber: e.target.value }))}
+              placeholder="e.g. B-1204" style={inputStyle}
+            />
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11.5, color: 'var(--pc-fg-4)', margin: '6px 0 0' }}>
+              Where the car actually lives — this is what the worker uses to find it.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 12 }}>
+            <div>
+              <p style={monoLabel}>Car plate *</p>
+              <input value={form.carPlate} onChange={e => setForm(f => ({ ...f, carPlate: e.target.value }))} placeholder="DL 01 AB 1234" style={inputStyle} />
+            </div>
+            <div>
+              <p style={monoLabel}>Make</p>
+              <input value={form.carMake} onChange={e => setForm(f => ({ ...f, carMake: e.target.value }))} placeholder="Maruti, Honda…" style={inputStyle} />
+            </div>
+            <div>
+              <p style={monoLabel}>Model</p>
+              <input value={form.carModel} onChange={e => setForm(f => ({ ...f, carModel: e.target.value }))} placeholder="Swift, City…" style={inputStyle} />
+            </div>
+          </div>
+
+          {towerDays.length > 0 && (
+            <div>
+              <p style={monoLabel}>Cleaning days (this tower)</p>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {DAY_ORDER.filter(d => towerDays.includes(d)).map(day => {
+                  const selected = form.preferredDays.includes(day);
+                  return (
+                    <button key={day} type="button" onClick={() => setForm(f => {
+                      const next = selected ? f.preferredDays.filter(d => d !== day) : [...f.preferredDays, day];
+                      return { ...f, preferredDays: next.length > 0 ? next : f.preferredDays };
+                    })} style={{
+                      padding: '8px 14px', borderRadius: 8,
+                      background: selected ? 'var(--pc-sage)' : 'var(--pc-card-hi)',
+                      border: `1px solid ${selected ? 'var(--pc-sage-hi)' : 'var(--pc-line)'}`,
+                      fontFamily: 'var(--pc-sans)', fontSize: 13,
+                      color: selected ? 'var(--pc-sage-ink)' : 'var(--pc-fg-3)', cursor: 'pointer',
+                    }}>
+                      {DAY_LABELS[day]}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div>
+            <p style={monoLabel}>Preferred cleaning time</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: 8 }}>
+              {TIME_OPTIONS.map(opt => {
+                const selected = form.preferredTime === opt.value;
+                return (
+                  <button key={opt.value} type="button" onClick={() => setForm(f => ({ ...f, preferredTime: opt.value }))} style={{
+                    padding: '8px 0', borderRadius: 8, textAlign: 'center',
+                    background: selected ? 'var(--pc-sage)' : 'var(--pc-card-hi)',
+                    border: `1px solid ${selected ? 'var(--pc-sage-hi)' : 'var(--pc-line)'}`,
+                    fontFamily: 'var(--pc-sans)', fontSize: 12,
+                    color: selected ? 'var(--pc-sage-ink)' : 'var(--pc-fg-3)', cursor: 'pointer',
+                  }}>
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <p style={monoLabel}>Payment method</p>
+              <select value={form.paymentMethod} onChange={e => setForm(f => ({ ...f, paymentMethod: e.target.value }))} style={{ ...inputStyle, cursor: 'pointer' }}>
+                <option value="">Not collected yet</option>
+                <option value="phone">Phone Payment</option>
+                <option value="upi">UPI</option>
+                <option value="card">Card</option>
+                <option value="bank">Bank Transfer</option>
+              </select>
+            </div>
+            <div>
+              <p style={monoLabel}>Payment notes</p>
+              <input value={form.paymentNotes} onChange={e => setForm(f => ({ ...f, paymentNotes: e.target.value }))} placeholder="Optional" style={inputStyle} />
+            </div>
+          </div>
+
+          {error && <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-danger)', margin: 0 }}>{error}</p>}
+
+          <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+            <button
+              type="button" onClick={handleSubmit} disabled={saving}
+              style={{ flex: 1, padding: '11px 0', borderRadius: 999, background: 'var(--pc-warm)', border: 'none', fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600, color: 'var(--pc-ink)', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1 }}
+            >
+              {saving ? 'Adding…' : 'Add & Activate'}
+            </button>
+            <button type="button" onClick={onClose} style={{ padding: '11px 20px', borderRadius: 999, background: 'transparent', border: '1px solid currentColor', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', cursor: 'pointer' }}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function CustomerEnrollmentsPage() {
   const [records, setRecords] = useState<LiveRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,6 +409,7 @@ export default function CustomerEnrollmentsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
   const [cleanedThisMonth, setCleanedThisMonth] = useState<Record<string, number>>({});
+  const [addOpen, setAddOpen] = useState(false);
 
   useEffect(() => {
     return onSnapshot(
@@ -166,12 +497,28 @@ export default function CustomerEnrollmentsPage() {
   return (
     <div className="admin-page-root">
       {/* Header */}
-      <div>
-        <Eyebrow style={{ display: 'block', marginBottom: 4 }}>CUSTOMERS</Eyebrow>
-        <h1 className="admin-page-title">Active Enrollments</h1>
-        <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg-3)', margin: '8px 0 0' }}>
-          View all enrolled customers, track payment status, and manage monthly billing
-        </p>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <Eyebrow style={{ display: 'block', marginBottom: 4 }}>CUSTOMERS</Eyebrow>
+          <h1 className="admin-page-title">Active Enrollments</h1>
+          <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg-3)', margin: '8px 0 0' }}>
+            View all enrolled customers, track payment status, and manage monthly billing
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setAddOpen(true)}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            padding: '10px 20px', borderRadius: 999,
+            background: 'var(--pc-warm)', border: 'none',
+            fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600,
+            color: 'var(--pc-ink)', cursor: 'pointer',
+          }}
+        >
+          <Icon name="plus" size={14} color="var(--pc-ink)" />
+          Add customer
+        </button>
       </div>
 
       {/* Stats */}
@@ -387,8 +734,11 @@ export default function CustomerEnrollmentsPage() {
                     <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)' }}>
                       {record.societyName}
                     </td>
-                    <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)' }}>
-                      {record.tower}
+                    <td style={{ padding: '13px 18px' }}>
+                      <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)', margin: 0 }}>{record.tower}</p>
+                      {record.unitNumber && (
+                        <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10.5, color: 'var(--pc-fg-4)', margin: '2px 0 0', letterSpacing: '0.03em' }}>{record.unitNumber}</p>
+                      )}
                     </td>
                     <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-mono)', fontSize: 12, color: 'var(--pc-fg-2)' }}>
                       {record.cars[0]?.plate || '—'}
@@ -539,6 +889,14 @@ export default function CustomerEnrollmentsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Add Customer modal */}
+      {addOpen && (
+        <AddCustomerModal
+          onClose={() => setAddOpen(false)}
+          onAdded={() => setAddOpen(false)}
+        />
       )}
     </div>
   );

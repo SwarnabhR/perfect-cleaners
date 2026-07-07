@@ -533,10 +533,33 @@ export default function CleaningPage() {
       collection(db, 'customerSocietyRecords'),
       where('customerId', '==', user.uid),
     );
+    let claimAttempted = false;
     return onSnapshot(
       q,
       snap => {
-        if (snap.empty) { setRecord(null); return; }
+        if (snap.empty) {
+          setRecord(null);
+          // An admin may have enrolled this resident by phone before they
+          // ever signed in (customerId = `admin_<phone>`, not a real uid —
+          // see (admin)/customer-enrollments's "Add customer" flow). If we
+          // find that record now, claim it under this account so it shows
+          // up here going forward instead of prompting self-signup again.
+          // One attempt per mount; the primary listener above re-fires once
+          // the claim lands, since the record's customerId now matches.
+          if (!claimAttempted && user.phoneNumber) {
+            claimAttempted = true;
+            getDocs(query(
+              collection(db, 'customerSocietyRecords'),
+              where('customerPhone', '==', user.phoneNumber),
+            )).then(byPhone => {
+              const unclaimed = byPhone.docs.find(d => (d.data().customerId as string | undefined)?.startsWith('admin_'));
+              if (unclaimed) {
+                return updateDoc(unclaimed.ref, { customerId: user.uid, updatedAt: serverTimestamp() });
+              }
+            }).catch(() => {});
+          }
+          return;
+        }
         const d    = snap.docs[0];
         const data = d.data();
         const rec: CustomerSocietyRecord & { id: string } = {

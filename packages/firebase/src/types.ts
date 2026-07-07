@@ -258,6 +258,7 @@ export interface CustomerSocietyRecord {
   societyId: string;
   societyName: string;
   tower: string;
+  unitNumber?: string;          // e.g. "1204" or "B-1204" — where the car actually lives, for the worker on the ground
   cars: Array<{
     plate: string;           // e.g. "DL 01 AB 1234"
     make: string;
