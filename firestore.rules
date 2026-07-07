@@ -188,12 +188,18 @@ service cloud.firestore {
 
     // ── Cleaning sessions ─────────────────────────────────────────────────────
     // Workers assigned to a session may read and update it (status, counts).
+    // Two shapes of "assigned" exist: the legacy singular `workerId` (single-
+    // worker sessions, e.g. /session/[id]) and the multi-worker `workerIds`
+    // array (the admin Cleaning Schedule flow, 1-3+ workers per session) —
+    // a worker must satisfy either to see their own assignment.
     // Admins have full access.  No client-side creates — admin/backend only.
     match /cleaningSessions/{sessionId} {
       allow read:   if isAdmin()
-        || (isSignedIn() && resource.data.workerId == request.auth.uid);
+        || (isSignedIn() && resource.data.workerId == request.auth.uid)
+        || (isSignedIn() && ('workerIds' in resource.data) && resource.data.workerIds.hasAny([request.auth.uid]));
       allow update: if isAdmin()
-        || (isSignedIn() && resource.data.workerId == request.auth.uid);
+        || (isSignedIn() && resource.data.workerId == request.auth.uid)
+        || (isSignedIn() && ('workerIds' in resource.data) && resource.data.workerIds.hasAny([request.auth.uid]));
       allow create, delete: if isAdmin();
     }
 
