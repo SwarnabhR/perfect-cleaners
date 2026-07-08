@@ -55,6 +55,7 @@ function SignInContent() {
   const [busy,      setBusy]      = useState(false);
   const [error,     setError]     = useState('');
   const [countdown, setCountdown] = useState(0);
+  const [resolving, setResolving] = useState(false);
 
   const { ready, configured, loadError }  = useMsg91();
   const redirectTo = searchParams.get('from') ?? '/account';
@@ -65,10 +66,14 @@ function SignInContent() {
       ? 'OTP verification service could not load. Refresh or contact support.'
       : '';
 
-  // Skip login if already signed in (and profile is complete)
+  // Skip login if already signed in (and profile is complete).
+  // Gated on `resolving` so this doesn't fire mid-verification: signInWithCustomToken
+  // updates `user` via the auth-state listener before our own getDoc-based profile
+  // check below has a chance to set step to 'profile', which would otherwise redirect
+  // brand-new customers away before their profile (and Firestore doc) is ever created.
   useEffect(() => {
-    if (!loading && user && step !== 'profile') router.replace(redirectTo);
-  }, [user, loading, redirectTo, router, step]);
+    if (!loading && user && step !== 'profile' && !resolving) router.replace(redirectTo);
+  }, [user, loading, redirectTo, router, step, resolving]);
 
   // Resend countdown
   useEffect(() => {
@@ -100,6 +105,7 @@ function SignInContent() {
             ? data
             : (data?.['access-token'] ?? data?.accessToken ?? data?.token ?? data?.message);
         if (!msg91Token) { console.error('[Auth] verifyOtp unexpected data shape:', JSON.stringify(data)); setError('No token returned. Please try again.'); setBusy(false); return; }
+        setResolving(true);
         try {
           const res  = await fetch('/api/auth/verify-otp', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -121,6 +127,8 @@ function SignInContent() {
         } catch (err: any) {
           setError(err?.message ?? 'Sign-in failed. Please try again.');
           setBusy(false);
+        } finally {
+          setResolving(false);
         }
       },
       (err: any) => { setError(err?.message ?? 'Incorrect code.'); setOtp(''); setBusy(false); },

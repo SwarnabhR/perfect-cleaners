@@ -193,6 +193,7 @@ export default function ProfilePage() {
   const [error,      setError]      = useState('');
   const [addresses,  setAddresses]  = useState<SavedAddress[]>([]);
   const [addingAddr, setAddingAddr] = useState(false);
+  const [hasCreatedAt, setHasCreatedAt] = useState(true);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Auth guard
@@ -204,7 +205,13 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!user) return;
     getDoc(doc(db, 'customers', user.uid)).then(snap => {
-      if (snap.exists()) { const d = snap.data(); setName(d.name ?? ''); setEmail(d.email ?? ''); }
+      if (snap.exists()) {
+        const d = snap.data();
+        setName(d.name ?? ''); setEmail(d.email ?? '');
+        setHasCreatedAt(!!d.createdAt);
+      } else {
+        setHasCreatedAt(false);
+      }
       setFetched(true);
     });
   }, [user]);
@@ -222,7 +229,12 @@ export default function ProfilePage() {
     if (!user) return;
     setSaving(true); setError('');
     try {
-      await setDoc(doc(db, 'customers', user.uid), { id: user.uid, name: name.trim(), email: email.trim(), phone: user.phoneNumber ?? '', updatedAt: serverTimestamp() }, { merge: true });
+      await setDoc(doc(db, 'customers', user.uid), {
+        id: user.uid, name: name.trim(), email: email.trim(), phone: user.phoneNumber ?? '',
+        ...(!hasCreatedAt && { createdAt: serverTimestamp() }),
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+      setHasCreatedAt(true);
       setSaved(true);
       if (savedTimer.current) clearTimeout(savedTimer.current);
       savedTimer.current = setTimeout(() => setSaved(false), 3000);
