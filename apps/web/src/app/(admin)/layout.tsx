@@ -87,7 +87,6 @@ function SidebarFooter() {
 
 const NAV = [
   { label: 'Dashboard',   href: '/dashboard',       icon: 'layout-dashboard' },
-  { label: 'Bookings',    href: '/bookings',         icon: 'calendar-check'  },
   // Society Cleaning Program
   { label: 'Societies',   href: '/societies-mgmt',  icon: 'building-2'      },
   { label: 'Tower Billing', href: '/tower-billing', icon: 'credit-card'    },
@@ -98,15 +97,9 @@ const NAV = [
   // People & Services
   { label: 'Customers',   href: '/customers',      icon: 'users'            },
   { label: 'Workers',     href: '/workers',        icon: 'hard-hat'         },
-  // Finance & Analytics
+  // Finance
   { label: 'Billing',     href: '/billing',        icon: 'indian-rupee'    },
-  { label: 'Analytics',   href: '/analytics',      icon: 'bar-chart-2'      },
-  // Support & Config
-  { label: 'Inquiries',    href: '/inquiries',     icon: 'message-circle'   },
-  { label: 'Waitlist',     href: '/waitlist',      icon: 'smartphone'       },
-  { label: 'Notifications', href: '/notifications', icon: 'mail'            },
-  { label: 'Services',    href: '/services-mgmt',  icon: 'sparkles'         },
-  { label: 'Promotions',  href: '/promotions',     icon: 'tag'              },
+  // Config
   { label: 'Settings',    href: '/settings',       icon: 'settings'         },
 ];
 

@@ -155,12 +155,8 @@ Sidebar-nav layout (`layout.tsx`) with these routes:
 | Route | File | Description |
 |---|---|---|
 | `/dashboard` | `dashboard/page.tsx` | KPI cards, booking pipeline chart, live activity feed |
-| `/bookings` | `bookings/page.tsx` | Paginated bookings table with status filters |
 | `/workers` | `workers/page.tsx` | Worker roster with online status and assignment |
 | `/customers` | `customers/page.tsx` | Customer list with vehicle and booking counts |
-| `/services-mgmt` | `services-mgmt/page.tsx` | Service catalogue management |
-| `/promotions` | `promotions/page.tsx` | Promo code CRUD |
-| `/analytics` | `analytics/page.tsx` | Revenue charts, job mix, top services |
 | `/login` | `login/page.tsx` | Admin login entry screen |
 | `/settings` | `settings/page.tsx` | Operator-level settings |
 

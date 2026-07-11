@@ -9,7 +9,6 @@ import Icon from '@/components/ui/Icon';
 const NAV = [
   { label: 'Dashboard', href: '/worker/dashboard',     icon: 'layout-dashboard' },
   { label: 'Cleans',    href: '/worker/cleaning-logs', icon: 'check-circle'     },
-  { label: 'Jobs',      href: '/worker/jobs',          icon: 'calendar'         },
   { label: 'Profile',   href: '/worker/profile',       icon: 'user'             },
 ] as const;
 
