@@ -44,8 +44,8 @@ test.describe('Worker Dashboard', () => {
     await expect(page.locator('text=Remaining').or(page.locator('text=remaining'))).toBeVisible();
   });
 
-  test('bottom tab bar has four navigation items', async ({ page }) => {
-    const tabs = ['Dashboard', 'Cleans', 'Jobs', 'Profile'];
+  test('bottom tab bar has three navigation items', async ({ page }) => {
+    const tabs = ['Dashboard', 'Cleans', 'Profile'];
     for (const label of tabs) {
       await expect(page.locator(`nav a:has-text("${label}")`)).toBeVisible();
     }
@@ -55,7 +55,6 @@ test.describe('Worker Dashboard', () => {
     // Wait for nav to be present before checking hrefs
     await expect(page.locator('nav a:has-text("Dashboard")')).toBeVisible({ timeout: 20_000 });
     const tabs: Array<[string, string]> = [
-      ['Jobs',     '/worker/jobs'],
       ['Profile',  '/worker/profile'],
       ['Cleans',   '/worker/cleaning-logs'],
     ];

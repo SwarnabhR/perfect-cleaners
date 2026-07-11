@@ -20,9 +20,9 @@ test.describe('Admin Dashboard', () => {
   test('sidebar navigation is visible on desktop', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await expect(page.locator('.sidebar-static')).toBeVisible();
-    await expect(page.locator('.sidebar-static').getByText('Bookings')).toBeVisible();
     await expect(page.locator('.sidebar-static').getByText('Workers')).toBeVisible();
     await expect(page.locator('.sidebar-static').getByText('Societies')).toBeVisible();
+    await expect(page.locator('.sidebar-static').getByText('Schedule')).toBeVisible();
   });
 
   test('top bar search is present', async ({ page }) => {
@@ -50,9 +50,9 @@ test.describe('Admin Dashboard', () => {
     await page.setViewportSize({ width: 1280, height: 800 });
 
     const links = [
-      { text: 'Bookings',   url: /\/bookings/   },
       { text: 'Societies',  url: /\/societies-mgmt/ },
-      { text: 'Analytics',  url: /\/analytics/  },
+      { text: 'Workers',    url: /\/workers/   },
+      { text: 'Customers',  url: /\/customers/  },
     ];
 
     for (const { text, url } of links) {
