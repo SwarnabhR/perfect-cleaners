@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { collection, query, where, getDocs, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, onSnapshot, doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '@pc/firebase';
 import type { PendingApproval, CustomerSocietyRecord, DayOfWeek } from '@pc/firebase';
 import Card from '@/components/ui/Card';
@@ -102,9 +102,24 @@ export default function PendingApprovalsPage() {
       const monthlyFee       = (billingConfig?.monthlyFee       as number | undefined) ?? 500;
       const cleaningSchedule = (billingConfig?.cleaningSchedule as string | undefined) ?? 'Mon, Wed, Fri · 9:00 AM';
 
-      // 1. Create CustomerSocietyRecord
-      const recordId = `${customerId}_${approval.societyId}_${approval.tower}`;
-      await setDoc(doc(db, 'customerSocietyRecords', recordId), {
+      // 1. Activate the CustomerSocietyRecord — self-signup (account/cleaning's
+      // SelfSignupForm) already created one in 'pending' status with an
+      // auto-generated ID. Update that same doc in place; a customer's own
+      // /account/cleaning page queries by customerId with no orderBy/limit,
+      // so creating a second doc here (as this used to do, keyed by a
+      // deterministic ID) left the resident stuck looking at "pending"
+      // forever even after approval, since docs[0] kept resolving to the
+      // original doc.
+      const existingSnap = await getDocs(
+        query(
+          collection(db, 'customerSocietyRecords'),
+          where('customerId', '==', customerId),
+          where('societyId',  '==', approval.societyId),
+          where('tower',      '==', approval.tower),
+        )
+      );
+
+      const activeFields = {
         customerId,
         customerName:          approval.customerName,
         customerPhone:         approval.customerPhone,
@@ -121,11 +136,22 @@ export default function PendingApprovalsPage() {
         paymentStatus:         'verified',
         paymentMethod:         form.paymentMethod,
         paymentNotes:          form.paymentNotes,
-        skipDates:             [],
-        rescheduledSlots:      [],
-        createdAt:             serverTimestamp(),
         updatedAt:             serverTimestamp(),
-      });
+      };
+
+      if (existingSnap.docs[0]) {
+        await updateDoc(doc(db, 'customerSocietyRecords', existingSnap.docs[0].id), activeFields);
+      } else {
+        // No pre-existing record (e.g. approval flow reached without a prior
+        // self-signup doc) — fall back to creating one directly.
+        const recordId = `${customerId}_${approval.societyId}_${approval.tower}`;
+        await setDoc(doc(db, 'customerSocietyRecords', recordId), {
+          ...activeFields,
+          skipDates:        [],
+          rescheduledSlots: [],
+          createdAt:        serverTimestamp(),
+        });
+      }
 
       // 2. Update PendingApproval to approved
       await setDoc(
