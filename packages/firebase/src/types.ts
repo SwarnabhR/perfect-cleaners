@@ -90,6 +90,7 @@ export interface Worker {
   assignedSocietyId?: string;
   assignedSocietyName?: string;
   rating: number;
+  ratingCount?: number;    // number of customer ratings folded into `rating`'s running average
   totalJobs: number;
   carsCompletedToday: number;
   createdAt: Date;
@@ -216,6 +217,8 @@ export interface CleaningLog {
   photoUrls: string[];
   notificationSent: boolean;
   billed: boolean;              // true once outstandingBalance has been incremented
+  rating?: number;              // 1-5, set once by the customer via /api/cleaning-log/rate
+  ratedAt?: Date;
 }
 
 export interface Promotion {

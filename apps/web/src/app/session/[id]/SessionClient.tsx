@@ -33,7 +33,7 @@ function PCMark() {
   return (
     <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden>
       <rect width="28" height="28" rx="6" fill="var(--pc-sage)" />
-      <text x="14" y="20" textAnchor="middle" fontFamily="Georgia,serif" fontSize="14" fill="#fff" letterSpacing="-1">PC</text>
+      <text x="14" y="20" textAnchor="middle" fontFamily="var(--pc-serif, Georgia, serif)" fontSize="14" fill="var(--pc-sage-ink)" letterSpacing="-1">PC</text>
     </svg>
   );
 }
@@ -103,10 +103,14 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
   const CIR = 2 * Math.PI * R;
   const offset = CIR * (1 - pct);
 
+  // Semantic status colours only — sage/gold are never used as CTA fills
+  // (design system rule), and gold is reserved for the wordmark hairline /
+  // Gold-tier badge, never a status colour either. Mirrors the worker
+  // dashboard's done=success, active=sage convention.
   const statusColor =
-    status === 'done'       ? 'var(--pc-sage)' :
-    status === 'inprogress' ? 'var(--pc-gold)' :
-    'rgba(255,255,255,0.35)';
+    status === 'done'       ? 'var(--pc-success)' :
+    status === 'inprogress' ? 'var(--pc-sage)' :
+    'var(--pc-fg-4)';
 
   return (
     <div style={{
@@ -117,26 +121,26 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
       alignItems: 'center',
       padding: '0 20px 40px',
       boxSizing: 'border-box',
-      fontFamily: 'var(--font-sans, Inter Tight, sans-serif)',
+      fontFamily: 'var(--pc-sans)',
     }}>
 
       {/* Header */}
       <div style={{ width: '100%', maxWidth: 440, paddingTop: 48, paddingBottom: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 32 }}>
           <PCMark />
-          <span style={{ fontFamily: 'Georgia, serif', fontSize: 15, color: 'rgba(255,255,255,0.9)', letterSpacing: '0.02em' }}>Perfect Cleaners</span>
+          <span style={{ fontFamily: 'var(--pc-serif)', fontSize: 15, color: 'var(--pc-fg)', letterSpacing: '0.02em' }}>Perfect Cleaners</span>
         </div>
 
-        <p style={{ fontFamily: 'inherit', fontSize: 10, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 6px' }}>
+        <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 6px' }}>
           CLEANING SESSION
         </p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-          <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 24, fontWeight: 400, color: '#fff', margin: 0, letterSpacing: '-0.02em' }}>
+          <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 24, fontWeight: 400, color: 'var(--pc-fg)', margin: 0, letterSpacing: '-0.02em' }}>
             {tower ? `${tower} · ${societyName}` : societyName}
           </h1>
         </div>
         {scheduledDate && (
-          <p style={{ fontFamily: 'inherit', fontSize: 13, color: 'rgba(255,255,255,0.45)', margin: 0 }}>
+          <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: 0 }}>
             {formatDate(scheduledDate)}
           </p>
         )}
@@ -146,18 +150,18 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
       <div style={{ width: '100%', maxWidth: 440, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px 0 28px' }}>
         <div style={{ position: 'relative', width: R * 2 + 20, height: R * 2 + 20 }}>
           <svg width={R * 2 + 20} height={R * 2 + 20} style={{ transform: 'rotate(-90deg)' }}>
-            {/* Track */}
-            <circle cx={R + 10} cy={R + 10} r={R} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={10} />
+            {/* Track — stroke/fill attributes don't resolve CSS vars, so the colour
+                must go through the style prop, not a raw stroke="var(...)" attribute. */}
+            <circle cx={R + 10} cy={R + 10} r={R} fill="none" style={{ stroke: 'var(--pc-line)' }} strokeWidth={10} />
             {/* Fill */}
             <circle
               cx={R + 10} cy={R + 10} r={R}
               fill="none"
-              stroke={statusColor}
+              style={{ stroke: statusColor, transition: 'stroke-dashoffset 0.5s ease, stroke 0.4s ease' }}
               strokeWidth={10}
               strokeLinecap="round"
               strokeDasharray={CIR}
               strokeDashoffset={offset}
-              style={{ transition: 'stroke-dashoffset 0.5s ease, stroke 0.4s ease' }}
             />
           </svg>
           {/* Center text */}
@@ -165,16 +169,16 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
             position: 'absolute', inset: 0,
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           }}>
-            <span style={{ fontFamily: 'Georgia, serif', fontSize: 38, fontWeight: 400, color: '#fff', lineHeight: 1 }}>
+            <span style={{ fontFamily: 'var(--pc-serif)', fontSize: 38, fontWeight: 400, color: 'var(--pc-fg)', lineHeight: 1 }}>
               {completedCars}
             </span>
-            <span style={{ fontFamily: 'inherit', fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>
+            <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)', marginTop: 2 }}>
               of {totalCars}
             </span>
           </div>
         </div>
 
-        <p style={{ fontFamily: 'inherit', fontSize: 11, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '12px 0 0' }}>
+        <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '12px 0 0' }}>
           {status === 'done' ? 'Session complete' : 'Cars cleaned'}
         </p>
       </div>
@@ -183,12 +187,12 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
       <div style={{
         display: 'inline-flex', alignItems: 'center', gap: 6,
         padding: '5px 14px', borderRadius: 999,
-        background: status === 'done' ? 'color-mix(in srgb, var(--pc-sage) 20%, transparent)' : status === 'inprogress' ? 'color-mix(in srgb, var(--pc-gold) 15%, transparent)' : 'rgba(255,255,255,0.06)',
+        background: status === 'done' ? 'color-mix(in srgb, var(--pc-success) 20%, transparent)' : status === 'inprogress' ? 'color-mix(in srgb, var(--pc-sage) 15%, transparent)' : 'var(--pc-card)',
         border: `1px solid ${statusColor}`,
         marginBottom: 40,
       }}>
         <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: '50%', background: statusColor, display: 'inline-block' }} />
-        <span style={{ fontFamily: 'inherit', fontSize: 12, color: statusColor, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+        <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: statusColor, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
           {status === 'scheduled' ? 'Scheduled' : status === 'inprogress' ? 'In progress' : 'Done'}
         </span>
       </div>
@@ -196,7 +200,7 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
       {/* Action area */}
       <div style={{ width: '100%', maxWidth: 440, display: 'flex', flexDirection: 'column', gap: 12 }}>
         {error && (
-          <p style={{ fontFamily: 'inherit', fontSize: 12, color: '#E05252', margin: '0 0 4px', textAlign: 'center' }}>{error}</p>
+          <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-danger)', margin: '0 0 4px', textAlign: 'center' }}>{error}</p>
         )}
 
         {status === 'scheduled' && (
@@ -206,9 +210,9 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
             onClick={() => sendAction('start')}
             style={{
               width: '100%', padding: '18px 0', borderRadius: 14, border: 'none',
-              background: acting ? 'rgba(255,255,255,0.08)' : 'var(--pc-sage)',
-              fontFamily: 'inherit', fontSize: 15, fontWeight: 600,
-              color: acting ? 'rgba(255,255,255,0.3)' : '#fff',
+              background: acting ? 'var(--pc-line)' : 'var(--pc-warm)',
+              fontFamily: 'var(--pc-sans)', fontSize: 15, fontWeight: 600,
+              color: acting ? 'var(--pc-fg-4)' : 'var(--pc-ink)',
               cursor: acting ? 'default' : 'pointer',
               letterSpacing: '0.04em',
               transition: 'background 0.2s ease',
@@ -220,17 +224,18 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
 
         {status === 'inprogress' && (
           <>
+            {/* Primary action while a job is running — warm is the only approved
+                solid-CTA colour; sage/gold are reserved for fills and status
+                badges and are never used as a button fill. */}
             <button
               type="button"
               disabled={acting || allDone}
               onClick={() => sendAction('increment')}
               style={{
                 width: '100%', padding: '22px 0', borderRadius: 14, border: 'none',
-                background: acting || allDone ? 'rgba(255,255,255,0.06)' : 'color-mix(in srgb, var(--pc-gold) 15%, transparent)',
-                borderWidth: 1, borderStyle: 'solid',
-                borderColor: acting || allDone ? 'rgba(255,255,255,0.1)' : 'var(--pc-gold)',
-                fontFamily: 'inherit', fontSize: 16, fontWeight: 700,
-                color: acting || allDone ? 'rgba(255,255,255,0.25)' : 'var(--pc-gold)',
+                background: acting || allDone ? 'var(--pc-line)' : 'var(--pc-warm)',
+                fontFamily: 'var(--pc-sans)', fontSize: 16, fontWeight: 700,
+                color: acting || allDone ? 'var(--pc-fg-4)' : 'var(--pc-ink)',
                 cursor: acting || allDone ? 'default' : 'pointer',
                 letterSpacing: '0.04em',
                 transition: 'opacity 0.2s ease',
@@ -244,10 +249,10 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
               disabled={acting}
               onClick={() => sendAction('complete')}
               style={{
-                width: '100%', padding: '16px 0', borderRadius: 14, border: 'none',
-                background: acting ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.08)',
-                fontFamily: 'inherit', fontSize: 14, fontWeight: 600,
-                color: acting ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.55)',
+                width: '100%', padding: '16px 0', borderRadius: 14, border: `1px solid ${'var(--pc-line-strong)'}`,
+                background: 'transparent',
+                fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 600,
+                color: acting ? 'var(--pc-fg-4)' : 'var(--pc-fg-2)',
                 cursor: acting ? 'default' : 'pointer',
                 letterSpacing: '0.04em',
               }}
@@ -259,8 +264,8 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
 
         {status === 'done' && (
           <div style={{ textAlign: 'center', padding: '16px 0' }}>
-            <p style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: 'var(--pc-sage)', margin: '0 0 4px' }}>Session complete</p>
-            <p style={{ fontFamily: 'inherit', fontSize: 13, color: 'rgba(255,255,255,0.3)', margin: 0 }}>
+            <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 18, color: 'var(--pc-success)', margin: '0 0 4px' }}>Session complete</p>
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: 0 }}>
               {completedCars} car{completedCars !== 1 ? 's' : ''} cleaned
             </p>
           </div>
@@ -269,11 +274,11 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
 
       {/* Worker label */}
       <p style={{
-        fontFamily: 'inherit', fontSize: 12,
-        color: 'rgba(255,255,255,0.2)',
+        fontFamily: 'var(--pc-sans)', fontSize: 12,
+        color: 'var(--pc-fg-4)',
         marginTop: 'auto', paddingTop: 40, textAlign: 'center',
       }}>
-        Assigned to {workerName}
+        Assigned to {workerName || '—'}
       </p>
     </div>
   );
