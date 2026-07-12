@@ -7,7 +7,7 @@ import {
   doc, updateDoc, orderBy, limit, Timestamp, getDocs,
 } from 'firebase/firestore';
 import { db } from '@pc/firebase';
-import type { CleaningLog, Customer, CleaningSessionEnhanced } from '@pc/firebase';
+import type { CleaningLog, CustomerSocietyRecord, CleaningSessionEnhanced } from '@pc/firebase';
 import { useWorkerAuth } from '@/components/WorkerAuthProvider';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
@@ -88,17 +88,22 @@ export default function WorkerDashboard() {
     }, err => { console.warn('[WorkerDashboard] logs listener:', err); setLoading(false); });
   }, [user]);
 
-  // Total subscribed cars in assigned society (for progress denominator)
+  // Total subscribed cars in assigned society (for progress denominator).
+  // Society-program enrollment lives in customerSocietyRecords, not as a
+  // societyId field on the customers collection (that field is only ever set
+  // for old/bulk-imported docs) — querying customers here always returned 0,
+  // which is why the card showed "X/? done".
   useEffect(() => {
     if (!worker?.assignedSocietyId) { setTotal(0); return; }
     const q = query(
-      collection(db, 'customers'),
+      collection(db, 'customerSocietyRecords'),
       where('societyId', '==', worker.assignedSocietyId),
+      where('status', '==', 'active'),
     );
     // One-time fetch is enough for the denominator
     getDocs(q).then(snap => {
       const carCount = snap.docs.reduce(
-        (sum, d) => sum + ((d.data() as Customer).vehicles?.length ?? 0), 0,
+        (sum, d) => sum + ((d.data() as CustomerSocietyRecord).cars?.length || 1), 0,
       );
       setTotal(carCount);
     }).catch(err => console.warn('[WorkerDashboard] car count fetch:', err));
@@ -244,8 +249,8 @@ export default function WorkerDashboard() {
               <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--pc-sage)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon name="building-2" size={18} color="var(--pc-sage-ink)" />
               </div>
-              <div style={{ flex: 1 }}>
-                <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 16, fontWeight: 600, color: 'var(--pc-fg)', margin: '0 0 2px' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 16, fontWeight: 600, color: 'var(--pc-fg)', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {worker.assignedSocietyName ?? 'Society'}
                 </p>
                 <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', margin: 0, letterSpacing: '0.05em' }}>
@@ -253,6 +258,7 @@ export default function WorkerDashboard() {
                 </p>
               </div>
               <div style={{
+                flexShrink: 0,
                 padding: '4px 12px', borderRadius: 999,
                 background: pct === 100 ? 'rgba(111,174,106,0.15)' : 'rgba(91,111,82,0.15)',
                 border: `1px solid ${pct === 100 ? 'rgba(111,174,106,0.4)' : 'rgba(91,111,82,0.4)'}`,
