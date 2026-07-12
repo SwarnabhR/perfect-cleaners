@@ -66,6 +66,8 @@ export async function GET(req: NextRequest) {
 
                 return {
                   customerId:    customer.customerId,
+                  customerName:  customer.customerName || '',
+                  unitNumber:    customer.unitNumber || '',
                   carPlate:      customer.cars?.[0]?.plate  || '',
                   carMake:       customer.cars?.[0]?.make   || '',
                   carModel:      customer.cars?.[0]?.model  || '',

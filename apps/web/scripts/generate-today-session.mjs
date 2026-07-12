@@ -76,6 +76,8 @@ const cars = customersSnap.docs.map(d => {
   const c = d.data();
   return {
     customerId:    c.customerId,
+    customerName:  c.customerName || '',
+    unitNumber:    c.unitNumber || '',
     carPlate:      c.cars?.[0]?.plate  || '',
     carMake:       c.cars?.[0]?.make   || '',
     carModel:      c.cars?.[0]?.model  || '',

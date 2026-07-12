@@ -333,6 +333,8 @@ export interface PendingApproval {
 // Enhanced CleaningSession with real-time tracking
 export interface CleaningSessionCar {
   customerId: string;
+  customerName?: string;       // denormalized — who the car belongs to, for the worker on the ground
+  unitNumber?: string;         // denormalized — e.g. "1204" or "B-1204"
   carPlate: string;
   carMake: string;
   carModel: string;

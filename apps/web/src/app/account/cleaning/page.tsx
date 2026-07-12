@@ -11,6 +11,7 @@ import type { CustomerSocietyRecord, CleaningLog, Society, DayOfWeek } from '@pc
 import Link from 'next/link';
 import Nav from '@/components/marketing/Nav';
 import Footer from '@/components/marketing/Footer';
+import Icon from '@/components/ui/Icon';
 import { useCustomerAuth } from '@/lib/auth/CustomerAuthContext';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -521,6 +522,30 @@ export default function CleaningPage() {
   const [towerDays,  setTowerDays]  = useState<DayOfWeek[]>([]);
   const [logs,       setLogs]       = useState<(CleaningLog & { id: string })[]>([]);
   const [saving,     setSaving]     = useState(false);
+  const [ratingLogId, setRatingLogId] = useState<string | null>(null);
+
+  async function rateLog(logId: string, rating: number) {
+    if (!user) return;
+    setRatingLogId(logId);
+    setLogs(ls => ls.map(l => l.id === logId ? { ...l, rating } : l)); // optimistic
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch('/api/cleaning-log/rate', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body:    JSON.stringify({ logId, rating }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? 'Failed to submit rating.');
+      }
+    } catch {
+      // Revert the optimistic update on failure
+      setLogs(ls => ls.map(l => l.id === logId ? { ...l, rating: undefined } : l));
+    } finally {
+      setRatingLogId(null);
+    }
+  }
 
   useEffect(() => {
     if (!loading && !user) router.replace('/signin?from=/account/cleaning');
@@ -900,26 +925,54 @@ export default function CleaningPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {logs.map(log => (
                 <div key={log.id} style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   padding: 'var(--pc-space-4) var(--pc-space-5)',
                   background: 'var(--pc-card)', border: '1px solid var(--pc-line)',
                   borderRadius: 'var(--pc-radius-sm)',
                 }}>
-                  <div>
-                    <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg)', margin: 0 }}>
-                      {formatDateShort(log.cleanedAt)}
-                    </p>
-                    <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-4)', margin: '3px 0 0' }}>
-                      {log.vehicleRegistration} · cleaned by {log.workerName}
-                    </p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg)', margin: 0 }}>
+                        {formatDateShort(log.cleanedAt)}
+                      </p>
+                      <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-4)', margin: '3px 0 0' }}>
+                        {log.vehicleRegistration} · cleaned by {log.workerName}
+                      </p>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg)', margin: 0, fontWeight: 500 }}>
+                        ₹{log.servicePrice.toLocaleString('en-IN')}
+                      </p>
+                      <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, color: 'var(--pc-fg-4)', margin: '3px 0 0', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        {log.serviceType}
+                      </p>
+                    </div>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg)', margin: 0, fontWeight: 500 }}>
-                      ₹{log.servicePrice.toLocaleString('en-IN')}
-                    </p>
-                    <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, color: 'var(--pc-fg-4)', margin: '3px 0 0', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                      {log.serviceType}
-                    </p>
+
+                  {/* Rate this clean — writes once, folded into the worker's running average */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--pc-line)' }}>
+                    <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginRight: 6 }}>
+                      {log.rating ? 'Your rating' : 'Rate this clean'}
+                    </span>
+                    {[1, 2, 3, 4, 5].map(n => (
+                      <button
+                        key={n}
+                        type="button"
+                        disabled={!!log.rating || ratingLogId === log.id}
+                        onClick={() => rateLog(log.id, n)}
+                        aria-label={`Rate ${n} star${n === 1 ? '' : 's'}`}
+                        style={{
+                          background: 'none', border: 'none', padding: 2,
+                          cursor: log.rating ? 'default' : 'pointer', lineHeight: 0,
+                        }}
+                      >
+                        <Icon
+                          name="star"
+                          size={15}
+                          color={log.rating && n <= log.rating ? 'var(--pc-fg)' : 'var(--pc-fg-4)'}
+                          style={log.rating && n <= log.rating ? { fill: 'var(--pc-fg)' } : undefined}
+                        />
+                      </button>
+                    ))}
                   </div>
                 </div>
               ))}

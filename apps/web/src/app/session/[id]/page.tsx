@@ -51,6 +51,16 @@ export default async function SessionPage({ params }: Props) {
       completedCars: data.completedCars as number,
       startedAt:     data.startedAt?.toDate?.()?.toISOString()   ?? null,
       completedAt:   data.completedAt?.toDate?.()?.toISOString() ?? null,
+      cars: ((data.cars as Record<string, unknown>[] | undefined) ?? []).map(c => ({
+        customerId:    c.customerId    as string,
+        customerName:  (c.customerName as string | undefined) ?? '',
+        unitNumber:    (c.unitNumber   as string | undefined) ?? '',
+        carPlate:      (c.carPlate     as string | undefined) ?? '',
+        carMake:       (c.carMake      as string | undefined) ?? '',
+        carModel:      (c.carModel     as string | undefined) ?? '',
+        preferredTime: (c.preferredTime as number | undefined) ?? null,
+        status:        (c.status       as string | undefined) ?? 'pending',
+      })),
     };
 
     return <SessionClient initialSession={session} sessionId={id} />;

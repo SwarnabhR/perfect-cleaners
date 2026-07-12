@@ -143,6 +143,8 @@ export default function CleaningSchedulePage() {
 
         return {
           customerId:    customer.customerId as string,
+          customerName:  (customer.customerName as string | undefined) ?? '',
+          unitNumber:    (customer.unitNumber as string | undefined) ?? '',
           carPlate:      customer.cars?.[0]?.plate ?? '',
           carMake:       customer.cars?.[0]?.make  ?? '',
           carModel:      customer.cars?.[0]?.model ?? '',
@@ -161,7 +163,11 @@ export default function CleaningSchedulePage() {
 
     try {
       const scheduledDate = new Date(form.scheduledDate);
-      const sessionId = `${form.societyId}_${form.tower}_${form.scheduledDate}`;
+      // Doc IDs become URL path segments (worker links to /session/<id>) — a raw
+      // space in the tower name survives as literal "%20" through Next.js's
+      // dynamic route params instead of being decoded back, which 404s. Slug it.
+      const towerSlug = form.tower.trim().replace(/\s+/g, '-');
+      const sessionId = `${form.societyId}_${towerSlug}_${form.scheduledDate}`;
       const selectedWorkers = workers.filter(w => form.workerIds.includes(w.id));
       const workerNames = selectedWorkers.map(w => w.name);
       const cars = await buildCarsForSession(form.societyId.trim(), form.tower.trim(), scheduledDate);
