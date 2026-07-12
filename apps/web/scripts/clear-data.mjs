@@ -62,6 +62,12 @@ const COLLECTIONS = [
   'support',
   'societies',
   'promotions',
+  'customerSocietyRecords',
+  'pendingApprovals',
+  'societyBillingConfig',
+  'notifications',
+  'transactions',
+  'billingRecords',
 ];
 
 console.log('\n🗑️  Clearing Firestore data…\n');

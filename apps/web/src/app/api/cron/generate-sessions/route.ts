@@ -41,7 +41,11 @@ export async function GET(req: NextRequest) {
 
         for (const cleaningDate of cleaningDates) {
           try {
-            const sessionId = `${societyId}_${tower}_${cleaningDate.toISOString().split('T')[0]}`;
+            // Doc IDs become URL path segments (worker links to /session/<id>) — a raw
+            // space in the tower name survives as literal "%20" through Next.js's
+            // dynamic route params instead of being decoded back, which 404s. Slug it.
+            const towerSlug = String(tower).trim().replace(/\s+/g, '-');
+            const sessionId = `${societyId}_${towerSlug}_${cleaningDate.toISOString().split('T')[0]}`;
 
             // Skip if a session already exists — never overwrite an active or completed session
             const existing = await db.collection('cleaningSessions').doc(sessionId).get();

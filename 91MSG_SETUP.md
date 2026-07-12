@@ -60,16 +60,9 @@ This guide explains how to set up SMS delivery via **91msg** — an Indian SMS g
 
 ## Step 2: Add Environment Variables
 
-Replace Twilio variables with 91msg variables in `.env.local`:
+Add these to `.env.local`:
 
 ```env
-# Remove Twilio (optional, but cleanup):
-# TWILIO_ACCOUNT_SID=...
-# TWILIO_AUTH_TOKEN=...
-# TWILIO_PHONE_NUMBER=...
-
-# Add 91msg:
-SMS_PROVIDER=91msg
 NINEONE_MSG_API_KEY=your_api_key_here
 NINEONE_MSG_SENDER_ID=PCWASH
 ```
@@ -77,13 +70,11 @@ NINEONE_MSG_SENDER_ID=PCWASH
 ### For Vercel Deployment
 
 1. Go to **Vercel Dashboard → Project Settings → Environment Variables**
-2. Update/add:
-   - `SMS_PROVIDER` = `91msg`
+2. Add:
    - `NINEONE_MSG_API_KEY` = your key
    - `NINEONE_MSG_SENDER_ID` = PCWASH
-3. Remove Twilio variables (optional)
-4. Click **"Save"**
-5. Redeploy: `git push`
+3. Click **"Save"**
+4. Redeploy: `git push`
 
 ---
 
@@ -296,27 +287,6 @@ if (result.success) {
 9876543210     → 919876543210 ✓
 +91-9876543210 → 919876543210 ✓
 ```
-
----
-
-## Switch Between Providers
-
-You can use both Twilio and 91msg! Just change `SMS_PROVIDER`:
-
-```env
-# Use 91msg (Indian, cheaper)
-SMS_PROVIDER=91msg
-NINEONE_MSG_API_KEY=...
-NINEONE_MSG_SENDER_ID=...
-
-# OR use Twilio (International)
-SMS_PROVIDER=twilio
-TWILIO_ACCOUNT_SID=...
-TWILIO_AUTH_TOKEN=...
-TWILIO_PHONE_NUMBER=...
-```
-
-The API automatically chooses based on `SMS_PROVIDER` env var. 🔄
 
 ---
 

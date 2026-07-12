@@ -28,6 +28,25 @@ function formatTime(ts: Timestamp | Date | null | undefined): string {
   return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 }
 
+function toDate(ts: Timestamp | Date | null | undefined): Date | null {
+  if (!ts) return null;
+  return ts instanceof Timestamp ? ts.toDate() : new Date(ts);
+}
+
+function isSameDay(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function formatSessionDay(d: Date | null): string {
+  if (!d) return '';
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  if (isSameDay(d, today)) return 'Today';
+  if (isSameDay(d, tomorrow)) return 'Tomorrow';
+  return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
 export default function WorkerDashboard() {
   const { worker, user } = useWorkerAuth();
   const [logs,     setLogs]     = useState<LogRow[]>([]);
@@ -98,6 +117,12 @@ export default function WorkerDashboard() {
   const now      = new Date();
   const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 17 ? 'Good afternoon' : 'Good evening';
 
+  const todaysSessions = sessions
+    .filter(s => { const d = toDate(s.scheduledDate as unknown as Timestamp); return d ? isSameDay(d, now) : false; });
+  const upcomingSessions = sessions
+    .filter(s => !todaysSessions.includes(s))
+    .sort((a, b) => (toDate(a.scheduledDate as unknown as Timestamp)?.getTime() ?? 0) - (toDate(b.scheduledDate as unknown as Timestamp)?.getTime() ?? 0));
+
   return (
     <div style={{ padding: 'var(--pc-space-5) var(--pc-screen-pad-lg)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-5)' }}>
 
@@ -147,13 +172,13 @@ export default function WorkerDashboard() {
       </div>
 
       {/* Live cleaning session assignments — can be more than one tower/society on the same day */}
-      {sessions.length > 0 && (
+      {todaysSessions.length > 0 && (
         <div>
           <Eyebrow style={{ display: 'block', marginBottom: 10 }}>
-            {sessions.length > 1 ? `TODAY'S ASSIGNMENTS (${sessions.length})` : "TODAY'S ASSIGNMENT"}
+            {todaysSessions.length > 1 ? `TODAY'S ASSIGNMENTS (${todaysSessions.length})` : "TODAY'S ASSIGNMENT"}
           </Eyebrow>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {sessions.map(s => (
+            {todaysSessions.map(s => (
               <Link key={s.id} href={`/session/${s.id}`} style={{ textDecoration: 'none' }}>
                 <Card style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ width: 36, height: 36, borderRadius: 9, background: 'var(--pc-sage)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -169,6 +194,38 @@ export default function WorkerDashboard() {
                   </div>
                   <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', flexShrink: 0 }}>
                     {s.completedCars}/{s.totalCars} done
+                  </div>
+                  <Icon name="arrow-right" size={14} color="var(--pc-fg-3)" />
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Upcoming assignments — future-dated sessions already created (e.g. tomorrow's tower) */}
+      {upcomingSessions.length > 0 && (
+        <div>
+          <Eyebrow style={{ display: 'block', marginBottom: 10 }}>
+            {upcomingSessions.length > 1 ? `UPCOMING (${upcomingSessions.length})` : 'UPCOMING'}
+          </Eyebrow>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {upcomingSessions.map(s => (
+              <Link key={s.id} href={`/session/${s.id}`} style={{ textDecoration: 'none' }}>
+                <Card style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, opacity: 0.85 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 9, background: 'var(--pc-card-hi)', border: '1px solid var(--pc-line)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Icon name="calendar" size={16} color="var(--pc-fg-3)" />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 600, color: 'var(--pc-fg)', margin: '0 0 2px' }}>
+                      {s.societyName}{s.tower ? ` · ${s.tower}` : ''}
+                    </p>
+                    <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', margin: 0, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                      {formatSessionDay(toDate(s.scheduledDate as unknown as Timestamp))}
+                    </p>
+                  </div>
+                  <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', flexShrink: 0 }}>
+                    {s.totalCars} car{s.totalCars === 1 ? '' : 's'}
                   </div>
                   <Icon name="arrow-right" size={14} color="var(--pc-fg-3)" />
                 </Card>

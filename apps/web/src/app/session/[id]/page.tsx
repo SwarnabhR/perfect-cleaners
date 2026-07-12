@@ -40,8 +40,11 @@ export default async function SessionPage({ params }: Props) {
       societyId:     data.societyId   as string,
       societyName:   data.societyName as string,
       tower:         (data.tower      as string | undefined) ?? null,
-      workerId:      data.workerId    as string,
-      workerName:    data.workerName  as string,
+      // Sessions are now written with multi-worker arrays (workerIds/workerNames);
+      // fall back to the legacy singular fields for any older docs.
+      workerName:    (data.workerNames as string[] | undefined)?.join(', ')
+                        ?? (data.workerName as string | undefined)
+                        ?? '',
       scheduledDate: data.scheduledDate?.toDate?.()?.toISOString() ?? null,
       status:        data.status      as string,
       totalCars:     data.totalCars   as number,

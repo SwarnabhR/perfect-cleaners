@@ -3,7 +3,6 @@ import { toErrMsg } from '@/lib/api-error';
 import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminFirestore, adminAuth } from '@/lib/firebase/admin';
-import { sendSMSViaTwilio, normalizePhoneNumber } from '@/lib/twilio';
 import { sendSMSVia91msg, normalizePhoneFor91msg } from '@/lib/91msg';
 
 type NotificationType = 'approval' | 'car_cleaned' | 'weekly_reminder' | 'payment_reminder' | 'cleaning_missed';
@@ -29,11 +28,7 @@ interface SMSResponse {
 
 async function sendSMS(phone: string, message: string): Promise<SMSResponse> {
   try {
-    const provider = process.env.SMS_PROVIDER ?? 'twilio';
-    if (provider === '91msg') {
-      return await sendSMSVia91msg(normalizePhoneFor91msg(phone), message);
-    }
-    return await sendSMSViaTwilio(normalizePhoneNumber(phone), message);
+    return await sendSMSVia91msg(normalizePhoneFor91msg(phone), message);
   } catch (err: unknown) {
     console.error('[Notification] SMS send failed:', err instanceof Error ? err.message : String(err));
     return { success: false, error: err instanceof Error ? err.message : String(err) };
