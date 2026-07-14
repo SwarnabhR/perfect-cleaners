@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Icon from '@/components/ui/Icon';
 
 function AdminLoginForm() {
-  const [email,    setEmail]    = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error,    setError]    = useState('');
   const [loading,  setLoading]  = useState(false);
@@ -20,13 +20,23 @@ function AdminLoginForm() {
     setError('');
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email.trim(), password);
+      const res = await fetch('/api/admin/resolve-username', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: username.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? 'Invalid username or password.');
+        return;
+      }
+      await signInWithEmailAndPassword(auth, data.email, password);
       router.replace(redirectTo);
     } catch (err: unknown) {
       const code = (err as AuthError)?.code;
       setError(
         code === 'auth/invalid-credential' || code === 'auth/user-not-found'
-          ? 'Invalid email or password.'
+          ? 'Invalid username or password.'
           : err instanceof Error ? err.message : 'Sign-in failed. Please try again.',
       );
     } finally {
@@ -75,17 +85,17 @@ function AdminLoginForm() {
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div>
-            <label htmlFor="admin-email" style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
-              Email
+            <label htmlFor="admin-username" style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
+              Username
             </label>
             <input
-              id="admin-email"
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
+              id="admin-username"
+              type="text"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
               required
-              autoComplete="email"
-              placeholder="admin@perfectcleaners.in"
+              autoComplete="username"
+              placeholder="admin"
               style={inputStyle}
             />
           </div>

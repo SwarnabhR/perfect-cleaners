@@ -2,9 +2,13 @@
  * bootstrap-admin.mjs — creates an admin Firebase Auth user + admins/{uid} doc.
  *
  * Usage:
- *   node scripts/bootstrap-admin.mjs <email> <password>
+ *   node scripts/bootstrap-admin.mjs <email> <password> [username]
  *
- * Run this once to set up the first admin account, then log in at /login.
+ * `username` is what the admin actually types in at /login — it's just a
+ * friendly wrapper resolved server-side to the real `email` before signing
+ * in with Firebase Auth. Defaults to the part of the email before the "@".
+ *
+ * Run this once per admin account, then log in at /login.
  */
 
 import { readFileSync } from 'node:fs';
@@ -40,17 +44,19 @@ if (!projectId || !clientEmail || !privateKey) {
   process.exit(1);
 }
 
-const [email, password] = process.argv.slice(2);
+const [email, password, usernameArg] = process.argv.slice(2);
 
 if (!email || !password) {
   console.error(`
-Usage: node scripts/bootstrap-admin.mjs <email> <password>
+Usage: node scripts/bootstrap-admin.mjs <email> <password> [username]
 
 Example:
-  node scripts/bootstrap-admin.mjs admin@perfectcleaners.in MySecurePass123
+  node scripts/bootstrap-admin.mjs admin@perfectcleaners.in MySecurePass123 admin
 `);
   process.exit(1);
 }
+
+const username = (usernameArg || email.split('@')[0]).trim().toLowerCase();
 
 const { initializeApp, cert, getApps } = await import('firebase-admin/app');
 const { getAuth }      = await import('firebase-admin/auth');
@@ -83,15 +89,24 @@ try {
   }
 }
 
+// Usernames must be unique across admins/{uid} docs (other than this one)
+const clash = await db.collection('admins').where('username', '==', username).get();
+const takenByOther = clash.docs.find(d => d.id !== uid);
+if (takenByOther) {
+  console.error(`❌  Username "${username}" is already taken by admins/${takenByOther.id}`);
+  process.exit(1);
+}
+
 // Create or update the admins/{uid} document
 const adminRef = db.collection('admins').doc(uid);
-await adminRef.set({ email, createdAt: new Date() }, { merge: true });
-console.log(`  ✓  admins/${uid}  written`);
+await adminRef.set({ email, username, createdAt: new Date() }, { merge: true });
+console.log(`  ✓  admins/${uid}  written  (username: ${username})`);
 
 console.log(`
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  Email    ${email}
+  Username ${username}
   Password ${password}
+  Email    ${email}
   UID      ${uid}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ✅  Admin ready. Sign in at http://localhost:3000/login
