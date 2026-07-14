@@ -206,6 +206,44 @@ export default function Nav() {
           flexShrink: 0,
         }}>
 
+          {/* Staff portals — desktop */}
+          <div
+            className="pc-nav-desktop"
+            style={{ display: 'flex', alignItems: 'center', gap: 'var(--pc-space-2)' }}
+          >
+            <Link
+              href="/login"
+              className="pc-nav-link"
+              style={{
+                fontFamily: 'var(--pc-mono)',
+                fontSize: 10,
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                color: 'var(--pc-fg-4)',
+                textDecoration: 'none',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Admin
+            </Link>
+            <span aria-hidden="true" style={{ width: 1, height: 10, background: 'var(--pc-line-strong)' }} />
+            <Link
+              href="/worker/login"
+              className="pc-nav-link"
+              style={{
+                fontFamily: 'var(--pc-mono)',
+                fontSize: 10,
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                color: 'var(--pc-fg-4)',
+                textDecoration: 'none',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Worker
+            </Link>
+          </div>
+
           {/* Theme toggle — desktop */}
           <button
             type="button"
@@ -380,6 +418,41 @@ export default function Nav() {
             >
               {user ? 'My Account' : 'Sign In / Sign Up'}
             </Link>
+
+            <div style={{ display: 'flex', gap: 'var(--pc-space-3)' }}>
+              <Link
+                href="/login"
+                onClick={() => setMenuOpen(false)}
+                style={{
+                  flex: 1, display: 'block', textAlign: 'center',
+                  padding: 'var(--pc-space-3) 0', borderRadius: '999px',
+                  background: 'transparent',
+                  border: '1px solid var(--pc-line-faint)',
+                  color: 'var(--pc-fg-4)',
+                  fontFamily: 'var(--pc-mono)', fontSize: 11,
+                  letterSpacing: '0.14em', textTransform: 'uppercase',
+                  textDecoration: 'none',
+                }}
+              >
+                Admin login
+              </Link>
+              <Link
+                href="/worker/login"
+                onClick={() => setMenuOpen(false)}
+                style={{
+                  flex: 1, display: 'block', textAlign: 'center',
+                  padding: 'var(--pc-space-3) 0', borderRadius: '999px',
+                  background: 'transparent',
+                  border: '1px solid var(--pc-line-faint)',
+                  color: 'var(--pc-fg-4)',
+                  fontFamily: 'var(--pc-mono)', fontSize: 11,
+                  letterSpacing: '0.14em', textTransform: 'uppercase',
+                  textDecoration: 'none',
+                }}
+              >
+                Worker login
+              </Link>
+            </div>
           </div>
         </div>
       </div>
