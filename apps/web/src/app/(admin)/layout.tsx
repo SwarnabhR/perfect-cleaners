@@ -124,6 +124,10 @@ function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
 
+  // /login renders its own full-screen layout — don't bleed the
+  // authenticated sidebar/topbar chrome behind it.
+  if (pathname === '/login') return <>{children}</>;
+
   return (
     <>
       {/* ── Mobile overlay ───────────────────────────────────────────────── */}
