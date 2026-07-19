@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ScrollView, View, Text, TouchableOpacity, TextInput, ActivityIndicator,
   StyleSheet, Alert, Modal, FlatList,
@@ -100,9 +100,6 @@ export default function CleaningScheduleScreen() {
   const ss = useSharedStyles();
   const s = makeStyles(c);
 
-  const uid = auth().currentUser?.uid;
-  const phone = auth().currentUser?.phoneNumber;
-
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [record, setRecord] = useState<SocietyRecord | null | 'loading'>('loading');
@@ -111,9 +108,7 @@ export default function CleaningScheduleScreen() {
   const [ratingLogId, setRatingLogId] = useState<string | null>(null);
 
   // Fetch society record and cleaning logs
-  const loadData = useCallback(async () => {
-    if (!uid) { setLoading(false); setRecord(null); return; }
-
+  async function loadData(uid: string, phone: string | null) {
     try {
       const recordsSnap = await firestore()
         .collection('customerSocietyRecords')
@@ -216,14 +211,15 @@ export default function CleaningScheduleScreen() {
       setLoading(false);
       setRecord(null);
     }
-  }, [uid, phone]);
+  }
 
   useEffect(() => {
     const unsubscribe = auth().onAuthStateChanged(user => {
-      if (user) loadData();
+      if (!user) { setLoading(false); setRecord(null); return; }
+      loadData(user.uid, user.phoneNumber);
     });
     return unsubscribe;
-  }, [loadData]);
+  }, []);
 
   async function toggleSkip(date: Date) {
     if (!record || record === 'loading') return;
