@@ -93,6 +93,7 @@ const NAV = [
   { label: 'Approvals',   href: '/pending-approvals', icon: 'check-circle' },
   { label: 'Schedule',    href: '/cleaning-schedule', icon: 'calendar'     },
   { label: 'Live Cleaning', href: '/live-cleaning', icon: 'activity'      },
+  { label: 'Cleaning Logs', href: '/cleaning-logs', icon: 'list-checks'   },
   { label: 'Enrollments', href: '/customer-enrollments', icon: 'users'     },
   // People & Services
   { label: 'Customers',   href: '/customers',      icon: 'users'            },
