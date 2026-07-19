@@ -4,26 +4,25 @@ import {
   StyleSheet, ActivityIndicator, Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Building2, CheckCircle2, Circle, Loader } from 'lucide-react-native';
+import { Building2, CheckCircle2, Circle, Loader, Clock } from 'lucide-react-native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
-import type { Worker } from '@pc/firebase';
+import type { Worker, CleaningSessionCar } from '@pc/firebase';
 import { typography, spacing, radii } from '@pc/tokens';
 import { useThemeColors } from '../../../theme';
 import { useSharedStyles } from '../../../theme/sharedStyles';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface ResidentCar {
-  customerId:          string;
-  customerName:        string;
-  unitNumber:          string;
-  vehicleRegistration: string;
-  vehicleMake:         string;
-  vehicleModel:        string;
-  status:              'pending' | 'cleaning' | 'done';
-  logId?:              string;
+interface SessionCar extends CleaningSessionCar {
+  sessionId: string;
+  carIndex: number;
+  societyName: string;
+  tower: string;
+  logId?: string;
 }
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function todayStart(): Date {
   const d = new Date();
@@ -31,8 +30,21 @@ function todayStart(): Date {
   return d;
 }
 
-function unitSort(a: ResidentCar, b: ResidentCar) {
-  return a.unitNumber.localeCompare(b.unitNumber, 'en', { numeric: true });
+function isLocalDateMatch(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear()
+    && a.getMonth() === b.getMonth()
+    && a.getDate() === b.getDate();
+}
+
+function getTimeSlotLabel(hour: number): string {
+  const h12 = hour % 12 || 12;
+  const ampm = hour < 12 ? 'AM' : 'PM';
+  const period = hour < 12 ? 'Morning' : hour < 17 ? 'Afternoon' : 'Evening';
+  return `${h12}:00 ${ampm} · ${period}`;
+}
+
+function unitSort(a: SessionCar, b: SessionCar) {
+  return (a.unitNumber ?? '').localeCompare(b.unitNumber ?? '', 'en', { numeric: true });
 }
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
@@ -42,12 +54,11 @@ export default function WorkerHome() {
   const c      = useThemeColors();
   const ss     = useSharedStyles();
 
-  const [worker,        setWorker]        = useState<(Worker & { id: string }) | null>(null);
-  const [pricePerWash,  setPricePerWash]  = useState(0);
-  const [cars,          setCars]          = useState<ResidentCar[]>([]);
-  const [loading,       setLoading]       = useState(true);
-  const [toggling,      setToggling]      = useState(false);
-  const [marking,       setMarking]       = useState<string | null>(null);
+  const [worker,          setWorker]          = useState<(Worker & { id: string }) | null>(null);
+  const [cars,            setCars]            = useState<SessionCar[]>([]);
+  const [loading,         setLoading]         = useState(true);
+  const [toggling,        setToggling]        = useState(false);
+  const [marking,         setMarking]         = useState<string | null>(null);
 
   const uid = auth().currentUser?.uid;
 
@@ -59,88 +70,125 @@ export default function WorkerHome() {
     });
   }, [uid]);
 
-  // Fetch society pricePerWash when assignment changes
+  // Live cleaning sessions for today where worker is assigned
   useEffect(() => {
-    if (!worker?.assignedSocietyId) { setPricePerWash(0); return; }
-    firestore()
-      .collection('societies')
-      .doc(worker.assignedSocietyId)
-      .get()
-      .then(snap => setPricePerWash((snap.data() as any)?.pricePerWash ?? 0))
-      .catch(() => {});
-  }, [worker?.assignedSocietyId]);
+    if (!uid) return;
 
-  // Load residents + today's logs when society changes
-  useEffect(() => {
-    if (!worker?.assignedSocietyId) { setLoading(false); return; }
-    setLoading(true);
-    const societyId = worker.assignedSocietyId;
-    let residents: ResidentCar[] = [];
+    const today = todayStart();
+    const tomorrow = new Date(today.getTime() + 86400000);
 
-    firestore()
-      .collection('customers')
-      .where('societyId', '==', societyId)
-      .get()
-      .then(snap => {
-        residents = snap.docs.flatMap(d => {
+    return firestore()
+      .collection('cleaningSessions')
+      .where('workerIds', 'array-contains', uid)
+      .onSnapshot(snap => {
+        const allCars: SessionCar[] = [];
+
+        snap.docs.forEach(d => {
           const data = d.data() as any;
-          return ((data.vehicles ?? []) as any[]).map((v: any) => ({
-            customerId:          d.id,
-            customerName:        data.name ?? '—',
-            unitNumber:          data.unitNumber ?? '—',
-            vehicleRegistration: v.registration ?? '—',
-            vehicleMake:         v.make ?? '',
-            vehicleModel:        v.model ?? '',
-            status:              'pending' as const,
-          }));
+          const scheduledDate = data.scheduledDate?.toDate?.() ?? data.scheduledDate;
+
+          if (!scheduledDate) return;
+          const sessionDate = scheduledDate instanceof Date ? scheduledDate : new Date(scheduledDate);
+          if (!isLocalDateMatch(sessionDate, today)) return;
+
+          const societyName = data.societyName ?? '';
+          const tower = data.tower ?? '';
+
+          (data.cars ?? []).forEach((car: any, idx: number) => {
+            allCars.push({
+              customerId:    car.customerId ?? '',
+              customerName:  car.customerName ?? '',
+              unitNumber:    car.unitNumber ?? '',
+              carPlate:      car.carPlate ?? '',
+              carMake:       car.carMake ?? '',
+              carModel:      car.carModel ?? '',
+              preferredTime: car.preferredTime ?? 9,
+              status:        car.status ?? 'pending',
+              cleanedBy:     car.cleanedBy,
+              cleanedAt:     car.cleanedAt,
+              sessionId:     d.id,
+              carIndex:      idx,
+              societyName,
+              tower,
+            });
+          });
         });
-        return firestore()
+
+        setCars(allCars.sort(unitSort));
+
+        // Load today's cleaning logs to enrich with logId
+        firestore()
           .collection('cleaningLogs')
-          .where('workerId',  '==', uid)
-          .where('societyId', '==', societyId)
-          .where('cleanedAt', '>=', firestore.Timestamp.fromDate(todayStart()))
-          .get();
-      })
-      .then(logsSnap => {
-        const doneMap = new Map<string, string>();
-        logsSnap.docs.forEach(d => doneMap.set(d.data().vehicleRegistration as string, d.id));
-        setCars(
-          residents
-            .map(r => ({
-              ...r,
-              status: doneMap.has(r.vehicleRegistration) ? ('done' as const) : r.status,
-              logId:  doneMap.get(r.vehicleRegistration),
-            }))
-            .sort(unitSort),
-        );
+          .where('workerId', '==', uid)
+          .where('cleanedAt', '>=', firestore.Timestamp.fromDate(today))
+          .get()
+          .then(logsSnap => {
+            const logMap = new Map<string, string>();
+            logsSnap.docs.forEach(d => {
+              const data = d.data();
+              const key = `${data.sessionId ?? ''}_${data.vehicleRegistration ?? ''}`;
+              logMap.set(key, d.id);
+            });
+            setCars(prev => prev.map(c => ({
+              ...c,
+              logId: logMap.get(`${c.sessionId}_${c.carPlate}`),
+            })));
+          })
+          .catch(() => {});
+
         setLoading(false);
-      })
-      .catch(err => { console.warn('[WorkerHome]', err.message); setLoading(false); });
-  }, [worker?.assignedSocietyId, uid]);
+      }, err => {
+        console.warn('[WorkerHome] sessions:', err.message);
+        setLoading(false);
+      });
+  }, [uid]);
 
-  async function toggleOnline() {
-    if (!uid || !worker || toggling) return;
-    setToggling(true);
-    await firestore().collection('workers').doc(uid).update({ isOnline: !worker.isOnline });
-    setToggling(false);
-  }
-
-  function markCleaning(reg: string) {
-    setCars(prev => prev.map(c => c.vehicleRegistration === reg ? { ...c, status: 'cleaning' } : c));
-  }
-
-  const markDone = useCallback(async (car: ResidentCar) => {
-    if (marking || !uid || !worker?.assignedSocietyId) return;
-    setMarking(car.vehicleRegistration);
+  const markCleaning = useCallback(async (sessionId: string, carIndex: number) => {
+    setCars(prev => prev.map(c =>
+      c.sessionId === sessionId && c.carIndex === carIndex
+        ? { ...c, status: 'in_progress' as const }
+        : c,
+    ));
     try {
-      const ref = firestore().collection('cleaningLogs').doc();
-      await ref.set({
-        id:                  ref.id,
-        societyId:           worker.assignedSocietyId,
-        societyName:         worker.assignedSocietyName ?? '',
-        vehicleRegistration: car.vehicleRegistration,
-        vehicleMake:         car.vehicleMake,
-        vehicleModel:        car.vehicleModel,
+      await firestore()
+        .collection('cleaningSessions')
+        .doc(sessionId)
+        .update({
+          [`cars.${carIndex}.status`]: 'in_progress',
+          updatedAt: firestore.FieldValue.serverTimestamp(),
+        });
+    } catch {} // optimistic update already applied
+  }, []);
+
+  const markDone = useCallback(async (car: SessionCar) => {
+    if (marking || !uid || !worker) return;
+    const key = `${car.sessionId}-${car.carIndex}`;
+    setMarking(key);
+
+    try {
+      const sessionRef = firestore().collection('cleaningSessions').doc(car.sessionId);
+      const batch = firestore().batch();
+
+      // Update session cars array
+      batch.update(sessionRef, {
+        [`cars.${car.carIndex}.status`]: 'done',
+        [`cars.${car.carIndex}.cleanedBy`]: uid,
+        [`cars.${car.carIndex}.cleanedAt`]: firestore.FieldValue.serverTimestamp(),
+        completedCars: firestore.FieldValue.increment(1),
+        updatedAt: firestore.FieldValue.serverTimestamp(),
+      });
+
+      // Write cleaning log
+      const logRef = firestore().collection('cleaningLogs').doc();
+      batch.set(logRef, {
+        id:                  logRef.id,
+        sessionId:           car.sessionId,
+        societyId:           worker.assignedSocietyId ?? '',
+        societyName:         car.societyName,
+        tower:               car.tower,
+        vehicleRegistration: car.carPlate,
+        vehicleMake:         car.carMake,
+        vehicleModel:        car.carModel,
         customerId:          car.customerId,
         customerName:        car.customerName,
         unitNumber:          car.unitNumber,
@@ -148,18 +196,13 @@ export default function WorkerHome() {
         workerName:          worker.name,
         cleanedAt:           firestore.FieldValue.serverTimestamp(),
         serviceType:         'exterior',
-        servicePrice:        pricePerWash,
+        servicePrice:        0,
         photoUrls:           [],
         notificationSent:    false,
         billed:              false,
       });
-      setCars(prev =>
-        prev.map(c =>
-          c.vehicleRegistration === car.vehicleRegistration
-            ? { ...c, status: 'done', logId: ref.id }
-            : c,
-        ),
-      );
+
+      await batch.commit();
     } catch (err: any) {
       Alert.alert('Error', err?.message ?? 'Failed to mark car as done.');
     } finally {
@@ -169,8 +212,11 @@ export default function WorkerHome() {
 
   const total   = cars.length;
   const done    = cars.filter(c => c.status === 'done').length;
-  const ongoing = cars.filter(c => c.status === 'cleaning').length;
+  const ongoing = cars.filter(c => c.status === 'in_progress').length;
   const pct     = total > 0 ? Math.round((done / total) * 100) : 0;
+
+  // Group cars by time slot
+  const timeSlots = [...new Set(cars.map(c => c.preferredTime))].sort((a, b) => a - b);
 
   const now      = new Date();
   const hour     = now.getHours();
@@ -201,7 +247,13 @@ export default function WorkerHome() {
         </View>
         <TouchableOpacity
           style={[s.toggle, worker?.isOnline && s.toggleOn]}
-          onPress={toggleOnline}
+          onPress={() => {
+            if (!uid || !worker) return;
+            setToggling(true);
+            firestore().collection('workers').doc(uid).update({ isOnline: !worker.isOnline })
+              .catch(() => {})
+              .finally(() => setToggling(false));
+          }}
           disabled={toggling}
           activeOpacity={0.75}
         >
@@ -259,33 +311,49 @@ export default function WorkerHome() {
         </View>
       )}
 
-      {/* Car list */}
+      {/* Car list grouped by time slot */}
       {worker?.assignedSocietyId && (
         <View style={s.listSection}>
-          <Text style={ss.eyebrow}>[CARS TO CLEAN] · {total} TOTAL</Text>
-
           {loading ? (
             <ActivityIndicator style={{ marginTop: spacing[8] }} color={c.fg3} />
           ) : cars.length === 0 ? (
             <View style={s.emptyList}>
               <Text style={s.emptyListText}>
-                No subscribed residents found in this society yet.
+                No cars scheduled for today. Sessions are created by your admin.
               </Text>
             </View>
           ) : (
-            <View style={s.carList}>
-              {cars.map(car => (
-                <CarRow
-                  key={car.vehicleRegistration}
-                  car={car}
-                  isMarking={marking === car.vehicleRegistration}
-                  onStartCleaning={() => markCleaning(car.vehicleRegistration)}
-                  onMarkDone={() => markDone(car)}
-                  c={c}
-                  s={s}
-                />
-              ))}
-            </View>
+            timeSlots.map(slot => {
+              const slotCars = cars.filter(c => c.preferredTime === slot);
+              const slotDone = slotCars.filter(c => c.status === 'done').length;
+              return (
+                <View key={slot} style={s.slotSection}>
+                  {/* Time slot header */}
+                  <View style={s.slotHeader}>
+                    <Clock size={14} color={c.fg3} strokeWidth={1.5} />
+                    <Text style={s.slotLabel}>{getTimeSlotLabel(slot)}</Text>
+                    <Text style={s.slotMeta}>
+                      {slotDone}/{slotCars.length} done
+                    </Text>
+                  </View>
+
+                  {/* Cars in this slot */}
+                  <View style={s.carList}>
+                    {slotCars.map(car => (
+                      <CarRow
+                        key={`${car.sessionId}-${car.carIndex}`}
+                        car={car}
+                        isMarking={marking === `${car.sessionId}-${car.carIndex}`}
+                        onStartCleaning={() => markCleaning(car.sessionId, car.carIndex)}
+                        onMarkDone={() => markDone(car)}
+                        c={c}
+                        s={s}
+                      />
+                    ))}
+                  </View>
+                </View>
+              );
+            })
           )}
         </View>
       )}
@@ -298,7 +366,7 @@ export default function WorkerHome() {
 function CarRow({
   car, isMarking, onStartCleaning, onMarkDone, c, s,
 }: {
-  car: ResidentCar;
+  car: SessionCar;
   isMarking: boolean;
   onStartCleaning: () => void;
   onMarkDone: () => void;
@@ -306,7 +374,7 @@ function CarRow({
   s: ReturnType<typeof makeStyles>;
 }) {
   const isDone     = car.status === 'done';
-  const isCleaning = car.status === 'cleaning';
+  const isCleaning = car.status === 'in_progress';
 
   return (
     <View style={[s.carRow, isDone && s.carRowDone]}>
@@ -327,9 +395,9 @@ function CarRow({
           </Text>
         </View>
         <Text style={[s.carPlate, isDone && s.textMuted]}>
-          {car.vehicleRegistration}
-          {(car.vehicleMake || car.vehicleModel)
-            ? ` · ${[car.vehicleMake, car.vehicleModel].filter(Boolean).join(' ')}`
+          {car.carPlate}
+          {(car.carMake || car.carModel)
+            ? ` · ${[car.carMake, car.carModel].filter(Boolean).join(' ')}`
             : ''}
         </Text>
       </View>
@@ -386,7 +454,11 @@ function makeStyles(c: ReturnType<typeof useThemeColors>) {
     noSocietyCard:         { marginHorizontal: spacing[5], marginTop: spacing[4], backgroundColor: c.card, borderRadius: radii.lg, borderWidth: 1, borderColor: c.line, padding: spacing[8], alignItems: 'center', gap: spacing[3] },
     noSocietyTitle:        { fontFamily: typography.serif, fontSize: 18, color: c.fg, letterSpacing: -0.2 },
     noSocietyBody:         { fontFamily: typography.sans, fontSize: 13, color: c.fg2, textAlign: 'center', lineHeight: 20 },
-    listSection:           { paddingHorizontal: spacing[5], paddingTop: spacing[5], gap: spacing[3] },
+    listSection:           { paddingHorizontal: spacing[5], paddingTop: spacing[5], gap: spacing[4] },
+    slotSection:           { gap: spacing[2] },
+    slotHeader:            { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    slotLabel:             { fontFamily: typography.sansSemiBold, fontSize: 13, color: c.fg, letterSpacing: -0.1 },
+    slotMeta:              { fontFamily: typography.mono, fontSize: 10, color: c.fg3, letterSpacing: 0.4, marginLeft: 'auto' },
     carList:               { gap: spacing[2] },
     emptyList:             { paddingVertical: spacing[6] },
     emptyListText:         { fontFamily: typography.sans, fontSize: 13, color: c.fg3, textAlign: 'center', lineHeight: 20 },

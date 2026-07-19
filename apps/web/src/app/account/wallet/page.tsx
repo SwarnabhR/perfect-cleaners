@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { collection, doc, onSnapshot, orderBy, query, limit } from 'firebase/firestore';
+import { collection, doc, onSnapshot, orderBy, query, limit, where, getDocs } from 'firebase/firestore';
 import { db } from '@pc/firebase';
 import Nav from '@/components/marketing/Nav';
 import Footer from '@/components/marketing/Footer';
@@ -73,6 +73,7 @@ export default function WalletPage() {
   const [outstanding, setOutstanding] = useState<number | null>(null);
   const [entries,     setEntries]     = useState<TxEntry[]>([]);
   const [txLoading,   setTxLoading]   = useState(true);
+  const [societyDues, setSocietyDues] = useState<{ societyName: string; monthlyFee: number; paymentStatus: string; tower: string }[]>([]);
 
   // Auth guard
   useEffect(() => {
@@ -123,6 +124,26 @@ export default function WalletPage() {
       },
     );
     return unsub;
+  }, [user]);
+
+  // Fetch society dues
+  useEffect(() => {
+    if (!user) return;
+    getDocs(query(
+      collection(db, 'customerSocietyRecords'),
+      where('customerId', '==', user.uid),
+    )).then(snap => {
+      const dues = snap.docs.map(d => {
+        const data = d.data() as any;
+        return {
+          societyName:  data.societyName ?? '',
+          monthlyFee:   data.monthlyFee ?? 0,
+          paymentStatus: data.paymentStatus ?? 'not_verified',
+          tower:        data.tower ?? '',
+        };
+      });
+      setSocietyDues(dues);
+    }).catch(() => {});
   }, [user]);
 
   // Online self-checkout is disabled for now — see the Razorpay loader
@@ -279,6 +300,48 @@ export default function WalletPage() {
           </div>
         ) : (
           <>
+        {/* Society dues */}
+        {societyDues.length > 0 && (
+          <div style={{
+            background:   'var(--pc-card)',
+            border:       '1px solid var(--pc-line)',
+            borderRadius: 'var(--pc-radius-lg)',
+            padding:      'var(--pc-space-6)',
+            marginBottom: 'var(--pc-space-6)',
+          }}>
+            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--pc-fg-3)', margin: '0 0 14px' }}>
+              [SOCIETY DUES]
+            </p>
+            {societyDues.map((due, i) => (
+              <div key={i} style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '12px 0', borderBottom: i < societyDues.length - 1 ? '1px solid var(--pc-line)' : 'none',
+              }}>
+                <div>
+                  <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg)', margin: '0 0 2px', fontWeight: 500 }}>
+                    {due.societyName}
+                  </p>
+                  <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)', margin: 0 }}>
+                    {due.tower} · ₹{due.monthlyFee.toLocaleString('en-IN')}/month
+                  </p>
+                </div>
+                <span style={{
+                  padding: '3px 10px', borderRadius: 999, whiteSpace: 'nowrap',
+                  fontFamily: 'var(--pc-mono)', fontSize: 9.5, letterSpacing: '0.06em',
+                  background: due.paymentStatus === 'paid'
+                    ? 'color-mix(in srgb, var(--pc-sage) 15%, transparent)'
+                    : 'color-mix(in srgb, var(--pc-warning) 12%, transparent)',
+                  border: `1px solid ${due.paymentStatus === 'paid'
+                    ? 'rgba(74,94,68,0.3)' : 'rgba(234,179,8,0.3)'}`,
+                  color: due.paymentStatus === 'paid' ? 'var(--pc-sage-hi)' : 'var(--pc-warning)',
+                }}>
+                  {due.paymentStatus === 'paid' ? 'PAID' : due.paymentStatus === 'pending_payment' ? 'DUE' : '—'}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Outstanding balance card */}
         <div style={{
           background:   isPaid ? 'var(--pc-sage)' : 'var(--pc-card)',

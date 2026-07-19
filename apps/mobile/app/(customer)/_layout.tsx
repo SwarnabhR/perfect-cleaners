@@ -22,6 +22,7 @@ export default function CustomerStackLayout() {
       <Stack.Screen name="help"            options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="support-chat"    options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="payment-methods" options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="cleaning-schedule" options={{ animation: 'slide_from_right' }} />
     </Stack>
   );
 }

@@ -43,7 +43,7 @@ function buildMessage(type: NotificationType, data: Record<string, unknown>): st
   }
 }
 
-async function storeNotification(payload: NotificationPayload, smsResponse: SMSResponse): Promise<string> {
+async function storeNotification(payload: NotificationPayload, message: string, smsResponse: SMSResponse): Promise<string> {
   const db = adminFirestore();
   const notificationId = `${payload.type}_${String(payload.data.customerId)}_${Date.now()}`;
   await db.collection('notifications').doc(notificationId).set({
@@ -51,6 +51,7 @@ async function storeNotification(payload: NotificationPayload, smsResponse: SMSR
     recipientPhone: payload.recipientPhone,
     recipientName:  payload.recipientName,
     data:           payload.data,
+    message,
     status:         smsResponse.success ? 'sent' : 'failed',
     messageId:      smsResponse.messageId,
     error:          smsResponse.error,
@@ -76,7 +77,7 @@ export async function sendAndStoreSMS(
     smsResponse = { success: false, error: err instanceof Error ? err.message : String(err) };
   }
 
-  const notificationId = await storeNotification(payload, smsResponse);
+  const notificationId = await storeNotification(payload, message, smsResponse);
 
   return { success: smsResponse.success, notificationId, message, messageId: smsResponse.messageId, error: smsResponse.error };
 }

@@ -141,41 +141,47 @@ export default function CustomerHome() {
 
       {/* Society card — shown when resident is linked to a partner society */}
       {societyInfo && (
-        <View style={[s.societyCard, { marginHorizontal: spacing[5], borderColor: c.line, backgroundColor: c.card }]}>
-          <View style={s.societyRow}>
-            <View style={[s.societyIcon, { backgroundColor: c.sage }]}>
-              <Building2 size={16} color={c.ink} strokeWidth={1.5} />
+        <TouchableOpacity
+          onPress={() => router.push('/(customer)/cleaning-schedule')}
+          activeOpacity={0.8}
+        >
+          <View style={[s.societyCard, { marginHorizontal: spacing[5], borderColor: c.line, backgroundColor: c.card }]}>
+            <View style={s.societyRow}>
+              <View style={[s.societyIcon, { backgroundColor: c.sage }]}>
+                <Building2 size={16} color={c.ink} strokeWidth={1.5} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[s.societyName, { color: c.fg }]}>{societyInfo.societyName}</Text>
+                <Text style={[s.societyUnit, { color: c.fg3 }]}>Unit {societyInfo.unitNumber}</Text>
+              </View>
+              <View style={[s.activePill, { backgroundColor: c.sage + '22', borderColor: c.sage + '55' }]}>
+                <View style={[s.activeDot, { backgroundColor: c.sageHi }]} />
+                <Text style={[s.activeText, { color: c.sageHi }]}>Active</Text>
+              </View>
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[s.societyName, { color: c.fg }]}>{societyInfo.societyName}</Text>
-              <Text style={[s.societyUnit, { color: c.fg3 }]}>Unit {societyInfo.unitNumber}</Text>
-            </View>
-            <View style={[s.activePill, { backgroundColor: c.sage + '22', borderColor: c.sage + '55' }]}>
-              <View style={[s.activeDot, { backgroundColor: c.sageHi }]} />
-              <Text style={[s.activeText, { color: c.sageHi }]}>Active</Text>
-            </View>
-          </View>
 
-          {/* Last clean status */}
-          <View style={[s.lastCleanRow, { borderTopColor: c.line }]}>
-            {lastClean ? (
-              <>
-                <CheckCircle2 size={14} color={c.sageHi} strokeWidth={1.5} />
-                <Text style={[s.lastCleanText, { color: c.fg2 }]}>
-                  <Text style={{ color: c.fg, fontFamily: typography.sansMedium }}>
-                    {lastClean.vehicleRegistration}
+            {/* Last clean status */}
+            <View style={[s.lastCleanRow, { borderTopColor: c.line }]}>
+              {lastClean ? (
+                <>
+                  <CheckCircle2 size={14} color={c.sageHi} strokeWidth={1.5} />
+                  <Text style={[s.lastCleanText, { color: c.fg2 }]}>
+                    <Text style={{ color: c.fg, fontFamily: typography.sansMedium }}>
+                      {lastClean.vehicleRegistration}
+                    </Text>
+                    {' '}cleaned {formatCleanedAt(lastClean.cleanedAt)} · {lastClean.serviceType}
                   </Text>
-                  {' '}cleaned {formatCleanedAt(lastClean.cleanedAt)} · {lastClean.serviceType}
-                </Text>
-              </>
-            ) : (
-              <>
-                <Clock size={14} color={c.fg3} strokeWidth={1.5} />
-                <Text style={[s.lastCleanText, { color: c.fg3 }]}>Awaiting first scheduled clean</Text>
-              </>
-            )}
+                </>
+              ) : (
+                <>
+                  <Clock size={14} color={c.fg3} strokeWidth={1.5} />
+                  <Text style={[s.lastCleanText, { color: c.fg3 }]}>Awaiting first scheduled clean</Text>
+                </>
+              )}
+              <ChevronRight size={14} color={c.fg3} strokeWidth={1.5} />
+            </View>
           </View>
-        </View>
+        </TouchableOpacity>
       )}
 
       {/* Hero card */}

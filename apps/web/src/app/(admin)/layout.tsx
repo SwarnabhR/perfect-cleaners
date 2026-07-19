@@ -99,6 +99,8 @@ const NAV = [
   { label: 'Workers',     href: '/workers',        icon: 'hard-hat'         },
   // Finance
   { label: 'Billing',     href: '/billing',        icon: 'indian-rupee'    },
+  // Comms
+  { label: 'Notifications', href: '/notifications', icon: 'bell'           },
   // Config
   { label: 'Settings',    href: '/settings',       icon: 'settings'         },
 ];

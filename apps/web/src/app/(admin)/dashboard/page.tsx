@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { collection, query, orderBy, limit, onSnapshot, Timestamp } from 'firebase/firestore';
+import { collection, query, orderBy, limit, onSnapshot, Timestamp, where, getDocs } from 'firebase/firestore';
 import { db } from '@pc/firebase';
 import type { Booking, Worker, BookingStatus } from '@pc/firebase';
 import Card from '@/components/ui/Card';
@@ -27,6 +27,11 @@ function formatTime(ts: MaybeTimestamp): string {
   const d = toDate(ts);
   if (!d) return '—';
   return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+}
+
+function todayString(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 // Build a 14-day sparkline from booking createdAt timestamps.
@@ -62,6 +67,12 @@ export default function DashboardPage() {
   const [workers,  setWorkers]  = useState<LiveWorker[]>([]);
   const [loading,  setLoading]  = useState(true);
 
+  const [activeMembers, setActiveMembers] = useState(0);
+  const [pendingApprovals, setPendingApprovals] = useState(0);
+  const [todaySessions, setTodaySessions] = useState(0);
+  const [societyRevenue, setSocietyRevenue] = useState(0);
+  const [societyLoading, setSocietyLoading] = useState(true);
+
   useEffect(() => {
     const q = query(collection(db, 'bookings'), orderBy('createdAt', 'desc'), limit(50));
     return onSnapshot(q,
@@ -74,6 +85,29 @@ export default function DashboardPage() {
     return onSnapshot(collection(db, 'workers'),
       snap => setWorkers(snap.docs.map(d => ({ id: d.id, ...d.data() } as LiveWorker))),
     );
+  }, []);
+
+  // Society KPIs — fetch once (not live, since they change infrequently)
+  useEffect(() => {
+    async function loadSocietyData() {
+      try {
+        const [membersSnap, approvalsSnap, sessionsSnap, incomeSnap] = await Promise.all([
+          getDocs(query(collection(db, 'customerSocietyRecords'), where('status', '==', 'active'))),
+          getDocs(query(collection(db, 'pendingApprovals'), where('status', '==', 'pending'))),
+          getDocs(query(collection(db, 'cleaningSessions'), where('scheduledDate', '>=', new Date()))),
+          getDocs(query(collection(db, 'cleaningLogs'), where('billed', '==', true))),
+        ]);
+        setActiveMembers(membersSnap.size);
+        setPendingApprovals(approvalsSnap.size);
+        setTodaySessions(sessionsSnap.size);
+        setSocietyRevenue(incomeSnap.docs.reduce((s, d) => s + ((d.data() as any).servicePrice ?? 0), 0));
+      } catch (err) {
+        console.warn('[Dashboard] society data:', err);
+      } finally {
+        setSocietyLoading(false);
+      }
+    }
+    loadSocietyData();
   }, []);
 
   const spark          = buildSparkline(bookings);
@@ -90,6 +124,13 @@ export default function DashboardPage() {
     { label: 'Total Bookings', value: loading ? '—' : String(bookings.length),                 delta: 'last 50',               icon: 'calendar',     positive: true  },
   ];
 
+  const societyKpis = [
+    { label: 'Society Members', value: societyLoading ? '—' : String(activeMembers),  delta: 'active enrollments',     icon: 'users',       positive: true  },
+    { label: 'Pending Approvals', value: societyLoading ? '—' : String(pendingApprovals), delta: 'awaiting review',       icon: 'clock',       positive: pendingApprovals === 0 },
+    { label: 'Upcoming Sessions', value: societyLoading ? '—' : String(todaySessions),  delta: 'scheduled',              icon: 'calendar',    positive: true  },
+    { label: 'Society Income',    value: societyLoading ? '—' : `₹${societyRevenue.toLocaleString('en-IN')}`, delta: 'billed cleans', icon: 'trending-up', positive: true  },
+  ];
+
   return (
     <div className="admin-page-root">
 
@@ -98,9 +139,31 @@ export default function DashboardPage() {
         <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 'var(--pc-text-2xl)', fontWeight: 400, color: 'var(--pc-fg)', margin: 0 }}>Dashboard</h1>
       </div>
 
-      {/* KPI cards */}
+      {/* KPI cards — individual bookings */}
       <div className="kpi-grid-4">
         {kpis.map(({ label, value, delta, icon, positive }) => (
+          <Card key={label} style={{ padding: 'var(--pc-space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-3)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)', textTransform: 'uppercase', letterSpacing: 'var(--pc-track-wide)', margin: 0 }}>{label}</p>
+              <Icon name={icon} size={14} color="var(--pc-fg-4)" />
+            </div>
+            <div>
+              <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 'var(--pc-text-2xl)', color: 'var(--pc-fg)', margin: '0 0 var(--pc-space-1)' }}>{value}</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pc-space-2)' }}>
+                <Icon name={positive ? 'arrow-up-right' : 'arrow-down-right'} size={12} color={positive ? 'var(--pc-sage)' : 'var(--pc-danger)'} />
+                <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: positive ? 'var(--pc-sage)' : 'var(--pc-danger)' }}>{delta}</span>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {/* KPI cards — society programme */}
+      <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--pc-fg-4)', marginBottom: 10 }}>
+        SOCIETY PROGRAMME
+      </div>
+      <div className="kpi-grid-4">
+        {societyKpis.map(({ label, value, delta, icon, positive }) => (
           <Card key={label} style={{ padding: 'var(--pc-space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-3)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)', textTransform: 'uppercase', letterSpacing: 'var(--pc-track-wide)', margin: 0 }}>{label}</p>

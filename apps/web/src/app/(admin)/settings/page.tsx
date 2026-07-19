@@ -41,12 +41,14 @@ interface SettingsDoc {
   notifs:       { email: boolean; sms: boolean; push: boolean };
   integrations: { razorpay: boolean; googleCalendar: boolean; whatsapp: boolean };
   business:     { name: string; email: string; phone: string; gst: string };
+  society:      { defaultPricePerWash: number; defaultSchedule: string; defaultTime: number };
 }
 
 const DEFAULTS: SettingsDoc = {
   notifs:       { email: true,  sms: true,  push: false },
   integrations: { razorpay: true, googleCalendar: false, whatsapp: true },
   business:     { name: 'Perfect Cleaners', email: 'ops@perfectcleaners.in', phone: '+91 98765 43210', gst: '' },
+  society:      { defaultPricePerWash: 150, defaultSchedule: 'Mon,Wed,Fri · 9:00 AM', defaultTime: 9 },
 };
 
 const SETTINGS_REF = () => doc(db, 'settings', 'operator');
@@ -57,6 +59,7 @@ export default function SettingsPage() {
   const [notifs,       setNotifs]       = useState(DEFAULTS.notifs);
   const [integrations, setIntegrations] = useState(DEFAULTS.integrations);
   const [business,     setBusiness]     = useState(DEFAULTS.business);
+  const [society,      setSociety]      = useState(DEFAULTS.society);
   const [saving,       setSaving]       = useState(false);
   const [saved,        setSaved]        = useState(false);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -69,13 +72,14 @@ export default function SettingsPage() {
       if (d.notifs)       setNotifs(n => ({ ...n, ...d.notifs }));
       if (d.integrations) setIntegrations(i => ({ ...i, ...d.integrations }));
       if (d.business)     setBusiness(b => ({ ...b, ...d.business }));
+      if (d.society)      setSociety(s => ({ ...s, ...d.society }));
     });
   }, []);
 
   async function handleSave() {
     setSaving(true);
     try {
-      await setDoc(SETTINGS_REF(), { notifs, integrations, business }, { merge: true });
+      await setDoc(SETTINGS_REF(), { notifs, integrations, business, society }, { merge: true });
       setSaved(true);
       if (savedTimer.current) clearTimeout(savedTimer.current);
       savedTimer.current = setTimeout(() => setSaved(false), 3000);
@@ -137,6 +141,51 @@ export default function SettingsPage() {
             <Toggle checked={integrations[item.key]} onChange={() => setIntegrations(i => ({ ...i, [item.key]: !i[item.key] }))} />
           </div>
         ))}
+      </Card>
+
+      {/* Society defaults */}
+      <Card>
+        <Eyebrow style={{ display: 'block', marginBottom: 20 }}>SOCIETY PROGRAMME DEFAULTS</Eyebrow>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 20 }}>
+          <div>
+            <label style={{ display: 'block', fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+              Default Price Per Wash (₹)
+            </label>
+            <input
+              type="number" min={0}
+              value={society.defaultPricePerWash}
+              onChange={e => setSociety(s => ({ ...s, defaultPricePerWash: Number(e.target.value) }))}
+              style={INPUT}
+            />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+              Default Schedule
+            </label>
+            <input
+              value={society.defaultSchedule}
+              onChange={e => setSociety(s => ({ ...s, defaultSchedule: e.target.value }))}
+              placeholder="Mon,Wed,Fri · 9:00 AM"
+              style={INPUT}
+            />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+              Default Cleaning Hour
+            </label>
+            <select
+              value={society.defaultTime}
+              onChange={e => setSociety(s => ({ ...s, defaultTime: Number(e.target.value) }))}
+              style={{ ...INPUT, cursor: 'pointer' }}
+            >
+              {Array.from({ length: 10 }, (_, i) => {
+                const h = i + 7;
+                const label = h === 12 ? '12:00 PM' : h < 12 ? `${h}:00 AM` : `${h - 12}:00 PM`;
+                return <option key={h} value={h}>{label}</option>;
+              })}
+            </select>
+          </div>
+        </div>
       </Card>
 
       {/* Business info */}

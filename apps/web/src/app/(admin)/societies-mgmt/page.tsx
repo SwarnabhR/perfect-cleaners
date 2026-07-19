@@ -344,7 +344,7 @@ function SocietyDetailPanel({
 
           <button type="button" onClick={onToggleActive} style={{
             flex: '1 1 120px', minHeight: 44, padding: '10px 0', borderRadius: 999,
-            background: society.isActive ? 'rgba(201,169,97,0.1)' : 'rgba(74,94,68,0.1)',
+            background: society.isActive ? 'color-mix(in srgb, var(--pc-gold) 10%, transparent)' : 'color-mix(in srgb, var(--pc-sage) 10%, transparent)',
             border: `1px solid ${society.isActive ? 'var(--pc-gold)' : 'var(--pc-sage-hi)'}`,
             fontFamily: 'var(--pc-sans)', fontSize: 13,
             color: society.isActive ? 'var(--pc-gold)' : 'var(--pc-sage-hi)', cursor: 'pointer',

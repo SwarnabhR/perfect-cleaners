@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { collection, query, where, getDocs, onSnapshot, doc, runTransaction, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, onSnapshot, doc, runTransaction, serverTimestamp, addDoc } from 'firebase/firestore';
 import { db } from '@pc/firebase';
 import type { CleaningSessionEnhanced, CleaningSessionCar } from '@pc/firebase';
 import Card from '@/components/ui/Card';
@@ -135,20 +135,6 @@ export default function LiveCleaningPage() {
     }
   }
 
-  // Marks a single car clean: flips its status in the session's cars[] and
-  // rolls up completedCars (auto-completing the session once every car is
-  // done), then best-effort SMS's the customer directly.
-  //
-  // Deliberately does NOT write a cleaningLogs doc here: firestore.rules only
-  // allows `create` on that collection when request.auth.uid === the log's
-  // own workerId, so a write authored by an admin session is rejected no
-  // matter what workerId we put in the payload — confirmed by testing this
-  // live before shipping it. Logging (and the billing/FCM pipeline that
-  // depends on it) has to be authored by the assigned worker, which today
-  // only exists on the mobile app. Fixing that for web needs either a
-  // worker-facing per-car action or a rules change to also allow isAdmin()
-  // on cleaningLogs create (matching the sibling cleaningSessions rule) —
-  // deliberately not done here since it changes the live security posture.
   async function markDone(car: CarListItem) {
     if (marking) return;
     const key = `${car.sessionId}-${car.carIndex}`;
@@ -156,6 +142,7 @@ export default function LiveCleaningPage() {
 
     try {
       const sessionRef = doc(db, 'cleaningSessions', car.sessionId);
+      let record: Record<string, unknown> | undefined;
       await runTransaction(db, async tx => {
         const snap = await tx.get(sessionRef);
         if (!snap.exists()) return;
@@ -175,18 +162,44 @@ export default function LiveCleaningPage() {
         });
       });
 
-      // Look up the resident's phone for the SMS — CleaningSessionCar only
-      // carries customerId, not the denormalized contact details.
+      // Write cleaningLog — rules now allow isAdmin() on cleaningLogs create
+      await addDoc(collection(db, 'cleaningLogs'), {
+        sessionId:           car.sessionId,
+        societyId:           '',
+        societyName:         car.societyName,
+        tower:               car.tower,
+        vehicleRegistration: car.carPlate,
+        vehicleMake:         car.carMake,
+        vehicleModel:        car.carModel,
+        customerId:          car.customerId,
+        customerName:        '',
+        unitNumber:          '',
+        workerId:            '',
+        workerName:          'Admin',
+        cleanedAt:           serverTimestamp(),
+        serviceType:         'exterior',
+        servicePrice:        0,
+        photoUrls:           [],
+        notificationSent:    false,
+        billed:              false,
+      });
+
+      // Look up the resident's phone for the SMS
       const recordsSnap = await getDocs(query(
         collection(db, 'customerSocietyRecords'),
         where('customerId', '==', car.customerId),
       ));
-      const record = recordsSnap.docs.find(d => d.data().tower === car.tower)?.data()
-        ?? recordsSnap.docs[0]?.data();
+      record = recordsSnap.docs.find(d => (d.data() as any).tower === car.tower)?.data() as Record<string, unknown>
+        ?? recordsSnap.docs[0]?.data() as Record<string, unknown> | undefined;
 
       if (record?.customerPhone) {
-        await notifyCarCleaned(record.customerPhone, record.customerName ?? 'there', car.carPlate, car.societyName, car.tower)
-          .catch(err => console.warn('[LiveCleaning] SMS notify failed:', err));
+        await notifyCarCleaned(
+          record.customerPhone as string,
+          (record.customerName as string | undefined) ?? 'there',
+          car.carPlate,
+          car.societyName,
+          car.tower,
+        ).catch(err => console.warn('[LiveCleaning] SMS notify failed:', err));
       }
     } catch (err: unknown) {
       console.error('[LiveCleaning] mark done failed:', err instanceof Error ? err.message : err);
@@ -387,7 +400,7 @@ export default function LiveCleaningPage() {
                                 height: 32,
                                 borderRadius: 6,
                                 border: car.unavailable ? '1px solid var(--pc-danger)' : '1px solid var(--pc-line)',
-                                background: car.unavailable ? 'rgba(239, 68, 68, 0.1)' : 'transparent',
+                                background: car.unavailable ? 'color-mix(in srgb, var(--pc-danger) 10%, transparent)' : 'transparent',
                                 cursor: toggling ? 'not-allowed' : 'pointer',
                                 display: 'flex',
                                 alignItems: 'center',

@@ -4,6 +4,17 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { adminFirestore } from '@/lib/firebase/admin';
 import { sendAndStoreSMS } from '@/lib/notify-sms';
 
+// This cron bills every active record unconditionally whenever it runs
+// (the 1st of the month, per cron-jobs.org) — nextBillingDate is informational
+// only, so it should always point at the *next* 1st, not "30 days from now"
+// (which drifts off the 1st if the cron doesn't fire at exactly midnight).
+function firstOfNextMonth(): Date {
+  const d = new Date();
+  d.setMonth(d.getMonth() + 1, 1);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
 export async function GET(req: NextRequest) {
   const auth = req.headers.get('authorization');
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -43,7 +54,7 @@ export async function GET(req: NextRequest) {
         await db.collection('customerSocietyRecords').doc(docSnap.id).set(
           {
             paymentStatus:   'pending_payment',
-            nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            nextBillingDate: firstOfNextMonth(),
             updatedAt:       FieldValue.serverTimestamp(),
           },
           { merge: true },

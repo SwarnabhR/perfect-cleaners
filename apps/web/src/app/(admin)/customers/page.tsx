@@ -166,7 +166,7 @@ export default function CustomersPage() {
                 {name}
                 <span style={{
                   padding: '1px 6px', borderRadius: 999,
-                  background: societyFilter === name ? 'rgba(255,255,255,0.2)' : 'var(--pc-card-hi)',
+                  background: societyFilter === name ? 'color-mix(in srgb, var(--pc-sage-ink) 25%, transparent)' : 'var(--pc-card-hi)',
                   fontFamily: 'var(--pc-mono)', fontSize: 10,
                   color: societyFilter === name ? 'var(--pc-sage-ink)' : 'var(--pc-fg-3)',
                 }}>{count}</span>
