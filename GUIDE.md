@@ -197,9 +197,7 @@ Use this page to:
 
 ### 3.5 Customers (`/customers`)
 
-- View all registered residents with their society, unit, vehicles, booking count, and tier
-- Filter by loyalty tier (Platinum / Gold / Silver / Bronze — based on total spend on
-  premium add-ons)
+- View all registered residents with their society, unit, vehicles, and booking count
 - Search by name or phone
 
 ### 3.6 Bookings (`/bookings`)

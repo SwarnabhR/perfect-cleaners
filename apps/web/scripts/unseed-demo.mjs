@@ -42,6 +42,8 @@ if (!getApps().length) {
 
 const db = getFirestore();
 
+// ── Known document IDs ──────────────────────────────────────────────────────────
+
 const DEMO_IDS = {
   workers: [
     'demo_worker_ravi_001', 'demo_worker_suresh_002', 'demo_worker_aakash_003',
@@ -64,7 +66,49 @@ const DEMO_IDS = {
     'demo_booking_017', 'demo_booking_018', 'demo_booking_019', 'demo_booking_020',
     'demo_booking_021',
   ],
+  pendingApprovals: [
+    'approval_kavita_mahagun', 'approval_vikas_noida', 'approval_ananya_dlf',
+  ],
+  cleaningLogs: [
+    'log_rahul_01', 'log_rahul_02', 'log_rahul_03',
+    'log_priya_01', 'log_priya_02',
+    'log_sanjay_01', 'log_sanjay_02',
+    'log_rohit_01', 'log_neha_01', 'log_divya_01', 'log_amit_01',
+  ],
+  paymentLogs: [
+    'pay_demo_001', 'pay_demo_002', 'pay_demo_003', 'pay_demo_004',
+    'pay_demo_005', 'pay_demo_006', 'pay_demo_007', 'pay_demo_008',
+    'pay_demo_009', 'pay_demo_010',
+    'pay_society_uni_001', 'pay_society_uni_002',
+    'pay_society_dlf_001', 'pay_society_mah_001',
+  ],
+  customerSocietyRecords: [
+    'enroll_rahul_uniworld', 'enroll_priya_uniworld', 'enroll_amit_uniworld',
+    'enroll_sanjay_dlf', 'enroll_divya_dlf',
+    'enroll_rohit_mahagun', 'enroll_neha_mahagun', 'enroll_kavita_mahagun',
+  ],
 };
+
+// ── Pattern: delete all docs starting with "demo_" or "enroll_" or "approval_" or "log_" or "pay_" ──
+
+async function deleteByPrefix(col, prefixes) {
+  let deleted = 0;
+  for (const prefix of prefixes) {
+    const snap = await db.collection(col)
+      .orderBy('__name__')
+      .startAt(prefix)
+      .endAt(prefix + '\uf8ff')
+      .get();
+    for (const doc of snap.docs) {
+      await doc.ref.delete();
+      deleted++;
+      console.log(`  ✗  ${col}/${doc.id}`);
+    }
+  }
+  return deleted;
+}
+
+// ── Delete known IDs ────────────────────────────────────────────────────────────
 
 console.log('\n🗑️   Removing demo data from Firestore…\n');
 
@@ -79,6 +123,44 @@ for (const [col, ids] of Object.entries(DEMO_IDS)) {
     await ref.delete();
     deleted++;
     console.log(`  ✗  ${col}/${id}`);
+  }
+}
+
+// ── Delete pattern-based collections ────────────────────────────────────────────
+
+console.log('\n  ── Cleaning up dynamic collections ──\n');
+
+// societyBillingConfig: IDs like "demo_society_*_Tower *"
+const billingDeleted = await deleteByPrefix('societyBillingConfig', ['demo_society_']);
+deleted += billingDeleted;
+
+// cleaningSessions: IDs like "demo_society_*_2026-*"
+const sessionDeleted = await deleteByPrefix('cleaningSessions', ['demo_society_']);
+deleted += sessionDeleted;
+
+// stats/income (single doc)
+const statsRef = db.collection('stats').doc('income');
+const statsSnap = await statsRef.get();
+if (statsSnap.exists) {
+  await statsRef.delete();
+  deleted++;
+  console.log('  ✗  stats/income');
+} else {
+  missing++;
+}
+
+// notifications created during workflow simulation (car_cleaned_*)
+const notifDeleted = await deleteByPrefix('notifications', ['car_cleaned_']);
+deleted += notifDeleted;
+
+// Subcollection notifications under workers/customers
+const workerNotifSnap = await db.collectionGroup('notifications').get();
+for (const doc of workerNotifSnap.docs) {
+  const parentPath = doc.ref.parent.path;
+  if (parentPath.includes('demo_worker_') || parentPath.includes('demo_cust_')) {
+    await doc.ref.delete();
+    deleted++;
+    console.log(`  ✗  ${doc.ref.path}`);
   }
 }
 

@@ -11,6 +11,10 @@
     "test:ui": "playwright test --ui",
     "test:report": "playwright show-report",
     "seed": "node scripts/seed-demo.mjs",
+    "seed-schedule": "node scripts/seed-schedule.mjs",
+    "seed-remaining": "node scripts/seed-remaining.mjs",
+    "simulate-workflow": "node scripts/simulate-workflow.mjs",
+    "seed-all": "node scripts/seed-demo.mjs && node scripts/seed-schedule.mjs && node scripts/seed-remaining.mjs",
     "bootstrap-admin": "node scripts/bootstrap-admin.mjs",
     "clear-data": "node scripts/clear-data.mjs",
     "unseed": "node scripts/unseed-demo.mjs"

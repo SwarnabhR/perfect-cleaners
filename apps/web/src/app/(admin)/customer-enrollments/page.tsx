@@ -402,6 +402,418 @@ function AddCustomerModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
   );
 }
 
+// ─── Helpers for schedule modal ───────────────────────────────────────────────
+
+function isSameDay(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function formatDateShort(d: Date) {
+  return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+function formatTime(hour: number) {
+  if (hour === 0 || hour === 12) return hour === 0 ? '12:00 AM' : '12:00 PM';
+  return hour < 12 ? `${hour}:00 AM` : `${hour - 12}:00 PM`;
+}
+
+function getUpcomingDates(dayIndices: number[], n: number): Date[] {
+  const dates: Date[] = [];
+  const cursor = new Date();
+  cursor.setHours(0, 0, 0, 0);
+  for (let scanned = 0; dates.length < n && scanned < 400; scanned++) {
+    if (dayIndices.includes(cursor.getDay())) dates.push(new Date(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return dates;
+}
+
+function toDate(v: any): Date {
+  if (!v) return new Date();
+  return typeof v.toDate === 'function' ? v.toDate() : new Date(v);
+}
+
+// ─── Schedule modal — manage skip dates & permanent time ──────────────────────
+
+interface RescheduledSlot {
+  date: Date;
+  fromTime: number;
+  toTime: number;
+}
+
+function ScheduleModal({
+  record,
+  onClose,
+}: {
+  record: LiveRecord;
+  onClose: () => void;
+}) {
+  const [towerDays, setTowerDays] = useState<DayOfWeek[]>([]);
+  const [skipDates, setSkipDates] = useState<Date[]>(
+    (record.skipDates ?? []).map(toDate)
+  );
+  const [rescheduledSlots, setRescheduledSlots] = useState<RescheduledSlot[]>(
+    ((record.rescheduledSlots ?? []) as any[]).map(s => ({
+      ...s,
+      date: toDate(s.date),
+    }))
+  );
+  const [permanentTime, setPermanentTime] = useState<number>(
+    record.permanentTime ?? record.preferredCleaningTime ?? 9
+  );
+  const [saving, setSaving] = useState(false);
+  const [reschedulingDate, setReschedulingDate] = useState<string | null>(null);
+
+  useEffect(() => {
+    getDocs(query(
+      collection(db, 'societyBillingConfig'),
+      where('societyId', '==', record.societyId),
+      where('tower', '==', record.tower),
+    )).then(snap => {
+      const config = snap.docs[0]?.data();
+      const days = (config?.cleaningDays as DayOfWeek[] | undefined)?.length
+        ? (config!.cleaningDays as DayOfWeek[])
+        : parseDaysFromSchedule((config?.cleaningSchedule as string | undefined) ?? '');
+      setTowerDays(days);
+    }).catch(() => {});
+  }, [record.societyId, record.tower]);
+
+  const preferredDays = record.preferredCleaningDays?.length
+    ? record.preferredCleaningDays
+    : towerDays;
+
+  const upcomingDates = preferredDays.length > 0
+    ? getUpcomingDates(preferredDays, 8)
+    : [];
+
+  function getRescheduleForDate(date: Date): RescheduledSlot | undefined {
+    return rescheduledSlots.find(s => isSameDay(s.date, date));
+  }
+
+  function getEffectiveTime(date: Date): number {
+    const rescheduled = getRescheduleForDate(date);
+    if (rescheduled) return rescheduled.toTime;
+    return permanentTime;
+  }
+
+  function dateKey(date: Date) {
+    return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+  }
+
+  async function handleToggleSkip(date: Date) {
+    setSaving(true);
+    const alreadySkipped = skipDates.some(d => isSameDay(d, date));
+    const updated = alreadySkipped
+      ? skipDates.filter(d => !isSameDay(d, date))
+      : [...skipDates, date];
+    setSkipDates(updated);
+    try {
+      await setDoc(
+        doc(db, 'customerSocietyRecords', record.id),
+        { skipDates: updated.map(d => Timestamp.fromDate(d)), updatedAt: serverTimestamp() },
+        { merge: true }
+      );
+    } catch (err: unknown) {
+      console.error('[ScheduleModal] toggle skip failed:', err);
+      setSkipDates(skipDates);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleReschedule(date: Date, toTime: number) {
+    const existing = getRescheduleForDate(date);
+    const updated = existing
+      ? rescheduledSlots.map(s => isSameDay(s.date, date) ? { ...s, toTime } : s)
+      : [...rescheduledSlots, { date, fromTime: permanentTime, toTime }];
+    setRescheduledSlots(updated);
+    setReschedulingDate(null);
+    setSaving(true);
+    try {
+      await setDoc(
+        doc(db, 'customerSocietyRecords', record.id),
+        {
+          rescheduledSlots: updated.map(s => ({
+            date: Timestamp.fromDate(s.date),
+            fromTime: s.fromTime,
+            toTime: s.toTime,
+          })),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+    } catch (err: unknown) {
+      console.error('[ScheduleModal] reschedule failed:', err);
+      setRescheduledSlots(rescheduledSlots);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleClearReschedule(date: Date) {
+    const updated = rescheduledSlots.filter(s => !isSameDay(s.date, date));
+    setRescheduledSlots(updated);
+    setReschedulingDate(null);
+    setSaving(true);
+    try {
+      await setDoc(
+        doc(db, 'customerSocietyRecords', record.id),
+        {
+          rescheduledSlots: updated.map(s => ({
+            date: Timestamp.fromDate(s.date),
+            fromTime: s.fromTime,
+            toTime: s.toTime,
+          })),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+    } catch (err: unknown) {
+      console.error('[ScheduleModal] clear reschedule failed:', err);
+      setRescheduledSlots(rescheduledSlots);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleSaveTime(hour: number) {
+    setPermanentTime(hour);
+    setSaving(true);
+    try {
+      await setDoc(
+        doc(db, 'customerSocietyRecords', record.id),
+        { permanentTime: hour, updatedAt: serverTimestamp() },
+        { merge: true }
+      );
+    } catch (err: unknown) {
+      console.error('[ScheduleModal] save time failed:', err);
+      setPermanentTime(record.permanentTime ?? record.preferredCleaningTime ?? 9);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div
+      style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+      onClick={onClose}
+    >
+      <div
+        style={{ background: 'var(--pc-card)', borderRadius: 16, border: '1px solid var(--pc-line)', padding: 'clamp(16px,5vw,28px)', width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto' }}
+        onClick={e => e.stopPropagation()}
+      >
+        <h2 style={{ fontFamily: 'var(--pc-serif)', fontSize: 22, fontWeight: 400, color: 'var(--pc-fg)', margin: '0 0 4px' }}>
+          Schedule: {record.customerName ?? record.customerId.slice(0, 8)}
+        </h2>
+        <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: '0 0 20px' }}>
+          {record.societyName} · {record.tower} · {record.unitNumber}
+        </p>
+
+        {/* Upcoming cleanings */}
+        <section style={{ marginBottom: 24 }}>
+          <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--pc-fg-3)', margin: '0 0 12px' }}>
+            UPCOMING CLEANINGS
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {upcomingDates.map((date, i) => {
+              const isSkipped = skipDates.some(d => isSameDay(d, date));
+              const rescheduled = getRescheduleForDate(date);
+              const effectiveTime = getEffectiveTime(date);
+              const isRescheduling = reschedulingDate === dateKey(date);
+              return (
+                <div key={i}>
+                  <div style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '10px 14px',
+                    background: isSkipped ? 'var(--pc-ink-raised)' : 'var(--pc-card-hi)',
+                    border: `1px solid ${isSkipped ? 'var(--pc-line-faint)' : rescheduled ? 'var(--pc-warning)' : 'var(--pc-line)'}`,
+                    borderRadius: 8,
+                    opacity: isSkipped ? 0.65 : 1,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: isSkipped ? 'var(--pc-fg-4)' : 'var(--pc-fg)', textDecoration: isSkipped ? 'line-through' : 'none' }}>
+                        {formatDateShort(date)}
+                      </span>
+                      <span style={{
+                        fontFamily: 'var(--pc-mono)', fontSize: 10,
+                        color: rescheduled ? 'var(--pc-warning)' : 'var(--pc-fg-4)',
+                        textDecoration: rescheduled ? 'line-through' : 'none',
+                        marginRight: rescheduled ? 4 : 0,
+                      }}>
+                        {formatTime(permanentTime)}
+                      </span>
+                      {rescheduled && (
+                        <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-warning)' }}>
+                          → {formatTime(effectiveTime)}
+                        </span>
+                      )}
+                      {isSkipped && (
+                        <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, letterSpacing: '0.08em', color: 'var(--pc-fg-4)', textTransform: 'uppercase' }}>
+                          Skipped
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <button
+                        type="button"
+                        disabled={saving}
+                        onClick={() => setReschedulingDate(isRescheduling ? null : dateKey(date))}
+                        style={{
+                          padding: '4px 10px', borderRadius: 999,
+                          border: '1px solid var(--pc-info)',
+                          background: isRescheduling ? 'var(--pc-info)' : 'transparent',
+                          cursor: saving ? 'not-allowed' : 'pointer',
+                          fontFamily: 'var(--pc-sans)', fontSize: 11,
+                          color: isRescheduling ? 'white' : 'var(--pc-info)',
+                          opacity: saving ? 0.5 : 1,
+                        }}
+                      >
+                        {rescheduled ? 'Change' : 'Time'}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={saving}
+                        onClick={() => handleToggleSkip(date)}
+                        style={{
+                          padding: '4px 12px', borderRadius: 999,
+                          border: '1px solid currentColor', background: 'transparent',
+                          cursor: saving ? 'not-allowed' : 'pointer',
+                          fontFamily: 'var(--pc-sans)', fontSize: 11,
+                          color: isSkipped ? 'var(--pc-sage-hi)' : 'var(--pc-fg-3)',
+                          opacity: saving ? 0.5 : 1,
+                        }}
+                      >
+                        {isSkipped ? 'Undo' : 'Skip'}
+                      </button>
+                    </div>
+                  </div>
+                  {/* Inline time picker for rescheduling */}
+                  {isRescheduling && (
+                    <div style={{
+                      marginTop: 4, padding: '10px 14px',
+                      background: 'var(--pc-card)',
+                      border: '1px solid var(--pc-line)',
+                      borderRadius: 8,
+                    }}>
+                      <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, color: 'var(--pc-fg-4)', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        Change time for {formatDateShort(date)}
+                      </p>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {TIME_OPTIONS.filter(opt => opt.value !== effectiveTime).map(opt => (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => handleReschedule(date, opt.value)}
+                            style={{
+                              padding: '6px 12px', borderRadius: 6,
+                              background: 'var(--pc-ink-raised)',
+                              border: '1px solid var(--pc-line)',
+                              fontFamily: 'var(--pc-sans)', fontSize: 12,
+                              color: 'var(--pc-fg-2)',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                      {rescheduled && (
+                        <button
+                          type="button"
+                          onClick={() => handleClearReschedule(date)}
+                          style={{
+                            marginTop: 8, padding: '4px 12px', borderRadius: 6,
+                            background: 'transparent',
+                            border: '1px solid var(--pc-danger)',
+                            fontFamily: 'var(--pc-sans)', fontSize: 11,
+                            color: 'var(--pc-danger)',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Reset to default time
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setReschedulingDate(null)}
+                        style={{
+                          marginTop: 8, marginLeft: 8, padding: '4px 12px', borderRadius: 6,
+                          background: 'transparent',
+                          border: '1px solid var(--pc-line)',
+                          fontFamily: 'var(--pc-sans)', fontSize: 11,
+                          color: 'var(--pc-fg-3)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11.5, color: 'var(--pc-fg-4)', margin: '8px 0 0' }}>
+            {skipDates.length} skip{skipDates.length !== 1 ? 's' : ''},
+            {rescheduledSlots.length} reschedule{rescheduledSlots.length !== 1 ? 's' : ''}.
+            {skipDates.length < upcomingDates.length && ` ${upcomingDates.length - skipDates.length} cleaning${upcomingDates.length - skipDates.length !== 1 ? 's' : ''} active.`}
+          </p>
+        </section>
+
+        {/* Time preference */}
+        <section style={{ marginBottom: 24 }}>
+          <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--pc-fg-3)', margin: '0 0 12px' }}>
+            PERMANENT TIME PREFERENCE
+          </p>
+          <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-4)', margin: '0 0 12px' }}>
+            Overrides the tower default. Changes apply from the next session.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: 8 }}>
+            {TIME_OPTIONS.map(opt => {
+              const selected = permanentTime === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  disabled={saving}
+                  onClick={() => handleSaveTime(opt.value)}
+                  style={{
+                    padding: '8px 0', borderRadius: 8, textAlign: 'center',
+                    background: selected ? 'var(--pc-sage)' : 'var(--pc-card-hi)',
+                    border: `1px solid ${selected ? 'var(--pc-sage-hi)' : 'var(--pc-line)'}`,
+                    fontFamily: 'var(--pc-sans)', fontSize: 12,
+                    color: selected ? 'var(--pc-sage-ink)' : 'var(--pc-fg-3)',
+                    cursor: saving ? 'default' : 'pointer',
+                    opacity: saving ? 0.5 : 1,
+                  }}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Close */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              padding: '10px 24px', borderRadius: 999,
+              background: 'var(--pc-warm)', border: 'none',
+              fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600,
+              color: 'var(--pc-ink)', cursor: 'pointer',
+            }}
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function CustomerEnrollmentsPage() {
   const [records, setRecords] = useState<LiveRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -410,6 +822,7 @@ export default function CustomerEnrollmentsPage() {
   const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
   const [cleanedThisMonth, setCleanedThisMonth] = useState<Record<string, number>>({});
   const [addOpen, setAddOpen] = useState(false);
+  const [scheduleRecord, setScheduleRecord] = useState<LiveRecord | null>(null);
 
   useEffect(() => {
     return onSnapshot(
@@ -789,6 +1202,25 @@ export default function CustomerEnrollmentsPage() {
                             ✓ Paid
                           </span>
                         )}
+                        {record.status === 'active' && (
+                          <button
+                            type="button"
+                            onClick={() => setScheduleRecord(record)}
+                            style={{
+                              padding: '4px 10px',
+                              borderRadius: 6,
+                              background: 'color-mix(in srgb, var(--pc-info) 12%, transparent)',
+                              border: '1px solid var(--pc-info)',
+                              fontFamily: 'var(--pc-sans)',
+                              fontSize: 11,
+                              fontWeight: 600,
+                              color: 'var(--pc-info)',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Schedule
+                          </button>
+                        )}
                         {(record.status === 'active' || record.status === 'paused') && (
                           <button
                             type="button"
@@ -896,6 +1328,14 @@ export default function CustomerEnrollmentsPage() {
         <AddCustomerModal
           onClose={() => setAddOpen(false)}
           onAdded={() => setAddOpen(false)}
+        />
+      )}
+
+      {/* Schedule modal */}
+      {scheduleRecord && (
+        <ScheduleModal
+          record={scheduleRecord}
+          onClose={() => setScheduleRecord(null)}
         />
       )}
     </div>

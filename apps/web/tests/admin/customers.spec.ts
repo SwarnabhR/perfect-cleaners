@@ -22,12 +22,6 @@ test.describe('Admin Customers', () => {
     await expect(page.locator('input[placeholder="Search by name or phone…"]')).toBeVisible();
   });
 
-  test('tier filter buttons are visible', async ({ page }) => {
-    for (const label of ['All', 'Platinum', 'Gold', 'Silver', 'Bronze']) {
-      await expect(page.locator(`button:has-text("${label}")`).first()).toBeVisible();
-    }
-  });
-
   test('society filter row is shown when at least one customer has a society', async ({ page }) => {
     const hasSocietyFilter = await page.locator('text="Society"').isVisible({ timeout: 8_000 }).catch(() => false);
     if (!hasSocietyFilter) { test.skip(true, 'No customer with a societyName to trigger this row'); return; }
@@ -40,7 +34,7 @@ test.describe('Admin Customers', () => {
       await expect(page.locator('text=No customers found.')).toBeVisible();
       return;
     }
-    for (const h of ['Customer', 'Society', 'Phone', 'Vehicles', 'Jobs', 'Total Spent', 'Outstanding', 'Tier', 'Joined']) {
+    for (const h of ['Customer', 'Society', 'Phone', 'Vehicles', 'Jobs', 'Total Spent', 'Outstanding', 'Joined']) {
       await expect(page.locator(`th:has-text("${h}")`)).toBeVisible();
     }
   });

@@ -206,7 +206,7 @@ These come from `design-system/README.md` and apply to every UI surface.
 - Surfaces: `colors.ink → inkRaised → card → cardHi` (whispered steps, dark to lighter in dark mode)
 - Only chromatic surface: `colors.sage` (`#4A5E44`) — fills, pills, active stepper step; never used as a button
 - Primary CTA: `colors.warm` — dark mode: off-white `#F0EDE8` pill; light mode: inverts to near-black `#0E0D0B` pill. Always pair with `var(--pc-ink)` as text so both themes read correctly.
-- `colors.gold` (`#C9A961`) — hairline under wordmark and Gold tier badge only; do not use as a CTA or status colour
+- `colors.gold` (`#C9A961`) — hairline under wordmark only; do not use as a CTA or status colour
 - **Never use `var(--pc-warm)` as a status/label colour** — it inverts between themes. Use `var(--pc-info)`, `var(--pc-warning)`, `var(--pc-sage)`, or `var(--pc-danger)` for semantic status colours instead.
 - Mobile app is dark-only. Light mode applies to the web (marketing site + admin dashboard) only.
 

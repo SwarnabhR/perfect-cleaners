@@ -10,20 +10,6 @@ import Icon from '@/components/ui/Icon';
 type LiveCustomer = Customer & { id: string };
 type LiveBooking  = Booking  & { id: string };
 
-const TIER_COLORS: Record<string, string> = {
-  Platinum: 'var(--pc-fg)',
-  Gold:     'var(--pc-gold)',
-  Silver:   'var(--pc-fg-3)',
-  Bronze:   'var(--pc-warning)',
-};
-
-function tier(spent: number): string {
-  if (spent >= 60_000) return 'Platinum';
-  if (spent >= 30_000) return 'Gold';
-  if (spent >= 10_000) return 'Silver';
-  return 'Bronze';
-}
-
 type MaybeTs = { toDate?(): Date } | Date | string | number | null | undefined;
 function formatJoined(ts: MaybeTs): string {
   if (!ts) return '—';
@@ -37,7 +23,6 @@ export default function CustomersPage() {
   const [customers,     setCustomers]     = useState<LiveCustomer[]>([]);
   const [bookings,      setBookings]      = useState<LiveBooking[]>([]);
   const [search,        setSearch]        = useState('');
-  const [tierFilter,    setTierFilter]    = useState('All');
   const [societyFilter, setSocietyFilter] = useState('All');
   const [loading,       setLoading]       = useState(true);
 
@@ -70,7 +55,7 @@ export default function CustomersPage() {
     .filter(c => c.role !== 'worker')
     .map(c => {
       const stats = statsMap[c.id] ?? { jobs: 0, spent: 0 };
-      return { ...c, ...stats, customerTier: tier(stats.spent) };
+      return { ...c, ...stats };
     });
 
   // Unique society names + per-society counts derived from customers
@@ -87,9 +72,8 @@ export default function CustomersPage() {
     const matchSearch = !search ||
       c.name?.toLowerCase().includes(search.toLowerCase()) ||
       c.phone?.includes(search);
-    const matchTier    = tierFilter    === 'All' || c.customerTier === tierFilter;
     const matchSociety = societyFilter === 'All' || (c as any).societyName === societyFilter;
-    return matchSearch && matchTier && matchSociety;
+    return matchSearch && matchSociety;
   });
 
   const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
@@ -142,7 +126,7 @@ export default function CustomersPage() {
 
       {/* Search + filters */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {/* Row 1: search + tier */}
+        {/* Row 1: search */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <div style={{ position: 'relative', flex: 1, maxWidth: 320 }}>
             <Icon name="search" size={14} color="var(--pc-fg-4)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
@@ -156,17 +140,6 @@ export default function CustomersPage() {
                 fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)', outline: 'none',
               }}
             />
-          </div>
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {['All', 'Platinum', 'Gold', 'Silver', 'Bronze'].map(t => (
-              <button type="button" key={t} onClick={() => setTierFilter(t)} style={{
-                padding: '7px 14px', borderRadius: 999, border: '1px solid',
-                borderColor: tierFilter === t ? 'var(--pc-sage)' : 'var(--pc-line)',
-                background:  tierFilter === t ? 'var(--pc-sage)' : 'transparent',
-                color:       tierFilter === t ? 'var(--pc-sage-ink)' : 'var(--pc-fg-2)',
-                fontFamily: 'var(--pc-sans)', fontSize: 13, cursor: 'pointer',
-              }}>{t}</button>
-            ))}
           </div>
         </div>
 
@@ -214,7 +187,7 @@ export default function CustomersPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--pc-line)' }}>
-                {['Customer', 'Society', 'Phone', 'Vehicles', 'Jobs', 'Total Spent', 'Outstanding', 'Tier', 'Joined'].map(h => (
+                {['Customer', 'Society', 'Phone', 'Vehicles', 'Jobs', 'Total Spent', 'Outstanding', 'Joined'].map(h => (
                   <th key={h} style={{ padding: '13px 18px', textAlign: 'left', fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
                 ))}
               </tr>
@@ -267,12 +240,6 @@ export default function CustomersPage() {
                     ) : (
                       <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-4)' }}>—</span>
                     )}
-                  </td>
-                  <td style={{ padding: '13px 18px' }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ width: 7, height: 7, borderRadius: 999, background: TIER_COLORS[c.customerTier], flexShrink: 0 }} />
-                      <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: TIER_COLORS[c.customerTier] }}>{c.customerTier}</span>
-                    </span>
                   </td>
                   <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)' }}>
                     {formatJoined((c as any).createdAt)}

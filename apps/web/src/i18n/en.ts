@@ -147,12 +147,6 @@ const en = {
       'Tire dressing application',
       'Exterior glass streak-free finish',
     ],
-    pricingTitle: 'PRICING TIERS',
-    tiers: [
-      { name: 'Hatchback / Sedan',  time: 'Est. 1 hour',       price: '₹800'   },
-      { name: 'Compact SUV',        time: 'Est. 1.5 hours',    price: '₹1,000' },
-      { name: 'Large SUV / MUV',    time: 'Est. 1.5–2 hours',  price: '₹1,200' },
-    ],
   },
 
   interiorPage: {
@@ -170,12 +164,6 @@ const en = {
       'Interior glass streak-free cleaning',
       'Odor neutralization treatment',
     ],
-    pricingTitle: 'PRICING TIERS',
-    tiers: [
-      { name: 'Hatchback / Sedan', time: 'Est. 2–3 hours', price: '₹1,500' },
-      { name: 'Compact SUV',       time: 'Est. 3–4 hours', price: '₹2,000' },
-      { name: 'Large SUV / MUV',   time: 'Est. 4–5 hours', price: '₹2,500' },
-    ],
   },
 
   coatingPage: {
@@ -192,12 +180,6 @@ const en = {
       'Professional-grade ceramic coating application',
       'Infrared curing process',
       'Final inspection and gloss verification',
-    ],
-    pricingTitle: 'PRICING TIERS',
-    tiers: [
-      { name: '3-Year Coating (Hatchback/Sedan)', time: '1 layer · 1-day turnaround',        price: '₹15,000'  },
-      { name: '5-Year Coating (Hatchback/Sedan)', time: '2 layers · 2-day turnaround',       price: '₹25,000'  },
-      { name: '7-Year Graphene (All Sizes)',       time: '3 layers · Multi-stage correction', price: 'From ₹40k'},
     ],
   },
 

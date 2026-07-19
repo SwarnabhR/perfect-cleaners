@@ -127,9 +127,9 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
   const offset = CIR * (1 - pct);
 
   // Semantic status colours only — sage/gold are never used as CTA fills
-  // (design system rule), and gold is reserved for the wordmark hairline /
-  // Gold-tier badge, never a status colour either. Mirrors the worker
-  // dashboard's done=success, active=sage convention.
+  // (design system rule), and gold is reserved for the wordmark hairline,
+  // never a status colour either. Mirrors the worker dashboard's
+  // done=success, active=sage convention.
   const statusColor =
     status === 'done'       ? 'var(--pc-success)' :
     status === 'inprogress' ? 'var(--pc-sage)' :

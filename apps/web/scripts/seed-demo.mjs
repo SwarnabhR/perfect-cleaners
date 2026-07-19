@@ -260,7 +260,7 @@ const V = {
 };
 
 const BOOKINGS = [
-  // ── Rahul Mehta — Platinum (total ₹61,500 paid) ───────────────────────────
+  // ── Rahul Mehta (total ₹61,500 paid) ──────────────────────────────────────
   booking({ id:'demo_booking_001', code:'A1B2C3', cId:'demo_cust_rahul_001', cName:'Rahul Mehta', cPhone:'+919876502001', wId:'demo_worker_deepak_005', wName:'Deepak Verma', svcIds:['premium-exterior-wash','interior-vacuum'], vehicle:V.mercedesGLE, status:'done', daysAgo:85, addr:ADDR_NOIDA,    subtotal:7627, tax:1373, total:9000,  payStatus:'paid', payId:'pay_demo_001' }),
   booking({ id:'demo_booking_002', code:'D4E5F6', cId:'demo_cust_rahul_001', cName:'Rahul Mehta', cPhone:'+919876502001', wId:'demo_worker_deepak_005', wName:'Deepak Verma', svcIds:['ceramic-coating'],                         vehicle:V.mercedesGLE, status:'done', daysAgo:70, addr:ADDR_NOIDA,    subtotal:12288, tax:2212, total:14500, payStatus:'paid', payId:'pay_demo_002' }),
   booking({ id:'demo_booking_003', code:'G7H8I9', cId:'demo_cust_rahul_001', cName:'Rahul Mehta', cPhone:'+919876502001', wId:'demo_worker_ravi_001',   wName:'Ravi Kumar',   svcIds:['premium-exterior-wash'],                   vehicle:V.bmw5,        status:'done', daysAgo:55, addr:ADDR_DELHI,    subtotal:7203, tax:1297, total:8500,  payStatus:'paid', payId:'pay_demo_003' }),
@@ -268,33 +268,33 @@ const BOOKINGS = [
   booking({ id:'demo_booking_005', code:'M4N5O6', cId:'demo_cust_rahul_001', cName:'Rahul Mehta', cPhone:'+919876502001', wId:'demo_worker_deepak_005', wName:'Deepak Verma', svcIds:['premium-exterior-wash','interior-vacuum'], vehicle:V.bmw5,        status:'done', daysAgo:25, addr:ADDR_DELHI,    subtotal:8051, tax:1449, total:9500,  payStatus:'paid', payId:'pay_demo_005' }),
   booking({ id:'demo_booking_006', code:'P7Q8R9', cId:'demo_cust_rahul_001', cName:'Rahul Mehta', cPhone:'+919876502001', wId:'demo_worker_ravi_001',   wName:'Ravi Kumar',   svcIds:['premium-exterior-wash'],                   vehicle:V.mercedesGLE, status:'done', daysAgo:12, addr:ADDR_NOIDA,    subtotal:6780, tax:1220, total:8000,  payStatus:'paid', payId:'pay_demo_006' }),
 
-  // ── Sanjay Kapoor — Gold (total ₹32,500 paid) ────────────────────────────
+  // ── Sanjay Kapoor (total ₹32,500 paid) ────────────────────────────────────
   booking({ id:'demo_booking_007', code:'S1T2U3', cId:'demo_cust_sanjay_005', cName:'Sanjay Kapoor', cPhone:'+919876502005', wId:'demo_worker_deepak_005', wName:'Deepak Verma', svcIds:['full-detailing'],           vehicle:V.fortuner, status:'done', daysAgo:75, addr:ADDR_DELHI,    subtotal:6780, tax:1220, total:8000,  payStatus:'paid', payId:'pay_demo_007' }),
   booking({ id:'demo_booking_008', code:'V4W5X6', cId:'demo_cust_sanjay_005', cName:'Sanjay Kapoor', cPhone:'+919876502005', wId:'demo_worker_aakash_003', wName:'Aakash Singh', svcIds:['ceramic-coating'],          vehicle:V.fortuner, status:'done', daysAgo:50, addr:ADDR_NOIDA,    subtotal:9746, tax:1754, total:11500, payStatus:'paid', payId:'pay_demo_008' }),
   booking({ id:'demo_booking_009', code:'Y7Z8A9', cId:'demo_cust_sanjay_005', cName:'Sanjay Kapoor', cPhone:'+919876502005', wId:'demo_worker_ravi_001',   wName:'Ravi Kumar',   svcIds:['premium-exterior-wash'],    vehicle:V.creta,    status:'done', daysAgo:30, addr:ADDR_DELHI,    subtotal:5932, tax:1068, total:7000,  payStatus:'paid', payId:'pay_demo_009' }),
   booking({ id:'demo_booking_010', code:'B1C2D3', cId:'demo_cust_sanjay_005', cName:'Sanjay Kapoor', cPhone:'+919876502005', wId:'demo_worker_suresh_002', wName:'Suresh Yadav', svcIds:['interior-vacuum','exterior-wash'], vehicle:V.creta, status:'done', daysAgo:10, addr:ADDR_NOIDA_78, subtotal:5085, tax:915, total:6000,  payStatus:'paid', payId:'pay_demo_010' }),
 
-  // ── Priya Sharma — Silver (total ₹12,500 paid) ───────────────────────────
+  // ── Priya Sharma (total ₹12,500 paid) ─────────────────────────────────────
   booking({ id:'demo_booking_011', code:'E4F5G6', cId:'demo_cust_priya_002', cName:'Priya Sharma', cPhone:'+919876502002', wId:'demo_worker_aakash_003', wName:'Aakash Singh', svcIds:['premium-exterior-wash'], vehicle:V.audiQ5, status:'done', daysAgo:60, addr:ADDR_DELHI,    subtotal:3814, tax:686, total:4500, payStatus:'paid', payId:'pay_demo_011' }),
   booking({ id:'demo_booking_012', code:'H7I8J9', cId:'demo_cust_priya_002', cName:'Priya Sharma', cPhone:'+919876502002', wId:'demo_worker_ravi_001',   wName:'Ravi Kumar',   svcIds:['interior-vacuum'],          vehicle:V.audiQ5, status:'done', daysAgo:35, addr:ADDR_DELHI,    subtotal:3220, tax:580, total:3800, payStatus:'paid', payId:'pay_demo_012' }),
   booking({ id:'demo_booking_013', code:'K1L2M3', cId:'demo_cust_priya_002', cName:'Priya Sharma', cPhone:'+919876502002', wId:'demo_worker_deepak_005', wName:'Deepak Verma', svcIds:['premium-exterior-wash'], vehicle:V.audiQ5, status:'done', daysAgo:15, addr:ADDR_GURUGRAM, subtotal:3559, tax:641, total:4200, payStatus:'paid', payId:'pay_demo_013' }),
 
-  // ── Amit Gupta — Silver (total ₹11,300 paid) ─────────────────────────────
+  // ── Amit Gupta (total ₹11,300 paid) ───────────────────────────────────────
   booking({ id:'demo_booking_014', code:'N4O5P6', cId:'demo_cust_amit_003', cName:'Amit Gupta', cPhone:'+919876502003', wId:'demo_worker_suresh_002', wName:'Suresh Yadav', svcIds:['exterior-wash'],           vehicle:V.hondaCity, status:'done', daysAgo:45, addr:ADDR_NOIDA_78, subtotal:2966, tax:534, total:3500, payStatus:'paid', payId:'pay_demo_014' }),
   booking({ id:'demo_booking_015', code:'Q7R8S9', cId:'demo_cust_amit_003', cName:'Amit Gupta', cPhone:'+919876502003', wId:'demo_worker_manoj_004',  wName:'Manoj Sharma', svcIds:['interior-vacuum','exterior-wash'], vehicle:V.hondaCity, status:'done', daysAgo:20, addr:ADDR_NOIDA_78, subtotal:3390, tax:610, total:4000, payStatus:'paid', payId:'pay_demo_015' }),
   booking({ id:'demo_booking_016', code:'T1U2V3', cId:'demo_cust_amit_003', cName:'Amit Gupta', cPhone:'+919876502003', wId:'demo_worker_aakash_003', wName:'Aakash Singh', svcIds:['premium-exterior-wash'], vehicle:V.hondaCity, status:'done', daysAgo:5,  addr:ADDR_NOIDA,    subtotal:3220, tax:580, total:3800, payStatus:'paid', payId:'pay_demo_016' }),
 
-  // ── Divya Nair — Bronze ───────────────────────────────────────────────────
+  // ── Divya Nair ─────────────────────────────────────────────────────────────
   booking({ id:'demo_booking_017', code:'W4X5Y6', cId:'demo_cust_divya_006', cName:'Divya Nair', cPhone:'+919876502006', wId:'demo_worker_ravi_001', wName:'Ravi Kumar', svcIds:['exterior-wash'], vehicle:V.seltos, status:'done',      daysAgo:30, addr:ADDR_DELHI, subtotal:2373, tax:427, total:2800, payStatus:'paid', payId:'pay_demo_017' }),
   booking({ id:'demo_booking_018', code:'Z7A8B9', cId:'demo_cust_divya_006', cName:'Divya Nair', cPhone:'+919876502006', wId:null,                   wName:null,          svcIds:['full-detailing'],  vehicle:V.seltos, status:'cancelled', daysAgo:10, addr:ADDR_DELHI, subtotal:5932, tax:1068, total:7000, payStatus:'pending', payId:null }),
 
-  // ── Rohit Agarwal — Bronze, active booking ────────────────────────────────
+  // ── Rohit Agarwal, active booking ─────────────────────────────────────────
   booking({ id:'demo_booking_019', code:'C1D2E3', cId:'demo_cust_rohit_007', cName:'Rohit Agarwal', cPhone:'+919876502007', wId:'demo_worker_suresh_002', wName:'Suresh Yadav', svcIds:['premium-exterior-wash'], vehicle:V.nexonEV, status:'assigned', daysAgo:-1, addr:ADDR_NOIDA_78, subtotal:3390, tax:610, total:4000, payStatus:'pending', payId:null }),
 
-  // ── Neha Patel — Bronze ───────────────────────────────────────────────────
+  // ── Neha Patel ─────────────────────────────────────────────────────────────
   booking({ id:'demo_booking_020', code:'F4G5H6', cId:'demo_cust_neha_004', cName:'Neha Patel', cPhone:'+919876502004', wId:'demo_worker_manoj_004', wName:'Manoj Sharma', svcIds:['exterior-wash'], vehicle:V.baleno, status:'done', daysAgo:20, addr:ADDR_NOIDA, subtotal:1525, tax:275, total:1800, payStatus:'paid', payId:'pay_demo_020' }),
 
-  // ── Kavita Singh — Bronze, fresh pending ─────────────────────────────────
+  // ── Kavita Singh, fresh pending ────────────────────────────────────────────
   booking({ id:'demo_booking_021', code:'I7J8K9', cId:'demo_cust_kavita_008', cName:'Kavita Singh', cPhone:'+919876502008', wId:null, wName:null, svcIds:['exterior-wash'], vehicle:{ id:'vtmp', make:'Maruti Suzuki', model:'Swift', year:2020, type:'hatchback', registration:'DL 05 ZZ 9999', color:'Red'}, status:'pending', daysAgo:0, addr:ADDR_DELHI, subtotal:1271, tax:229, total:1500, payStatus:'pending', payId:null }),
 ];
 
