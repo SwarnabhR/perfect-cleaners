@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { collection, query, where, getDocs, getDoc, onSnapshot, doc, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, getDoc, onSnapshot, doc, setDoc, updateDoc, serverTimestamp, Timestamp, increment } from 'firebase/firestore';
 import { db } from '@pc/firebase';
 import type { CustomerSocietyRecord, Society, DayOfWeek } from '@pc/firebase';
 import Card from '@/components/ui/Card';
@@ -17,6 +17,16 @@ const DAY_LABELS: Record<DayOfWeek, string> = { 0: 'Sun', 1: 'Mon', 2: 'Tue', 3:
 const NAME_TO_DAY: Record<string, DayOfWeek> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
 function parseDaysFromSchedule(schedule: string): DayOfWeek[] {
   return (schedule.split('·')[0] ?? '').split(',').map(d => NAME_TO_DAY[d.trim()]).filter((d): d is DayOfWeek => d !== undefined);
+}
+
+// The monthly-billing cron bills every active record unconditionally on the
+// 1st of the month, regardless of when it was activated — so a record's
+// first real bill always lands there, never "tomorrow".
+function firstOfNextMonth(): Date {
+  const d = new Date();
+  d.setMonth(d.getMonth() + 1, 1);
+  d.setHours(0, 0, 0, 0);
+  return d;
 }
 
 const TIME_OPTIONS = Array.from({ length: 10 }, (_, i) => {
@@ -202,7 +212,7 @@ function AddCustomerModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
         signupSource:          'bulk_import',
         status:                'active',
         monthlyFee,
-        nextBillingDate:       Timestamp.fromMillis(Date.now() + 24 * 60 * 60 * 1000),
+        nextBillingDate:       Timestamp.fromDate(firstOfNextMonth()),
         paymentStatus:         form.paymentMethod ? 'verified' : 'not_verified',
         ...(form.paymentMethod ? { paymentMethod: form.paymentMethod } : {}),
         ...(form.paymentNotes.trim() ? { paymentNotes: form.paymentNotes.trim() } : {}),
@@ -211,6 +221,11 @@ function AddCustomerModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
         createdAt:             serverTimestamp(),
         updatedAt:             serverTimestamp(),
       });
+
+      updateDoc(doc(db, 'societies', form.societyId), {
+        activeResidents: increment(1),
+        vehicleCount:    increment(1),
+      }).catch(err => console.warn('[AddCustomer] society counter update failed:', err));
 
       // Best-effort, and only possible when we actually have a number —
       // often the only notification a non-app resident ever gets.
@@ -883,6 +898,15 @@ export default function CustomerEnrollmentsPage() {
         },
         { merge: true }
       );
+
+      // Pausing/reactivating changes how many cars the society's worker
+      // roster is actually cleaning — keep the society-level counters in step.
+      const carCount = record.cars?.length ?? 1;
+      const delta = nextStatus === 'active' ? carCount : -carCount;
+      updateDoc(doc(db, 'societies', record.societyId), {
+        activeResidents: increment(delta),
+        vehicleCount:    increment(delta),
+      }).catch(err => console.warn('[CustomerEnrollments] society counter update failed:', err));
     } catch (err: unknown) {
       console.error('[CustomerEnrollments] toggle status failed:', err instanceof Error ? err.message : err);
     }

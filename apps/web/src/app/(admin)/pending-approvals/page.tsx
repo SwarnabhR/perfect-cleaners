@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { collection, query, where, getDocs, onSnapshot, doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, onSnapshot, doc, setDoc, updateDoc, deleteDoc, serverTimestamp, increment } from 'firebase/firestore';
 import { db, auth } from '@pc/firebase';
 import type { PendingApproval, CustomerSocietyRecord, DayOfWeek } from '@pc/firebase';
 import Card from '@/components/ui/Card';
@@ -16,6 +16,16 @@ const DAY_LABELS: Record<DayOfWeek, string> = { 0: 'Sun', 1: 'Mon', 2: 'Tue', 3:
 function formatDays(days: DayOfWeek[] | undefined): string {
   if (!days || days.length === 0) return 'All tower days';
   return DAY_ORDER.filter(d => days.includes(d)).map(d => DAY_LABELS[d]).join(', ');
+}
+
+// The monthly-billing cron bills every active record unconditionally on the
+// 1st of the month, regardless of when it was activated — so a record's
+// first real bill always lands there, never "tomorrow".
+function firstOfNextMonth(): Date {
+  const d = new Date();
+  d.setMonth(d.getMonth() + 1, 1);
+  d.setHours(0, 0, 0, 0);
+  return d;
 }
 
 interface ApprovalForm {
@@ -132,7 +142,7 @@ export default function PendingApprovalsPage() {
         signupSource:          'self_signup',
         status:                'active',
         monthlyFee,
-        nextBillingDate:       new Date(Date.now() + 24 * 60 * 60 * 1000),
+        nextBillingDate:       firstOfNextMonth(),
         paymentStatus:         'verified',
         paymentMethod:         form.paymentMethod,
         paymentNotes:          form.paymentNotes,
@@ -163,6 +173,17 @@ export default function PendingApprovalsPage() {
         },
         { merge: true },
       );
+
+      // Only count this resident/car against the society once — approving an
+      // already-active record a second time (existingSnap branch re-run) would
+      // otherwise double-count. Self-signup records only ever reach this
+      // handler from 'pending', so a fresh activation here is always a +1.
+      if (!existingSnap.docs[0] || existingSnap.docs[0].data().status !== 'active') {
+        updateDoc(doc(db, 'societies', approval.societyId), {
+          activeResidents: increment(1),
+          vehicleCount:    increment(1),
+        }).catch(err => console.warn('[PendingApprovals] society counter update failed:', err));
+      }
 
       // 3. Send SMS notification to customer
       const nextWeekDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)

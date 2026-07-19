@@ -521,8 +521,9 @@ export default function CleaningPage() {
   const [schedule,   setSchedule]   = useState('');
   const [towerDays,  setTowerDays]  = useState<DayOfWeek[]>([]);
   const [logs,       setLogs]       = useState<(CleaningLog & { id: string })[]>([]);
-  const [saving,     setSaving]     = useState(false);
-  const [ratingLogId, setRatingLogId] = useState<string | null>(null);
+  const [saving,         setSaving]         = useState(false);
+  const [ratingLogId,    setRatingLogId]    = useState<string | null>(null);
+  const [reschedulingDate, setReschedulingDate] = useState<string | null>(null);
 
   async function rateLog(logId: string, rating: number) {
     if (!user) return;
@@ -667,6 +668,50 @@ export default function CleaningPage() {
     await updateDoc(doc(db, 'customerSocietyRecords', record.id), {
       preferredCleaningDays: days,
       updatedAt:             serverTimestamp(),
+    });
+    setSaving(false);
+  }
+
+  function getRescheduledForDate(date: Date) {
+    if (!record || record === 'loading') return undefined;
+    return (record.rescheduledSlots ?? []).find((s: any) => isSameDay(s.date, date));
+  }
+
+  function dateKey(date: Date) {
+    return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+  }
+
+  function getEffectiveTime(date: Date): number {
+    const rescheduled = getRescheduledForDate(date);
+    if (rescheduled) return rescheduled.toTime;
+    return activeTime;
+  }
+
+  async function toggleReschedule(date: Date, toTime: number) {
+    if (!record || record === 'loading') return;
+    setReschedulingDate(null);
+    setSaving(true);
+    const existing = getRescheduledForDate(date);
+    const updated = existing
+      ? (record.rescheduledSlots ?? []).map((s: any) =>
+          isSameDay(s.date, date) ? { ...s, toTime } : s
+        )
+      : [...(record.rescheduledSlots ?? []), { date, fromTime: activeTime, toTime }];
+    await updateDoc(doc(db, 'customerSocietyRecords', record.id), {
+      rescheduledSlots: updated,
+      updatedAt:        serverTimestamp(),
+    });
+    setSaving(false);
+  }
+
+  async function clearReschedule(date: Date) {
+    if (!record || record === 'loading') return;
+    setReschedulingDate(null);
+    setSaving(true);
+    const updated = (record.rescheduledSlots ?? []).filter((s: any) => !isSameDay(s.date, date));
+    await updateDoc(doc(db, 'customerSocietyRecords', record.id), {
+      rescheduledSlots: updated,
+      updatedAt:        serverTimestamp(),
     });
     setSaving(false);
   }
@@ -855,45 +900,141 @@ export default function CleaningPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {upcomingDates.map((date, i) => {
                     const isSkipped = record.skipDates.some(d => isSameDay(d, date));
+                    const rescheduled = getRescheduledForDate(date);
+                    const effectiveTime = getEffectiveTime(date);
+                    const isRescheduling = reschedulingDate === dateKey(date);
                     return (
-                      <div key={i} style={{
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                        padding: 'var(--pc-space-4) var(--pc-space-5)',
-                        background: isSkipped ? 'var(--pc-ink-raised)' : 'var(--pc-card)',
-                        border: `1px solid ${isSkipped ? 'var(--pc-line-faint)' : 'var(--pc-line)'}`,
-                        borderRadius: 'var(--pc-radius-sm)',
-                        opacity: isSkipped ? 0.65 : 1,
-                        transition: 'opacity 0.15s ease, background 0.15s ease',
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: isSkipped ? 'var(--pc-fg-4)' : 'var(--pc-fg)', textDecoration: isSkipped ? 'line-through' : 'none' }}>
-                            {formatDateShort(date)}
-                          </span>
-                          <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-4)' }}>
-                            {formatTime(activeTime)}
-                          </span>
-                          {isSkipped && (
-                            <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, letterSpacing: '0.08em', color: 'var(--pc-fg-4)', textTransform: 'uppercase' }}>
-                              Skipped
+                      <div key={i}>
+                        <div style={{
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          padding: 'var(--pc-space-4) var(--pc-space-5)',
+                          background: isSkipped ? 'var(--pc-ink-raised)' : 'var(--pc-card)',
+                          border: `1px solid ${isSkipped ? 'var(--pc-line-faint)' : rescheduled ? 'var(--pc-warning)' : 'var(--pc-line)'}`,
+                          borderRadius: 'var(--pc-radius-sm)',
+                          opacity: isSkipped ? 0.65 : 1,
+                          transition: 'opacity 0.15s ease, background 0.15s ease',
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: isSkipped ? 'var(--pc-fg-4)' : 'var(--pc-fg)', textDecoration: isSkipped ? 'line-through' : 'none' }}>
+                              {formatDateShort(date)}
                             </span>
-                          )}
+                            <span style={{
+                              fontFamily: 'var(--pc-mono)', fontSize: 11,
+                              color: rescheduled ? 'var(--pc-warning)' : 'var(--pc-fg-4)',
+                              textDecoration: rescheduled ? 'line-through' : 'none',
+                              marginRight: rescheduled ? 4 : 0,
+                            }}>
+                              {formatTime(activeTime)}
+                            </span>
+                            {rescheduled && (
+                              <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-warning)' }}>
+                                → {formatTime(effectiveTime)}
+                              </span>
+                            )}
+                            {isSkipped && (
+                              <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, letterSpacing: '0.08em', color: 'var(--pc-fg-4)', textTransform: 'uppercase' }}>
+                                Skipped
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                            <button
+                              type="button"
+                              disabled={saving}
+                              onClick={() => setReschedulingDate(isRescheduling ? null : dateKey(date))}
+                              style={{
+                                padding: '5px 12px', borderRadius: 999,
+                                border: '1px solid var(--pc-info)',
+                                background: isRescheduling ? 'var(--pc-info)' : 'transparent',
+                                cursor: saving ? 'not-allowed' : 'pointer',
+                                fontFamily: 'var(--pc-sans)', fontSize: 12,
+                                color: isRescheduling ? 'white' : 'var(--pc-info)',
+                                opacity: saving ? 0.5 : 1,
+                              }}
+                            >
+                              {rescheduled ? 'Time' : 'Time'}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={saving}
+                              onClick={() => toggleSkip(date)}
+                              style={{
+                                padding: '5px 14px', borderRadius: 999,
+                                border: '1px solid currentColor', background: 'transparent',
+                                cursor: saving ? 'not-allowed' : 'pointer',
+                                fontFamily: 'var(--pc-sans)', fontSize: 12,
+                                color: isSkipped ? 'var(--pc-sage-hi)' : 'var(--pc-fg-3)',
+                                opacity: saving ? 0.5 : 1,
+                                transition: 'color 0.15s ease',
+                              }}
+                            >
+                              {isSkipped ? 'Undo' : 'Skip'}
+                            </button>
+                          </div>
                         </div>
-                        <button
-                          type="button"
-                          disabled={saving}
-                          onClick={() => toggleSkip(date)}
-                          style={{
-                            padding: '5px 14px', borderRadius: 999,
-                            border: '1px solid currentColor', background: 'transparent',
-                            cursor: saving ? 'not-allowed' : 'pointer',
-                            fontFamily: 'var(--pc-sans)', fontSize: 12,
-                            color: isSkipped ? 'var(--pc-sage-hi)' : 'var(--pc-fg-3)',
-                            opacity: saving ? 0.5 : 1,
-                            transition: 'color 0.15s ease',
-                          }}
-                        >
-                          {isSkipped ? 'Undo skip' : 'Skip'}
-                        </button>
+                        {isRescheduling && (
+                          <div style={{
+                            marginTop: 6, padding: 'var(--pc-space-4) var(--pc-space-5)',
+                            background: 'var(--pc-ink-raised)',
+                            border: '1px solid var(--pc-line)',
+                            borderRadius: 'var(--pc-radius-sm)',
+                          }}>
+                            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, color: 'var(--pc-fg-4)', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                              Change time for {formatDateShort(date)}
+                            </p>
+                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                              {TIME_OPTIONS.filter(opt => opt.value !== effectiveTime).map(opt => (
+                                <button
+                                  key={opt.value}
+                                  type="button"
+                                  onClick={() => toggleReschedule(date, opt.value)}
+                                  style={{
+                                    padding: '8px 14px', borderRadius: 6,
+                                    background: 'var(--pc-card)',
+                                    border: '1px solid var(--pc-line)',
+                                    fontFamily: 'var(--pc-sans)', fontSize: 12,
+                                    color: 'var(--pc-fg-2)',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  {opt.label}
+                                </button>
+                              ))}
+                            </div>
+                            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                              {rescheduled && (
+                                <button
+                                  type="button"
+                                  onClick={() => clearReschedule(date)}
+                                  style={{
+                                    padding: '5px 12px', borderRadius: 6,
+                                    background: 'transparent',
+                                    border: '1px solid var(--pc-danger)',
+                                    fontFamily: 'var(--pc-sans)', fontSize: 11,
+                                    color: 'var(--pc-danger)',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  Reset to default
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => setReschedulingDate(null)}
+                                style={{
+                                  padding: '5px 12px', borderRadius: 6,
+                                  background: 'transparent',
+                                  border: '1px solid var(--pc-line)',
+                                  fontFamily: 'var(--pc-sans)', fontSize: 11,
+                                  color: 'var(--pc-fg-3)',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })}

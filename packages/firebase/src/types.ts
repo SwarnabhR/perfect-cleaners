@@ -185,8 +185,8 @@ export interface Society {
   pincode: string;
   towers: string[];            // e.g. ["Tower A", "Tower B", "Tower C"]
   totalUnits: number;          // total flats/villas in the complex
-  activeResidents: number;     // residents with the app installed
-  vehicleCount: number;        // registered vehicles
+  activeResidents: number;     // residents with an active customerSocietyRecord (kept in sync by pending-approvals/customer-enrollments)
+  vehicleCount: number;        // cars enrolled via active customerSocietyRecords
   isActive: boolean;
   contractStart: Date;
   contractEnd?: Date;

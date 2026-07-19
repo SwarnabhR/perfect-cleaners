@@ -2,6 +2,7 @@ import { toErrMsg } from '@/lib/api-error';
 import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminFirestore } from '@/lib/firebase/admin';
+import { sendAndStoreSMS } from '@/lib/notify-sms';
 
 export async function GET(req: NextRequest) {
   const auth = req.headers.get('authorization');
@@ -19,6 +20,7 @@ export async function GET(req: NextRequest) {
       .get();
 
     let processed = 0;
+    let notified = 0;
     let errors = 0;
 
     for (const docSnap of recordsSnap.docs) {
@@ -47,8 +49,20 @@ export async function GET(req: NextRequest) {
           { merge: true },
         );
 
-        // TODO: Send payment reminder SMS via notification service
-        // await notifyPaymentReminder(record.customerPhone, record.customerName, record.monthlyFee, record.societyName);
+        const phone = record.customerPhone as string | undefined;
+        if (phone) {
+          const result = await sendAndStoreSMS({
+            type: 'payment_reminder',
+            recipientPhone: phone,
+            recipientName: (record.customerName as string | undefined) ?? 'there',
+            data: {
+              customerId: record.customerId,
+              amount: record.monthlyFee,
+              societyName: record.societyName,
+            },
+          });
+          if (result.success) notified++;
+        }
 
         processed++;
       } catch (err: unknown) {
@@ -57,11 +71,12 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    console.log('[CRON] Monthly billing completed. Processed:', processed, 'Errors:', errors);
+    console.log('[CRON] Monthly billing completed. Processed:', processed, 'Notified:', notified, 'Errors:', errors);
     return NextResponse.json({
       success: true,
       message: 'Monthly billing completed',
       processed,
+      notified,
       errors,
       timestamp: new Date().toISOString(),
     });

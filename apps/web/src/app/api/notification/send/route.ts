@@ -1,74 +1,8 @@
 import 'server-only';
 import { toErrMsg } from '@/lib/api-error';
 import { NextRequest, NextResponse } from 'next/server';
-import { FieldValue } from 'firebase-admin/firestore';
-import { adminFirestore, adminAuth } from '@/lib/firebase/admin';
-import { sendSMSVia91msg, normalizePhoneFor91msg } from '@/lib/91msg';
-
-type NotificationType = 'approval' | 'car_cleaned' | 'weekly_reminder' | 'payment_reminder' | 'cleaning_missed';
-
-const MISSED_REASON_LABELS: Record<string, string> = {
-  holiday: 'holiday',
-  worker_unavailable: 'worker unavailable',
-  other: 'unforeseen issue',
-};
-
-interface NotificationPayload {
-  type: NotificationType;
-  recipientPhone: string;
-  recipientName: string;
-  data: Record<string, unknown>;
-}
-
-interface SMSResponse {
-  success: boolean;
-  messageId?: string;
-  error?: string;
-}
-
-async function sendSMS(phone: string, message: string): Promise<SMSResponse> {
-  try {
-    return await sendSMSVia91msg(normalizePhoneFor91msg(phone), message);
-  } catch (err: unknown) {
-    console.error('[Notification] SMS send failed:', err instanceof Error ? err.message : String(err));
-    return { success: false, error: err instanceof Error ? err.message : String(err) };
-  }
-}
-
-function buildMessage(type: NotificationType, data: Record<string, unknown>): string {
-  switch (type) {
-    case 'approval':
-      return `✅ Approved! Your car will be cleaned every ${data.schedule} starting ${data.startDate}. -Perfect Cleaners`;
-    case 'car_cleaned':
-      return `✨ Your car is clean! Ready for pickup. -Perfect Cleaners`;
-    case 'weekly_reminder':
-      return `🧹 Cleaning reminder: Your car will be cleaned ${data.schedule}. -Perfect Cleaners`;
-    case 'payment_reminder':
-      return `💳 Payment reminder: ₹${data.amount} due for this month's cleanings. Call us to pay. -Perfect Cleaners`;
-    case 'cleaning_missed': {
-      const reasonLabel = MISSED_REASON_LABELS[String(data.reason)] ?? 'an issue on our end';
-      return `🧹 Sorry, your cleaning today was skipped (${reasonLabel}). Next cleaning: ${data.nextDateLabel}. -Perfect Cleaners`;
-    }
-    default:
-      return 'Message from Perfect Cleaners';
-  }
-}
-
-async function storeNotification(payload: NotificationPayload, smsResponse: SMSResponse): Promise<string> {
-  const db = adminFirestore();
-  const notificationId = `${payload.type}_${String(payload.data.customerId)}_${Date.now()}`;
-  await db.collection('notifications').doc(notificationId).set({
-    type:          payload.type,
-    recipientPhone: payload.recipientPhone,
-    recipientName:  payload.recipientName,
-    data:           payload.data,
-    status:         smsResponse.success ? 'sent' : 'failed',
-    messageId:      smsResponse.messageId,
-    error:          smsResponse.error,
-    sentAt:         FieldValue.serverTimestamp(),
-  });
-  return notificationId;
-}
+import { adminAuth } from '@/lib/firebase/admin';
+import { sendAndStoreSMS, type NotificationPayload } from '@/lib/notify-sms';
 
 export async function POST(req: NextRequest) {
   // Accept either a Firebase ID token (admin dashboard) or CRON_SECRET (internal server calls).
@@ -91,13 +25,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const message      = buildMessage(body.type, body.data);
-    const smsResponse  = await sendSMS(body.recipientPhone, message);
-    const notificationId = await storeNotification(body, smsResponse);
+    const result = await sendAndStoreSMS(body);
 
     return NextResponse.json(
-      { success: smsResponse.success, notificationId, message, messageId: smsResponse.messageId },
-      { status: smsResponse.success ? 200 : 206 },
+      { success: result.success, notificationId: result.notificationId, message: result.message, messageId: result.messageId },
+      { status: result.success ? 200 : 206 },
     );
   } catch (err: unknown) {
     console.error('[/api/notification/send] Error:', err instanceof Error ? err.message : String(err));

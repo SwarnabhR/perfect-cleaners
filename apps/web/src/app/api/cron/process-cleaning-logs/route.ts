@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminFirestore, adminMessaging } from '@/lib/firebase/admin';
 
-// Runs every 5 minutes via Vercel Cron.
+// Runs every 5 minutes via cron-jobs.org.
 // Picks up cleaning logs that haven't been billed yet, increments the
 // customer's outstanding balance, writes a transaction, and sends an FCM push.
 export async function GET(req: NextRequest) {

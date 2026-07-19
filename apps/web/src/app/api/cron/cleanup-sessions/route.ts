@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminFirestore } from '@/lib/firebase/admin';
 
-// Runs nightly at 00:30 IST (19:00 UTC) via Vercel Cron.
+// Runs nightly at 00:30 IST (19:00 UTC) via cron-jobs.org.
 // Auto-completes any CleaningSession that is still 'inprogress' from a
 // previous calendar day — prevents the admin dashboard from filling with
 // stale open sessions when workers forget to tap "complete".

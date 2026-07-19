@@ -64,6 +64,16 @@ export async function GET(req: NextRequest) {
                 const preferredDays = customer.preferredCleaningDays as number[] | undefined;
                 if (preferredDays?.length && !preferredDays.includes(cleaningDate.getDay())) return null;
 
+                // Check for a one-off rescheduled slot for this specific date
+                const rescheduledSlots = (customer.rescheduledSlots as any[] | undefined) ?? [];
+                const rescheduled = rescheduledSlots.find((s: any) => {
+                  const slotDate = new Date(s.date?.toDate?.() || s.date);
+                  return slotDate.toDateString() === cleaningDate.toDateString();
+                });
+                const preferredTime = rescheduled
+                  ? rescheduled.toTime
+                  : (customer.permanentTime || customer.preferredCleaningTime || 9);
+
                 return {
                   customerId:    customer.customerId,
                   customerName:  customer.customerName || '',
@@ -71,7 +81,7 @@ export async function GET(req: NextRequest) {
                   carPlate:      customer.cars?.[0]?.plate  || '',
                   carMake:       customer.cars?.[0]?.make   || '',
                   carModel:      customer.cars?.[0]?.model  || '',
-                  preferredTime: customer.permanentTime || customer.preferredCleaningTime || 9,
+                  preferredTime,
                   status:        'pending',
                 };
               })

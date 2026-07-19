@@ -123,6 +123,10 @@ export default function CleaningSchedulePage() {
   // session created by hand from this page carries the same real cars[] /
   // totalCars the Live Cleaning board and the /session/[id] link depend on —
   // previously this always wrote an empty array, so neither ever showed anything.
+  function isSameDay(a: Date, b: Date) {
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  }
+
   async function buildCarsForSession(societyId: string, tower: string, scheduledDate: Date) {
     const customersSnap = await getDocs(query(
       collection(db, 'customerSocietyRecords'),
@@ -141,6 +145,16 @@ export default function CleaningSchedulePage() {
         const preferredDays = customer.preferredCleaningDays as number[] | undefined;
         if (preferredDays?.length && !preferredDays.includes(scheduledDate.getDay())) return null;
 
+        // Check for a one-off rescheduled slot for this specific date
+        const rescheduledSlots = (customer.rescheduledSlots as any[] | undefined) ?? [];
+        const rescheduled = rescheduledSlots.find((s: any) => {
+          const slotDate = toDate(s.date);
+          return isSameDay(slotDate, scheduledDate);
+        });
+        const preferredTime = rescheduled
+          ? (rescheduled.toTime as number)
+          : ((customer.permanentTime ?? customer.preferredCleaningTime ?? 9) as number);
+
         return {
           customerId:    customer.customerId as string,
           customerName:  (customer.customerName as string | undefined) ?? '',
@@ -148,7 +162,7 @@ export default function CleaningSchedulePage() {
           carPlate:      customer.cars?.[0]?.plate ?? '',
           carMake:       customer.cars?.[0]?.make  ?? '',
           carModel:      customer.cars?.[0]?.model ?? '',
-          preferredTime: (customer.permanentTime ?? customer.preferredCleaningTime ?? 9) as number,
+          preferredTime,
           status:        'pending' as const,
         };
       })

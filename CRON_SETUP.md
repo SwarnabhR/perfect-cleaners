@@ -4,14 +4,19 @@ This guide explains how to set up automated tasks using **cron-jobs.org** (a fre
 
 ## Overview
 
-We have 4 automated tasks that need to run on a schedule:
+We have 7 automated tasks that need to run on a schedule:
 
 | Task | Schedule | Endpoint | Purpose |
 |------|----------|----------|---------|
 | **Generate Sessions** | Every Sunday 11 PM | `/api/cron/generate-sessions` | Create cleaning sessions for next week |
 | **Weekly Reminders** | Every Sunday 11:30 PM | `/api/cron/weekly-reminders` | Send "Cleaning reminder: Mon/Wed/Fri" SMS |
 | **Payment Reminders** | 25th of month, 10 AM | `/api/cron/payment-reminders` | Send "Payment due: ₹500" SMS |
-| **Monthly Billing** | 1st of month, 12:01 AM | `/api/cron/monthly-billing` | Create billing records, set payment status to pending |
+| **Monthly Billing** | 1st of month, 12:01 AM | `/api/cron/monthly-billing` | Create billing records, set payment status to pending, send due-notice SMS |
+| **Process Cleaning Logs** | Every 5 minutes | `/api/cron/process-cleaning-logs` | Bill unbilled cleaning logs to `outstandingBalance`, notify customers |
+| **Cleanup Sessions** | Nightly 00:30 IST | `/api/cron/cleanup-sessions` | Auto-close stale `inprogress` cleaning sessions from a prior day |
+| **Reset Earnings** | Daily 00:00 IST | `/api/cron/reset-earnings` | Reset each worker's `carsCompletedToday` counter |
+
+**Process Cleaning Logs is the most operationally critical of the seven** — it's what actually charges a customer and notifies them after a car is cleaned. If it isn't registered on cron-jobs.org, cleanings happen but nobody gets billed or told.
 
 ---
 
@@ -81,6 +86,39 @@ openssl rand -hex 32
    - **URL:** `https://your-domain.com/api/cron/monthly-billing?secret=your-secret-key`
    - **Schedule:** 1st of every month at 00:01 AM
      - Or use cron expression: `1 0 1 * *`
+   - **Timeout:** 60 seconds
+3. Click **"Create"**
+
+### Create Job #5: Process Cleaning Logs
+
+1. Click **"Create Cron Job"**
+2. Fill in:
+   - **Title:** `Process Cleaning Logs`
+   - **URL:** `https://your-domain.com/api/cron/process-cleaning-logs?secret=your-secret-key`
+   - **Schedule:** Every 5 minutes
+     - Or use cron expression: `*/5 * * * *`
+   - **Timeout:** 60 seconds
+3. Click **"Create"**
+
+### Create Job #6: Cleanup Sessions
+
+1. Click **"Create Cron Job"**
+2. Fill in:
+   - **Title:** `Cleanup Sessions`
+   - **URL:** `https://your-domain.com/api/cron/cleanup-sessions?secret=your-secret-key`
+   - **Schedule:** Nightly at 00:30 IST (19:00 UTC)
+     - Or use cron expression: `0 19 * * *`
+   - **Timeout:** 60 seconds
+3. Click **"Create"**
+
+### Create Job #7: Reset Earnings
+
+1. Click **"Create Cron Job"**
+2. Fill in:
+   - **Title:** `Reset Earnings`
+   - **URL:** `https://your-domain.com/api/cron/reset-earnings?secret=your-secret-key`
+   - **Schedule:** Daily at 00:00 IST (18:30 UTC)
+     - Or use cron expression: `30 18 * * *`
    - **Timeout:** 60 seconds
 3. Click **"Create"**
 
@@ -228,18 +266,11 @@ Due: June 5 (5 days from billing date)
 
 ---
 
-## Optional: SMS Integration
+## SMS Integration
 
-All cron jobs include **TODO comments** for SMS notification sending. Currently, they're disabled because the notification service needs a real SMS provider (Twilio, AWS SNS, etc).
+SMS is sent via 91msg (`NINEONE_MSG_API_KEY` / `NINEONE_MSG_SENDER_ID` in env) through the shared `sendAndStoreSMS` helper in `src/lib/notify-sms.ts`. `weekly-reminders`, `payment-reminders`, and `monthly-billing` all call it directly (not via HTTP — they're server-to-server, so they skip the `/api/notification/send` round-trip and call the same underlying function it uses). Every send, successful or not, is logged to the `notifications` collection for the admin Notifications history page.
 
-To enable SMS:
-
-1. Set up Twilio or AWS SNS account
-2. Update `/api/notification/send/route.ts` to call the real SMS provider
-3. Uncomment SMS calls in:
-   - `/api/cron/monthly-billing/route.ts` (line ~65)
-   - `/api/cron/weekly-reminders/route.ts` (line ~60)
-   - `/api/cron/payment-reminders/route.ts` (line ~44)
+If `NINEONE_MSG_API_KEY`/`NINEONE_MSG_SENDER_ID` aren't set, sends fail gracefully (logged as `status: 'failed'`, cron job still completes) rather than throwing.
 
 ---
 
