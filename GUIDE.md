@@ -161,8 +161,8 @@ Manage partner societies.
 
 **Assign workers to a society:**
 - Open the society detail drawer (click a row)
-- Note the assigned worker IDs section — update the worker's `assignedSocietyId` field in
-  the Workers page
+- Note the assigned worker IDs section — assign the worker to one or more societies from
+  the Workers page (see 3.3)
 
 **Key fields:**
 - `towers`: array of tower/block names — drives the resident onboarding picker
@@ -173,8 +173,10 @@ Manage partner societies.
 
 - View all workers with status (Available / On Job / Off Today), rating, jobs done, earnings
 - Click a row to see full stats including this-week and this-month earnings
-- To assign a worker to a society: update `assignedSocietyId` and `assignedSocietyName`
-  directly in the Firebase console (admin UI for this is a planned feature)
+- Society assignment: check the boxes for every society this worker services (a worker can
+  cover more than one) and click **Save assignment**. Writes `assignedSocietyIds` /
+  `assignedSocietyNames`; the older singular `assignedSocietyId` is still read as a fallback
+  for any worker doc that hasn't been re-saved yet.
 
 ### 3.4 Cleaning Activity (`/cleaning-logs`)
 
@@ -241,7 +243,7 @@ FCM tokens are registered via the `useFCM` hook in the customer mobile app
 | Collection | Contents |
 |---|---|
 | `customers` | Resident profiles — name, phone, societyId, unitNumber, vehicles[], subscriptionStatus |
-| `workers` | Worker profiles — name, phone, assignedSocietyId, isOnline, rating, earnings |
+| `workers` | Worker profiles — name, phone, assignedSocietyIds[], isOnline, rating, earnings |
 | `societies` | Partner society records — name, address, towers[], cleaningSchedule, contactPerson |
 | `cleaningLogs` | Individual car cleaning events — workerId, customerId, vehicleRegistration, cleanedAt |
 | `bookings` | Premium add-on bookings — customerId, workerId, serviceIds[], status, priceBreakdown |

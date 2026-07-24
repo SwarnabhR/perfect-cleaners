@@ -6,6 +6,7 @@ import {
 } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { db } from '@pc/firebase';
+import { getAssignedSocieties } from '@pc/firebase';
 import type { Worker, Society } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
@@ -190,18 +191,29 @@ function WorkerDetailPanel({
   onEdit:    () => void;
   onDelete:  () => void;
 }) {
-  const [assignSociety, setAssignSociety] = useState(worker.assignedSocietyId ?? '');
-  const [assigning,     setAssigning]     = useState(false);
-  const [delConfirm,    setDelConfirm]    = useState(false);
+  const initialIds = getAssignedSocieties(worker).map(a => a.id);
+  const [selectedIds, setSelectedIds] = useState<string[]>(initialIds);
+  const [assigning,   setAssigning]   = useState(false);
+  const [delConfirm,  setDelConfirm]  = useState(false);
+
+  const dirty = selectedIds.length !== initialIds.length
+    || selectedIds.some(id => !initialIds.includes(id));
+
+  function toggleSociety(id: string) {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  }
 
   async function handleAssign() {
     if (assigning) return;
     setAssigning(true);
-    const society = societies.find(s => s.id === assignSociety) ?? null;
+    const chosen = societies.filter(s => selectedIds.includes(s.id));
     try {
       await updateDoc(doc(db, 'workers', worker.id), {
-        assignedSocietyId:   society?.id   ?? null,
-        assignedSocietyName: society?.name ?? null,
+        assignedSocietyIds:   chosen.map(s => s.id),
+        assignedSocietyNames: chosen.map(s => s.name),
+        // Clear the legacy singular fields so old readers don't show stale data.
+        assignedSocietyId:    null,
+        assignedSocietyName:  null,
       });
     } finally { setAssigning(false); }
   }
@@ -246,37 +258,48 @@ function WorkerDetailPanel({
           ))}
         </div>
 
-        {/* Society assignment */}
+        {/* Society assignment — a worker can service more than one society */}
         <div>
           <p style={monoLabel}>Society assignment</p>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <select
-              value={assignSociety}
-              onChange={e => setAssignSociety(e.target.value)}
-              style={{
-                flex: 1, padding: '9px 12px',
-                background: 'var(--pc-card-hi)', border: '1px solid var(--pc-line)',
-                borderRadius: 8, color: 'var(--pc-fg)',
-                fontFamily: 'var(--pc-sans)', fontSize: 13, outline: 'none', cursor: 'pointer',
-              }}
-            >
-              <option value="">Unassigned</option>
-              {societies.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
-            <button
-              type="button" onClick={handleAssign}
-              disabled={assigning || assignSociety === (worker.assignedSocietyId ?? '')}
-              style={{
-                padding: '9px 16px', borderRadius: 8,
-                background: 'var(--pc-sage)', border: 'none',
-                fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600,
-                color: 'var(--pc-sage-ink)', cursor: 'pointer',
-                opacity: assigning || assignSociety === (worker.assignedSocietyId ?? '') ? 0.5 : 1,
-              }}
-            >
-              {assigning ? 'Saving…' : 'Save'}
-            </button>
+          <div style={{
+            display: 'flex', flexDirection: 'column', gap: 4,
+            maxHeight: 180, overflowY: 'auto',
+            background: 'var(--pc-card-hi)', border: '1px solid var(--pc-line)',
+            borderRadius: 8, padding: 8,
+          }}>
+            {societies.length === 0 ? (
+              <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-4)', margin: '4px 8px' }}>
+                No active societies.
+              </p>
+            ) : societies.map(s => (
+              <label key={s.id} style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '7px 8px', borderRadius: 6, cursor: 'pointer',
+                fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)',
+              }}>
+                <input
+                  type="checkbox"
+                  checked={selectedIds.includes(s.id)}
+                  onChange={() => toggleSociety(s.id)}
+                  style={{ cursor: 'pointer' }}
+                />
+                {s.name}
+              </label>
+            ))}
           </div>
+          <button
+            type="button" onClick={handleAssign}
+            disabled={assigning || !dirty}
+            style={{
+              width: '100%', marginTop: 8, padding: '9px 16px', borderRadius: 8,
+              background: 'var(--pc-sage)', border: 'none',
+              fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600,
+              color: 'var(--pc-sage-ink)', cursor: 'pointer',
+              opacity: assigning || !dirty ? 0.5 : 1,
+            }}
+          >
+            {assigning ? 'Saving…' : 'Save assignment'}
+          </button>
         </div>
 
         {/* Actions */}
@@ -555,7 +578,12 @@ export default function WorkersPage() {
                       <StatusPill status={workerStatus(w)} />
                     </td>
                     <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)' }}>
-                      {(w as any).assignedSocietyName || <span style={{ color: 'var(--pc-fg-4)' }}>Unassigned</span>}
+                      {(() => {
+                        const names = getAssignedSocieties(w).map(a => a.name);
+                        return names.length
+                          ? names.join(', ')
+                          : <span style={{ color: 'var(--pc-fg-4)' }}>Unassigned</span>;
+                      })()}
                     </td>
                     <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg-2)' }}>
                       {w.totalJobs ?? 0}

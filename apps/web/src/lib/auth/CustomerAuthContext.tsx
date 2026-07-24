@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, signOut as fbSignOut, setPersistence, browserSessionPersistence, type User } from 'firebase/auth';
+import { onAuthStateChanged, signOut as fbSignOut, setPersistence, browserLocalPersistence, type User } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '@pc/firebase';
 
@@ -27,7 +27,7 @@ export function CustomerAuthProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     let unsub: (() => void) | undefined;
 
-    setPersistence(auth, browserSessionPersistence)
+    setPersistence(auth, browserLocalPersistence)
       .catch(err => console.error('[Auth] setPersistence failed:', err))
       .finally(() => {
         unsub = onAuthStateChanged(auth, u => {

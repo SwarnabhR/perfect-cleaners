@@ -1,4 +1,6 @@
 export { firebaseApp, db, auth } from './config';
+export { getAssignedSocieties } from './worker';
+export type { WorkerSocietyAssignment } from './worker';
 export type {
   Booking,
   BookingAddress,

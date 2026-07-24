@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { db } from '@pc/firebase';
+import { getAssignedSocieties } from '@pc/firebase';
 import type { Worker } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
@@ -108,9 +109,10 @@ export default function CleaningLogsPage() {
     const wid = l.workerId || 'unknown';
     if (!byWorker.has(wid)) {
       const w = workersById.get(wid);
+      const societyNames = w ? getAssignedSocieties(w).map(a => a.name) : [];
       byWorker.set(wid, {
         workerName: l.workerName || w?.name || 'Unknown worker',
-        societyName: w?.assignedSocietyName || l.societyName || '—',
+        societyName: societyNames.length ? societyNames.join(', ') : (l.societyName || '—'),
         logs: [],
       });
     }

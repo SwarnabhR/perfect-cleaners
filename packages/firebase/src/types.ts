@@ -86,8 +86,13 @@ export interface Worker {
   location?: GeoPoint;
   isOnline: boolean;
   activeBookingId?: string;
-  // Society assignment — set by admin to indicate which society this worker services
+  // Societies this worker regularly services — a worker can cover more than one.
+  // Index-matched: assignedSocietyNames[i] is the name for assignedSocietyIds[i].
+  assignedSocietyIds?: string[];
+  assignedSocietyNames?: string[];
+  /** @deprecated superseded by assignedSocietyIds — still read as a fallback for un-migrated docs */
   assignedSocietyId?: string;
+  /** @deprecated superseded by assignedSocietyNames — still read as a fallback for un-migrated docs */
   assignedSocietyName?: string;
   rating: number;
   ratingCount?: number;    // number of customer ratings folded into `rating`'s running average

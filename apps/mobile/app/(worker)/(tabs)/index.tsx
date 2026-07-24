@@ -8,6 +8,7 @@ import { Building2, CheckCircle2, Circle, Loader, Clock } from 'lucide-react-nat
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import type { Worker, CleaningSessionCar } from '@pc/firebase';
+import { getAssignedSocieties } from '@pc/firebase';
 import { typography, spacing, radii } from '@pc/tokens';
 import { useThemeColors } from '../../../theme';
 import { useSharedStyles } from '../../../theme/sharedStyles';
@@ -17,6 +18,7 @@ import { useSharedStyles } from '../../../theme/sharedStyles';
 interface SessionCar extends CleaningSessionCar {
   sessionId: string;
   carIndex: number;
+  societyId: string;
   societyName: string;
   tower: string;
   logId?: string;
@@ -91,6 +93,7 @@ export default function WorkerHome() {
           const sessionDate = scheduledDate instanceof Date ? scheduledDate : new Date(scheduledDate);
           if (!isLocalDateMatch(sessionDate, today)) return;
 
+          const societyId   = data.societyId ?? '';
           const societyName = data.societyName ?? '';
           const tower = data.tower ?? '';
 
@@ -108,6 +111,7 @@ export default function WorkerHome() {
               cleanedAt:     car.cleanedAt,
               sessionId:     d.id,
               carIndex:      idx,
+              societyId,
               societyName,
               tower,
             });
@@ -183,7 +187,7 @@ export default function WorkerHome() {
       batch.set(logRef, {
         id:                  logRef.id,
         sessionId:           car.sessionId,
-        societyId:           worker.assignedSocietyId ?? '',
+        societyId:           car.societyId,
         societyName:         car.societyName,
         tower:               car.tower,
         vehicleRegistration: car.carPlate,
@@ -217,6 +221,8 @@ export default function WorkerHome() {
 
   // Group cars by time slot
   const timeSlots = [...new Set(cars.map(c => c.preferredTime))].sort((a, b) => a - b);
+
+  const assignedSocieties = worker ? getAssignedSocieties(worker) : [];
 
   const now      = new Date();
   const hour     = now.getHours();
@@ -265,15 +271,17 @@ export default function WorkerHome() {
       </View>
 
       {/* Society assignment card */}
-      {worker?.assignedSocietyId ? (
+      {assignedSocieties.length > 0 ? (
         <View style={s.societyCard}>
           <View style={s.societyRow}>
             <View style={s.societyIcon}>
               <Building2 size={18} color={c.sageInk} strokeWidth={1.5} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={s.societyName}>{worker.assignedSocietyName ?? 'Society'}</Text>
-              <Text style={s.societyMeta}>TODAY'S ASSIGNMENT</Text>
+              <Text style={s.societyName}>{assignedSocieties.map(a => a.name).join(', ')}</Text>
+              <Text style={s.societyMeta}>
+                {assignedSocieties.length > 1 ? `${assignedSocieties.length} SOCIETIES` : "TODAY'S ASSIGNMENT"}
+              </Text>
             </View>
             <View style={[s.progressBadge, pct === 100 && s.progressBadgeDone]}>
               <Text style={[s.progressBadgeText, pct === 100 && s.progressBadgeTextDone]}>
@@ -312,7 +320,7 @@ export default function WorkerHome() {
       )}
 
       {/* Car list grouped by time slot */}
-      {worker?.assignedSocietyId && (
+      {assignedSocieties.length > 0 && (
         <View style={s.listSection}>
           {loading ? (
             <ActivityIndicator style={{ marginTop: spacing[8] }} color={c.fg3} />

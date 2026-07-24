@@ -7,6 +7,7 @@ import {
   doc, updateDoc, orderBy, limit, Timestamp, getDocs,
 } from 'firebase/firestore';
 import { db } from '@pc/firebase';
+import { getAssignedSocieties } from '@pc/firebase';
 import type { CleaningLog, CustomerSocietyRecord, CleaningSessionEnhanced } from '@pc/firebase';
 import { useWorkerAuth } from '@/components/WorkerAuthProvider';
 import Card from '@/components/ui/Card';
@@ -88,16 +89,19 @@ export default function WorkerDashboard() {
     }, err => { console.warn('[WorkerDashboard] logs listener:', err); setLoading(false); });
   }, [user]);
 
-  // Total subscribed cars in assigned society (for progress denominator).
+  const assignedSocieties = worker ? getAssignedSocieties(worker) : [];
+  const assignedSocietyIds = assignedSocieties.map(a => a.id);
+
+  // Total subscribed cars across all assigned societies (for progress denominator).
   // Society-program enrollment lives in customerSocietyRecords, not as a
   // societyId field on the customers collection (that field is only ever set
   // for old/bulk-imported docs) — querying customers here always returned 0,
   // which is why the card showed "X/? done".
   useEffect(() => {
-    if (!worker?.assignedSocietyId) { setTotal(0); return; }
+    if (assignedSocietyIds.length === 0) { setTotal(0); return; }
     const q = query(
       collection(db, 'customerSocietyRecords'),
-      where('societyId', '==', worker.assignedSocietyId),
+      where('societyId', 'in', assignedSocietyIds.slice(0, 30)),
       where('status', '==', 'active'),
     );
     // One-time fetch is enough for the denominator
@@ -107,7 +111,7 @@ export default function WorkerDashboard() {
       );
       setTotal(carCount);
     }).catch(err => console.warn('[WorkerDashboard] car count fetch:', err));
-  }, [worker?.assignedSocietyId]);
+  }, [assignedSocietyIds.join(',')]);
 
   async function toggleOnline() {
     if (!user || !worker) return;
@@ -241,9 +245,11 @@ export default function WorkerDashboard() {
       )}
 
       {/* Society assignment card */}
-      {worker?.assignedSocietyId ? (
+      {assignedSocieties.length > 0 ? (
         <div>
-          <Eyebrow style={{ display: 'block', marginBottom: 10 }}>TODAY'S ASSIGNMENT</Eyebrow>
+          <Eyebrow style={{ display: 'block', marginBottom: 10 }}>
+            {assignedSocieties.length > 1 ? `YOUR SOCIETIES (${assignedSocieties.length})` : "TODAY'S ASSIGNMENT"}
+          </Eyebrow>
           <Card style={{ padding: 'var(--pc-space-5)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
               <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--pc-sage)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -251,10 +257,10 @@ export default function WorkerDashboard() {
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 16, fontWeight: 600, color: 'var(--pc-fg)', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {worker.assignedSocietyName ?? 'Society'}
+                  {assignedSocieties.map(a => a.name).join(', ')}
                 </p>
                 <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', margin: 0, letterSpacing: '0.05em' }}>
-                  ASSIGNED SOCIETY
+                  {assignedSocieties.length > 1 ? 'ASSIGNED SOCIETIES' : 'ASSIGNED SOCIETY'}
                 </p>
               </div>
               <div style={{
@@ -331,7 +337,7 @@ export default function WorkerDashboard() {
         </div>
       )}
 
-      {!loading && logs.length === 0 && worker?.assignedSocietyId && (
+      {!loading && logs.length === 0 && assignedSocieties.length > 0 && (
         <Card style={{ padding: 'var(--pc-space-8)', textAlign: 'center' }}>
           <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 20, color: 'var(--pc-fg)', margin: '0 0 8px' }}>No cleans logged yet.</p>
           <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: 0, lineHeight: 1.6 }}>

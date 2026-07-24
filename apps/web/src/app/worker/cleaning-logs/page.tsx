@@ -6,6 +6,7 @@ import {
   onSnapshot, Timestamp,
 } from 'firebase/firestore';
 import { db } from '@pc/firebase';
+import { getAssignedSocieties } from '@pc/firebase';
 import type { CleaningLog } from '@pc/firebase';
 import { useWorkerAuth } from '@/components/WorkerAuthProvider';
 import Card from '@/components/ui/Card';
@@ -88,9 +89,9 @@ export default function WorkerCleaningLogsPage() {
           <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 'clamp(22px, 4vw, 28px)', fontWeight: 400, color: 'var(--pc-fg)', letterSpacing: '-0.02em', margin: 0 }}>
             My Cleans
           </h1>
-          {worker?.assignedSocietyName && (
+          {worker && getAssignedSocieties(worker).length > 0 && (
             <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: '4px 0 0' }}>
-              {worker.assignedSocietyName}
+              {getAssignedSocieties(worker).map(a => a.name).join(', ')}
             </p>
           )}
         </div>
