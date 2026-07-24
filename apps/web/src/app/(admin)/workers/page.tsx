@@ -271,21 +271,27 @@ function WorkerDetailPanel({
               <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-4)', margin: '4px 8px' }}>
                 No active societies.
               </p>
-            ) : societies.map(s => (
-              <label key={s.id} style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                padding: '7px 8px', borderRadius: 6, cursor: 'pointer',
-                fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)',
-              }}>
-                <input
-                  type="checkbox"
-                  checked={selectedIds.includes(s.id)}
-                  onChange={() => toggleSociety(s.id)}
-                  style={{ cursor: 'pointer' }}
-                />
-                {s.name}
-              </label>
-            ))}
+            ) : societies.map(s => {
+              const checked = selectedIds.includes(s.id);
+              return (
+                <label key={s.id} style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '7px 8px', borderRadius: 6, cursor: 'pointer',
+                  fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)',
+                  background: checked ? 'color-mix(in srgb, var(--pc-sage) 10%, transparent)' : 'transparent',
+                  border: `1px solid ${checked ? 'var(--pc-sage-hi)' : 'transparent'}`,
+                  transition: 'background 0.15s',
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggleSociety(s.id)}
+                    style={{ accentColor: 'var(--pc-sage)', width: 15, height: 15, flexShrink: 0, cursor: 'pointer' }}
+                  />
+                  {s.name}
+                </label>
+              );
+            })}
           </div>
           <button
             type="button" onClick={handleAssign}
