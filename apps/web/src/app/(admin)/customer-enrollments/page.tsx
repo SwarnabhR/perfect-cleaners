@@ -128,6 +128,7 @@ interface AddCustomerForm {
   societyId: string; societyName: string; tower: string; unitNumber: string; parkingNumber: string;
   carPlate: string; carMake: string; carModel: string;
   preferredTime: number; preferredDays: DayOfWeek[];
+  tier: 'normal' | 'premium' | 'ultra';
   paymentMethod: string; paymentNotes: string;
 }
 
@@ -136,6 +137,7 @@ const BLANK_ADD_FORM: AddCustomerForm = {
   societyId: '', societyName: '', tower: '', unitNumber: '', parkingNumber: '',
   carPlate: '', carMake: '', carModel: '',
   preferredTime: 9, preferredDays: [],
+  tier: 'normal',
   paymentMethod: '', paymentNotes: '',
 };
 
@@ -143,6 +145,7 @@ function AddCustomerModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
   const [societies, setSocieties] = useState<LiveSociety[]>([]);
   const [form, setForm] = useState<AddCustomerForm>(BLANK_ADD_FORM);
   const [towerDays, setTowerDays] = useState<DayOfWeek[]>([]);
+  const [tierPricing, setTierPricing] = useState<{ normal: number; premium: number; ultra: number } | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -157,7 +160,7 @@ function AddCustomerModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
   // Tower's admin-configured cleaning days, so the day-picker below only
   // ever offers valid choices — same constraint the self-signup form applies.
   useEffect(() => {
-    if (!form.societyId || !form.tower) { setTowerDays([]); return; }
+    if (!form.societyId || !form.tower) { setTowerDays([]); setTierPricing(null); return; }
     getDocs(query(
       collection(db, 'societyBillingConfig'),
       where('societyId', '==', form.societyId),
@@ -168,8 +171,9 @@ function AddCustomerModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
         ? (config!.cleaningDays as DayOfWeek[])
         : parseDaysFromSchedule((config?.cleaningSchedule as string | undefined) ?? '');
       setTowerDays(days);
-      setForm(f => ({ ...f, preferredDays: days }));
-    }).catch(() => setTowerDays([]));
+      setForm(f => ({ ...f, preferredDays: days, tier: 'normal' }));
+      setTierPricing((config?.tierPricing as { normal: number; premium: number; ultra: number } | undefined) ?? null);
+    }).catch(() => { setTowerDays([]); setTierPricing(null); });
   }, [form.societyId, form.tower]);
 
   const selectedSociety = societies.find(s => s.id === form.societyId) ?? null;
@@ -204,7 +208,8 @@ function AddCustomerModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
         where('tower', '==', form.tower),
       ));
       const billingConfig    = configSnap.docs[0]?.data();
-      const monthlyFee       = (billingConfig?.monthlyFee as number | undefined) ?? 500;
+      const tierPricingCfg   = billingConfig?.tierPricing as { normal: number; premium: number; ultra: number } | undefined;
+      const monthlyFee       = (tierPricingCfg ? tierPricingCfg[form.tier] : undefined) ?? (billingConfig?.monthlyFee as number | undefined) ?? 500;
       const cleaningSchedule = (billingConfig?.cleaningSchedule as string | undefined) ?? 'Mon, Wed, Fri · 9:00 AM';
 
       await setDoc(doc(db, 'customerSocietyRecords', recordId), {
@@ -221,6 +226,9 @@ function AddCustomerModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
         preferredCleaningDays: form.preferredDays,
         signupSource:          'bulk_import',
         status:                'active',
+        ...(tierPricingCfg ? { tier: form.tier } : {}),
+        billingFrequency:      (billingConfig?.billingFrequency as CustomerSocietyRecord['billingFrequency']) ?? 'monthly',
+        deepCleanEnabled:      !!billingConfig?.deepClean,
         monthlyFee,
         nextBillingDate:       Timestamp.fromDate(firstOfNextMonth()),
         paymentStatus:         form.paymentMethod ? 'verified' : 'not_verified',
@@ -354,6 +362,36 @@ function AddCustomerModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
               <input value={form.carModel} onChange={e => setForm(f => ({ ...f, carModel: e.target.value }))} placeholder="Swift, City…" style={inputStyle} />
             </div>
           </div>
+
+          {tierPricing && (
+            <div>
+              <p style={monoLabel}>Tier</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                {([
+                  { key: 'normal' as const,  label: 'Normal' },
+                  { key: 'premium' as const, label: 'Premium' },
+                  { key: 'ultra' as const,   label: 'Ultra' },
+                ]).map(({ key, label }) => {
+                  const selected = form.tier === key;
+                  return (
+                    <button key={key} type="button" onClick={() => setForm(f => ({ ...f, tier: key }))} style={{
+                      padding: '10px 8px', borderRadius: 8, textAlign: 'center',
+                      background: selected ? 'var(--pc-sage)' : 'var(--pc-card-hi)',
+                      border: `1px solid ${selected ? 'var(--pc-sage-hi)' : 'var(--pc-line)'}`,
+                      cursor: 'pointer',
+                    }}>
+                      <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, fontWeight: 600, color: selected ? 'var(--pc-sage-ink)' : 'var(--pc-fg)', margin: '0 0 2px' }}>
+                        {label}
+                      </p>
+                      <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: selected ? 'var(--pc-sage-ink)' : 'var(--pc-fg-3)', margin: 0 }}>
+                        ₹{tierPricing[key].toLocaleString('en-IN')}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {towerDays.length > 0 && (
             <div>

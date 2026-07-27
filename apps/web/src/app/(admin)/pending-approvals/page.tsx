@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { collection, query, where, getDocs, onSnapshot, doc, setDoc, updateDoc, deleteDoc, serverTimestamp, increment } from 'firebase/firestore';
 import { db, auth } from '@pc/firebase';
-import type { PendingApproval, CustomerSocietyRecord, DayOfWeek } from '@pc/firebase';
+import type { PendingApproval, CustomerSocietyRecord, DayOfWeek, SocietyBillingConfig } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
@@ -109,7 +109,9 @@ export default function PendingApprovalsPage() {
         )
       );
       const billingConfig    = configSnap.docs[0]?.data();
-      const monthlyFee       = (billingConfig?.monthlyFee       as number | undefined) ?? 500;
+      const tierPricing      = billingConfig?.tierPricing as { normal: number; premium: number; ultra: number } | undefined;
+      const monthlyFee       = (approval.tier && tierPricing ? tierPricing[approval.tier] : undefined)
+        ?? (billingConfig?.monthlyFee as number | undefined) ?? 500;
       const cleaningSchedule = (billingConfig?.cleaningSchedule as string | undefined) ?? 'Mon, Wed, Fri · 9:00 AM';
 
       // 1. Activate the CustomerSocietyRecord — self-signup (account/cleaning's
@@ -141,6 +143,9 @@ export default function PendingApprovalsPage() {
         preferredCleaningDays: approval.preferredCleaningDays ?? [],
         signupSource:          'self_signup',
         status:                'active',
+        ...(approval.tier ? { tier: approval.tier } : {}),
+        billingFrequency:      (billingConfig?.billingFrequency as SocietyBillingConfig['billingFrequency']) ?? 'monthly',
+        deepCleanEnabled:      !!billingConfig?.deepClean,
         monthlyFee,
         nextBillingDate:       firstOfNextMonth(),
         paymentStatus:         'verified',

@@ -131,6 +131,8 @@ function SelfSignupForm({
   const [preferredTime, setPreferredTime] = useState(9);
   const [towerDays, setTowerDays] = useState<DayOfWeek[]>([]);
   const [preferredDays, setPreferredDays] = useState<DayOfWeek[]>([]);
+  const [tierPricing, setTierPricing] = useState<{ normal: number; premium: number; ultra: number } | null>(null);
+  const [tier, setTier] = useState<'normal' | 'premium' | 'ultra'>('normal');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -140,9 +142,10 @@ function SelfSignupForm({
       .catch(() => {});
   }, []);
 
-  // Fetch the tower's admin-configured allowed cleaning days once both are picked.
+  // Fetch the tower's admin-configured allowed cleaning days (+ tier pricing,
+  // if this tower has been set up with tiers) once both are picked.
   useEffect(() => {
-    if (!societyId || !tower) { setTowerDays([]); setPreferredDays([]); return; }
+    if (!societyId || !tower) { setTowerDays([]); setPreferredDays([]); setTierPricing(null); return; }
     getDocs(query(
       collection(db, 'societyBillingConfig'),
       where('societyId', '==', societyId),
@@ -154,7 +157,9 @@ function SelfSignupForm({
         : parseScheduleDays((config?.cleaningSchedule as string | undefined) ?? '');
       setTowerDays(days);
       setPreferredDays(days);
-    }).catch(() => { setTowerDays([]); setPreferredDays([]); });
+      setTierPricing((config?.tierPricing as { normal: number; premium: number; ultra: number } | undefined) ?? null);
+      setTier('normal');
+    }).catch(() => { setTowerDays([]); setPreferredDays([]); setTierPricing(null); });
   }, [societyId, tower]);
 
   const selectedSociety = societies.find(s => s.id === societyId) ?? null;
@@ -170,6 +175,11 @@ function SelfSignupForm({
       const carPlate = plate.trim().toUpperCase();
       const societyName = selectedSociety?.name ?? '';
 
+      // Tier is finalized into monthlyFee at admin-approval time (same as the
+      // rest of billing config) — here it's just carried along on both docs
+      // so the approval step knows which tier the resident picked.
+      const chosenTier = tierPricing ? tier : undefined;
+
       await addDoc(collection(db, 'pendingApprovals'), {
         societyId, societyName, tower,
         customerId:            userId,
@@ -178,6 +188,7 @@ function SelfSignupForm({
         carPlate, carMake: make.trim(), carModel: model.trim(),
         preferredCleaningTime: preferredTime,
         preferredCleaningDays: preferredDays,
+        ...(chosenTier ? { tier: chosenTier } : {}),
         status:                'pending',
         submittedAt:           serverTimestamp(),
       });
@@ -191,7 +202,8 @@ function SelfSignupForm({
         preferredCleaningDays: preferredDays,
         signupSource:          'self_signup',
         status:                'pending',
-        monthlyFee:            0,
+        ...(chosenTier ? { tier: chosenTier } : {}),
+        monthlyFee:            tierPricing ? tierPricing[tier] : 0,
         nextBillingDate:       new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         paymentStatus:         'not_verified',
         skipDates:             [],
@@ -277,6 +289,37 @@ function SelfSignupForm({
           </div>
         </div>
       </div>
+
+      {/* Tier — only shown once the tower has tier pricing configured */}
+      {tierPricing && (
+        <div>
+          <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--pc-fg-3)', margin: '0 0 14px' }}>CHOOSE YOUR PLAN</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
+            {([
+              { key: 'normal' as const,  label: 'Normal' },
+              { key: 'premium' as const, label: 'Premium' },
+              { key: 'ultra' as const,   label: 'Ultra Premium' },
+            ]).map(({ key, label }) => {
+              const selected = tier === key;
+              return (
+                <button key={key} type="button" onClick={() => setTier(key)} style={{
+                  padding: '14px 12px', borderRadius: 8, textAlign: 'center',
+                  background: selected ? 'var(--pc-sage)' : 'var(--pc-ink-raised)',
+                  border: `1px solid ${selected ? 'var(--pc-sage-hi)' : 'var(--pc-line)'}`,
+                  cursor: 'pointer',
+                }}>
+                  <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600, color: selected ? 'var(--pc-sage-ink)' : 'var(--pc-fg)', margin: '0 0 4px' }}>
+                    {label}
+                  </p>
+                  <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 12, color: selected ? 'var(--pc-sage-ink)' : 'var(--pc-fg-3)', margin: 0 }}>
+                    ₹{tierPricing[key].toLocaleString('en-IN')}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Day preference — only once a tower's allowed days are known */}
       {towerDays.length > 0 && (

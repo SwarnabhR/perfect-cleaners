@@ -248,11 +248,31 @@ export interface SocietyBillingConfig {
   societyId: string;
   societyName: string;         // e.g. "Uniworld City"
   tower: string;                // e.g. "Tower A"
-  monthlyFee: number;          // ₹500, ₹600, etc
+  monthlyFee: number;          // ₹500, ₹600, etc — always kept equal to tierPricing.normal
+                                // when tierPricing is set, so pre-tier readers keep working.
   currency: 'INR';
   billingDay: number;          // 1 (1st of month)
   cleaningDays: DayOfWeek[];   // admin-configured allowed cleaning days for this tower
   cleaningSchedule: string;    // display string derived from cleaningDays, e.g. "Mon, Wed, Fri · 9:00 AM"
+
+  // undefined = 'monthly' (today's only behavior — every existing config keeps
+  // billing exactly as before until an admin explicitly picks a different mode).
+  billingFrequency?: 'monthly' | 'one-time' | 'per-day';
+  // Per-customer tier pricing — meaning depends on billingFrequency: a flat fee
+  // for monthly/one-time, a per-clean rate for per-day. Optional: towers without
+  // this configured have no tier picker at signup and just use monthlyFee.
+  tierPricing?: {
+    normal: number;
+    premium: number;
+    ultra: number;
+  };
+  // Optional add-on service on top of the regular exterior-wash cadence above —
+  // its own schedule, its own flat fee charged alongside the regular cycle.
+  deepClean?: {
+    frequency: 'weekly' | 'daily' | 'one-time';
+    fee: number;
+  };
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -292,6 +312,17 @@ export interface CustomerSocietyRecord {
   paymentMethod?: string;       // 'phone', 'upi', 'card'
   paymentNotes?: string;        // Admin notes: "Called on Jun 10, will pay by Jun 15"
 
+  // Tier + frequency, resolved and denormalized from the tower's
+  // SocietyBillingConfig at enrollment time (same reason monthlyFee already is —
+  // a later tower config change shouldn't retroactively change an existing
+  // customer's plan mid-cycle). Absent on pre-tier enrollments, which just keep
+  // using the flat monthlyFee with an implicit 'monthly' frequency.
+  tier?: 'normal' | 'premium' | 'ultra';
+  billingFrequency?: 'monthly' | 'one-time' | 'per-day';
+  deepCleanEnabled?: boolean;
+  oneTimeBilled?: boolean;      // set once the billing cron has charged a 'one-time' customer
+  pendingAmount?: number;       // current cycle's actual amount owed, written by the billing cron
+
   // Unavailability rules
   skipDates: Date[];           // One-time skips
   rescheduledSlots: Array<{
@@ -326,6 +357,7 @@ export interface PendingApproval {
   // Preferences
   preferredCleaningTime: number; // 7, 7.5, 9, 14 (.5 = half-hour slot)
   preferredCleaningDays?: DayOfWeek[];
+  tier?: 'normal' | 'premium' | 'ultra'; // resolved into monthlyFee at approval time
 
   // Approval workflow
   status: 'pending' | 'approved' | 'rejected';

@@ -28,11 +28,32 @@ function buildScheduleString(days: DayOfWeek[], time: string): string {
   return time ? `${label} · ${time}` : label;
 }
 
+type BillingFrequency = 'monthly' | 'one-time' | 'per-day';
+type DeepCleanFrequency = 'weekly' | 'daily' | 'one-time';
+
+const BILLING_FREQUENCY_OPTS: { value: BillingFrequency; label: string }[] = [
+  { value: 'monthly',  label: 'Monthly' },
+  { value: 'one-time', label: 'One-time' },
+  { value: 'per-day',  label: 'Per-day (metered)' },
+];
+
+const DEEP_CLEAN_FREQUENCY_OPTS: { value: DeepCleanFrequency; label: string }[] = [
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'daily',  label: 'Daily' },
+  { value: 'one-time', label: 'One-time' },
+];
+
 interface FormData {
   societyId: string;
   societyName: string;
   tower: string;
-  monthlyFee: number;
+  tierNormal: number;
+  tierPremium: number;
+  tierUltra: number;
+  billingFrequency: BillingFrequency;
+  deepCleanEnabled: boolean;
+  deepCleanFrequency: DeepCleanFrequency;
+  deepCleanFee: number;
   cleaningDays: DayOfWeek[];
   cleaningTime: string;
 }
@@ -41,7 +62,13 @@ const BLANK_FORM: FormData = {
   societyId: '',
   societyName: '',
   tower: '',
-  monthlyFee: 0,
+  tierNormal: 0,
+  tierPremium: 0,
+  tierUltra: 0,
+  billingFrequency: 'monthly',
+  deepCleanEnabled: false,
+  deepCleanFrequency: 'weekly',
+  deepCleanFee: 0,
   cleaningDays: [1, 3, 5],
   cleaningTime: '9:00 AM',
 };
@@ -102,7 +129,15 @@ export default function TowerBillingPage() {
       societyId: config.societyId,
       societyName: config.societyName,
       tower: config.tower,
-      monthlyFee: config.monthlyFee,
+      // Prefill all three tiers with the flat fee when this config predates tiers,
+      // so the form never shows blank prices for an already-priced tower.
+      tierNormal:  config.tierPricing?.normal  ?? config.monthlyFee,
+      tierPremium: config.tierPricing?.premium ?? config.monthlyFee,
+      tierUltra:   config.tierPricing?.ultra   ?? config.monthlyFee,
+      billingFrequency:   config.billingFrequency ?? 'monthly',
+      deepCleanEnabled:   !!config.deepClean,
+      deepCleanFrequency: config.deepClean?.frequency ?? 'weekly',
+      deepCleanFee:       config.deepClean?.fee ?? 0,
       cleaningDays: config.cleaningDays?.length ? config.cleaningDays : parseDaysFromSchedule(config.cleaningSchedule),
       cleaningTime: parseTimeFromSchedule(config.cleaningSchedule),
     });
@@ -117,7 +152,7 @@ export default function TowerBillingPage() {
   }
 
   async function handleSave() {
-    if (!form.societyId.trim() || !form.tower.trim() || form.monthlyFee <= 0 || form.cleaningDays.length === 0 || saving) return;
+    if (!form.societyId.trim() || !form.tower.trim() || form.tierNormal <= 0 || form.cleaningDays.length === 0 || saving) return;
     setSaving(true);
     try {
       const docId = editing?.id || `${form.societyId}_${form.tower}`;
@@ -125,7 +160,14 @@ export default function TowerBillingPage() {
         societyId: form.societyId.trim(),
         societyName: form.societyName.trim(),
         tower: form.tower.trim(),
-        monthlyFee: form.monthlyFee,
+        // monthlyFee mirrors the Normal tier so readers that don't know about
+        // tiers yet (billing page, wallet page, notification copy) keep working.
+        monthlyFee: form.tierNormal,
+        tierPricing: { normal: form.tierNormal, premium: form.tierPremium, ultra: form.tierUltra },
+        billingFrequency: form.billingFrequency,
+        ...(form.deepCleanEnabled
+          ? { deepClean: { frequency: form.deepCleanFrequency, fee: form.deepCleanFee } }
+          : {}),
         cleaningDays: form.cleaningDays,
         cleaningSchedule: buildScheduleString(form.cleaningDays, form.cleaningTime.trim()),
         currency: 'INR',
@@ -165,7 +207,7 @@ export default function TowerBillingPage() {
           <Eyebrow style={{ display: 'block', marginBottom: 4 }}>BILLING</Eyebrow>
           <h1 className="admin-page-title">Tower Pricing</h1>
           <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: '4px 0 0' }}>
-            Set monthly cleaning fees for each tower
+            Set tier pricing, billing frequency, and deep-clean add-ons for each tower
           </p>
         </div>
         <button
@@ -299,16 +341,116 @@ export default function TowerBillingPage() {
               </div>
 
               <div>
-                <p style={monoLabel}>Monthly Fee (₹)</p>
-                <input
-                  type="number"
-                  value={form.monthlyFee}
-                  onChange={e => setForm({ ...form, monthlyFee: parseInt(e.target.value) || 0 })}
-                  placeholder="450"
-                  min="0"
-                  step="10"
-                  style={inputStyle}
-                />
+                <p style={monoLabel}>Tier Pricing (₹)</p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                  {([
+                    { key: 'tierNormal' as const,  label: 'Normal'  },
+                    { key: 'tierPremium' as const, label: 'Premium' },
+                    { key: 'tierUltra' as const,   label: 'Ultra Premium' },
+                  ]).map(({ key, label }) => (
+                    <div key={key}>
+                      <p style={{ ...monoLabel, fontSize: 9, marginBottom: 4 }}>{label}</p>
+                      <input
+                        type="number"
+                        value={form[key]}
+                        onChange={e => setForm({ ...form, [key]: parseInt(e.target.value) || 0 })}
+                        placeholder="450"
+                        min="0"
+                        step="10"
+                        style={inputStyle}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-4)', margin: '6px 0 0' }}>
+                  Each resident picks a tier at signup. For "Per-day" billing below, these are per-clean rates, not monthly totals.
+                </p>
+              </div>
+
+              <div>
+                <p style={monoLabel}>Billing Frequency</p>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {BILLING_FREQUENCY_OPTS.map(opt => {
+                    const checked = form.billingFrequency === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, billingFrequency: opt.value }))}
+                        style={{
+                          padding: '8px 12px',
+                          borderRadius: 8,
+                          border: `1px solid ${checked ? 'var(--pc-sage-hi)' : 'var(--pc-line)'}`,
+                          background: checked ? 'var(--pc-sage)' : 'var(--pc-card-hi)',
+                          color: checked ? 'var(--pc-sage-ink)' : 'var(--pc-fg-2)',
+                          fontFamily: 'var(--pc-sans)',
+                          fontSize: 13,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: form.deepCleanEnabled ? 10 : 0 }}>
+                  <input
+                    type="checkbox"
+                    id="deepCleanEnabled"
+                    checked={form.deepCleanEnabled}
+                    onChange={e => setForm({ ...form, deepCleanEnabled: e.target.checked })}
+                    style={{ accentColor: 'var(--pc-sage)', width: 15, height: 15, cursor: 'pointer' }}
+                  />
+                  <label htmlFor="deepCleanEnabled" style={{ ...monoLabel, margin: 0, cursor: 'pointer' }}>
+                    Deep clean add-on
+                  </label>
+                </div>
+                {form.deepCleanEnabled && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 12, background: 'var(--pc-card-hi)', borderRadius: 8 }}>
+                    <div>
+                      <p style={{ ...monoLabel, fontSize: 9 }}>Frequency</p>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {DEEP_CLEAN_FREQUENCY_OPTS.map(opt => {
+                          const checked = form.deepCleanFrequency === opt.value;
+                          return (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => setForm(f => ({ ...f, deepCleanFrequency: opt.value }))}
+                              style={{
+                                padding: '6px 10px',
+                                borderRadius: 6,
+                                border: `1px solid ${checked ? 'var(--pc-sage-hi)' : 'var(--pc-line)'}`,
+                                background: checked ? 'var(--pc-sage)' : 'var(--pc-card)',
+                                color: checked ? 'var(--pc-sage-ink)' : 'var(--pc-fg-2)',
+                                fontFamily: 'var(--pc-sans)',
+                                fontSize: 12,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              {opt.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div>
+                      <p style={{ ...monoLabel, fontSize: 9 }}>Add-on Fee (₹)</p>
+                      <input
+                        type="number"
+                        value={form.deepCleanFee}
+                        onChange={e => setForm({ ...form, deepCleanFee: parseInt(e.target.value) || 0 })}
+                        placeholder="200"
+                        min="0"
+                        step="10"
+                        style={inputStyle}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -362,7 +504,7 @@ export default function TowerBillingPage() {
                 <button
                   type="button"
                   onClick={handleSave}
-                  disabled={saving || !form.societyId || !form.tower || form.monthlyFee <= 0 || form.cleaningDays.length === 0}
+                  disabled={saving || !form.societyId || !form.tower || form.tierNormal <= 0 || form.cleaningDays.length === 0}
                   style={{
                     flex: 1,
                     padding: '11px 0',
@@ -438,7 +580,7 @@ export default function TowerBillingPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--pc-line)' }}>
-                  {['Society', 'Tower', 'Monthly Fee', 'Schedule', 'Billing', 'Action'].map(h => (
+                  {['Society', 'Tower', 'Tier Pricing', 'Schedule', 'Billing', 'Action'].map(h => (
                     <th
                       key={h}
                       style={{
@@ -466,14 +608,23 @@ export default function TowerBillingPage() {
                     <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)' }}>
                       {config.tower}
                     </td>
-                    <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg)', fontWeight: 600 }}>
-                      ₹{config.monthlyFee.toLocaleString('en-IN')}
+                    <td style={{ padding: '13px 18px' }}>
+                      <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg)', fontWeight: 600, margin: 0 }}>
+                        {config.tierPricing
+                          ? `₹${config.tierPricing.normal} / ₹${config.tierPricing.premium} / ₹${config.tierPricing.ultra}`
+                          : `₹${config.monthlyFee.toLocaleString('en-IN')}`}
+                      </p>
+                      {config.deepClean && (
+                        <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, color: 'var(--pc-info)', margin: '3px 0 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          + deep clean ({config.deepClean.frequency}) ₹{config.deepClean.fee}
+                        </p>
+                      )}
                     </td>
                     <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)' }}>
                       {config.cleaningSchedule}
                     </td>
                     <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)' }}>
-                      {config.billingDay}st
+                      {config.billingFrequency === 'one-time' ? 'One-time' : config.billingFrequency === 'per-day' ? 'Per-day' : `Monthly · ${config.billingDay}st`}
                     </td>
                     <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
                       <div style={{ display: 'flex', gap: 6 }}>
