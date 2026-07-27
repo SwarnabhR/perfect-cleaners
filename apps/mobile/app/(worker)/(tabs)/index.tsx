@@ -98,6 +98,11 @@ export default function WorkerHome() {
           const tower = data.tower ?? '';
 
           (data.cars ?? []).forEach((car: any, idx: number) => {
+            // Skipped (customer opted out today) cars are shown on the web
+            // session view as "Not available" but stay out of the mobile
+            // worker list entirely — nothing here is actionable for them.
+            if (car.status === 'skipped') return;
+
             allCars.push({
               customerId:    car.customerId ?? '',
               customerName:  car.customerName ?? '',

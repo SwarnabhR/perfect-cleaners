@@ -267,6 +267,7 @@ export interface CustomerSocietyRecord {
   societyName: string;
   tower: string;
   unitNumber?: string;          // e.g. "1204" or "B-1204" — where the car actually lives, for the worker on the ground
+  parkingNumber?: string;       // e.g. "P-42" — parking slot, for the worker on the ground
   cars: Array<{
     plate: string;           // e.g. "DL 01 AB 1234"
     make: string;
@@ -340,10 +341,14 @@ export interface CleaningSessionCar {
   customerId: string;
   customerName?: string;       // denormalized — who the car belongs to, for the worker on the ground
   unitNumber?: string;         // denormalized — e.g. "1204" or "B-1204"
+  parkingNumber?: string;      // denormalized — e.g. "P-42"
   carPlate: string;
   carMake: string;
   carModel: string;
   preferredTime: number;       // What customer prefers (7, 9, 14)
+  // 'skipped' — customer opted out for this date (see CustomerSocietyRecord.skipDates);
+  // still included in cars[] (not dropped) so the worker sees "Not available" rather
+  // than the car silently vanishing from the list.
   status: 'pending' | 'in_progress' | 'done' | 'skipped';
   cleanedBy?: string;          // Worker ID who cleaned it
   cleanedAt?: Date;

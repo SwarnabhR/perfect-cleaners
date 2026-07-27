@@ -103,10 +103,14 @@ export default function LiveCleaningPage() {
     });
   });
 
+  // A car counts as unavailable either via this board's own toggle, or because
+  // it was auto-marked 'skipped' at session-build time (customer's skip date).
+  const isUnavailable = (c: CarListItem) => c.unavailable || c.status === 'skipped';
+
   // Sort: available cars first, then unavailable
   carsBySlot.forEach((cars, slot) => {
-    const available = cars.filter(c => !c.unavailable);
-    const unavailable = cars.filter(c => c.unavailable);
+    const available = cars.filter(c => !isUnavailable(c));
+    const unavailable = cars.filter(isUnavailable);
     carsBySlot.set(slot, [...available, ...unavailable]);
   });
 
@@ -290,7 +294,7 @@ export default function LiveCleaningPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
           {dynamicTimeSlots.map(slot => {
             const cars = carsBySlot.get(slot) ?? [];
-            const availableCount = cars.filter(c => !c.unavailable).length;
+            const availableCount = cars.filter(c => !isUnavailable(c)).length;
 
             return (
               <Card key={slot} style={{ padding: 0, overflow: 'hidden' }}>
@@ -324,8 +328,8 @@ export default function LiveCleaningPage() {
                         style={{
                           padding: 12,
                           borderTop: idx > 0 ? '1px solid var(--pc-line)' : 'none',
-                          background: car.unavailable ? 'var(--pc-card-hi)' : 'transparent',
-                          opacity: car.unavailable ? 0.6 : 1,
+                          background: isUnavailable(car) ? 'var(--pc-card-hi)' : 'transparent',
+                          opacity: isUnavailable(car) ? 0.6 : 1,
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -348,7 +352,7 @@ export default function LiveCleaningPage() {
                               style={{
                                 padding: '4px 8px',
                                 borderRadius: 4,
-                                background: car.status === 'done' ? 'var(--pc-sage)' : car.status === 'in_progress' ? 'var(--pc-warning)' : 'var(--pc-info)',
+                                background: car.status === 'skipped' ? 'var(--pc-fg-4)' : car.status === 'done' ? 'var(--pc-sage)' : car.status === 'in_progress' ? 'var(--pc-warning)' : 'var(--pc-info)',
                                 fontFamily: 'var(--pc-mono)',
                                 fontSize: 9,
                                 color: 'white',
@@ -356,11 +360,11 @@ export default function LiveCleaningPage() {
                                 fontWeight: 600,
                               }}
                             >
-                              {car.status}
+                              {car.status === 'skipped' ? 'not available' : car.status}
                             </div>
 
                             {/* Mark Done Button */}
-                            {car.status !== 'done' && !car.unavailable && (
+                            {car.status !== 'done' && !isUnavailable(car) && (
                               <button
                                 type="button"
                                 onClick={() => markDone(car)}
@@ -389,32 +393,35 @@ export default function LiveCleaningPage() {
                               </button>
                             )}
 
-                            {/* Mark Unavailable Button */}
-                            <button
-                              type="button"
-                              onClick={() => toggleUnavailable(car)}
-                              disabled={toggling === `${car.sessionId}-${car.carIndex}`}
-                              title={car.unavailable ? 'Mark available' : 'Mark unavailable'}
-                              style={{
-                                width: 32,
-                                height: 32,
-                                borderRadius: 6,
-                                border: car.unavailable ? '1px solid var(--pc-danger)' : '1px solid var(--pc-line)',
-                                background: car.unavailable ? 'color-mix(in srgb, var(--pc-danger) 10%, transparent)' : 'transparent',
-                                cursor: toggling ? 'not-allowed' : 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                flexShrink: 0,
-                                opacity: toggling === `${car.sessionId}-${car.carIndex}` ? 0.6 : 1,
-                              }}
-                            >
-                              <Icon
-                                name={car.unavailable ? 'x' : 'check'}
-                                size={14}
-                                color={car.unavailable ? 'var(--pc-danger)' : 'var(--pc-fg-3)'}
-                              />
-                            </button>
+                            {/* Mark Unavailable Button — hidden for auto-skipped cars, since
+                                that comes from the customer's own skip date, not this toggle */}
+                            {car.status !== 'skipped' && (
+                              <button
+                                type="button"
+                                onClick={() => toggleUnavailable(car)}
+                                disabled={toggling === `${car.sessionId}-${car.carIndex}`}
+                                title={car.unavailable ? 'Mark available' : 'Mark unavailable'}
+                                style={{
+                                  width: 32,
+                                  height: 32,
+                                  borderRadius: 6,
+                                  border: car.unavailable ? '1px solid var(--pc-danger)' : '1px solid var(--pc-line)',
+                                  background: car.unavailable ? 'color-mix(in srgb, var(--pc-danger) 10%, transparent)' : 'transparent',
+                                  cursor: toggling ? 'not-allowed' : 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  flexShrink: 0,
+                                  opacity: toggling === `${car.sessionId}-${car.carIndex}` ? 0.6 : 1,
+                                }}
+                              >
+                                <Icon
+                                  name={car.unavailable ? 'x' : 'check'}
+                                  size={14}
+                                  color={car.unavailable ? 'var(--pc-danger)' : 'var(--pc-fg-3)'}
+                                />
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>

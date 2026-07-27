@@ -55,6 +55,7 @@ export default async function SessionPage({ params }: Props) {
         customerId:    c.customerId    as string,
         customerName:  (c.customerName as string | undefined) ?? '',
         unitNumber:    (c.unitNumber   as string | undefined) ?? '',
+        parkingNumber: (c.parkingNumber as string | undefined) ?? '',
         carPlate:      (c.carPlate     as string | undefined) ?? '',
         carMake:       (c.carMake      as string | undefined) ?? '',
         carModel:      (c.carModel     as string | undefined) ?? '',

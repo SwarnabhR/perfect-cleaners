@@ -58,11 +58,26 @@ export async function GET(req: NextRequest) {
                   const skip = new Date(d.toDate?.() || d);
                   return skip.toDateString() === cleaningDate.toDateString();
                 });
-                if (skipDate) return null;
 
                 // Unset/empty preferredCleaningDays means "every day the tower is cleaned".
                 const preferredDays = customer.preferredCleaningDays as number[] | undefined;
                 if (preferredDays?.length && !preferredDays.includes(cleaningDate.getDay())) return null;
+
+                const base = {
+                  customerId:    customer.customerId,
+                  customerName:  customer.customerName || '',
+                  unitNumber:    customer.unitNumber || '',
+                  parkingNumber: customer.parkingNumber || '',
+                  carPlate:      customer.cars?.[0]?.plate  || '',
+                  carMake:       customer.cars?.[0]?.make   || '',
+                  carModel:      customer.cars?.[0]?.model  || '',
+                };
+
+                // Skipped customers still get an entry (not dropped) so the worker
+                // sees "Not available" for this car instead of it silently vanishing.
+                if (skipDate) {
+                  return { ...base, preferredTime: customer.preferredCleaningTime || 9, status: 'skipped' };
+                }
 
                 // Check for a one-off rescheduled slot for this specific date
                 const rescheduledSlots = (customer.rescheduledSlots as any[] | undefined) ?? [];
@@ -74,18 +89,11 @@ export async function GET(req: NextRequest) {
                   ? rescheduled.toTime
                   : (customer.permanentTime || customer.preferredCleaningTime || 9);
 
-                return {
-                  customerId:    customer.customerId,
-                  customerName:  customer.customerName || '',
-                  unitNumber:    customer.unitNumber || '',
-                  carPlate:      customer.cars?.[0]?.plate  || '',
-                  carMake:       customer.cars?.[0]?.make   || '',
-                  carModel:      customer.cars?.[0]?.model  || '',
-                  preferredTime,
-                  status:        'pending',
-                };
+                return { ...base, preferredTime, status: 'pending' };
               })
               .filter(Boolean);
+
+            const skippedCars = cars.filter((c: any) => c.status === 'skipped').length;
 
             await db.collection('cleaningSessions').doc(sessionId).set({
               societyId,
@@ -94,9 +102,11 @@ export async function GET(req: NextRequest) {
               scheduledDate: cleaningDate,
               status:        'scheduled',
               cars,
-              totalCars:     cars.length,
+              // Denominator for the "done/total" progress ring is the actual work —
+              // skipped cars are shown to the worker but can never be marked done.
+              totalCars:     cars.length - skippedCars,
               completedCars: 0,
-              skippedCars:   0,
+              skippedCars,
               workerIds:     [],
               workerNames:   [],
               createdAt:     FieldValue.serverTimestamp(),

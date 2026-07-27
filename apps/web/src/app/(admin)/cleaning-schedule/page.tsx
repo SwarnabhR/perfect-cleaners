@@ -140,10 +140,25 @@ export default function CleaningSchedulePage() {
         const customer = docSnap.data();
         const skipDates = (customer.skipDates as unknown[] | undefined) ?? [];
         const isSkipped = skipDates.some(d => toDate(d).toDateString() === scheduledDate.toDateString());
-        if (isSkipped) return null;
 
         const preferredDays = customer.preferredCleaningDays as number[] | undefined;
         if (preferredDays?.length && !preferredDays.includes(scheduledDate.getDay())) return null;
+
+        const base = {
+          customerId:    customer.customerId as string,
+          customerName:  (customer.customerName as string | undefined) ?? '',
+          unitNumber:    (customer.unitNumber as string | undefined) ?? '',
+          parkingNumber: (customer.parkingNumber as string | undefined) ?? '',
+          carPlate:      customer.cars?.[0]?.plate ?? '',
+          carMake:       customer.cars?.[0]?.make  ?? '',
+          carModel:      customer.cars?.[0]?.model ?? '',
+        };
+
+        // Skipped customers still get an entry (not dropped) so the worker sees
+        // "Not available" for this car instead of it silently missing from the list.
+        if (isSkipped) {
+          return { ...base, preferredTime: (customer.preferredCleaningTime as number | undefined) ?? 9, status: 'skipped' as const };
+        }
 
         // Check for a one-off rescheduled slot for this specific date
         const rescheduledSlots = (customer.rescheduledSlots as any[] | undefined) ?? [];
@@ -155,16 +170,7 @@ export default function CleaningSchedulePage() {
           ? (rescheduled.toTime as number)
           : ((customer.permanentTime ?? customer.preferredCleaningTime ?? 9) as number);
 
-        return {
-          customerId:    customer.customerId as string,
-          customerName:  (customer.customerName as string | undefined) ?? '',
-          unitNumber:    (customer.unitNumber as string | undefined) ?? '',
-          carPlate:      customer.cars?.[0]?.plate ?? '',
-          carMake:       customer.cars?.[0]?.make  ?? '',
-          carModel:      customer.cars?.[0]?.model ?? '',
-          preferredTime,
-          status:        'pending' as const,
-        };
+        return { ...base, preferredTime, status: 'pending' as const };
       })
       .filter((c): c is NonNullable<typeof c> => c !== null);
 
@@ -185,6 +191,7 @@ export default function CleaningSchedulePage() {
       const selectedWorkers = workers.filter(w => form.workerIds.includes(w.id));
       const workerNames = selectedWorkers.map(w => w.name);
       const cars = await buildCarsForSession(form.societyId.trim(), form.tower.trim(), scheduledDate);
+      const skippedCars = cars.filter(c => c.status === 'skipped').length;
 
       await setDoc(doc(db, 'cleaningSessions', sessionId), {
         societyId: form.societyId.trim(),
@@ -193,9 +200,11 @@ export default function CleaningSchedulePage() {
         scheduledDate,
         status: 'scheduled',
         cars,
-        totalCars: cars.length,
+        // Denominator for the "done/total" progress ring is the actual work —
+        // skipped cars are shown to the worker but can never be marked done.
+        totalCars: cars.length - skippedCars,
         completedCars: 0,
-        skippedCars: 0,
+        skippedCars,
         workerIds: form.workerIds,
         workerNames,
         createdAt: serverTimestamp(),

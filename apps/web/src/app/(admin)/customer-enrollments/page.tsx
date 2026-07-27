@@ -116,7 +116,7 @@ function monthStart() {
 
 interface AddCustomerForm {
   name: string; phone: string;
-  societyId: string; societyName: string; tower: string; unitNumber: string;
+  societyId: string; societyName: string; tower: string; unitNumber: string; parkingNumber: string;
   carPlate: string; carMake: string; carModel: string;
   preferredTime: number; preferredDays: DayOfWeek[];
   paymentMethod: string; paymentNotes: string;
@@ -124,7 +124,7 @@ interface AddCustomerForm {
 
 const BLANK_ADD_FORM: AddCustomerForm = {
   name: '', phone: '',
-  societyId: '', societyName: '', tower: '', unitNumber: '',
+  societyId: '', societyName: '', tower: '', unitNumber: '', parkingNumber: '',
   carPlate: '', carMake: '', carModel: '',
   preferredTime: 9, preferredDays: [],
   paymentMethod: '', paymentNotes: '',
@@ -206,6 +206,7 @@ function AddCustomerModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
         societyName:           form.societyName,
         tower:                 form.tower,
         unitNumber:            form.unitNumber.trim(),
+        ...(form.parkingNumber.trim() ? { parkingNumber: form.parkingNumber.trim() } : {}),
         cars: [{ plate: form.carPlate.trim().toUpperCase(), make: form.carMake.trim(), model: form.carModel.trim() }],
         preferredCleaningTime: form.preferredTime,
         preferredCleaningDays: form.preferredDays,
@@ -310,16 +311,25 @@ function AddCustomerModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
             </div>
           </div>
 
-          <div>
-            <p style={monoLabel}>Unit / flat number *</p>
-            <input
-              value={form.unitNumber} onChange={e => setForm(f => ({ ...f, unitNumber: e.target.value }))}
-              placeholder="e.g. B-1204" style={inputStyle}
-            />
-            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11.5, color: 'var(--pc-fg-4)', margin: '6px 0 0' }}>
-              Where the car actually lives — this is what the worker uses to find it.
-            </p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <p style={monoLabel}>Unit / flat number *</p>
+              <input
+                value={form.unitNumber} onChange={e => setForm(f => ({ ...f, unitNumber: e.target.value }))}
+                placeholder="e.g. B-1204" style={inputStyle}
+              />
+            </div>
+            <div>
+              <p style={monoLabel}>Parking / spot no.</p>
+              <input
+                value={form.parkingNumber} onChange={e => setForm(f => ({ ...f, parkingNumber: e.target.value }))}
+                placeholder="e.g. P-42 (optional)" style={inputStyle}
+              />
+            </div>
           </div>
+          <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11.5, color: 'var(--pc-fg-4)', margin: '-8px 0 0' }}>
+            Where the car actually lives — this is what the worker uses to find it.
+          </p>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 12 }}>
             <div>

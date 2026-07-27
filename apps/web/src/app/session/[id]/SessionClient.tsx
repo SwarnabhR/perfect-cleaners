@@ -6,6 +6,7 @@ export interface SessionCar {
   customerId: string;
   customerName: string;
   unitNumber: string;
+  parkingNumber: string;
   carPlate: string;
   carMake: string;
   carModel: string;
@@ -37,6 +38,41 @@ function formatDate(iso: string | null): string {
   return new Date(iso).toLocaleDateString('en-IN', {
     weekday: 'short', day: 'numeric', month: 'short',
     hour: '2-digit', minute: '2-digit',
+  });
+}
+
+// Minutes from now until the car's scheduled hour, today. Negative means
+// the slot has already passed (still not done) — treated as most urgent.
+function minutesUntilScheduled(hour: number | null): number | null {
+  if (hour == null) return null;
+  const scheduled = new Date();
+  scheduled.setHours(hour, 0, 0, 0);
+  return Math.round((scheduled.getTime() - Date.now()) / 60_000);
+}
+
+// Red inside 30 minutes of (or past) the scheduled time, yellow inside an hour —
+// matches the operator's "1 hour = yellow, 30 min = red" rule of thumb.
+function urgencyColor(mins: number | null): string | null {
+  if (mins == null) return null;
+  if (mins <= 30) return 'var(--pc-danger)';
+  if (mins <= 60) return 'var(--pc-warning)';
+  return null;
+}
+
+// Not-available (skipped) cars sink to the bottom; done cars sit above them
+// but below the active work; active cars are ordered by urgency so the
+// worker always sees what's due soonest at the top.
+function sortForWorker(cars: SessionCar[]): SessionCar[] {
+  const group = (c: SessionCar) => c.status === 'skipped' ? 2 : c.status === 'done' ? 1 : 0;
+  return [...cars].sort((a, b) => {
+    const ga = group(a), gb = group(b);
+    if (ga !== gb) return ga - gb;
+    if (ga === 0) {
+      const ma = minutesUntilScheduled(a.preferredTime) ?? Infinity;
+      const mb = minutesUntilScheduled(b.preferredTime) ?? Infinity;
+      return ma - mb;
+    }
+    return (a.unitNumber || '').localeCompare(b.unitNumber || '', 'en', { numeric: true });
   });
 }
 
@@ -216,11 +252,17 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
         <p style={{ width: '100%', maxWidth: 480, fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-danger)', margin: '0 0 12px' }}>{error}</p>
       )}
 
-      {/* Car checklist — this is the actual work list; the ring above is just a summary */}
+      {/* Car checklist — this is the actual work list; the ring above is just a summary.
+          Sorted by urgency (soonest scheduled time first); done cars sink below the
+          active work, and not-available (skipped) cars sink to the very bottom. */}
       <div style={{ width: '100%', maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {cars.map(car => {
-          const done   = car.status === 'done';
-          const acting = actingId === car.customerId;
+        {sortForWorker(cars).map(car => {
+          const done    = car.status === 'done';
+          const skipped = car.status === 'skipped';
+          const acting  = actingId === car.customerId;
+          const urgency = !done && !skipped ? urgencyColor(minutesUntilScheduled(car.preferredTime)) : null;
+          const borderColor = skipped ? 'var(--pc-line)' : urgency ?? (done ? 'var(--pc-line)' : 'var(--pc-line-strong)');
+          const parkingLabel = car.parkingNumber ? `Parking ${car.parkingNumber}` : '';
           return (
             <div
               key={car.customerId}
@@ -228,19 +270,38 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
                 display: 'flex', alignItems: 'center', gap: 12,
                 padding: '14px 16px', borderRadius: 14,
                 background: 'var(--pc-card)',
-                border: `1px solid ${done ? 'var(--pc-line)' : 'var(--pc-line-strong)'}`,
-                opacity: done ? 0.55 : 1,
+                border: `1px solid ${borderColor}`,
+                opacity: done || skipped ? 0.55 : 1,
               }}
             >
               <div style={{ flex: 1, minWidth: 0 }}>
+                {urgency && (
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5, marginBottom: 4,
+                    fontFamily: 'var(--pc-mono)', fontSize: 10, color: urgency,
+                    textTransform: 'uppercase', letterSpacing: '0.06em',
+                  }}>
+                    <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: '50%', background: urgency, display: 'inline-block' }} />
+                    {urgency === 'var(--pc-danger)' ? 'Due now' : 'Due soon'}
+                  </span>
+                )}
                 <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 600, color: 'var(--pc-fg)', margin: '0 0 2px' }}>
                   {car.unitNumber ? `${car.unitNumber} · ` : ''}{car.customerName || 'Resident'}
                 </p>
                 <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', margin: 0, letterSpacing: '0.03em' }}>
                   {car.carPlate}{(car.carMake || car.carModel) && ` · ${[car.carMake, car.carModel].filter(Boolean).join(' ')}`}
+                  {parkingLabel && ` · ${parkingLabel}`}
                 </p>
               </div>
-              {done ? (
+              {skipped ? (
+                <span style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-4)',
+                  textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0,
+                }}>
+                  Not available
+                </span>
+              ) : done ? (
                 <span style={{
                   display: 'flex', alignItems: 'center', gap: 6,
                   fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-success)',

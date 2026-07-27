@@ -33,6 +33,7 @@ export async function GET(
         customerId:    c.customerId,
         customerName:  c.customerName ?? '',
         unitNumber:    c.unitNumber ?? '',
+        parkingNumber: c.parkingNumber ?? '',
         carPlate:      c.carPlate ?? '',
         carMake:       c.carMake ?? '',
         carModel:      c.carModel ?? '',
