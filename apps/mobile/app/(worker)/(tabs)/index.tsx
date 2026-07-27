@@ -21,6 +21,7 @@ interface SessionCar extends CleaningSessionCar {
   societyId: string;
   societyName: string;
   tower: string;
+  sessionType: 'wash' | 'deep-clean';
   logId?: string;
 }
 
@@ -98,6 +99,7 @@ export default function WorkerHome() {
           const societyId   = data.societyId ?? '';
           const societyName = data.societyName ?? '';
           const tower = data.tower ?? '';
+          const sessionType: 'wash' | 'deep-clean' = data.sessionType ?? 'wash';
 
           (data.cars ?? []).forEach((car: any, idx: number) => {
             // Skipped (customer opted out today) cars are shown on the web
@@ -121,6 +123,7 @@ export default function WorkerHome() {
               societyId,
               societyName,
               tower,
+              sessionType,
             });
           });
         });
@@ -408,6 +411,11 @@ function CarRow({
           <Text style={[s.carName, isDone && s.textMuted]} numberOfLines={1}>
             {car.customerName}
           </Text>
+          {car.sessionType === 'deep-clean' && (
+            <View style={s.deepCleanTag}>
+              <Text style={s.deepCleanTagText}>DEEP CLEAN</Text>
+            </View>
+          )}
         </View>
         <Text style={[s.carPlate, isDone && s.textMuted]}>
           {car.carPlate}
@@ -484,6 +492,8 @@ function makeStyles(c: ReturnType<typeof useThemeColors>) {
     carInfoTop:            { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
     carUnit:               { fontFamily: typography.mono, fontSize: 11, color: c.sageHi, letterSpacing: 0.6 },
     carName:               { fontFamily: typography.sansMedium, fontSize: 13, color: c.fg, flex: 1 },
+    deepCleanTag:          { flexShrink: 0, backgroundColor: c.info + '26', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
+    deepCleanTagText:      { fontFamily: typography.mono, fontSize: 8.5, color: c.info, letterSpacing: 0.4 },
     carPlate:              { fontFamily: typography.mono, fontSize: 10.5, color: c.fg3, letterSpacing: 0.5 },
     textMuted:             { color: c.fg4 },
     carAction:             { borderRadius: radii.pill, borderWidth: 1, paddingVertical: 7, paddingHorizontal: 12, minWidth: 72, alignItems: 'center' },

@@ -271,6 +271,9 @@ export interface SocietyBillingConfig {
   deepClean?: {
     frequency: 'weekly' | 'daily' | 'one-time';
     fee: number;
+    // Set once generate-sessions has created the single one-time deep-clean
+    // session for this tower, so it's never regenerated on a later cron run.
+    oneTimeGeneratedAt?: Date;
   };
 
   createdAt: Date;
@@ -392,6 +395,7 @@ export interface CleaningSessionEnhanced {
   societyName: string;
   tower: string;
   scheduledDate: Date;
+  sessionType?: 'wash' | 'deep-clean'; // undefined = 'wash' (every session before this field existed)
 
   // Status
   status: CleaningSessionStatus;

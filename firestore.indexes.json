@@ -66,6 +66,15 @@
         { "fieldPath": "customerId", "order": "ASCENDING"  },
         { "fieldPath": "cleanedAt",  "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "cleaningLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "customerId", "order": "ASCENDING" },
+        { "fieldPath": "societyId",  "order": "ASCENDING" },
+        { "fieldPath": "cleanedAt",  "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

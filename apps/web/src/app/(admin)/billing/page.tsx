@@ -33,13 +33,14 @@ interface CustomerRow {
 }
 
 interface SocietyDueRow {
-  id:            string;
-  customerName:  string;
-  societyName:   string;
-  tower:         string;
-  unitNumber?:   string;
-  monthlyFee:    number;
-  paymentStatus: string;
+  id:               string;
+  customerName:     string;
+  societyName:      string;
+  tower:            string;
+  unitNumber?:      string;
+  amountDue:        number; // pendingAmount when the billing cron has computed one (per-day varies cycle to cycle), else the flat monthlyFee
+  billingFrequency: string;
+  paymentStatus:    string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -149,16 +150,17 @@ export default function BillingPage() {
             .map(d => {
               const data = d.data();
               return {
-                id:            d.id,
-                customerName:  data.customerName ?? '—',
-                societyName:   data.societyName,
-                tower:         data.tower,
-                unitNumber:    data.unitNumber,
-                monthlyFee:    data.monthlyFee ?? 0,
-                paymentStatus: data.paymentStatus ?? 'not_verified',
+                id:               d.id,
+                customerName:     data.customerName ?? '—',
+                societyName:      data.societyName,
+                tower:            data.tower,
+                unitNumber:       data.unitNumber,
+                amountDue:        data.pendingAmount ?? data.monthlyFee ?? 0,
+                billingFrequency: data.billingFrequency ?? 'monthly',
+                paymentStatus:    data.paymentStatus ?? 'not_verified',
               } as SocietyDueRow;
             })
-            .filter(r => r.paymentStatus !== 'paid' && r.monthlyFee > 0),
+            .filter(r => r.paymentStatus !== 'paid' && r.amountDue > 0),
         );
       },
     );
@@ -171,19 +173,19 @@ export default function BillingPage() {
       await addDoc(collection(db, 'paymentLogs'), {
         customerId:   due.id,
         customerName: due.customerName,
-        amount:       due.monthlyFee,
+        amount:       due.amountDue,
         type:         'manual_dues',
         paidAt:       serverTimestamp(),
       });
       const statsRef = doc(db, 'stats', 'income');
       const snap = await getDoc(statsRef);
       if (snap.exists()) {
-        await updateDoc(statsRef, { totalIncome: (snap.data().totalIncome ?? 0) + due.monthlyFee });
+        await updateDoc(statsRef, { totalIncome: (snap.data().totalIncome ?? 0) + due.amountDue });
       } else {
         const { setDoc } = await import('firebase/firestore');
-        await setDoc(statsRef, { totalIncome: due.monthlyFee });
+        await setDoc(statsRef, { totalIncome: due.amountDue });
       }
-      await updateDoc(doc(db, 'customerSocietyRecords', due.id), { paymentStatus: 'paid', updatedAt: serverTimestamp() });
+      await updateDoc(doc(db, 'customerSocietyRecords', due.id), { paymentStatus: 'paid', pendingAmount: 0, updatedAt: serverTimestamp() });
     } finally {
       setMarkingSociety(null);
     }
@@ -223,7 +225,7 @@ export default function BillingPage() {
   }
 
   const bookingDuesTotal = customers.reduce((s, c) => s + (c.outstandingBalance ?? 0), 0);
-  const societyDuesTotal = societyDues.reduce((s, d) => s + (d.monthlyFee ?? 0), 0);
+  const societyDuesTotal = societyDues.reduce((s, d) => s + (d.amountDue ?? 0), 0);
   const pendingTotal     = bookingDuesTotal + societyDuesTotal; // the one number that answers "what's owed, total"
 
   const displayed = filter === 'pending'
@@ -372,7 +374,7 @@ export default function BillingPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--pc-line)' }}>
-                  {['Customer', 'Society / Unit', 'Monthly Fee', 'Status', 'Action'].map(h => (
+                  {['Customer', 'Society / Unit', 'Amount Due', 'Status', 'Action'].map(h => (
                     <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -397,8 +399,13 @@ export default function BillingPage() {
                       </td>
                       <td style={{ padding: '12px 16px' }}>
                         <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 600, color: 'var(--pc-warning)' }}>
-                          {fmt(due.monthlyFee)}
+                          {fmt(due.amountDue)}
                         </span>
+                        {due.billingFrequency !== 'monthly' && (
+                          <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, color: 'var(--pc-fg-4)', textTransform: 'uppercase', letterSpacing: '0.05em', marginLeft: 6 }}>
+                            {due.billingFrequency === 'one-time' ? 'one-time' : 'this cycle'}
+                          </span>
+                        )}
                       </td>
                       <td style={{ padding: '12px 16px', fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)', textTransform: 'capitalize' }}>
                         {due.paymentStatus.replace('_', ' ')}

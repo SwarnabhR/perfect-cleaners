@@ -36,6 +36,7 @@ interface CarListItem {
   unavailable?: boolean;
   societyName: string;
   tower: string;
+  sessionType: 'wash' | 'deep-clean';
 }
 
 export default function LiveCleaningPage() {
@@ -101,6 +102,7 @@ export default function LiveCleaningPage() {
         unavailable: Boolean((car as unknown as Record<string, unknown>)['unavailable']),
         societyName: session.societyName,
         tower: session.tower,
+        sessionType: session.sessionType ?? 'wash',
       });
     });
   });
@@ -337,8 +339,17 @@ export default function LiveCleaningPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                           {/* Car Info */}
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', textTransform: 'uppercase', margin: '0 0 4px' }}>
+                            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', textTransform: 'uppercase', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 6 }}>
                               {car.carPlate}
+                              {car.sessionType === 'deep-clean' && (
+                                <span style={{
+                                  fontFamily: 'var(--pc-mono)', fontSize: 8.5, letterSpacing: '0.05em',
+                                  color: 'var(--pc-info)', background: 'color-mix(in srgb, var(--pc-info) 15%, transparent)',
+                                  padding: '2px 6px', borderRadius: 999, textTransform: 'uppercase',
+                                }}>
+                                  Deep clean
+                                </span>
+                              )}
                             </p>
                             <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)', margin: '0 0 2px', fontWeight: 500 }}>
                               {car.carMake} {car.carModel}

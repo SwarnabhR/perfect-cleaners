@@ -39,6 +39,7 @@ export default async function SessionPage({ params }: Props) {
       id:            snap.id,
       societyId:     data.societyId   as string,
       societyName:   data.societyName as string,
+      sessionType:   ((data.sessionType as 'wash' | 'deep-clean' | undefined) ?? 'wash'),
       tower:         (data.tower      as string | undefined) ?? null,
       // Sessions are now written with multi-worker arrays (workerIds/workerNames);
       // fall back to the legacy singular fields for any older docs.

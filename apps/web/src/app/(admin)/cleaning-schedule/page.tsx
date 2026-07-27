@@ -534,6 +534,15 @@ export default function CleaningSchedulePage() {
                   </p>
                   <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)', margin: '0 0 8px' }}>
                     {session.societyName} · {session.tower}
+                    {session.sessionType === 'deep-clean' && (
+                      <span style={{
+                        marginLeft: 8, fontFamily: 'var(--pc-mono)', fontSize: 9, letterSpacing: '0.05em',
+                        color: 'var(--pc-info)', background: 'color-mix(in srgb, var(--pc-info) 15%, transparent)',
+                        padding: '2px 8px', borderRadius: 999, textTransform: 'uppercase',
+                      }}>
+                        Deep clean
+                      </span>
+                    )}
                   </p>
                   <StatusPill status={session.status.replace('_', ' ') as any} />
                 </div>

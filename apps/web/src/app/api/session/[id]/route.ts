@@ -21,6 +21,7 @@ export async function GET(
       id:            snap.id,
       societyId:     data.societyId,
       societyName:   data.societyName,
+      sessionType:   data.sessionType ?? 'wash',
       tower:         data.tower ?? null,
       workerName:    (data.workerNames as string[] | undefined)?.join(', ') ?? data.workerName ?? '',
       scheduledDate: data.scheduledDate?.toDate?.()?.toISOString() ?? null,

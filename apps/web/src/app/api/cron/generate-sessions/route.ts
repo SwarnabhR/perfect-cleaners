@@ -39,83 +39,125 @@ export async function GET(req: NextRequest) {
 
         const cleaningDates = getCleaningDatesForNextWeek(nextWeekStart, weekdays);
 
+        // Doc IDs become URL path segments (worker links to /session/<id>) — a raw
+        // space in the tower name survives as literal "%20" through Next.js's
+        // dynamic route params instead of being decoded back, which 404s. Slug it.
+        const towerSlug = String(tower).trim().replace(/\s+/g, '-');
+
+        // Shared by both the regular wash loop and the deep-clean loop below —
+        // same active-customer population, just written into different session docs.
+        function buildCarsForDate(cleaningDate: Date) {
+          return customersSnap.docs
+            .map(docSnap => {
+              const customer = docSnap.data();
+              const skipDate = (customer.skipDates as any[] | undefined)?.find(d => {
+                const skip = new Date(d.toDate?.() || d);
+                return skip.toDateString() === cleaningDate.toDateString();
+              });
+
+              // Unset/empty preferredCleaningDays means "every day the tower is cleaned".
+              const preferredDays = customer.preferredCleaningDays as number[] | undefined;
+              if (preferredDays?.length && !preferredDays.includes(cleaningDate.getDay())) return null;
+
+              const base = {
+                customerId:    customer.customerId,
+                customerName:  customer.customerName || '',
+                unitNumber:    customer.unitNumber || '',
+                parkingNumber: customer.parkingNumber || '',
+                carPlate:      customer.cars?.[0]?.plate  || '',
+                carMake:       customer.cars?.[0]?.make   || '',
+                carModel:      customer.cars?.[0]?.model  || '',
+              };
+
+              // Skipped customers still get an entry (not dropped) so the worker
+              // sees "Not available" for this car instead of it silently vanishing.
+              if (skipDate) {
+                return { ...base, preferredTime: customer.preferredCleaningTime || 9, status: 'skipped' };
+              }
+
+              // Check for a one-off rescheduled slot for this specific date
+              const rescheduledSlots = (customer.rescheduledSlots as any[] | undefined) ?? [];
+              const rescheduled = rescheduledSlots.find((s: any) => {
+                const slotDate = new Date(s.date?.toDate?.() || s.date);
+                return slotDate.toDateString() === cleaningDate.toDateString();
+              });
+              const preferredTime = rescheduled
+                ? rescheduled.toTime
+                : (customer.permanentTime || customer.preferredCleaningTime || 9);
+
+              return { ...base, preferredTime, status: 'pending' };
+            })
+            .filter(Boolean);
+        }
+
+        async function createSessionIfMissing(sessionId: string, cleaningDate: Date, sessionType: 'wash' | 'deep-clean') {
+          const existing = await db.collection('cleaningSessions').doc(sessionId).get();
+          if (existing.exists) return false;
+
+          const cars = buildCarsForDate(cleaningDate);
+          const skippedCars = cars.filter((c: any) => c.status === 'skipped').length;
+
+          await db.collection('cleaningSessions').doc(sessionId).set({
+            societyId,
+            societyName:   config.societyName,
+            tower,
+            sessionType,
+            scheduledDate: cleaningDate,
+            status:        'scheduled',
+            cars,
+            // Denominator for the "done/total" progress ring is the actual work —
+            // skipped cars are shown to the worker but can never be marked done.
+            totalCars:     cars.length - skippedCars,
+            completedCars: 0,
+            skippedCars,
+            workerIds:     [],
+            workerNames:   [],
+            createdAt:     FieldValue.serverTimestamp(),
+            updatedAt:     FieldValue.serverTimestamp(),
+          });
+          return true;
+        }
+
         for (const cleaningDate of cleaningDates) {
           try {
-            // Doc IDs become URL path segments (worker links to /session/<id>) — a raw
-            // space in the tower name survives as literal "%20" through Next.js's
-            // dynamic route params instead of being decoded back, which 404s. Slug it.
-            const towerSlug = String(tower).trim().replace(/\s+/g, '-');
             const sessionId = `${societyId}_${towerSlug}_${cleaningDate.toISOString().split('T')[0]}`;
-
-            // Skip if a session already exists — never overwrite an active or completed session
-            const existing = await db.collection('cleaningSessions').doc(sessionId).get();
-            if (existing.exists) continue;
-
-            const cars = customersSnap.docs
-              .map(docSnap => {
-                const customer = docSnap.data();
-                const skipDate = (customer.skipDates as any[] | undefined)?.find(d => {
-                  const skip = new Date(d.toDate?.() || d);
-                  return skip.toDateString() === cleaningDate.toDateString();
-                });
-
-                // Unset/empty preferredCleaningDays means "every day the tower is cleaned".
-                const preferredDays = customer.preferredCleaningDays as number[] | undefined;
-                if (preferredDays?.length && !preferredDays.includes(cleaningDate.getDay())) return null;
-
-                const base = {
-                  customerId:    customer.customerId,
-                  customerName:  customer.customerName || '',
-                  unitNumber:    customer.unitNumber || '',
-                  parkingNumber: customer.parkingNumber || '',
-                  carPlate:      customer.cars?.[0]?.plate  || '',
-                  carMake:       customer.cars?.[0]?.make   || '',
-                  carModel:      customer.cars?.[0]?.model  || '',
-                };
-
-                // Skipped customers still get an entry (not dropped) so the worker
-                // sees "Not available" for this car instead of it silently vanishing.
-                if (skipDate) {
-                  return { ...base, preferredTime: customer.preferredCleaningTime || 9, status: 'skipped' };
-                }
-
-                // Check for a one-off rescheduled slot for this specific date
-                const rescheduledSlots = (customer.rescheduledSlots as any[] | undefined) ?? [];
-                const rescheduled = rescheduledSlots.find((s: any) => {
-                  const slotDate = new Date(s.date?.toDate?.() || s.date);
-                  return slotDate.toDateString() === cleaningDate.toDateString();
-                });
-                const preferredTime = rescheduled
-                  ? rescheduled.toTime
-                  : (customer.permanentTime || customer.preferredCleaningTime || 9);
-
-                return { ...base, preferredTime, status: 'pending' };
-              })
-              .filter(Boolean);
-
-            const skippedCars = cars.filter((c: any) => c.status === 'skipped').length;
-
-            await db.collection('cleaningSessions').doc(sessionId).set({
-              societyId,
-              societyName:   config.societyName,
-              tower,
-              scheduledDate: cleaningDate,
-              status:        'scheduled',
-              cars,
-              // Denominator for the "done/total" progress ring is the actual work —
-              // skipped cars are shown to the worker but can never be marked done.
-              totalCars:     cars.length - skippedCars,
-              completedCars: 0,
-              skippedCars,
-              workerIds:     [],
-              workerNames:   [],
-              createdAt:     FieldValue.serverTimestamp(),
-              updatedAt:     FieldValue.serverTimestamp(),
-            });
-
-            sessionsCreated++;
+            if (await createSessionIfMissing(sessionId, cleaningDate, 'wash')) sessionsCreated++;
           } catch (err: unknown) {
             console.error('[CRON] Session creation error:', err instanceof Error ? err.message : String(err));
+            errors++;
+          }
+        }
+
+        // Deep-clean add-on — an extra, separately-scheduled session type layered
+        // on top of the regular wash above. The tower config only stores a
+        // frequency label, not a specific weekday, so:
+        //   'daily'    -> every day the crew is already there (same as wash days)
+        //   'weekly'   -> the earliest wash weekday (e.g. Mon/Wed/Fri tower -> Monday)
+        //   'one-time' -> the next wash-day occurrence, generated exactly once ever
+        const deepClean = config.deepClean as { frequency?: 'weekly' | 'daily' | 'one-time'; fee?: number; oneTimeGeneratedAt?: unknown } | undefined;
+        if (deepClean?.frequency) {
+          try {
+            let deepCleaningDates: Date[] = [];
+            if (deepClean.frequency === 'daily') {
+              deepCleaningDates = cleaningDates;
+            } else if (deepClean.frequency === 'weekly') {
+              const earliestWeekday = [...weekdays].sort((a, b) => a - b)[0];
+              deepCleaningDates = cleaningDates.filter(d => d.getDay() === earliestWeekday);
+            } else if (deepClean.frequency === 'one-time' && !deepClean.oneTimeGeneratedAt && cleaningDates.length > 0) {
+              deepCleaningDates = [cleaningDates[0]];
+            }
+
+            for (const cleaningDate of deepCleaningDates) {
+              const sessionId = `${societyId}_${towerSlug}_${cleaningDate.toISOString().split('T')[0]}_deep`;
+              if (await createSessionIfMissing(sessionId, cleaningDate, 'deep-clean')) {
+                sessionsCreated++;
+                if (deepClean.frequency === 'one-time') {
+                  await societyDoc.ref.update({ 'deepClean.oneTimeGeneratedAt': FieldValue.serverTimestamp() });
+                }
+              }
+            }
+          } catch (err: unknown) {
+            console.error('[CRON] Deep-clean session creation error:', err instanceof Error ? err.message : String(err));
             errors++;
           }
         }

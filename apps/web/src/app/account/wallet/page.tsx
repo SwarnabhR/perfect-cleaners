@@ -73,7 +73,7 @@ export default function WalletPage() {
   const [outstanding, setOutstanding] = useState<number | null>(null);
   const [entries,     setEntries]     = useState<TxEntry[]>([]);
   const [txLoading,   setTxLoading]   = useState(true);
-  const [societyDues, setSocietyDues] = useState<{ societyName: string; monthlyFee: number; paymentStatus: string; tower: string }[]>([]);
+  const [societyDues, setSocietyDues] = useState<{ societyName: string; amountDue: number; billingFrequency: string; paymentStatus: string; tower: string }[]>([]);
 
   // Auth guard
   useEffect(() => {
@@ -136,10 +136,11 @@ export default function WalletPage() {
       const dues = snap.docs.map(d => {
         const data = d.data() as any;
         return {
-          societyName:  data.societyName ?? '',
-          monthlyFee:   data.monthlyFee ?? 0,
-          paymentStatus: data.paymentStatus ?? 'not_verified',
-          tower:        data.tower ?? '',
+          societyName:      data.societyName ?? '',
+          amountDue:        data.pendingAmount ?? data.monthlyFee ?? 0,
+          billingFrequency: data.billingFrequency ?? 'monthly',
+          paymentStatus:    data.paymentStatus ?? 'not_verified',
+          tower:            data.tower ?? '',
         };
       });
       setSocietyDues(dues);
@@ -322,7 +323,8 @@ export default function WalletPage() {
                     {due.societyName}
                   </p>
                   <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)', margin: 0 }}>
-                    {due.tower} · ₹{due.monthlyFee.toLocaleString('en-IN')}/month
+                    {due.tower} · ₹{due.amountDue.toLocaleString('en-IN')}
+                    {due.billingFrequency === 'one-time' ? ' one-time' : due.billingFrequency === 'per-day' ? ' this cycle' : '/month'}
                   </p>
                 </div>
                 <span style={{

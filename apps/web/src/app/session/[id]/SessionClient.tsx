@@ -17,6 +17,7 @@ export interface SessionCar {
 export interface SessionData {
   id: string;
   societyName: string;
+  sessionType: 'wash' | 'deep-clean';
   tower: string | null;
   workerName: string;
   scheduledDate: string | null;
@@ -153,7 +154,7 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
     }
   }
 
-  const { totalCars, completedCars, status, workerName, societyName, tower, scheduledDate, cars } = session;
+  const { totalCars, completedCars, status, workerName, societyName, sessionType, tower, scheduledDate, cars } = session;
   const pct = totalCars > 0 ? (completedCars / totalCars) : 0;
   const allDone = completedCars >= totalCars;
 
@@ -190,9 +191,20 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
           <span style={{ fontFamily: 'var(--pc-serif)', fontSize: 15, color: 'var(--pc-fg)', letterSpacing: '0.02em' }}>Perfect Cleaners</span>
         </div>
 
-        <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 6px' }}>
-          CLEANING SESSION
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>
+            CLEANING SESSION
+          </p>
+          {sessionType === 'deep-clean' && (
+            <span style={{
+              fontFamily: 'var(--pc-mono)', fontSize: 9, letterSpacing: '0.06em',
+              color: 'var(--pc-info)', background: 'color-mix(in srgb, var(--pc-info) 15%, transparent)',
+              padding: '2px 8px', borderRadius: 999, textTransform: 'uppercase',
+            }}>
+              Deep clean
+            </span>
+          )}
+        </div>
         <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 24, fontWeight: 400, color: 'var(--pc-fg)', margin: 0, letterSpacing: '-0.02em' }}>
           {tower ? `${tower} · ${societyName}` : societyName}
         </h1>
