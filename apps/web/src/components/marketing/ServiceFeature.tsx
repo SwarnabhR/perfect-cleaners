@@ -20,21 +20,26 @@ interface ServiceFeatureProps {
   price: string;
   title: string;
   body: string;
+  onClick?: () => void;
 }
 
-export default function ServiceFeature({ num, name, price, title, body }: ServiceFeatureProps) {
+export default function ServiceFeature({ num, name, price, title, body, onClick }: ServiceFeatureProps) {
   const [imgA, imgB] = SERVICE_IMAGES[num] ?? [null, null];
   const [altA, altB] = SERVICE_ALTS[num] ?? [name, name];
 
   return (
-    <div style={{
-      margin: '0 var(--pc-screen-pad-lg)',
-      background: 'var(--pc-card)',
-      border: '1px solid var(--pc-line)',
-      borderRadius: 'var(--pc-radius-lg)',
-      padding: 'var(--pc-space-8)',
-      display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-6)',
-    }}>
+    <div
+      onClick={onClick}
+      style={{
+        margin: '0 var(--pc-screen-pad-lg)',
+        background: 'var(--pc-card)',
+        border: '1px solid var(--pc-line)',
+        borderRadius: 'var(--pc-radius-lg)',
+        padding: 'var(--pc-space-8)',
+        display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-6)',
+        cursor: onClick ? 'pointer' : 'default',
+      }}
+    >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Eyebrow>[SERVICE] [{num}] / {name.toUpperCase()}</Eyebrow>
         <Icon name="arrow-up-right" size={16} color="var(--pc-fg-2)" />

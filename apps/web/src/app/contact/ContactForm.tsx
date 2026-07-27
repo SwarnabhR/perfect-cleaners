@@ -32,7 +32,8 @@ const input: React.CSSProperties = {
 };
 
 export default function ContactForm() {
-  const [name,    setName]    = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName,  setLastName]  = useState('');
   const [phone,   setPhone]   = useState('');
   const [email,   setEmail]   = useState('');
   const [service, setService] = useState('');
@@ -43,14 +44,14 @@ export default function ContactForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim() || !message.trim()) {
+    if (!firstName.trim() || !message.trim()) {
       setError('Please fill in your name and message.');
       return;
     }
     setError(''); setBusy(true);
     try {
       await addDoc(collection(db, 'contactInquiries'), {
-        name:      name.trim(),
+        name:      [firstName.trim(), lastName.trim()].filter(Boolean).join(' '),
         phone:     phone.trim(),
         email:     email.trim(),
         service,
@@ -106,17 +107,17 @@ export default function ContactForm() {
 
         <div className="pc-contact-field-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--pc-space-4)' }}>
           <div>
-            <label htmlFor="cf-name" style={label}>Full Name *</label>
+            <label htmlFor="cf-first-name" style={label}>First Name *</label>
             <input
-              id="cf-name" type="text" value={name} onChange={e => setName(e.target.value)}
-              placeholder="Your name" required style={input}
+              id="cf-first-name" type="text" value={firstName} onChange={e => setFirstName(e.target.value)}
+              placeholder="First name" required style={input}
             />
           </div>
           <div>
-            <label htmlFor="cf-phone" style={label}>Phone</label>
+            <label htmlFor="cf-last-name" style={label}>Last Name</label>
             <input
-              id="cf-phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)}
-              placeholder="+91 97711241629" inputMode="tel" style={input}
+              id="cf-last-name" type="text" value={lastName} onChange={e => setLastName(e.target.value)}
+              placeholder="Last name" style={input}
             />
           </div>
         </div>
@@ -126,6 +127,14 @@ export default function ContactForm() {
           <input
             id="cf-email" type="email" value={email} onChange={e => setEmail(e.target.value)}
             placeholder="you@example.com" style={input}
+          />
+        </div>
+
+        <div>
+          <label htmlFor="cf-phone" style={label}>Phone</label>
+          <input
+            id="cf-phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)}
+            placeholder="+91 97711241629" inputMode="tel" style={input}
           />
         </div>
 

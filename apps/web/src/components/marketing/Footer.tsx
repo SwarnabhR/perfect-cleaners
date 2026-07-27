@@ -9,7 +9,7 @@ import styles from './Footer.module.css';
 
 const QUICK_LINKS_HREFS  = ['/services', '/services/exterior', '/services/interior', '/services/coating', '/terms', '/privacy'];
 const OFFICIAL_HREFS     = [undefined, 'tel:+9197711241629', undefined] as (string | undefined)[];
-const BOOKING_HREFS      = ['/for-societies'];
+const BOOKING_HREFS      = ['/for-societies', '/for-societies'];
 
 const SOCIAL_LINKS = [
   { icon: 'camera',  href: 'https://instagram.com', ariaLabel: 'Instagram' },
@@ -146,7 +146,7 @@ export default function Footer() {
       <nav aria-label="Booking">
         <Eyebrow>{f.bookingLabel}</Eyebrow>
         <div style={{ marginTop: 'var(--pc-space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-3)' }}>
-          {f.booking.slice(1).map((label, i) => (
+          {f.booking.map((label, i) => (
             <Link key={i} href={BOOKING_HREFS[i]} className={styles.navLink}>
               {label}
             </Link>

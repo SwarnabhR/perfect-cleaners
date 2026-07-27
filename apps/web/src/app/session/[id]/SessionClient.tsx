@@ -195,15 +195,13 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
           <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>
             CLEANING SESSION
           </p>
-          {sessionType === 'deep-clean' && (
-            <span style={{
-              fontFamily: 'var(--pc-mono)', fontSize: 9, letterSpacing: '0.06em',
-              color: 'var(--pc-info)', background: 'color-mix(in srgb, var(--pc-info) 15%, transparent)',
-              padding: '2px 8px', borderRadius: 999, textTransform: 'uppercase',
-            }}>
-              Deep clean
-            </span>
-          )}
+          <span style={{
+            fontFamily: 'var(--pc-mono)', fontSize: 9, letterSpacing: '0.06em',
+            color: 'var(--pc-info)', background: 'color-mix(in srgb, var(--pc-info) 15%, transparent)',
+            padding: '2px 8px', borderRadius: 999, textTransform: 'uppercase',
+          }}>
+            {sessionType === 'deep-clean' ? 'Deep clean' : 'Wash'}
+          </span>
         </div>
         <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 24, fontWeight: 400, color: 'var(--pc-fg)', margin: 0, letterSpacing: '-0.02em' }}>
           {tower ? `${tower} · ${societyName}` : societyName}

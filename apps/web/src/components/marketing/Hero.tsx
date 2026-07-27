@@ -125,6 +125,29 @@ export default function Hero() {
               Sign Up / Log In
             </button>
           )}
+          <Link
+            href="/for-societies"
+            className="pc-hero-cta-ghost"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 'var(--pc-space-4) var(--pc-space-6)',
+              background: 'transparent',
+              color: 'var(--pc-fg)',
+              border: '1px solid var(--pc-line-strong)',
+              borderRadius: 'var(--pc-radius-pill)',
+              fontFamily: 'var(--pc-sans)',
+              fontSize: 'var(--pc-text-sm)',
+              fontWeight: 500,
+              letterSpacing: 'var(--pc-track-wide)',
+              textTransform: 'uppercase',
+              textDecoration: 'none',
+              transition: 'background var(--pc-dur-fast) var(--pc-ease), border-color var(--pc-dur-fast) var(--pc-ease)',
+            }}
+          >
+            For Societies
+          </Link>
         </div>
 
         {/* Trust strip */}
