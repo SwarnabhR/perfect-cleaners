@@ -1,8 +1,8 @@
 'use client';
-import Link from 'next/link';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
+import Button from '@/components/ui/Button';
 import { useI18n } from '@/i18n';
 
 const ICONS = ['sparkles', 'shield', 'map-pin'] as const;
@@ -47,52 +47,8 @@ export default function USP() {
           {u.body}
         </p>
         <div style={{ display: 'flex', gap: 'var(--pc-space-2)', marginTop: 'var(--pc-space-1)', flexWrap: 'wrap' }}>
-          <Link
-            href="/for-societies"
-            className="pc-hero-cta-primary"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 'var(--pc-space-3) var(--pc-space-6)',
-              background: 'var(--pc-warm)',
-              color: 'var(--pc-ink)',
-              border: 'none',
-              borderRadius: 'var(--pc-radius-pill)',
-              fontFamily: 'var(--pc-sans)',
-              fontSize: 'var(--pc-text-sm)',
-              fontWeight: 600,
-              letterSpacing: 'var(--pc-track-wide)',
-              textTransform: 'uppercase',
-              textDecoration: 'none',
-              transition: 'background var(--pc-dur-fast) var(--pc-ease), box-shadow var(--pc-dur-fast) var(--pc-ease)',
-            }}
-          >
-            {u.bookNow}
-          </Link>
-          <Link
-            href="/services"
-            className="pc-hero-cta-ghost"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 'var(--pc-space-3) var(--pc-space-6)',
-              background: 'transparent',
-              color: 'var(--pc-fg)',
-              border: '1px solid var(--pc-line-strong)',
-              borderRadius: 'var(--pc-radius-pill)',
-              fontFamily: 'var(--pc-sans)',
-              fontSize: 'var(--pc-text-sm)',
-              fontWeight: 500,
-              letterSpacing: 'var(--pc-track-wide)',
-              textTransform: 'uppercase',
-              textDecoration: 'none',
-              transition: 'background var(--pc-dur-fast) var(--pc-ease), border-color var(--pc-dur-fast) var(--pc-ease)',
-            }}
-          >
-            {u.viewServices}
-          </Link>
+          <Button href="/for-societies" size="md">{u.bookNow}</Button>
+          <Button href="/services" variant="ghost" size="md">{u.viewServices}</Button>
         </div>
       </div>
 

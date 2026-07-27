@@ -1,8 +1,8 @@
 'use client';
 
-import Link from 'next/link';
 import Image from 'next/image';
 import Eyebrow from '@/components/ui/Eyebrow';
+import Button from '@/components/ui/Button';
 import { useI18n } from '@/i18n';
 
 export default function CTASection() {
@@ -62,22 +62,7 @@ export default function CTASection() {
           {c.body}
         </p>
         <div className="pc-cta-btns" style={{ display: 'flex', gap: 'var(--pc-space-2)', flexWrap: 'wrap' }}>
-          <Link
-            href="/for-societies"
-            className="pc-hero-cta-primary"
-            style={{
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              padding: 'var(--pc-space-4) var(--pc-space-6)',
-              background: 'var(--pc-warm)', color: 'var(--pc-ink)',
-              border: 'none', borderRadius: 'var(--pc-radius-pill)',
-              fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)',
-              fontWeight: 600, letterSpacing: 'var(--pc-track-wide)',
-              textTransform: 'uppercase', textDecoration: 'none',
-              transition: 'background var(--pc-dur-fast) var(--pc-ease), box-shadow var(--pc-dur-fast) var(--pc-ease)',
-            }}
-          >
-            {c.getInTouch}
-          </Link>
+          <Button href="/for-societies">{c.getInTouch}</Button>
         </div>
       </div>
     </div>

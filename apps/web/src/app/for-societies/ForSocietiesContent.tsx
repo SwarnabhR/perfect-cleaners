@@ -1,11 +1,11 @@
 'use client';
 
-import Link from 'next/link';
 import Image from 'next/image';
 import Nav from '@/components/marketing/Nav';
 import Footer from '@/components/marketing/Footer';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
+import Button from '@/components/ui/Button';
 import { useI18n } from '@/i18n';
 
 export default function ForSocietiesContent() {
@@ -49,42 +49,9 @@ export default function ForSocietiesContent() {
             }}>
               {p.heroSub}
             </p>
-            {/* ── CTA pair — identical to Hero / CTASection pill design ── */}
             <div style={{ display: 'flex', gap: 'var(--pc-space-2)', flexWrap: 'wrap' }}>
-              <Link
-                href="/contact"
-                className="pc-hero-cta-primary"
-                style={{
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  padding: 'var(--pc-space-4) var(--pc-space-6)',
-                  background: 'var(--pc-warm)', color: 'var(--pc-ink)',
-                  border: 'none', borderRadius: 'var(--pc-radius-pill)',
-                  fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)',
-                  fontWeight: 600, letterSpacing: 'var(--pc-track-wide)',
-                  textTransform: 'uppercase', textDecoration: 'none',
-                  cursor: 'pointer',
-                  transition: 'background var(--pc-dur-fast) var(--pc-ease), box-shadow var(--pc-dur-fast) var(--pc-ease)',
-                }}
-              >
-                {p.heroPrimaryCta}
-              </Link>
-              <Link
-                href="/contact"
-                className="pc-hero-cta-ghost"
-                style={{
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  padding: 'var(--pc-space-4) var(--pc-space-6)',
-                  background: 'transparent', color: 'var(--pc-fg)',
-                  border: '1px solid var(--pc-line-warm)', borderRadius: 'var(--pc-radius-pill)',
-                  fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)',
-                  fontWeight: 500, letterSpacing: 'var(--pc-track-wide)',
-                  textTransform: 'uppercase', textDecoration: 'none',
-                  cursor: 'pointer',
-                  transition: 'background var(--pc-dur-fast) var(--pc-ease), border-color var(--pc-dur-fast) var(--pc-ease)',
-                }}
-              >
-                {p.heroSecondaryCta}
-              </Link>
+              <Button href="/contact">{p.heroPrimaryCta}</Button>
+              <Button href="/contact" variant="ghost">{p.heroSecondaryCta}</Button>
             </div>
           </div>
 
@@ -256,40 +223,8 @@ export default function ForSocietiesContent() {
             {p.bottomHeadline}
           </h2>
           <div style={{ display: 'flex', gap: 'var(--pc-space-2)', flexWrap: 'wrap', justifyContent: 'center' }}>
-            <Link
-              href="/contact"
-              className="pc-hero-cta-primary"
-              style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                padding: 'var(--pc-space-4) var(--pc-space-6)',
-                background: 'var(--pc-warm)', color: 'var(--pc-ink)',
-                border: 'none', borderRadius: 'var(--pc-radius-pill)',
-                fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)',
-                fontWeight: 600, letterSpacing: 'var(--pc-track-wide)',
-                textTransform: 'uppercase', textDecoration: 'none',
-                cursor: 'pointer',
-                transition: 'background var(--pc-dur-fast) var(--pc-ease), box-shadow var(--pc-dur-fast) var(--pc-ease)',
-              }}
-            >
-              {p.heroPrimaryCta}
-            </Link>
-            <Link
-              href="/contact"
-              className="pc-hero-cta-ghost"
-              style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                padding: 'var(--pc-space-4) var(--pc-space-6)',
-                background: 'transparent', color: 'var(--pc-fg)',
-                border: '1px solid var(--pc-line-warm)', borderRadius: 'var(--pc-radius-pill)',
-                fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)',
-                fontWeight: 500, letterSpacing: 'var(--pc-track-wide)',
-                textTransform: 'uppercase', textDecoration: 'none',
-                cursor: 'pointer',
-                transition: 'background var(--pc-dur-fast) var(--pc-ease), border-color var(--pc-dur-fast) var(--pc-ease)',
-              }}
-            >
-              {p.heroSecondaryCta}
-            </Link>
+            <Button href="/contact">{p.heroPrimaryCta}</Button>
+            <Button href="/contact" variant="ghost">{p.heroSecondaryCta}</Button>
           </div>
         </section>
 

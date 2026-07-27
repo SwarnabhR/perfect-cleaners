@@ -160,26 +160,6 @@
 }
 
 /* Fix hover/active/focus states that use hardcoded dark rgba values */
-[data-theme="light"] .pc-hero-cta-primary:hover {
-  background: #232220;
-}
-[data-theme="light"] .pc-hero-cta-primary:active {
-  background: #3A3A36;
-}
-[data-theme="light"] .pc-hero-cta-primary:focus-visible {
-  outline-color: rgba(74,94,68,0.7);
-}
-[data-theme="light"] .pc-hero-cta-ghost:hover {
-  background: rgba(0,0,0,0.04);
-  border-color: rgba(14,13,11,0.25);
-}
-[data-theme="light"] .pc-hero-cta-ghost:active {
-  background: rgba(0,0,0,0.08);
-  border-color: rgba(14,13,11,0.35);
-}
-[data-theme="light"] .pc-hero-cta-ghost:focus-visible {
-  outline-color: rgba(74,94,68,0.7);
-}
 [data-theme="light"] .pc-nav-book-now:hover {
   border-color: rgba(14,13,11,0.28);
   background: rgba(14,13,11,0.05);
@@ -426,31 +406,18 @@ button { cursor: pointer; }
    CTA pill link hover / active / focus states
    ==================================================================== */
 
-/* Primary pill — cream/dark fill */
-.pc-hero-cta-primary:hover {
-  background: var(--pc-warm-2);
+/* On-sage ghost pill (PremiumSection's "All Services") — sage-tinted hover
+   since it sits on the sage block, not the dark ink background. */
+.pc-premium-ghost:hover {
+  background: rgba(232, 237, 227, 0.08);
+  border-color: rgba(232, 237, 227, 0.45);
 }
-.pc-hero-cta-primary:active {
-  background: var(--pc-warm-3);
+.pc-premium-ghost:active {
+  background: rgba(232, 237, 227, 0.14);
   transform: scale(0.97);
 }
-.pc-hero-cta-primary:focus-visible {
-  outline: 2px solid var(--pc-sage-hi);
-  outline-offset: 3px;
-}
-
-/* Ghost pill — transparent with border */
-.pc-hero-cta-ghost:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(240, 237, 232, 0.45);
-}
-.pc-hero-cta-ghost:active {
-  background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(240, 237, 232, 0.6);
-  transform: scale(0.97);
-}
-.pc-hero-cta-ghost:focus-visible {
-  outline: 2px solid var(--pc-sage-hi);
+.pc-premium-ghost:focus-visible {
+  outline: 2px solid var(--pc-sage-ink);
   outline-offset: 3px;
 }
 

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import Button from '@/components/ui/Button';
 import { useI18n } from '@/i18n';
 
 const IMGS = [
@@ -42,24 +43,13 @@ export default function PremiumSection() {
           {p.headline1}<br />{p.headline2}
         </div>
         <div style={{ display: 'flex', gap: 'var(--pc-space-2)', flexShrink: 0, flexWrap: 'wrap' }}>
-          <Link
-            href="/for-societies"
-            className="pc-hero-cta-primary"
-            style={{
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              padding: 'var(--pc-space-3) var(--pc-space-6)',
-              background: 'var(--pc-warm)', color: 'var(--pc-ink)',
-              border: 'none', borderRadius: 'var(--pc-radius-pill)',
-              fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)',
-              fontWeight: 600, letterSpacing: 'var(--pc-track-wide)',
-              textTransform: 'uppercase', textDecoration: 'none',
-              transition: 'background var(--pc-dur-fast) var(--pc-ease)',
-            }}
-          >
-            {p.bookNow}
-          </Link>
+          <Button href="/for-societies" size="md">{p.bookNow}</Button>
+          {/* On-sage ghost — distinct from the standard dark-bg ghost button
+              (sage-ink text, sage-tinted border), so it's bespoke rather than
+              forced through the shared Button component's dark-bg styling. */}
           <Link
             href="/services"
+            className="pc-premium-ghost"
             style={{
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               padding: 'var(--pc-space-3) var(--pc-space-6)',

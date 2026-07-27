@@ -1,8 +1,8 @@
 'use client';
 import { useState } from 'react';
-import Link from 'next/link';
 import Image from 'next/image';
 import { useI18n } from '@/i18n';
+import Button from '@/components/ui/Button';
 import AuthBottomSheet from '@/components/auth/AuthBottomSheet';
 import { useCustomerAuth } from '@/lib/auth/CustomerAuthContext';
 
@@ -68,86 +68,19 @@ export default function Hero() {
           {h.sub}
         </p>
 
-        {/*
-          CTAs — styled <Link> elements, NOT <Link><Button>.
-          Nesting a <button> inside an <a> is invalid HTML.
-          Button appearance is applied directly to the anchor.
-        */}
         <div className="pc-hero-ctas" style={{ display: 'flex', gap: 'var(--pc-space-2)', flexWrap: 'wrap' }}>
           {user ? (
-            <Link
-              href="/account"
-              className="pc-hero-cta-primary"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: 'var(--pc-space-4) var(--pc-space-6)',
-                background: 'var(--pc-warm)',
-                color: 'var(--pc-ink)',
-                border: 'none',
-                borderRadius: 'var(--pc-radius-pill)',
-                fontFamily: 'var(--pc-sans)',
-                fontSize: 'var(--pc-text-sm)',
-                fontWeight: 600,
-                letterSpacing: 'var(--pc-track-wide)',
-                textTransform: 'uppercase',
-                textDecoration: 'none',
-                cursor: 'pointer',
-                transition: 'background var(--pc-dur-fast) var(--pc-ease), box-shadow var(--pc-dur-fast) var(--pc-ease)',
-              }}
-            >
+            <Button href="/account">
               {profileName ? `Hi, ${profileName.split(' ')[0]}` : 'My Account'}
-            </Link>
+            </Button>
           ) : (
-            <button
-              type="button"
-              onClick={() => setAuthOpen(true)}
-              className="pc-hero-cta-primary"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: 'var(--pc-space-4) var(--pc-space-6)',
-                background: 'var(--pc-warm)',
-                color: 'var(--pc-ink)',
-                border: 'none',
-                borderRadius: 'var(--pc-radius-pill)',
-                fontFamily: 'var(--pc-sans)',
-                fontSize: 'var(--pc-text-sm)',
-                fontWeight: 600,
-                letterSpacing: 'var(--pc-track-wide)',
-                textTransform: 'uppercase',
-                cursor: 'pointer',
-                transition: 'background var(--pc-dur-fast) var(--pc-ease), box-shadow var(--pc-dur-fast) var(--pc-ease)',
-              }}
-            >
+            <Button onClick={() => setAuthOpen(true)}>
               Sign Up / Log In
-            </button>
+            </Button>
           )}
-          <Link
-            href="/for-societies"
-            className="pc-hero-cta-ghost"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 'var(--pc-space-4) var(--pc-space-6)',
-              background: 'transparent',
-              color: 'var(--pc-fg)',
-              border: '1px solid var(--pc-line-strong)',
-              borderRadius: 'var(--pc-radius-pill)',
-              fontFamily: 'var(--pc-sans)',
-              fontSize: 'var(--pc-text-sm)',
-              fontWeight: 500,
-              letterSpacing: 'var(--pc-track-wide)',
-              textTransform: 'uppercase',
-              textDecoration: 'none',
-              transition: 'background var(--pc-dur-fast) var(--pc-ease), border-color var(--pc-dur-fast) var(--pc-ease)',
-            }}
-          >
+          <Button href="/for-societies" variant="ghost">
             For Societies
-          </Link>
+          </Button>
         </div>
 
         {/* Trust strip */}

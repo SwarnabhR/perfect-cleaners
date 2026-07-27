@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import Nav from '@/components/marketing/Nav';
 import Footer from '@/components/marketing/Footer';
 import SectionHeader from '@/components/marketing/SectionHeader';
@@ -10,6 +9,7 @@ import PremiumSection from '@/components/marketing/PremiumSection';
 import CTASection from '@/components/marketing/CTASection';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
+import Button from '@/components/ui/Button';
 import { useI18n } from '@/i18n';
 
 type DetailKey = 'interior' | 'exterior' | 'coating';
@@ -95,18 +95,9 @@ export default function ServicesContent() {
             }}>
               {detail.sub}
             </p>
-            <Link
-              href={detail.href}
-              style={{
-                display: 'inline-flex', padding: '14px 24px',
-                background: 'var(--pc-warm)', color: 'var(--pc-ink)',
-                borderRadius: 'var(--pc-radius-pill)', fontFamily: 'var(--pc-sans)',
-                fontSize: 13, fontWeight: 600, letterSpacing: '0.06em',
-                textTransform: 'uppercase', textDecoration: 'none', marginBottom: 32,
-              }}
-            >
-              {detail.cta}
-            </Link>
+            <div style={{ marginBottom: 32 }}>
+              <Button href={detail.href} size="md">{detail.cta}</Button>
+            </div>
             <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 12, color: 'var(--pc-fg-3)', letterSpacing: '0.05em', marginBottom: 16 }}>
               {detail.sectionTitle}
             </p>
