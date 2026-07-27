@@ -46,7 +46,7 @@ function formatDate(iso: string | null): string {
 function minutesUntilScheduled(hour: number | null): number | null {
   if (hour == null) return null;
   const scheduled = new Date();
-  scheduled.setHours(hour, 0, 0, 0);
+  scheduled.setHours(Math.floor(hour), Math.round((hour % 1) * 60), 0, 0);
   return Math.round((scheduled.getTime() - Date.now()) / 60_000);
 }
 

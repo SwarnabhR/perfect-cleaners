@@ -59,8 +59,11 @@ function formatDateShort(d: Date) {
 }
 
 function formatTime(hour: number) {
-  if (hour === 0 || hour === 12) return hour === 0 ? '12:00 AM' : '12:00 PM';
-  return hour < 12 ? `${hour}:00 AM` : `${hour - 12}:00 PM`;
+  const h = Math.floor(hour);
+  const m = Math.round((hour % 1) * 60);
+  const h12 = h % 12 || 12;
+  const ampm = h < 12 ? 'AM' : 'PM';
+  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
 }
 
 function toDate(v: any): Date {
@@ -70,10 +73,10 @@ function toDate(v: any): Date {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const TIME_OPTIONS = Array.from({ length: 10 }, (_, i) => {
-  const h = i + 7; // 7 through 16
-  const label = h === 12 ? '12:00 PM' : h < 12 ? `${h}:00 AM` : `${h - 12}:00 PM`;
-  return { label, value: h };
+// 30-minute steps, 6:00 AM through 6:00 PM.
+const TIME_OPTIONS = Array.from({ length: 25 }, (_, i) => {
+  const value = 6 + i * 0.5;
+  return { label: formatTime(value), value };
 });
 
 const ACCOUNT_TABS = [
@@ -355,6 +358,171 @@ function SelfSignupForm({
   );
 }
 
+// ─── Today status card ─────────────────────────────────────────────────────────
+
+interface TodayStatus {
+  status: 'pending' | 'in_progress' | 'done' | 'skipped' | null;
+  preferredTime: number | null;
+  cleanedAt: string | null;
+}
+
+function TodayStatusCard({
+  today,
+  isSkippedToday,
+  isRescheduling,
+  hasReschedule,
+  effectiveTime,
+  saving,
+  onToggleReschedule,
+  onToggleSkip,
+  onPickTime,
+  onResetReschedule,
+}: {
+  today: TodayStatus;
+  isSkippedToday: boolean;
+  isRescheduling: boolean;
+  hasReschedule: boolean;
+  effectiveTime: number;
+  saving: boolean;
+  onToggleReschedule: () => void;
+  onToggleSkip: () => void;
+  onPickTime: (hour: number) => void;
+  onResetReschedule: () => void;
+}) {
+  if (today.status == null) return null;
+
+  const done    = today.status === 'done';
+  const skipped = today.status === 'skipped' || isSkippedToday;
+  const tickColor = done ? 'var(--pc-success)' : skipped ? 'var(--pc-fg-4)' : 'var(--pc-warning)';
+
+  return (
+    <section>
+      <p style={sectionLabel}>TODAY</p>
+      <div style={{
+        padding: 'var(--pc-space-5)',
+        background: 'var(--pc-card)',
+        border: `1px solid ${done ? 'var(--pc-success)' : skipped ? 'var(--pc-line)' : 'var(--pc-warning)'}`,
+        borderRadius: 'var(--pc-radius-md)',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Icon name={done ? 'check-circle' : skipped ? 'x-circle' : 'clock'} size={18} color={tickColor} />
+            <div>
+              <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 500, color: 'var(--pc-fg)', margin: 0 }}>
+                {done ? 'Your car was cleaned today' : skipped ? 'Not available today' : `Scheduled today, ${formatTime(effectiveTime)}`}
+              </p>
+              {done && (
+                <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-4)', margin: '2px 0 0' }}>
+                  Locked — today's slot can no longer be changed.
+                </p>
+              )}
+            </div>
+          </div>
+          {!done && !skipped && (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={onToggleReschedule}
+                style={{
+                  padding: '5px 12px', borderRadius: 999,
+                  border: '1px solid var(--pc-info)',
+                  background: isRescheduling ? 'var(--pc-info)' : 'transparent',
+                  cursor: saving ? 'not-allowed' : 'pointer',
+                  fontFamily: 'var(--pc-sans)', fontSize: 12,
+                  color: isRescheduling ? 'white' : 'var(--pc-info)',
+                  opacity: saving ? 0.5 : 1,
+                }}
+              >
+                Time
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={onToggleSkip}
+                style={{
+                  padding: '5px 14px', borderRadius: 999,
+                  border: '1px solid currentColor', background: 'transparent',
+                  cursor: saving ? 'not-allowed' : 'pointer',
+                  fontFamily: 'var(--pc-sans)', fontSize: 12,
+                  color: 'var(--pc-fg-3)',
+                  opacity: saving ? 0.5 : 1,
+                }}
+              >
+                Skip
+              </button>
+            </div>
+          )}
+        </div>
+
+        {isRescheduling && (
+          <div style={{
+            marginTop: 14, padding: 'var(--pc-space-4) var(--pc-space-5)',
+            background: 'var(--pc-ink-raised)',
+            border: '1px solid var(--pc-line)',
+            borderRadius: 'var(--pc-radius-sm)',
+          }}>
+            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, color: 'var(--pc-fg-4)', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Change today's time
+            </p>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {TIME_OPTIONS.filter(opt => opt.value !== effectiveTime).map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => onPickTime(opt.value)}
+                  style={{
+                    padding: '8px 14px', borderRadius: 6,
+                    background: 'var(--pc-card)',
+                    border: '1px solid var(--pc-line)',
+                    fontFamily: 'var(--pc-sans)', fontSize: 12,
+                    color: 'var(--pc-fg-2)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+              {hasReschedule && (
+                <button
+                  type="button"
+                  onClick={onResetReschedule}
+                  style={{
+                    padding: '5px 12px', borderRadius: 6,
+                    background: 'transparent',
+                    border: '1px solid var(--pc-danger)',
+                    fontFamily: 'var(--pc-sans)', fontSize: 11,
+                    color: 'var(--pc-danger)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Reset to default
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={onToggleReschedule}
+                style={{
+                  padding: '5px 12px', borderRadius: 6,
+                  background: 'transparent',
+                  border: '1px solid var(--pc-line)',
+                  fontFamily: 'var(--pc-sans)', fontSize: 11,
+                  color: 'var(--pc-fg-3)',
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 // ─── Time preference section ──────────────────────────────────────────────────
 
 function TimePreferenceSection({
@@ -524,6 +692,29 @@ export default function CleaningPage() {
   const [saving,         setSaving]         = useState(false);
   const [ratingLogId,    setRatingLogId]    = useState<string | null>(null);
   const [reschedulingDate, setReschedulingDate] = useState<string | null>(null);
+  const [today, setToday] = useState<TodayStatus>({ status: null, preferredTime: null, cleanedAt: null });
+
+  // Today's actual car status, from the already-generated session doc (customers
+  // have no direct Firestore read access to cleaningSessions — see /api/session/today).
+  // Polled rather than live-listened since there's no realtime channel available here.
+  useEffect(() => {
+    if (!user || !record || record === 'loading' || record.status !== 'active') {
+      setToday({ status: null, preferredTime: null, cleanedAt: null });
+      return;
+    }
+    let cancelled = false;
+    async function fetchToday() {
+      try {
+        const token = await user!.getIdToken();
+        const res = await fetch('/api/session/today', { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok || cancelled) return;
+        setToday(await res.json());
+      } catch { /* keep last known status on transient failure */ }
+    }
+    fetchToday();
+    const interval = setInterval(fetchToday, 45_000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [user, record === 'loading' ? 'loading' : record?.status, record === 'loading' ? undefined : record?.id]);
 
   async function rateLog(logId: string, rating: number) {
     if (!user) return;
@@ -892,6 +1083,22 @@ export default function CleaningPage() {
                 </div>
               </div>
             </section>
+
+            {/* Today's status — green tick (done) locks editing; yellow (not yet
+                cleaned) still allows skip/reschedule for today, same as any
+                upcoming date below. */}
+            <TodayStatusCard
+              today={today}
+              isSkippedToday={record.skipDates.some(d => isSameDay(d, new Date()))}
+              isRescheduling={reschedulingDate === dateKey(new Date())}
+              hasReschedule={!!getRescheduledForDate(new Date())}
+              effectiveTime={today.preferredTime ?? getEffectiveTime(new Date())}
+              saving={saving}
+              onToggleReschedule={() => setReschedulingDate(prev => prev === dateKey(new Date()) ? null : dateKey(new Date()))}
+              onToggleSkip={() => toggleSkip(new Date())}
+              onPickTime={hour => toggleReschedule(new Date(), hour)}
+              onResetReschedule={() => clearReschedule(new Date())}
+            />
 
             {/* Upcoming sessions */}
             {upcomingDates.length > 0 && (

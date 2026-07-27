@@ -275,7 +275,7 @@ export interface CustomerSocietyRecord {
   }>;
 
   // Preferred cleaning time (overrides tower default)
-  preferredCleaningTime: number; // 7, 9, 14 (hours in 24h format)
+  preferredCleaningTime: number; // 7, 7.5, 9, 14 (hours in 24h format, .5 = half-hour slot)
   // Preferred cleaning days, subset of the tower's SocietyBillingConfig.cleaningDays.
   // Unset/empty means "all of the tower's cleaning days" (legacy/bulk-imported behavior).
   preferredCleaningDays?: DayOfWeek[];
@@ -296,8 +296,8 @@ export interface CustomerSocietyRecord {
   skipDates: Date[];           // One-time skips
   rescheduledSlots: Array<{
     date: Date;
-    fromTime: number;          // 9 (original slot)
-    toTime: number;            // 14 (new slot)
+    fromTime: number;          // 9 (original slot, .5 = half-hour)
+    toTime: number;            // 14 (new slot, .5 = half-hour)
   }>;
   permanentTime?: number;      // Override preferredCleaningTime
 
@@ -324,7 +324,7 @@ export interface PendingApproval {
   carModel: string;
 
   // Preferences
-  preferredCleaningTime: number; // 7, 9, 14
+  preferredCleaningTime: number; // 7, 7.5, 9, 14 (.5 = half-hour slot)
   preferredCleaningDays?: DayOfWeek[];
 
   // Approval workflow
@@ -345,7 +345,7 @@ export interface CleaningSessionCar {
   carPlate: string;
   carMake: string;
   carModel: string;
-  preferredTime: number;       // What customer prefers (7, 9, 14)
+  preferredTime: number;       // What customer prefers (7, 7.5, 9, 14 — .5 = half-hour slot)
   // 'skipped' — customer opted out for this date (see CustomerSocietyRecord.skipDates);
   // still included in cars[] (not dropped) so the worker sees "Not available" rather
   // than the car silently vanishing from the list.

@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, onSnapshot, getCountFromServer, Timestamp } from 'firebase/firestore';
 import { db } from '@pc/firebase';
 import { getAssignedSocieties } from '@pc/firebase';
 import type { Worker } from '@pc/firebase';
@@ -59,6 +59,7 @@ export default function CleaningLogsPage() {
   const [windowFilter, setWindowFilter] = useState<Window>('today');
   const [search,     setSearch]     = useState('');
   const [expandedWorkerId, setExpandedWorkerId] = useState<string | null>(null);
+  const [workerCounts, setWorkerCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     return onSnapshot(
@@ -78,6 +79,41 @@ export default function CleaningLogsPage() {
       err => console.warn('[CleaningLogs] workers:', err.message),
     );
   }, []);
+
+  // Per-worker totals for the breakdown table come from aggregate count
+  // queries, not the capped 1000-doc feed above — once total log volume
+  // passes 1000, `inWindow`-derived counts silently undercount busy workers.
+  useEffect(() => {
+    if (workers.length === 0) return;
+    let cancelled = false;
+
+    async function loadCounts() {
+      const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+      const sevenDaysAgo = Timestamp.fromMillis(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+      const entries = await Promise.all(workers.map(async w => {
+        const constraints = [where('workerId', '==', w.id)];
+        if (windowFilter === 'today') constraints.push(where('cleanedAt', '>=', Timestamp.fromDate(todayStart)));
+        else if (windowFilter === '7d') constraints.push(where('cleanedAt', '>=', sevenDaysAgo));
+        try {
+          const snap = await getCountFromServer(query(collection(db, 'cleaningLogs'), ...constraints));
+          return [w.id, snap.data().count] as const;
+        } catch {
+          return [w.id, null] as const;
+        }
+      }));
+
+      if (cancelled) return;
+      setWorkerCounts(prev => {
+        const next = { ...prev };
+        for (const [id, count] of entries) if (count != null) next[id] = count;
+        return next;
+      });
+    }
+
+    loadCounts();
+    return () => { cancelled = true; };
+  }, [workers, windowFilter]);
 
   const workersById = new Map(workers.map(w => [w.id, w]));
 
@@ -118,16 +154,43 @@ export default function CleaningLogsPage() {
     }
     byWorker.get(wid)!.logs.push(l);
   });
-  const workerRows = [...byWorker.entries()]
-    .map(([workerId, v]) => ({
-      workerId,
-      ...v,
-      count: v.logs.length,
-      lastActivity: v.logs.reduce<Date | null>((max, l) => {
-        const d = toDate(l.cleanedAt);
-        return d && (!max || d > max) ? d : max;
-      }, null),
-    }))
+  const lastActivityOf = (logsForWorker: LiveCleaningLog[]) =>
+    logsForWorker.reduce<Date | null>((max, l) => {
+      const d = toDate(l.cleanedAt);
+      return d && (!max || d > max) ? d : max;
+    }, null);
+
+  const knownWorkerIds = new Set(workers.map(w => w.id));
+
+  // Every known worker gets a row (even one with zero logs in the current
+  // capped feed but a real aggregate count), plus a row for any workerId in
+  // the feed that isn't a known worker doc (e.g. admin-marked-done entries,
+  // workerId: '') — those fall back to the capped feed's own count since
+  // there's no worker doc to run an aggregate query against.
+  const workerRows = [
+    ...workers.map(w => {
+      const bucket = byWorker.get(w.id);
+      const societyNames = getAssignedSocieties(w).map(a => a.name);
+      const logs = bucket?.logs ?? [];
+      return {
+        workerId: w.id,
+        workerName: w.name || bucket?.workerName || 'Unknown worker',
+        societyName: societyNames.length ? societyNames.join(', ') : (bucket?.societyName ?? '—'),
+        logs,
+        count: workerCounts[w.id] ?? logs.length,
+        lastActivity: lastActivityOf(logs),
+      };
+    }),
+    ...[...byWorker.entries()]
+      .filter(([workerId]) => !knownWorkerIds.has(workerId))
+      .map(([workerId, v]) => ({
+        workerId,
+        ...v,
+        count: v.logs.length,
+        lastActivity: lastActivityOf(v.logs),
+      })),
+  ]
+    .filter(row => row.count > 0)
     .sort((a, b) => b.count - a.count);
   const maxCount = Math.max(...workerRows.map(r => r.count), 1);
 

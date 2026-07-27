@@ -62,9 +62,15 @@ function formatDateShort(d: Date): string {
   return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
+// Handles half-hour values (e.g. 7.5) too — the web account page now lets
+// customers pick 30-minute slots, and this screen renders the same underlying
+// preferredCleaningTime/permanentTime fields.
 function formatTime(hour: number): string {
-  if (hour === 0 || hour === 12) return hour === 0 ? '12:00 AM' : '12:00 PM';
-  return hour < 12 ? `${hour}:00 AM` : `${hour - 12}:00 PM`;
+  const h = Math.floor(hour);
+  const m = Math.round((hour % 1) * 60);
+  const h12 = h % 12 || 12;
+  const ampm = h < 12 ? 'AM' : 'PM';
+  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
 }
 
 function getUpcomingDates(dayIndices: number[], n: number): Date[] {

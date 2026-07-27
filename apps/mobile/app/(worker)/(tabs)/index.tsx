@@ -39,10 +39,12 @@ function isLocalDateMatch(a: Date, b: Date): boolean {
 }
 
 function getTimeSlotLabel(hour: number): string {
-  const h12 = hour % 12 || 12;
-  const ampm = hour < 12 ? 'AM' : 'PM';
-  const period = hour < 12 ? 'Morning' : hour < 17 ? 'Afternoon' : 'Evening';
-  return `${h12}:00 ${ampm} · ${period}`;
+  const h      = Math.floor(hour);
+  const m      = Math.round((hour % 1) * 60);
+  const h12    = h % 12 || 12;
+  const ampm   = h < 12 ? 'AM' : 'PM';
+  const period = h < 12 ? 'Morning' : h < 17 ? 'Afternoon' : 'Evening';
+  return `${h12}:${String(m).padStart(2, '0')} ${ampm} · ${period}`;
 }
 
 function unitSort(a: SessionCar, b: SessionCar) {

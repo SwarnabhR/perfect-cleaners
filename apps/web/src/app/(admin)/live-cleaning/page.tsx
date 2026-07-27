@@ -16,10 +16,12 @@ interface CarWithSession extends CleaningSessionCar {
 }
 
 function getTimeSlotLabel(hour: number): string {
-  const h12 = hour % 12 || 12;
-  const ampm = hour < 12 ? 'AM' : 'PM';
-  const label = hour < 12 ? 'Morning' : hour < 17 ? 'Afternoon' : 'Evening';
-  return `${h12}:00 ${ampm} (${label})`;
+  const h    = Math.floor(hour);
+  const m    = Math.round((hour % 1) * 60);
+  const h12  = h % 12 || 12;
+  const ampm = h < 12 ? 'AM' : 'PM';
+  const label = h < 12 ? 'Morning' : h < 17 ? 'Afternoon' : 'Evening';
+  return `${h12}:${String(m).padStart(2, '0')} ${ampm} (${label})`;
 }
 
 interface CarListItem {

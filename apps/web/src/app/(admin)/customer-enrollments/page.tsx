@@ -29,10 +29,19 @@ function firstOfNextMonth(): Date {
   return d;
 }
 
-const TIME_OPTIONS = Array.from({ length: 10 }, (_, i) => {
-  const h = i + 7; // 7 through 16
-  const label = h === 12 ? '12:00 PM' : h < 12 ? `${h}:00 AM` : `${h - 12}:00 PM`;
-  return { label, value: h };
+function formatSlotTime(hour: number): string {
+  const h = Math.floor(hour);
+  const m = Math.round((hour % 1) * 60);
+  const h12 = h % 12 || 12;
+  const ampm = h < 12 ? 'AM' : 'PM';
+  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+}
+
+// 30-minute steps, 6:00 AM through 6:00 PM — matches the customer-facing picker
+// in account/cleaning/page.tsx so admin-set and customer-set times line up.
+const TIME_OPTIONS = Array.from({ length: 25 }, (_, i) => {
+  const value = 6 + i * 0.5;
+  return { label: formatSlotTime(value), value };
 });
 
 const ENROLLMENT_STATUS_LABEL: Record<string, string> = {
@@ -437,11 +446,6 @@ function formatDateShort(d: Date) {
   return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
-function formatTime(hour: number) {
-  if (hour === 0 || hour === 12) return hour === 0 ? '12:00 AM' : '12:00 PM';
-  return hour < 12 ? `${hour}:00 AM` : `${hour - 12}:00 PM`;
-}
-
 function getUpcomingDates(dayIndices: number[], n: number): Date[] {
   const dates: Date[] = [];
   const cursor = new Date();
@@ -665,11 +669,11 @@ function ScheduleModal({
                         textDecoration: rescheduled ? 'line-through' : 'none',
                         marginRight: rescheduled ? 4 : 0,
                       }}>
-                        {formatTime(permanentTime)}
+                        {formatSlotTime(permanentTime)}
                       </span>
                       {rescheduled && (
                         <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-warning)' }}>
-                          → {formatTime(effectiveTime)}
+                          → {formatSlotTime(effectiveTime)}
                         </span>
                       )}
                       {isSkipped && (
