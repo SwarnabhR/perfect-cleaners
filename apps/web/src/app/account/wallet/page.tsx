@@ -358,7 +358,7 @@ export default function WalletPage() {
             fontSize:       10,
             letterSpacing: '0.1em',
             textTransform: 'uppercase',
-            color:          isPaid ? 'rgba(255,255,255,0.7)' : 'var(--pc-fg-3)',
+            color:          isPaid ? 'color-mix(in srgb, var(--pc-sage-ink) 70%, transparent)' : 'var(--pc-fg-3)',
             margin:         0,
           }}>
             [OUTSTANDING BALANCE]
@@ -368,7 +368,7 @@ export default function WalletPage() {
             fontFamily:    'var(--pc-serif)',
             fontSize:      'clamp(44px, 8vw, 64px)',
             fontWeight:     400,
-            color:          isPaid ? '#fff' : 'var(--pc-fg)',
+            color:          isPaid ? 'var(--pc-sage-ink)' : 'var(--pc-fg)',
             letterSpacing: '-0.03em',
             lineHeight:     1.1,
             margin:        '8px 0 0',
@@ -379,7 +379,7 @@ export default function WalletPage() {
           <p style={{
             fontFamily: 'var(--pc-sans)',
             fontSize:    13,
-            color:       isPaid ? 'rgba(255,255,255,0.7)' : 'var(--pc-fg-3)',
+            color:       isPaid ? 'color-mix(in srgb, var(--pc-sage-ink) 70%, transparent)' : 'var(--pc-fg-3)',
             margin:     '8px 0 24px',
           }}>
             {isPaid
@@ -416,8 +416,8 @@ export default function WalletPage() {
               style={{
                 padding:       '10px 20px',
                 background:    'transparent',
-                color:          isPaid ? 'rgba(255,255,255,0.8)' : 'var(--pc-fg-3)',
-                border:        `1px solid ${isPaid ? 'rgba(255,255,255,0.3)' : 'var(--pc-line-strong)'}`,
+                color:          isPaid ? 'color-mix(in srgb, var(--pc-sage-ink) 80%, transparent)' : 'var(--pc-fg-3)',
+                border:        `1px solid ${isPaid ? 'color-mix(in srgb, var(--pc-sage-ink) 30%, transparent)' : 'var(--pc-line-strong)'}`,
                 borderRadius:   999,
                 fontFamily:    'var(--pc-sans)',
                 fontSize:       13,
