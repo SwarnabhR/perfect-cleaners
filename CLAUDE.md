@@ -177,7 +177,7 @@ Web UI primitives live in `apps/web/src/components/ui/`:
 **Theme system (`apps/web`):**
 - Dark/light theming is controlled by `data-theme` on the `<html>` element.
 - `ThemeProvider` (`src/components/ThemeProvider.tsx`) persists preference to `localStorage` under key `pc-theme` and exposes `useTheme()` hook with `{ theme, toggle }`.
-- CSS variables for both themes live in `src/app/globals.css` — `:root` = dark (default), `[data-theme="light"]` = light overrides.
+- CSS variables for both themes live in `src/app/globals.css` — `:root` values are dark-mode colors, applied whenever `[data-theme="light"]` overrides aren't active. **The web app's actual default is light mode** — `layout.tsx` sets `data-theme="light"` on `<html>` at SSR time and `ThemeProvider` falls back to `'light'` when there's no saved preference (see commit `e5682f6`, "fix(web): light mode default"). Dark is opt-in via the theme toggle, not the shipped default.
 - The mobile app remains dark-only. Never add theme switching to mobile.
 - Token exports: `colors` (dark) and `colorsLight` (light) are both exported from `packages/tokens/src/index.ts`.
 - When writing admin or marketing components, use only `var(--pc-*)` CSS variables — never hardcode dark-specific rgba values like `rgba(255,255,255,0.08)` since these break in light mode. Use `var(--pc-line)`, `var(--pc-line-faint)`, etc. instead.

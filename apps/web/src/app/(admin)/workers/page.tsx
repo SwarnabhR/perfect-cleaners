@@ -41,7 +41,7 @@ function StarRating({ value }: { value: number }) {
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
       {[1,2,3,4,5].map(i => (
         <Icon key={i} name="star" size={11}
-          color={i <= filled ? 'var(--pc-gold)' : 'var(--pc-line)'} />
+          color={i <= filled ? 'var(--pc-warning)' : 'var(--pc-line)'} />
       ))}
       <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)', marginLeft: 4 }}>
         {value ? value.toFixed(1) : '—'}

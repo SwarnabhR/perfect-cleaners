@@ -19,6 +19,7 @@
 
   --pc-line-warm: rgba(240,237,232,0.45);
   --pc-ink-overlay: rgba(12,11,9,0.97);
+  --pc-ink-scrim: rgba(14,13,11,0.85);
   --pc-nav-bg-scrolled: rgba(14,13,11,0.78);
 
   --pc-sage:     #4A5E44;
@@ -136,6 +137,7 @@
   /* Contextual */
   --pc-line-warm:       rgba(14,13,11,0.18);
   --pc-ink-overlay:     rgba(245,242,237,0.97);
+  --pc-ink-scrim:       rgba(245,242,237,0.85);
   --pc-nav-bg-scrolled: rgba(245,242,237,0.84);
 
   /* Primary CTA inverts — dark pill on cream bg */
