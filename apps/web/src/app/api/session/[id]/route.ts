@@ -24,8 +24,12 @@ export async function GET(
     }
 
     const data = snap.data()!;
+    // Sessions are now written with a multi-worker array (workerIds), but
+    // older docs (and /api/session/create) still only set the legacy
+    // singular workerId — both must grant access.
     const workerIds = (data.workerIds as string[] | undefined) ?? [];
-    if (!workerIds.includes(decoded.uid)) {
+    const isAssignedWorker = workerIds.includes(decoded.uid) || data.workerId === decoded.uid;
+    if (!isAssignedWorker) {
       const adminSnap = await db.collection('admins').doc(decoded.uid).get();
       if (!adminSnap.exists) {
         return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
@@ -86,12 +90,15 @@ export async function POST(
     const ref = db.collection('cleaningSessions').doc(id);
 
     // A worker may only mutate sessions they were actually assigned to.
+    // Same legacy-field fallback as the GET handler above.
     const sessionSnap = await ref.get();
     if (!sessionSnap.exists) {
       return NextResponse.json({ error: 'Session not found.' }, { status: 404 });
     }
-    const sessionWorkerIds = (sessionSnap.data()?.workerIds as string[] | undefined) ?? [];
-    if (!sessionWorkerIds.includes(workerId)) {
+    const sessionData      = sessionSnap.data();
+    const sessionWorkerIds = (sessionData?.workerIds as string[] | undefined) ?? [];
+    const isAssignedWorker = sessionWorkerIds.includes(workerId) || sessionData?.workerId === workerId;
+    if (!isAssignedWorker) {
       return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
     }
 
