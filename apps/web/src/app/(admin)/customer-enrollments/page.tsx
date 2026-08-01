@@ -37,12 +37,16 @@ function formatSlotTime(hour: number): string {
   return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
 }
 
-// 30-minute steps, 6:00 AM through 6:00 PM — matches the customer-facing picker
-// in account/cleaning/page.tsx so admin-set and customer-set times line up.
-const TIME_OPTIONS = Array.from({ length: 25 }, (_, i) => {
-  const value = 6 + i * 0.5;
-  return { label: formatSlotTime(value), value };
-});
+// 5:45 AM start, then the standard 30-minute grid through 11:00 AM — matches
+// the customer-facing picker in account/cleaning/page.tsx so admin-set and
+// customer-set times line up.
+const TIME_OPTIONS = [
+  { label: formatSlotTime(5.75), value: 5.75 },
+  ...Array.from({ length: 11 }, (_, i) => {
+    const value = 6 + i * 0.5;
+    return { label: formatSlotTime(value), value };
+  }),
+];
 
 const ENROLLMENT_STATUS_LABEL: Record<string, string> = {
   pending:  'Pending',

@@ -73,11 +73,15 @@ function toDate(v: any): Date {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-// 30-minute steps, 6:00 AM through 6:00 PM.
-const TIME_OPTIONS = Array.from({ length: 25 }, (_, i) => {
-  const value = 6 + i * 0.5;
-  return { label: formatTime(value), value };
-});
+// 5:45 AM start (matches the crew's actual start time), then the standard
+// 30-minute grid through 11:00 AM — cleaning is a morning-only operation.
+const TIME_OPTIONS = [
+  { label: formatTime(5.75), value: 5.75 },
+  ...Array.from({ length: 11 }, (_, i) => {
+    const value = 6 + i * 0.5;
+    return { label: formatTime(value), value };
+  }),
+];
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
