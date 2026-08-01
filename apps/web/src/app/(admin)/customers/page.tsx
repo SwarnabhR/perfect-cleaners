@@ -81,7 +81,9 @@ export default function CustomersPage() {
     bookings
       .filter(b => {
         const ts = b.createdAt as MaybeTs;
-        const t = ts?.toDate ? ts.toDate().getTime() : new Date(ts).getTime();
+        const t = (ts as { toDate?(): Date })?.toDate
+          ? (ts as { toDate(): Date }).toDate().getTime()
+          : new Date(ts as string | number | Date).getTime();
         return t > thirtyDaysAgo;
       })
       .map(b => b.customerId),
