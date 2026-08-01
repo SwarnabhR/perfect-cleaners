@@ -654,7 +654,7 @@ export default function CleaningSchedulePage() {
             position: 'fixed',
             inset: 0,
             zIndex: 200,
-            background: 'rgba(0,0,0,0.6)',
+            background: 'var(--pc-ink-scrim)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -847,7 +847,7 @@ export default function CleaningSchedulePage() {
       {/* Reassign Workers Modal */}
       {reassigning && (
         <div
-          style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'var(--pc-ink-scrim)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
           onClick={() => setReassigning(null)}
         >
           <div
@@ -916,7 +916,7 @@ export default function CleaningSchedulePage() {
       {/* Mark Missed Modal */}
       {markingMissed && (
         <div
-          style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'var(--pc-ink-scrim)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
           onClick={() => setMarkingMissed(null)}
         >
           <div

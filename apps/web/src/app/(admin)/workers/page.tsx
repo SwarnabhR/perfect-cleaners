@@ -97,7 +97,7 @@ function WorkerFormModal({
 
   return (
     <div
-      style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.6)',
+      style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'var(--pc-ink-scrim)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
       onClick={onClose}
     >
@@ -220,7 +220,7 @@ function WorkerDetailPanel({
 
   return (
     <div
-      style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.5)',
+      style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'var(--pc-ink-scrim)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
       onClick={onClose}
     >

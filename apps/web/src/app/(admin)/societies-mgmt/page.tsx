@@ -160,7 +160,7 @@ function SocietyFormModal({
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.6)',
+    <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'var(--pc-ink-scrim)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
       onClick={onClose}
     >
@@ -270,7 +270,7 @@ function SocietyDetailPanel({
   const [delConfirm, setDelConfirm] = useState(false);
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.5)',
+    <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'var(--pc-ink-scrim)',
       display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       onClick={onClose}
     >

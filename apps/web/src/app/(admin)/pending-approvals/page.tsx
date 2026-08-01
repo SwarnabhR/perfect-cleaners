@@ -432,7 +432,7 @@ export default function PendingApprovalsPage() {
             position: 'fixed',
             inset: 0,
             zIndex: 200,
-            background: 'rgba(0,0,0,0.6)',
+            background: 'var(--pc-ink-scrim)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -560,7 +560,7 @@ export default function PendingApprovalsPage() {
       {/* Reject Reason Modal */}
       {rejectingId && (
         <div
-          style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'var(--pc-ink-scrim)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
           onClick={() => setRejectingId(null)}
         >
           <div

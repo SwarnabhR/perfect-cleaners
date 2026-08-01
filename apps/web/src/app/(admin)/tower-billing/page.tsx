@@ -271,7 +271,7 @@ export default function TowerBillingPage() {
             position: 'fixed',
             inset: 0,
             zIndex: 200,
-            background: 'rgba(0,0,0,0.6)',
+            background: 'var(--pc-ink-scrim)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',

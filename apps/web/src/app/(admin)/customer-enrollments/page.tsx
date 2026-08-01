@@ -264,7 +264,7 @@ function AddCustomerModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
 
   return (
     <div
-      style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+      style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'var(--pc-ink-scrim)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
       onClick={onClose}
     >
       <div
@@ -662,7 +662,7 @@ function ScheduleModal({
 
   return (
     <div
-      style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+      style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'var(--pc-ink-scrim)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
       onClick={onClose}
     >
       <div
@@ -1333,7 +1333,7 @@ export default function CustomerEnrollmentsPage() {
             position: 'fixed',
             inset: 0,
             zIndex: 200,
-            background: 'rgba(0,0,0,0.6)',
+            background: 'var(--pc-ink-scrim)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
