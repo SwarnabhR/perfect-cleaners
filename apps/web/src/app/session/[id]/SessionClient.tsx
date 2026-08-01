@@ -94,25 +94,46 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
   const [session, setSession] = useState<SessionData>(initialSession);
   const [actingId, setActingId] = useState<string | null>(null); // customerId currently being marked, or 'complete'
   const [error,   setError]   = useState('');
+  // The car list carries resident PII, so the API refuses to return it without
+  // a valid worker/admin token — this tracks that case separately from a
+  // generic fetch failure so we can show a clear "sign in" prompt instead of
+  // silently rendering an empty list.
+  const [authError, setAuthError] = useState(false);
+  const [loaded,    setLoaded]    = useState(false);
   const timerRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
   const intervalRef = useRef(POLL_INITIAL_MS);
 
   const poll = useCallback(async () => {
     try {
-      const res  = await fetch(`/api/session/${sessionId}`, { cache: 'no-store' });
+      // auth.currentUser is synchronously null for a moment after page load
+      // even when the visitor is genuinely signed in — wait for the first
+      // resolution before deciding there's no token to send.
+      await auth.authStateReady();
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) throw new Error('UNAUTHENTICATED');
+
+      const res  = await fetch(`/api/session/${sessionId}`, {
+        cache:   'no-store',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.status === 401 || res.status === 403) throw new Error('UNAUTHENTICATED');
       if (!res.ok) throw new Error('non-ok');
       const data = await res.json();
       setSession(s => ({ ...s, ...data }));
+      setAuthError(false);
+      setLoaded(true);
       intervalRef.current = POLL_INITIAL_MS;        // reset to fast on success
-    } catch {
+    } catch (err) {
+      if (err instanceof Error && err.message === 'UNAUTHENTICATED') setAuthError(true);
       intervalRef.current = Math.min(intervalRef.current * 2, POLL_MAX_MS); // backoff
     }
     timerRef.current = setTimeout(poll, intervalRef.current);
   }, [sessionId]);
 
-  // Start polling on mount; clean up on unmount
+  // Fetch immediately on mount (the car list starts empty — see page.tsx),
+  // then keep polling; clean up on unmount.
   useEffect(() => {
-    timerRef.current = setTimeout(poll, intervalRef.current);
+    poll();
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [poll]);
 
@@ -340,7 +361,17 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
           );
         })}
 
-        {cars.length === 0 && (
+        {cars.length === 0 && authError && (
+          <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', textAlign: 'center', padding: '24px 0' }}>
+            Sign in as the assigned worker to view this session.
+          </p>
+        )}
+        {cars.length === 0 && !authError && !loaded && (
+          <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', textAlign: 'center', padding: '24px 0' }}>
+            Loading…
+          </p>
+        )}
+        {cars.length === 0 && !authError && loaded && (
           <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', textAlign: 'center', padding: '24px 0' }}>
             No cars in this session.
           </p>

@@ -35,6 +35,10 @@ export default async function SessionPage({ params }: Props) {
     if (!snap.exists) notFound();
 
     const data    = snap.data()!;
+    // Deliberately excludes the per-resident `cars` array — that carries every
+    // resident's name/unit/parking/plate for the tower, and only the assigned
+    // worker(s) or an admin may see it. SessionClient fetches it client-side
+    // through the authenticated /api/session/[id] route after mount.
     const session = {
       id:            snap.id,
       societyId:     data.societyId   as string,
@@ -52,17 +56,7 @@ export default async function SessionPage({ params }: Props) {
       completedCars: data.completedCars as number,
       startedAt:     data.startedAt?.toDate?.()?.toISOString()   ?? null,
       completedAt:   data.completedAt?.toDate?.()?.toISOString() ?? null,
-      cars: ((data.cars as Record<string, unknown>[] | undefined) ?? []).map(c => ({
-        customerId:    c.customerId    as string,
-        customerName:  (c.customerName as string | undefined) ?? '',
-        unitNumber:    (c.unitNumber   as string | undefined) ?? '',
-        parkingNumber: (c.parkingNumber as string | undefined) ?? '',
-        carPlate:      (c.carPlate     as string | undefined) ?? '',
-        carMake:       (c.carMake      as string | undefined) ?? '',
-        carModel:      (c.carModel     as string | undefined) ?? '',
-        preferredTime: (c.preferredTime as number | undefined) ?? null,
-        status:        (c.status       as string | undefined) ?? 'pending',
-      })),
+      cars: [] as import('./SessionClient').SessionCar[],
     };
 
     return <SessionClient initialSession={session} sessionId={id} />;

@@ -6,8 +6,13 @@ import { sendAndStoreSMS, type NotificationPayload } from '@/lib/notify-sms';
 
 export async function POST(req: NextRequest) {
   // Accept either a Firebase ID token (admin dashboard) or CRON_SECRET (internal server calls).
-  const bearer = (req.headers.get('authorization') ?? '').replace(/^Bearer\s+/, '');
-  if (bearer !== (process.env.CRON_SECRET ?? '')) {
+  // CRON_SECRET must actually be configured to count — otherwise a request
+  // with no Authorization header at all would satisfy `bearer !== ''`.
+  const bearer     = (req.headers.get('authorization') ?? '').replace(/^Bearer\s+/, '');
+  const cronSecret = process.env.CRON_SECRET;
+  const isCronCall = Boolean(cronSecret) && bearer === cronSecret;
+  if (!isCronCall) {
+    if (!bearer) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     try {
       await adminAuth().verifyIdToken(bearer);
     } catch {

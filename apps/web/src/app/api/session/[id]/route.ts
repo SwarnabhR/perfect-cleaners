@@ -4,11 +4,18 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { adminFirestore, adminAuth } from '@/lib/firebase/admin';
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
+
+    // Session docs carry every resident's name/unit/parking/plate for the
+    // tower — only the assigned worker(s) or an admin may read that.
+    const bearer = (req.headers.get('authorization') ?? '').replace(/^Bearer\s+/, '');
+    if (!bearer) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
+    const decoded = await adminAuth().verifyIdToken(bearer);
+
     const db     = adminFirestore();
     const snap   = await db.collection('cleaningSessions').doc(id).get();
 
@@ -17,6 +24,14 @@ export async function GET(
     }
 
     const data = snap.data()!;
+    const workerIds = (data.workerIds as string[] | undefined) ?? [];
+    if (!workerIds.includes(decoded.uid)) {
+      const adminSnap = await db.collection('admins').doc(decoded.uid).get();
+      if (!adminSnap.exists) {
+        return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
+      }
+    }
+
     return NextResponse.json({
       id:            snap.id,
       societyId:     data.societyId,
@@ -68,9 +83,20 @@ export async function POST(
     }
     const workerName = (workerSnap.data()?.name as string | undefined) ?? 'Worker';
 
+    const ref = db.collection('cleaningSessions').doc(id);
+
+    // A worker may only mutate sessions they were actually assigned to.
+    const sessionSnap = await ref.get();
+    if (!sessionSnap.exists) {
+      return NextResponse.json({ error: 'Session not found.' }, { status: 404 });
+    }
+    const sessionWorkerIds = (sessionSnap.data()?.workerIds as string[] | undefined) ?? [];
+    if (!sessionWorkerIds.includes(workerId)) {
+      return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
+    }
+
     const body   = await req.json();
     const action = body.action;
-    const ref    = db.collection('cleaningSessions').doc(id);
 
     if (action === 'clean_car') {
       const customerId = body.customerId as string | undefined;
