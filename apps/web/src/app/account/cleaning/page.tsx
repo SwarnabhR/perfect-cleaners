@@ -8,11 +8,11 @@ import {
 } from 'firebase/firestore';
 import { db } from '@pc/firebase';
 import type { CustomerSocietyRecord, CleaningLog, Society, DayOfWeek } from '@pc/firebase';
-import Link from 'next/link';
 import Nav from '@/components/marketing/Nav';
 import Footer from '@/components/marketing/Footer';
 import Icon from '@/components/ui/Icon';
 import { useCustomerAuth } from '@/lib/auth/CustomerAuthContext';
+import AccountTabBar from '../AccountTabBar';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -78,13 +78,6 @@ const TIME_OPTIONS = Array.from({ length: 25 }, (_, i) => {
   const value = 6 + i * 0.5;
   return { label: formatTime(value), value };
 });
-
-const ACCOUNT_TABS = [
-  { label: 'Schedule', href: '/account/cleaning' },
-  { label: 'Bookings', href: '/account'          },
-  { label: 'Profile',  href: '/account/profile'  },
-  { label: 'Bill',     href: '/account/wallet'   },
-];
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
@@ -689,37 +682,6 @@ function CleaningDaysSection({
   );
 }
 
-// ─── Tab bar ──────────────────────────────────────────────────────────────────
-
-function TabBar({ pathname }: { pathname: string }) {
-  return (
-    <div style={{
-      display: 'flex', gap: 'var(--pc-space-1)',
-      borderBottom: '1px solid var(--pc-line)',
-      overflowX: 'auto',
-      scrollbarWidth: 'none',
-    }}>
-      {ACCOUNT_TABS.map(tab => {
-        const active = pathname === tab.href;
-        return (
-          <Link key={tab.href} href={tab.href} style={{
-            padding: 'var(--pc-space-3) var(--pc-space-4)',
-            fontFamily: 'var(--pc-sans)', fontSize: 13,
-            fontWeight: active ? 600 : 400,
-            color: active ? 'var(--pc-fg)' : 'var(--pc-fg-3)',
-            textDecoration: 'none',
-            borderBottom: active ? '2px solid var(--pc-fg)' : '2px solid transparent',
-            marginBottom: -1, whiteSpace: 'nowrap',
-            transition: 'color 0.15s ease',
-          }}>
-            {tab.label}
-          </Link>
-        );
-      })}
-    </div>
-  );
-}
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function CleaningPage() {
@@ -987,7 +949,7 @@ export default function CleaningPage() {
           </h1>
         </div>
 
-        <TabBar pathname={pathname} />
+        <AccountTabBar pathname={pathname} />
 
         {/* ── Not enrolled ──────────────────────────────────────────────────── */}
         {record === null && (

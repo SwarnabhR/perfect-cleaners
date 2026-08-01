@@ -12,6 +12,7 @@ import Nav from '@/components/marketing/Nav';
 import CustomSelect from '@/components/ui/CustomSelect';
 import Footer from '@/components/marketing/Footer';
 import { useCustomerAuth } from '@/lib/auth/CustomerAuthContext';
+import AccountTabBar from '../AccountTabBar';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -274,22 +275,7 @@ export default function ProfilePage() {
 
       <main style={{ flex: 1, maxWidth: 640, width: '100%', margin: '0 auto', padding: 'var(--pc-space-12) var(--pc-space-6) var(--pc-space-20)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-8)' }}>
 
-        {/* Tab bar */}
-        <div style={{ display: 'flex', gap: 'var(--pc-space-1)', borderBottom: '1px solid var(--pc-line)', overflowX: 'auto', WebkitOverflowScrolling: 'touch' as any, scrollbarWidth: 'none' as any }}>
-          {[
-            { label: 'Schedule', href: '/account/cleaning' },
-            { label: 'Bookings', href: '/account'          },
-            { label: 'Profile',  href: '/account/profile'  },
-            { label: 'Bill',     href: '/account/wallet'   },
-          ].map(tab => {
-            const active = pathname === tab.href;
-            return (
-              <Link key={tab.href} href={tab.href} style={{ padding: 'var(--pc-space-3) var(--pc-space-4)', fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: active ? 600 : 400, color: active ? 'var(--pc-fg)' : 'var(--pc-fg-3)', textDecoration: 'none', borderBottom: active ? '2px solid var(--pc-fg)' : '2px solid transparent', marginBottom: -1, transition: 'color 0.15s ease' }}>
-                {tab.label}
-              </Link>
-            );
-          })}
-        </div>
+        <AccountTabBar pathname={pathname} />
 
         {/* Avatar + identity */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pc-space-5)' }}>

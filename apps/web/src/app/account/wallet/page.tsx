@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import Link from 'next/link';
 import { collection, doc, onSnapshot, orderBy, query, limit, where, getDocs } from 'firebase/firestore';
 import { db } from '@pc/firebase';
 import Nav from '@/components/marketing/Nav';
 import Footer from '@/components/marketing/Footer';
 import { useCustomerAuth } from '@/lib/auth/CustomerAuthContext';
+import AccountTabBar from '../AccountTabBar';
 
 // ─── Razorpay loader ──────────────────────────────────────────────────────────
 // Disabled for now (see handlePayNow below) — the Razorpay account isn't live
@@ -41,18 +41,6 @@ interface TxEntry {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const tabStyle = (active: boolean): React.CSSProperties => ({
-  padding:        'var(--pc-space-3) var(--pc-space-4)',
-  fontFamily:     'var(--pc-sans)',
-  fontSize:       13,
-  fontWeight:     active ? 600 : 400,
-  color:          active ? 'var(--pc-fg)' : 'var(--pc-fg-3)',
-  textDecoration: 'none',
-  borderBottom:   active ? '2px solid var(--pc-fg)' : '2px solid transparent',
-  marginBottom:   -1,
-  transition:     'color 0.15s ease',
-});
 
 const monoLabel: React.CSSProperties = {
   fontFamily:    'var(--pc-mono)',
@@ -259,26 +247,7 @@ export default function WalletPage() {
           </h1>
         </div>
 
-        {/* Tab bar */}
-        <div style={{
-          display:       'flex',
-          gap:           'var(--pc-space-1)',
-          borderBottom:  '1px solid var(--pc-line)',
-          marginBottom:  'var(--pc-space-8)',
-          overflowX:     'auto', WebkitOverflowScrolling: 'touch' as any,
-          scrollbarWidth: 'none' as any,
-        }}>
-          {[
-            { label: 'Schedule', href: '/account/cleaning' },
-            { label: 'Bookings', href: '/account'          },
-            { label: 'Profile',  href: '/account/profile'  },
-            { label: 'Bill',     href: '/account/wallet'   },
-          ].map(tab => (
-            <Link key={tab.href} href={tab.href} style={tabStyle(pathname === tab.href)}>
-              {tab.label}
-            </Link>
-          ))}
-        </div>
+        <AccountTabBar pathname={pathname} />
 
         {/* No billing history yet — customer has never been charged */}
         {neverBilled ? (

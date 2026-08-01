@@ -1,3 +1,4 @@
+import { toErrMsg } from '@/lib/api-error';
 import { NextRequest, NextResponse } from 'next/server';
 import { adminFirestore } from '@/lib/firebase/admin';
 
@@ -11,19 +12,24 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
   }
 
-  const db = adminFirestore();
+  try {
+    const db = adminFirestore();
 
-  console.log('[reset-earnings] resetting carsCompletedToday for all workers');
+    console.log('[reset-earnings] resetting carsCompletedToday for all workers');
 
-  // Batch writes — Firestore caps at 500 ops per batch
-  const CHUNK = 499;
-  const workersSnap = await db.collection('workers').get();
-  for (let i = 0; i < workersSnap.docs.length; i += CHUNK) {
-    const batch = db.batch();
-    workersSnap.docs.slice(i, i + CHUNK).forEach(d => batch.update(d.ref, { carsCompletedToday: 0 }));
-    await batch.commit();
+    // Batch writes — Firestore caps at 500 ops per batch
+    const CHUNK = 499;
+    const workersSnap = await db.collection('workers').get();
+    for (let i = 0; i < workersSnap.docs.length; i += CHUNK) {
+      const batch = db.batch();
+      workersSnap.docs.slice(i, i + CHUNK).forEach(d => batch.update(d.ref, { carsCompletedToday: 0 }));
+      await batch.commit();
+    }
+
+    console.log(`[reset-earnings] done — ${workersSnap.docs.length} workers reset`);
+    return NextResponse.json({ ok: true, workers: workersSnap.docs.length });
+  } catch (err: unknown) {
+    console.error('[reset-earnings] failed:', err instanceof Error ? err.message : String(err));
+    return NextResponse.json({ error: toErrMsg(err, 'Reset earnings failed') }, { status: 500 });
   }
-
-  console.log(`[reset-earnings] done — ${workersSnap.docs.length} workers reset`);
-  return NextResponse.json({ ok: true, workers: workersSnap.docs.length });
 }
