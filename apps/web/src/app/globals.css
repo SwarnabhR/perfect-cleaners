@@ -161,6 +161,47 @@
   color-scheme: light;
 }
 
+/* ====================================================================
+   Forced-dark override — for subtrees that must render dark regardless
+   of the site's [data-theme] (e.g. the worker-facing /session/[id]
+   tracker). :root only applies to <html>, so a nested element can never
+   match it directly — this class re-declares the same dark values so
+   any var(--pc-*) used underneath resolves to dark tokens no matter
+   what data-theme is set on <html>.
+   ==================================================================== */
+.pc-force-dark {
+  --pc-ink:          #0E0D0B;
+  --pc-ink-raised:   #141412;
+  --pc-card:         #1C1B19;
+  --pc-card-hi:      #232220;
+
+  --pc-line:        rgba(255,255,255,0.08);
+  --pc-line-strong: rgba(255,255,255,0.14);
+  --pc-line-faint:  rgba(255,255,255,0.04);
+
+  --pc-fg:     #FFFFFF;
+  --pc-fg-2:   #AAAAAA;
+  --pc-fg-3:   #666660;
+  --pc-fg-4:   #3A3A36;
+  --pc-fg-dim: rgba(255,255,255,0.45);
+
+  --pc-line-warm:       rgba(240,237,232,0.45);
+  --pc-ink-overlay:     rgba(12,11,9,0.97);
+  --pc-ink-scrim:       rgba(14,13,11,0.85);
+  --pc-nav-bg-scrolled: rgba(14,13,11,0.78);
+
+  --pc-warm:   #F0EDE8;
+  --pc-warm-2: #E4DFD6;
+  --pc-warm-3: #D4CEC4;
+
+  --pc-sage-subtle:    rgba(91,111,82,0.15);
+  --pc-sage-active:    #4A5E44;
+  --pc-sage-on-tint:   #E8EDE3;
+  --pc-sage-on-tint-2: rgba(232,237,227,0.7);
+
+  color-scheme: dark;
+}
+
 /* Fix hover/active/focus states that use hardcoded dark rgba values */
 [data-theme="light"] .pc-nav-book-now:hover {
   border-color: rgba(14,13,11,0.28);

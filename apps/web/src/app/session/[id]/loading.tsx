@@ -1,14 +1,14 @@
 export default function SessionLoading() {
   return (
-    <div style={{
+    <div className="pc-force-dark" style={{
       minHeight: '100dvh',
-      background: '#0E0D0B',
+      background: 'var(--pc-ink)',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      fontFamily: 'var(--font-sans, sans-serif)',
-      color: 'rgba(255,255,255,0.3)',
+      fontFamily: 'var(--pc-sans, sans-serif)',
+      color: 'var(--pc-fg-4)',
       fontSize: 13,
       letterSpacing: '0.04em',
     }}>
