@@ -60,7 +60,7 @@ export default function CustomersPage() {
 
   // Unique society names + per-society counts derived from customers
   const societyCounts = enriched.reduce<Record<string, number>>((acc, c) => {
-    const name = (c as any).societyName as string | undefined;
+    const name = c.societyName;
     if (name) acc[name] = (acc[name] ?? 0) + 1;
     return acc;
   }, {});
@@ -72,7 +72,7 @@ export default function CustomersPage() {
     const matchSearch = !search ||
       c.name?.toLowerCase().includes(search.toLowerCase()) ||
       c.phone?.includes(search);
-    const matchSociety = societyFilter === 'All' || (c as any).societyName === societyFilter;
+    const matchSociety = societyFilter === 'All' || c.societyName === societyFilter;
     return matchSearch && matchSociety;
   });
 
@@ -80,14 +80,14 @@ export default function CustomersPage() {
   const activeIds = new Set(
     bookings
       .filter(b => {
-        const ts = b.createdAt as any;
+        const ts = b.createdAt as MaybeTs;
         const t = ts?.toDate ? ts.toDate().getTime() : new Date(ts).getTime();
         return t > thirtyDaysAgo;
       })
       .map(b => b.customerId),
   );
 
-  const totalOutstanding = customers.reduce((s, c) => s + (((c as any).outstandingBalance as number) ?? 0), 0);
+  const totalOutstanding = customers.reduce((s, c) => s + (c.outstandingBalance ?? 0), 0);
 
   const kpis = [
     { label: 'Total Customers', value: loading ? '—' : enriched.length.toLocaleString(), icon: 'users' },
@@ -209,10 +209,10 @@ export default function CustomersPage() {
                     </div>
                   </td>
                   <td style={{ padding: '13px 18px' }}>
-                    {(c as any).societyName ? (
+                    {c.societyName ? (
                       <div>
-                        <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)', margin: '0 0 1px' }}>{(c as any).societyName}</p>
-                        {(c as any).unitNumber && <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-4)', margin: 0, letterSpacing: '0.04em' }}>{(c as any).unitNumber}</p>}
+                        <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)', margin: '0 0 1px' }}>{c.societyName}</p>
+                        {c.unitNumber && <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-4)', margin: 0, letterSpacing: '0.04em' }}>{c.unitNumber}</p>}
                       </div>
                     ) : (
                       <span style={{ color: 'var(--pc-fg-4)', fontFamily: 'var(--pc-sans)', fontSize: 13 }}>—</span>
