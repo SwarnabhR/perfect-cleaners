@@ -231,18 +231,18 @@ export default function CustomersPage() {
                     {c.spent > 0 ? `₹${c.spent.toLocaleString('en-IN')}` : '₹0'}
                   </td>
                   <td style={{ padding: '13px 18px' }}>
-                    {(c as any).outstandingBalance > 0 ? (
+                    {(c.outstandingBalance ?? 0) > 0 ? (
                       <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600,
                         color: 'var(--pc-danger)', background: 'color-mix(in srgb, var(--pc-danger) 10%, transparent)',
                         padding: '2px 8px', borderRadius: 4 }}>
-                        ₹{((c as any).outstandingBalance as number).toLocaleString('en-IN')}
+                        ₹{(c.outstandingBalance ?? 0).toLocaleString('en-IN')}
                       </span>
                     ) : (
                       <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-4)' }}>—</span>
                     )}
                   </td>
                   <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)' }}>
-                    {formatJoined((c as any).createdAt)}
+                    {formatJoined(c.createdAt)}
                   </td>
                 </tr>
               ))}
