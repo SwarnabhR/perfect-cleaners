@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { collection, query, where, orderBy, limit, getDocs, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@pc/firebase';
 import type { CleaningSessionEnhanced, CleaningSessionStatus, Worker, Society } from '@pc/firebase';
@@ -7,6 +7,7 @@ import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
 import StatusPill from '@/components/ui/StatusPill';
+import CalendarMonth from '@/components/ui/CalendarMonth';
 import { notifyCleaningMissed } from '@/lib/notification';
 
 const MISSED_REASONS: { value: 'holiday' | 'worker_unavailable' | 'other'; label: string }[] = [
@@ -73,12 +74,157 @@ function formatTime(date: unknown): string {
 type LiveWorker  = Worker  & { id: string };
 type LiveSociety = Society & { id: string };
 
+// Shared between List view and Calendar view (day drill-down) so the row
+// markup and its wired-up actions (Start/Reassign/Mark Missed/Delete) only
+// exist in one place.
+function SessionRow({
+  session, isLast, onStart, onReassign, onMarkMissed, onDelete,
+}: {
+  session: LiveSession;
+  isLast: boolean;
+  onStart: (id: string) => void;
+  onReassign: (session: LiveSession) => void;
+  onMarkMissed: (session: LiveSession) => void;
+  onDelete: (id: string) => void;
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        gap: 16,
+        padding: 16,
+        borderBottom: isLast ? 'none' : '1px solid var(--pc-line)',
+      }}
+    >
+      {/* Date & Status */}
+      <div style={{ flex: '1 1 200px', minWidth: 200 }}>
+        <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 600, color: 'var(--pc-fg)', margin: '0 0 4px' }}>
+          {formatDate(session.scheduledDate)}
+        </p>
+        <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)', margin: '0 0 8px' }}>
+          {session.societyName} · {session.tower}
+          {session.sessionType === 'deep-clean' && (
+            <span style={{
+              marginLeft: 8, fontFamily: 'var(--pc-mono)', fontSize: 9, letterSpacing: '0.05em',
+              color: 'var(--pc-info)', background: 'color-mix(in srgb, var(--pc-info) 15%, transparent)',
+              padding: '2px 8px', borderRadius: 999, textTransform: 'uppercase',
+            }}>
+              Deep clean
+            </span>
+          )}
+        </p>
+        <StatusPill status={session.status.replace('_', ' ') as any} />
+      </div>
+
+      {/* Progress */}
+      <div style={{ textAlign: 'center', minWidth: 120 }}>
+        <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 18, color: 'var(--pc-fg)', margin: '0 0 4px', fontWeight: 600 }}>
+          {session.completedCars}/{session.totalCars}
+        </p>
+        <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', margin: 0 }}>
+          CARS DONE
+        </p>
+      </div>
+
+      {/* Workers */}
+      <div style={{ textAlign: 'center', minWidth: 100 }}>
+        <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 18, color: 'var(--pc-fg)', margin: '0 0 4px', fontWeight: 600 }}>
+          {session.workerIds?.length ?? 0}
+        </p>
+        <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', margin: 0 }}>
+          WORKERS
+        </p>
+      </div>
+
+      {/* Actions */}
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        {session.status === 'scheduled' && (
+          <button
+            type="button"
+            onClick={() => onStart(session.id)}
+            style={{
+              padding: '8px 14px',
+              borderRadius: 6,
+              background: 'var(--pc-sage)',
+              border: 'none',
+              fontFamily: 'var(--pc-sans)',
+              fontSize: 12,
+              fontWeight: 600,
+              color: 'var(--pc-sage-ink)',
+              cursor: 'pointer',
+            }}
+          >
+            Start
+          </button>
+        )}
+        {(session.status === 'scheduled' || session.status === 'inprogress') && (
+          <>
+            <button
+              type="button"
+              onClick={() => onReassign(session)}
+              style={{
+                padding: '8px 14px',
+                borderRadius: 6,
+                background: 'transparent',
+                border: '1px solid var(--pc-line)',
+                fontFamily: 'var(--pc-sans)',
+                fontSize: 12,
+                color: 'var(--pc-fg-2)',
+                cursor: 'pointer',
+              }}
+            >
+              Reassign
+            </button>
+            <button
+              type="button"
+              onClick={() => onMarkMissed(session)}
+              style={{
+                padding: '8px 14px',
+                borderRadius: 6,
+                background: 'transparent',
+                border: '1px solid var(--pc-warning)',
+                fontFamily: 'var(--pc-sans)',
+                fontSize: 12,
+                color: 'var(--pc-warning)',
+                cursor: 'pointer',
+              }}
+            >
+              Mark Missed
+            </button>
+          </>
+        )}
+        <button
+          type="button"
+          onClick={() => onDelete(session.id)}
+          style={{
+            padding: '8px 14px',
+            borderRadius: 6,
+            background: 'transparent',
+            border: '1px solid var(--pc-danger)',
+            fontFamily: 'var(--pc-sans)',
+            fontSize: 12,
+            color: 'var(--pc-danger)',
+            cursor: 'pointer',
+          }}
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function CleaningSchedulePage() {
   const [sessions,     setSessions]     = useState<LiveSession[]>([]);
   const [workers,      setWorkers]      = useState<LiveWorker[]>([]);
   const [societies,    setSocieties]    = useState<LiveSociety[]>([]);
   const [loading,      setLoading]      = useState(true);
   const [filterStatus, setFilterStatus] = useState<CleaningSessionStatus | 'all'>('all');
+  const [viewMode,     setViewMode]     = useState<'list' | 'calendar'>('list');
+  const [visibleMonth, setVisibleMonth] = useState(() => new Date());
+  const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [creating,     setCreating]     = useState(false);
   const [form,         setForm]         = useState<CreateSessionForm>(BLANK_FORM);
   const [saving,       setSaving]       = useState(false);
@@ -338,6 +484,28 @@ export default function CleaningSchedulePage() {
 
   const filtered = sessions.filter(s => filterStatus === 'all' || s.status === filterStatus);
 
+  // Calendar view groups the same filtered set by day — status filter pills
+  // apply to both views so switching between them doesn't silently change
+  // what's on screen.
+  const sessionsByDate = useMemo(() => {
+    const map = new Map<string, LiveSession[]>();
+    for (const s of filtered) {
+      const key = toDate(s.scheduledDate).toDateString();
+      const list = map.get(key) ?? [];
+      list.push(s);
+      map.set(key, list);
+    }
+    return map;
+  }, [filtered]);
+  const selectedDateSessions = sessionsByDate.get(selectedDate.toDateString()) ?? [];
+
+  const STATUS_DOT: Record<CleaningSessionStatus, string> = {
+    scheduled:  'var(--pc-info)',
+    inprogress: 'var(--pc-warning)',
+    done:       'var(--pc-sage)',
+    missed:     'var(--pc-danger)',
+  };
+
   const stats = {
     scheduled: sessions.filter(s => s.status === 'scheduled').length,
     inProgress: sessions.filter(s => s.status === 'inprogress').length,
@@ -456,32 +624,112 @@ export default function CleaningSchedulePage() {
         </Card>
       </div>
 
-      {/* Filter */}
-      <div style={{ display: 'flex', gap: 6 }}>
-        {(['all', 'scheduled', 'inprogress', 'done'] as const).map(status => (
-          <button
-            key={status}
-            type="button"
-            onClick={() => setFilterStatus(status)}
-            style={{
-              padding: '7px 14px',
-              borderRadius: 999,
-              border: '1px solid',
-              borderColor: filterStatus === status ? 'var(--pc-sage)' : 'var(--pc-line)',
-              background: filterStatus === status ? 'var(--pc-sage)' : 'transparent',
-              color: filterStatus === status ? 'var(--pc-sage-ink)' : 'var(--pc-fg-2)',
-              fontFamily: 'var(--pc-sans)',
-              fontSize: 13,
-              cursor: 'pointer',
-              textTransform: 'capitalize',
-            }}
-          >
-            {status === 'all' ? 'All' : status.replace('_', ' ')}
-          </button>
-        ))}
+      {/* Filter + view toggle */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12 }}>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {(['all', 'scheduled', 'inprogress', 'done'] as const).map(status => (
+            <button
+              key={status}
+              type="button"
+              onClick={() => setFilterStatus(status)}
+              style={{
+                padding: '7px 14px',
+                borderRadius: 999,
+                border: '1px solid',
+                borderColor: filterStatus === status ? 'var(--pc-sage)' : 'var(--pc-line)',
+                background: filterStatus === status ? 'var(--pc-sage)' : 'transparent',
+                color: filterStatus === status ? 'var(--pc-sage-ink)' : 'var(--pc-fg-2)',
+                fontFamily: 'var(--pc-sans)',
+                fontSize: 13,
+                cursor: 'pointer',
+                textTransform: 'capitalize',
+              }}
+            >
+              {status === 'all' ? 'All' : status.replace('_', ' ')}
+            </button>
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {(['list', 'calendar'] as const).map(mode => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => setViewMode(mode)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '7px 14px',
+                borderRadius: 999,
+                border: '1px solid',
+                borderColor: viewMode === mode ? 'var(--pc-sage)' : 'var(--pc-line)',
+                background: viewMode === mode ? 'var(--pc-sage)' : 'transparent',
+                color: viewMode === mode ? 'var(--pc-sage-ink)' : 'var(--pc-fg-2)',
+                fontFamily: 'var(--pc-sans)',
+                fontSize: 13,
+                cursor: 'pointer',
+                textTransform: 'capitalize',
+              }}
+            >
+              <Icon name={mode === 'list' ? 'layout-dashboard' : 'calendar'} size={13} color="currentColor" />
+              {mode}
+            </button>
+          ))}
+        </div>
       </div>
 
+      {viewMode === 'calendar' && (
+        <>
+          <CalendarMonth
+            month={visibleMonth}
+            onMonthChange={setVisibleMonth}
+            selectedDate={selectedDate}
+            onSelectDate={setSelectedDate}
+            renderBadge={date => {
+              const daySessions = sessionsByDate.get(date.toDateString());
+              if (!daySessions || daySessions.length === 0) return null;
+              const statuses = [...new Set(daySessions.map(s => s.status))];
+              return (
+                <span style={{ display: 'flex', gap: 2 }}>
+                  {statuses.slice(0, 3).map(status => (
+                    <span key={status} aria-hidden="true" style={{ width: 5, height: 5, borderRadius: '50%', background: STATUS_DOT[status], display: 'inline-block' }} />
+                  ))}
+                </span>
+              );
+            }}
+          />
+          <Card style={{ padding: 0, overflow: 'hidden' }}>
+            <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--pc-line)' }}>
+              <Eyebrow>
+                {selectedDate.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase()}
+                {selectedDateSessions.length > 0 ? ` · ${selectedDateSessions.length} SESSION${selectedDateSessions.length === 1 ? '' : 'S'}` : ''}
+              </Eyebrow>
+            </div>
+            {selectedDateSessions.length === 0 ? (
+              <div style={{ padding: 48, textAlign: 'center' }}>
+                <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: 0 }}>
+                  No sessions on this date.
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {selectedDateSessions.map((session, idx) => (
+                  <SessionRow
+                    key={session.id}
+                    session={session}
+                    isLast={idx === selectedDateSessions.length - 1}
+                    onStart={handleStartSession}
+                    onReassign={openReassign}
+                    onMarkMissed={openMarkMissed}
+                    onDelete={handleDeleteSession}
+                  />
+                ))}
+              </div>
+            )}
+          </Card>
+        </>
+      )}
+
       {/* List */}
+      {viewMode === 'list' && (
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         {loading ? (
           <div style={{ padding: 48, textAlign: 'center', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)' }}>
@@ -516,136 +764,20 @@ export default function CleaningSchedulePage() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             {filtered.map((session, idx) => (
-              <div
+              <SessionRow
                 key={session.id}
-                style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  alignItems: 'center',
-                  gap: 16,
-                  padding: 16,
-                  borderBottom: idx < filtered.length - 1 ? '1px solid var(--pc-line)' : 'none',
-                }}
-              >
-                {/* Date & Status */}
-                <div style={{ flex: '1 1 200px', minWidth: 200 }}>
-                  <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 600, color: 'var(--pc-fg)', margin: '0 0 4px' }}>
-                    {formatDate(session.scheduledDate)}
-                  </p>
-                  <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)', margin: '0 0 8px' }}>
-                    {session.societyName} · {session.tower}
-                    {session.sessionType === 'deep-clean' && (
-                      <span style={{
-                        marginLeft: 8, fontFamily: 'var(--pc-mono)', fontSize: 9, letterSpacing: '0.05em',
-                        color: 'var(--pc-info)', background: 'color-mix(in srgb, var(--pc-info) 15%, transparent)',
-                        padding: '2px 8px', borderRadius: 999, textTransform: 'uppercase',
-                      }}>
-                        Deep clean
-                      </span>
-                    )}
-                  </p>
-                  <StatusPill status={session.status.replace('_', ' ') as any} />
-                </div>
-
-                {/* Progress */}
-                <div style={{ textAlign: 'center', minWidth: 120 }}>
-                  <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 18, color: 'var(--pc-fg)', margin: '0 0 4px', fontWeight: 600 }}>
-                    {session.completedCars}/{session.totalCars}
-                  </p>
-                  <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', margin: 0 }}>
-                    CARS DONE
-                  </p>
-                </div>
-
-                {/* Workers */}
-                <div style={{ textAlign: 'center', minWidth: 100 }}>
-                  <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 18, color: 'var(--pc-fg)', margin: '0 0 4px', fontWeight: 600 }}>
-                    {session.workerIds?.length ?? 0}
-                  </p>
-                  <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', margin: 0 }}>
-                    WORKERS
-                  </p>
-                </div>
-
-                {/* Actions */}
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {session.status === 'scheduled' && (
-                    <button
-                      type="button"
-                      onClick={() => handleStartSession(session.id)}
-                      style={{
-                        padding: '8px 14px',
-                        borderRadius: 6,
-                        background: 'var(--pc-sage)',
-                        border: 'none',
-                        fontFamily: 'var(--pc-sans)',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        color: 'var(--pc-sage-ink)',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Start
-                    </button>
-                  )}
-                  {(session.status === 'scheduled' || session.status === 'inprogress') && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => openReassign(session)}
-                        style={{
-                          padding: '8px 14px',
-                          borderRadius: 6,
-                          background: 'transparent',
-                          border: '1px solid var(--pc-line)',
-                          fontFamily: 'var(--pc-sans)',
-                          fontSize: 12,
-                          color: 'var(--pc-fg-2)',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        Reassign
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => openMarkMissed(session)}
-                        style={{
-                          padding: '8px 14px',
-                          borderRadius: 6,
-                          background: 'transparent',
-                          border: '1px solid var(--pc-warning)',
-                          fontFamily: 'var(--pc-sans)',
-                          fontSize: 12,
-                          color: 'var(--pc-warning)',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        Mark Missed
-                      </button>
-                    </>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteSession(session.id)}
-                    style={{
-                      padding: '8px 14px',
-                      borderRadius: 6,
-                      background: 'transparent',
-                      border: '1px solid var(--pc-danger)',
-                      fontFamily: 'var(--pc-sans)',
-                      fontSize: 12,
-                      color: 'var(--pc-danger)',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
+                session={session}
+                isLast={idx === filtered.length - 1}
+                onStart={handleStartSession}
+                onReassign={openReassign}
+                onMarkMissed={openMarkMissed}
+                onDelete={handleDeleteSession}
+              />
             ))}
           </div>
         )}
       </Card>
+      )}
 
       {/* Create Modal */}
       {creating && (
