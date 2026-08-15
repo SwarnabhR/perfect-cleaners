@@ -249,6 +249,18 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
 
       {/* Header */}
       <div style={{ width: '100%', maxWidth: 480, paddingTop: 40, paddingBottom: 8 }}>
+        <button
+          type="button"
+          onClick={handleBack}
+          aria-label="Back"
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: 44, height: 44, marginLeft: -12, marginBottom: 8,
+            background: 'none', border: 'none', color: 'var(--pc-fg-3)', cursor: 'pointer',
+          }}
+        >
+          <ChevronLeft />
+        </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
           <PCMark />
           <span style={{ fontFamily: 'var(--pc-serif)', fontSize: 15, color: 'var(--pc-fg)', letterSpacing: '0.02em' }}>Perfect Cleaners</span>
