@@ -62,6 +62,7 @@ export async function GET(req: NextRequest) {
               const base = {
                 customerId:    customer.customerId,
                 customerName:  customer.customerName || '',
+                customerPhone: customer.customerPhone || '',
                 unitNumber:    customer.unitNumber || '',
                 parkingNumber: customer.parkingNumber || '',
                 carPlate:      customer.cars?.[0]?.plate  || '',

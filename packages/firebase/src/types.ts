@@ -375,6 +375,7 @@ export interface PendingApproval {
 export interface CleaningSessionCar {
   customerId: string;
   customerName?: string;       // denormalized — who the car belongs to, for the worker on the ground
+  customerPhone?: string;      // denormalized — so a worker can call the resident without another lookup
   unitNumber?: string;         // denormalized — e.g. "1204" or "B-1204"
   parkingNumber?: string;      // denormalized — e.g. "P-42"
   carPlate: string;

@@ -52,6 +52,7 @@ export async function GET(
       cars: (data.cars ?? []).map((c: Record<string, unknown>) => ({
         customerId:    c.customerId,
         customerName:  c.customerName ?? '',
+        customerPhone: c.customerPhone ?? '',
         unitNumber:    c.unitNumber ?? '',
         parkingNumber: c.parkingNumber ?? '',
         carPlate:      c.carPlate ?? '',
@@ -196,7 +197,23 @@ export async function POST(
       if (data.status !== 'inprogress') {
         return NextResponse.json({ error: 'Session is not in progress.' }, { status: 400 });
       }
-      await ref.update({ status: 'done', completedAt: FieldValue.serverTimestamp() });
+
+      // This is the "wrap up even if some cars were skipped in person" override —
+      // without this, a car left 'pending'/'in_progress' stayed exactly that way
+      // while the session itself flipped to 'done', so the UI showed a closed,
+      // "complete" session with a still-clickable "Mark Clean" button on it.
+      const cars = (data.cars as Record<string, unknown>[] | undefined) ?? [];
+      const updatedCars = cars.map(c =>
+        c.status === 'done' || c.status === 'skipped' ? c : { ...c, status: 'skipped' }
+      );
+      const skippedCars = updatedCars.filter(c => c.status === 'skipped').length;
+
+      await ref.update({
+        status: 'done',
+        cars: updatedCars,
+        skippedCars,
+        completedAt: FieldValue.serverTimestamp(),
+      });
 
     } else {
       return NextResponse.json({ error: 'Unknown action.' }, { status: 400 });
@@ -212,6 +229,18 @@ export async function POST(
       totalCars:     u.totalCars,
       startedAt:     u.startedAt?.toDate?.()?.toISOString() ?? null,
       completedAt:   u.completedAt?.toDate?.()?.toISOString() ?? null,
+      cars: (u.cars ?? []).map((c: Record<string, unknown>) => ({
+        customerId:    c.customerId,
+        customerName:  c.customerName ?? '',
+        customerPhone: c.customerPhone ?? '',
+        unitNumber:    c.unitNumber ?? '',
+        parkingNumber: c.parkingNumber ?? '',
+        carPlate:      c.carPlate ?? '',
+        carMake:       c.carMake ?? '',
+        carModel:      c.carModel ?? '',
+        preferredTime: c.preferredTime ?? null,
+        status:        c.status ?? 'pending',
+      })),
     });
   } catch (err: unknown) {
     if (err instanceof Error && err.message === 'NOT_FOUND') {

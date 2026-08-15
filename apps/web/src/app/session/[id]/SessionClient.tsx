@@ -1,10 +1,12 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { auth } from '@pc/firebase';
 
 export interface SessionCar {
   customerId: string;
   customerName: string;
+  customerPhone?: string;
   unitNumber: string;
   parkingNumber: string;
   carPlate: string;
@@ -87,10 +89,37 @@ function PCMark() {
   );
 }
 
+function ChevronLeft() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="m15 18-6-6 6-6" />
+    </svg>
+  );
+}
+
+// Rotating ChevronLeft covers both directions rather than shipping a second SVG.
+function ChevronDown({ open }: { open: boolean }) {
+  return (
+    <span style={{ display: 'inline-flex', transform: `rotate(${open ? 90 : -90}deg)`, transition: 'transform 0.15s ease' }}>
+      <ChevronLeft />
+    </span>
+  );
+}
+
+function formatPreferredTime(hour: number | null): string {
+  if (hour == null) return '—';
+  const h24 = Math.floor(hour);
+  const minutes = Math.round((hour % 1) * 60);
+  const period = h24 < 12 ? 'AM' : 'PM';
+  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+  return `${h12}:${String(minutes).padStart(2, '0')} ${period}`;
+}
+
 const POLL_INITIAL_MS = 5_000;
 const POLL_MAX_MS     = 60_000;
 
 export default function SessionClient({ initialSession, sessionId }: Props) {
+  const router = useRouter();
   const [session, setSession] = useState<SessionData>(initialSession);
   const [actingId, setActingId] = useState<string | null>(null); // customerId currently being marked, or 'complete'
   const [error,   setError]   = useState('');
@@ -100,6 +129,7 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
   // silently rendering an empty list.
   const [authError, setAuthError] = useState(false);
   const [loaded,    setLoaded]    = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const timerRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
   const intervalRef = useRef(POLL_INITIAL_MS);
 
@@ -173,6 +203,18 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
     } finally {
       setActingId(null);
     }
+  }
+
+  // Workers reach this page from in-app links (dashboard/calendar cards), so
+  // router.back() correctly returns them there — but this page also gets
+  // opened directly (a pasted/bookmarked link), where there's no in-app
+  // history to go back to. document.referrer at load time tells them apart.
+  function handleBack() {
+    const cameFromApp = typeof document !== 'undefined'
+      && document.referrer
+      && new URL(document.referrer).origin === window.location.origin;
+    if (cameFromApp) router.back();
+    else router.push('/worker/dashboard');
   }
 
   const { totalCars, completedCars, status, workerName, societyName, sessionType, tower, scheduledDate, cars } = session;
@@ -294,68 +336,120 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
           const urgency = !done && !skipped ? urgencyColor(minutesUntilScheduled(car.preferredTime)) : null;
           const borderColor = skipped ? 'var(--pc-line)' : urgency ?? (done ? 'var(--pc-line)' : 'var(--pc-line-strong)');
           const parkingLabel = car.parkingNumber ? `Parking ${car.parkingNumber}` : '';
+          const expanded = expandedId === car.customerId;
           return (
             <div
               key={car.customerId}
               style={{
-                display: 'flex', alignItems: 'center', gap: 12,
-                padding: '14px 16px', borderRadius: 14,
+                borderRadius: 14,
                 background: 'var(--pc-card)',
                 border: `1px solid ${borderColor}`,
-                opacity: done || skipped ? 0.55 : 1,
+                overflow: 'hidden',
               }}
             >
-              <div style={{ flex: 1, minWidth: 0 }}>
-                {urgency && (
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => setExpandedId(expanded ? null : car.customerId)}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedId(expanded ? null : car.customerId); } }}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '14px 16px', boxSizing: 'border-box',
+                  cursor: 'pointer',
+                  opacity: done || skipped ? 0.55 : 1,
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {urgency && (
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5, marginBottom: 4,
+                      fontFamily: 'var(--pc-mono)', fontSize: 10, color: urgency,
+                      textTransform: 'uppercase', letterSpacing: '0.06em',
+                    }}>
+                      <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: '50%', background: urgency, display: 'inline-block' }} />
+                      {urgency === 'var(--pc-danger)' ? 'Due now' : 'Due soon'}
+                    </span>
+                  )}
+                  <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 600, color: 'var(--pc-fg)', margin: '0 0 2px' }}>
+                    {car.unitNumber ? `${car.unitNumber} · ` : ''}{car.customerName || 'Resident'}
+                  </p>
+                  <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', margin: 0, letterSpacing: '0.03em' }}>
+                    {car.carPlate}{(car.carMake || car.carModel) && ` · ${[car.carMake, car.carModel].filter(Boolean).join(' ')}`}
+                    {parkingLabel && ` · ${parkingLabel}`}
+                  </p>
+                </div>
+                {skipped ? (
                   <span style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 5, marginBottom: 4,
-                    fontFamily: 'var(--pc-mono)', fontSize: 10, color: urgency,
-                    textTransform: 'uppercase', letterSpacing: '0.06em',
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-4)',
+                    textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0,
                   }}>
-                    <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: '50%', background: urgency, display: 'inline-block' }} />
-                    {urgency === 'var(--pc-danger)' ? 'Due now' : 'Due soon'}
+                    Not available
                   </span>
+                ) : done ? (
+                  <span style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-success)',
+                    textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0,
+                  }}>
+                    ✓ Done
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={acting}
+                    onClick={e => { e.stopPropagation(); sendAction('clean_car', car.customerId); }}
+                    style={{
+                      flexShrink: 0, padding: '10px 16px', borderRadius: 10, border: 'none',
+                      background: acting ? 'var(--pc-line)' : 'var(--pc-warm)',
+                      fontFamily: 'var(--pc-sans)', fontSize: 12, fontWeight: 700,
+                      color: acting ? 'var(--pc-fg-4)' : 'var(--pc-ink)',
+                      cursor: acting ? 'default' : 'pointer',
+                      letterSpacing: '0.03em', textTransform: 'uppercase',
+                    }}
+                  >
+                    {acting ? '…' : 'Mark clean'}
+                  </button>
                 )}
-                <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 600, color: 'var(--pc-fg)', margin: '0 0 2px' }}>
-                  {car.unitNumber ? `${car.unitNumber} · ` : ''}{car.customerName || 'Resident'}
-                </p>
-                <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', margin: 0, letterSpacing: '0.03em' }}>
-                  {car.carPlate}{(car.carMake || car.carModel) && ` · ${[car.carMake, car.carModel].filter(Boolean).join(' ')}`}
-                  {parkingLabel && ` · ${parkingLabel}`}
-                </p>
+                <span style={{ flexShrink: 0, color: 'var(--pc-fg-4)' }}>
+                  <ChevronDown open={expanded} />
+                </span>
               </div>
-              {skipped ? (
-                <span style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-4)',
-                  textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0,
-                }}>
-                  Not available
-                </span>
-              ) : done ? (
-                <span style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-success)',
-                  textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0,
-                }}>
-                  ✓ Done
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  disabled={acting}
-                  onClick={() => sendAction('clean_car', car.customerId)}
-                  style={{
-                    flexShrink: 0, padding: '10px 16px', borderRadius: 10, border: 'none',
-                    background: acting ? 'var(--pc-line)' : 'var(--pc-warm)',
-                    fontFamily: 'var(--pc-sans)', fontSize: 12, fontWeight: 700,
-                    color: acting ? 'var(--pc-fg-4)' : 'var(--pc-ink)',
-                    cursor: acting ? 'default' : 'pointer',
-                    letterSpacing: '0.03em', textTransform: 'uppercase',
-                  }}
-                >
-                  {acting ? '…' : 'Mark clean'}
-                </button>
+
+              {expanded && (
+                <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ height: 1, background: 'var(--pc-line)' }} />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                      <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Phone</span>
+                      {car.customerPhone ? (
+                        <a href={`tel:${car.customerPhone}`} onClick={e => e.stopPropagation()} style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-info)', textDecoration: 'none' }}>
+                          {car.customerPhone}
+                        </a>
+                      ) : (
+                        <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-4)' }}>—</span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                      <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Unit</span>
+                      <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)' }}>{car.unitNumber || '—'}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                      <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Parking</span>
+                      <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)' }}>{car.parkingNumber || '—'}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                      <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Vehicle</span>
+                      <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)', textAlign: 'right' }}>
+                        {car.carPlate}{(car.carMake || car.carModel) && ` · ${[car.carMake, car.carModel].filter(Boolean).join(' ')}`}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                      <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Preferred time</span>
+                      <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)' }}>{formatPreferredTime(car.preferredTime)}</span>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           );

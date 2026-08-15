@@ -293,6 +293,7 @@ export default function CleaningSchedulePage() {
         const base = {
           customerId:    customer.customerId as string,
           customerName:  (customer.customerName as string | undefined) ?? '',
+          customerPhone: (customer.customerPhone as string | undefined) ?? '',
           unitNumber:    (customer.unitNumber as string | undefined) ?? '',
           parkingNumber: (customer.parkingNumber as string | undefined) ?? '',
           carPlate:      customer.cars?.[0]?.plate ?? '',
