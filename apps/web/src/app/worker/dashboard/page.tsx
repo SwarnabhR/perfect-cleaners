@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   collection, query, where, onSnapshot,
@@ -79,7 +79,21 @@ export default function WorkerDashboard() {
     }, err => { console.warn('[WorkerDashboard] logs listener:', err); setLoading(false); });
   }, [user]);
 
-  const assignedSocieties = worker ? getAssignedSocieties(worker) : [];
+  // cleaningSessions.workerIds (live, per-session, multi-worker) is the real
+  // source of truth for who's assigned where — worker.assignedSocietyId(s) is
+  // a separate, legacy field that nothing keeps in sync with it. A worker can
+  // be actively on today's session via workerIds while that static field was
+  // simply never set, which used to show "No society assigned" underneath a
+  // dashboard that was otherwise correctly showing their job. Prefer the live
+  // sessions; only fall back to the static field when there are none (e.g.
+  // between assignments, nothing scheduled/inprogress right now).
+  const sessionSocieties = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const s of sessions) if (s.societyId) map.set(s.societyId, s.societyName);
+    return [...map.entries()].map(([id, name]) => ({ id, name }));
+  }, [sessions]);
+  const staticSocieties = worker ? getAssignedSocieties(worker) : [];
+  const assignedSocieties = sessionSocieties.length > 0 ? sessionSocieties : staticSocieties;
   const assignedSocietyIds = assignedSocieties.map(a => a.id);
 
   // Total subscribed cars across all assigned societies (for progress denominator).
