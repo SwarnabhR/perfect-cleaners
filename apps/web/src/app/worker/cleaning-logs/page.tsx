@@ -6,14 +6,15 @@ import {
   onSnapshot, Timestamp,
 } from 'firebase/firestore';
 import { db } from '@pc/firebase';
-import { getAssignedSocieties } from '@pc/firebase';
-import type { CleaningLog } from '@pc/firebase';
+import { resolveTodaysSocieties } from '@pc/firebase';
+import type { CleaningLog, CleaningSessionEnhanced } from '@pc/firebase';
 import { useWorkerAuth } from '@/components/WorkerAuthProvider';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
 
 type LiveLog = CleaningLog & { id: string };
+type LiveSession = CleaningSessionEnhanced & { id: string };
 type DateFilter = 'today' | 'week' | 'all';
 
 function todayStart() {
@@ -37,8 +38,24 @@ function formatDate(ts: any): string {
 export default function WorkerCleaningLogsPage() {
   const { user, worker } = useWorkerAuth();
   const [logs,       setLogs]       = useState<LiveLog[]>([]);
+  const [sessions,   setSessions]   = useState<LiveSession[]>([]);
   const [loading,    setLoading]    = useState(true);
   const [dateFilter, setDateFilter] = useState<DateFilter>('today');
+
+  // Same live-assignment source the dashboard uses (see resolveTodaysSocieties)
+  // — needed here too so the society subtitle doesn't go blank for a worker
+  // whose only assignment is a live session, not the legacy static field.
+  useEffect(() => {
+    if (!user) return;
+    const q = query(
+      collection(db, 'cleaningSessions'),
+      where('workerIds', 'array-contains', user.uid),
+      where('status', 'in', ['scheduled', 'inprogress']),
+    );
+    return onSnapshot(q, snap => {
+      setSessions(snap.docs.map(d => ({ id: d.id, ...d.data() } as LiveSession)));
+    }, err => console.warn('[WorkerCleaningLogs] sessions listener:', err));
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -79,6 +96,8 @@ export default function WorkerCleaningLogsPage() {
     );
   }, [user, dateFilter]);
 
+  const assignedSocieties = worker ? resolveTodaysSocieties(worker, sessions) : [];
+
   return (
     <div style={{ padding: 'var(--pc-space-5) var(--pc-screen-pad-lg) var(--pc-space-10)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-5)' }}>
 
@@ -89,9 +108,9 @@ export default function WorkerCleaningLogsPage() {
           <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 'clamp(22px, 4vw, 28px)', fontWeight: 400, color: 'var(--pc-fg)', letterSpacing: '-0.02em', margin: 0 }}>
             My Cleans
           </h1>
-          {worker && getAssignedSocieties(worker).length > 0 && (
+          {assignedSocieties.length > 0 && (
             <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: '4px 0 0' }}>
-              {getAssignedSocieties(worker).map(a => a.name).join(', ')}
+              {assignedSocieties.map(a => a.name).join(', ')}
             </p>
           )}
         </div>

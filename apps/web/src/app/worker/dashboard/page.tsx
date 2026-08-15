@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   collection, query, where, onSnapshot,
   doc, updateDoc, orderBy, limit, Timestamp, getDocs,
 } from 'firebase/firestore';
 import { db } from '@pc/firebase';
-import { getAssignedSocieties } from '@pc/firebase';
+import { resolveTodaysSocieties } from '@pc/firebase';
 import type { CleaningLog, CustomerSocietyRecord, CleaningSessionEnhanced } from '@pc/firebase';
 import { useWorkerAuth } from '@/components/WorkerAuthProvider';
 import Card from '@/components/ui/Card';
@@ -79,21 +79,15 @@ export default function WorkerDashboard() {
     }, err => { console.warn('[WorkerDashboard] logs listener:', err); setLoading(false); });
   }, [user]);
 
-  // cleaningSessions.workerIds (live, per-session, multi-worker) is the real
-  // source of truth for who's assigned where — worker.assignedSocietyId(s) is
-  // a separate, legacy field that nothing keeps in sync with it. A worker can
-  // be actively on today's session via workerIds while that static field was
-  // simply never set, which used to show "No society assigned" underneath a
-  // dashboard that was otherwise correctly showing their job. Prefer the live
-  // sessions; only fall back to the static field when there are none (e.g.
-  // between assignments, nothing scheduled/inprogress right now).
-  const sessionSocieties = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const s of sessions) if (s.societyId) map.set(s.societyId, s.societyName);
-    return [...map.entries()].map(([id, name]) => ({ id, name }));
-  }, [sessions]);
-  const staticSocieties = worker ? getAssignedSocieties(worker) : [];
-  const assignedSocieties = sessionSocieties.length > 0 ? sessionSocieties : staticSocieties;
+  // See resolveTodaysSocieties (@pc/firebase) — prefers live cleaningSessions
+  // assignments for *today* over the legacy static assignedSocietyId(s) field,
+  // so a worker whose only assignment is a live session isn't shown "No
+  // society assigned". Restricted to today only: the sessions listener below
+  // has no date filter (the generate-sessions cron pre-stages a full week),
+  // so pulling in a future-only assignment here would both mislabel this
+  // "TODAY'S ASSIGNMENT" card and inflate the total-cars denominator below
+  // with cars that aren't due until later in the week.
+  const assignedSocieties = worker ? resolveTodaysSocieties(worker, sessions) : [];
   const assignedSocietyIds = assignedSocieties.map(a => a.id);
 
   // Total subscribed cars across all assigned societies (for progress denominator).
