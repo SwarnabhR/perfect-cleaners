@@ -191,28 +191,34 @@ export async function POST(
       return NextResponse.json(response);
 
     } else if (action === 'complete') {
-      const snap = await ref.get();
-      if (!snap.exists) return NextResponse.json({ error: 'Session not found.' }, { status: 404 });
-      const data = snap.data()!;
-      if (data.status !== 'inprogress') {
-        return NextResponse.json({ error: 'Session is not in progress.' }, { status: 400 });
-      }
+      // Transactional for the same reason 'clean_car' above is: a worker can
+      // hit "complete" while another assigned worker's clean_car for a
+      // different car is still in flight (CLAUDE.md's multi-worker model —
+      // 1-3+ workers on the same tower). A plain get()+update() here would
+      // read cars before that concurrent write lands and then overwrite it
+      // wholesale, silently reverting a just-cleaned car back to 'skipped'.
+      await db.runTransaction(async (t) => {
+        const snap = await t.get(ref);
+        if (!snap.exists) throw new Error('NOT_FOUND');
+        const data = snap.data()!;
+        if (data.status !== 'inprogress') throw new Error('NOT_INPROGRESS');
 
-      // This is the "wrap up even if some cars were skipped in person" override —
-      // without this, a car left 'pending'/'in_progress' stayed exactly that way
-      // while the session itself flipped to 'done', so the UI showed a closed,
-      // "complete" session with a still-clickable "Mark Clean" button on it.
-      const cars = (data.cars as Record<string, unknown>[] | undefined) ?? [];
-      const updatedCars = cars.map(c =>
-        c.status === 'done' || c.status === 'skipped' ? c : { ...c, status: 'skipped' }
-      );
-      const skippedCars = updatedCars.filter(c => c.status === 'skipped').length;
+        // This is the "wrap up even if some cars were skipped in person" override —
+        // without this, a car left 'pending'/'in_progress' stayed exactly that way
+        // while the session itself flipped to 'done', so the UI showed a closed,
+        // "complete" session with a still-clickable "Mark Clean" button on it.
+        const cars = (data.cars as Record<string, unknown>[] | undefined) ?? [];
+        const updatedCars = cars.map(c =>
+          c.status === 'done' || c.status === 'skipped' ? c : { ...c, status: 'skipped' }
+        );
+        const skippedCars = updatedCars.filter(c => c.status === 'skipped').length;
 
-      await ref.update({
-        status: 'done',
-        cars: updatedCars,
-        skippedCars,
-        completedAt: FieldValue.serverTimestamp(),
+        t.update(ref, {
+          status: 'done',
+          cars: updatedCars,
+          skippedCars,
+          completedAt: FieldValue.serverTimestamp(),
+        });
       });
 
     } else {
@@ -248,6 +254,9 @@ export async function POST(
     }
     if (err instanceof Error && err.message === 'CAR_NOT_FOUND') {
       return NextResponse.json({ error: 'Car not found or already cleaned.' }, { status: 400 });
+    }
+    if (err instanceof Error && err.message === 'NOT_INPROGRESS') {
+      return NextResponse.json({ error: 'Session is not in progress.' }, { status: 400 });
     }
     console.error('[session/POST]', err);
     return NextResponse.json({ error: toErrMsg(err) }, { status: 500 });

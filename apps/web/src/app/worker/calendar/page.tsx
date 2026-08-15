@@ -116,7 +116,7 @@ export default function WorkerCalendarPage() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {selectedSessions.map(s => (
-              <Link key={s.id} href={`/session/${s.id}`} style={{ textDecoration: 'none' }}>
+              <Link key={s.id} href={`/session/${s.id}?from=/worker/calendar`} style={{ textDecoration: 'none' }}>
                 <Card style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{
                     width: 36, height: 36, borderRadius: 9, flexShrink: 0,

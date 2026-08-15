@@ -205,16 +205,15 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
     }
   }
 
-  // Workers reach this page from in-app links (dashboard/calendar cards), so
-  // router.back() correctly returns them there — but this page also gets
-  // opened directly (a pasted/bookmarked link), where there's no in-app
-  // history to go back to. document.referrer at load time tells them apart.
+  // Dashboard/calendar cards link here with an explicit ?from= so back always
+  // lands exactly where the worker came from. document.referrer looked like
+  // it could tell in-app navigation apart from a direct/bookmarked open, but
+  // it's set once at the tab's initial page load and never updates for
+  // client-side (App Router) navigations — so it doesn't actually reflect
+  // "did I just click through from the previous screen".
   function handleBack() {
-    const cameFromApp = typeof document !== 'undefined'
-      && document.referrer
-      && new URL(document.referrer).origin === window.location.origin;
-    if (cameFromApp) router.back();
-    else router.push('/worker/dashboard');
+    const from = new URLSearchParams(window.location.search).get('from');
+    router.push(from && from.startsWith('/worker/') ? from : '/worker/dashboard');
   }
 
   const { totalCars, completedCars, status, workerName, societyName, sessionType, tower, scheduledDate, cars } = session;

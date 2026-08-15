@@ -45,12 +45,13 @@ export default function WorkerCleaningLogsPage() {
   // Same live-assignment source the dashboard uses (see resolveTodaysSocieties)
   // — needed here too so the society subtitle doesn't go blank for a worker
   // whose only assignment is a live session, not the legacy static field.
+  // No status filter — resolveTodaysSocieties scopes to today itself, and a
+  // session flipping to 'done' shouldn't make it disappear from here either.
   useEffect(() => {
     if (!user) return;
     const q = query(
       collection(db, 'cleaningSessions'),
       where('workerIds', 'array-contains', user.uid),
-      where('status', 'in', ['scheduled', 'inprogress']),
     );
     return onSnapshot(q, snap => {
       setSessions(snap.docs.map(d => ({ id: d.id, ...d.data() } as LiveSession)));

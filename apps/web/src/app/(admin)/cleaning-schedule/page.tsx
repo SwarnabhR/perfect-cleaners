@@ -483,12 +483,12 @@ export default function CleaningSchedulePage() {
     }
   }
 
-  const filtered = sessions.filter(s => filterStatus === 'all' || s.status === filterStatus);
-
-  // Calendar view groups the same filtered set by day — status filter pills
-  // apply to both views so switching between them doesn't silently change
-  // what's on screen.
-  const sessionsByDate = useMemo(() => {
+  // filtered/sessionsByDate share one memo — filtered on its own with deps
+  // [sessions, filterStatus] would still recompute sessionsByDate every
+  // render, since a freshly-filtered array is a new reference each time and
+  // useMemo compares by reference, not content.
+  const { filtered, sessionsByDate } = useMemo(() => {
+    const filtered = sessions.filter(s => filterStatus === 'all' || s.status === filterStatus);
     const map = new Map<string, LiveSession[]>();
     for (const s of filtered) {
       const key = toDate(s.scheduledDate).toDateString();
@@ -496,8 +496,8 @@ export default function CleaningSchedulePage() {
       list.push(s);
       map.set(key, list);
     }
-    return map;
-  }, [filtered]);
+    return { filtered, sessionsByDate: map };
+  }, [sessions, filterStatus]);
   const selectedDateSessions = sessionsByDate.get(selectedDate.toDateString()) ?? [];
 
   const STATUS_DOT: Record<CleaningSessionStatus, string> = {
