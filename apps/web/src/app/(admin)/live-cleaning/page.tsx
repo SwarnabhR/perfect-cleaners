@@ -1,8 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { collection, query, where, getDocs, onSnapshot, doc, runTransaction, serverTimestamp, addDoc } from 'firebase/firestore';
-import { db, resolveTodaysTowerGroups, getCarUrgency } from '@pc/firebase';
-import type { CleaningSessionEnhanced, CleaningSessionCar, TowerGroupSummary, CarUrgency } from '@pc/firebase';
+import { db, resolveTowerGroups, getCarUrgency, getSessionDayBucket } from '@pc/firebase';
+import type { CleaningSessionEnhanced, CleaningSessionCar, TowerGroupSummary, CarUrgency, CarDueBucket } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
@@ -24,11 +24,16 @@ interface CarListItem {
   societyName: string;
   tower: string;
   sessionType: 'wash' | 'deep-clean';
+  dueBucket: CarDueBucket;
+  scheduledDate: Date;
 }
 
-function isSameDay(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-}
+const BUCKETS: { key: CarDueBucket; label: string; color: string }[] = [
+  { key: 'overdue',  label: 'OVERDUE',  color: 'var(--pc-danger)' },
+  { key: 'today',    label: 'TODAY',    color: 'var(--pc-fg-3)'   },
+  { key: 'tomorrow', label: 'TOMORROW', color: 'var(--pc-fg-4)'   },
+  { key: 'later',    label: 'UPCOMING', color: 'var(--pc-fg-4)'   },
+];
 
 function formatSlot(hour: number): string {
   const h    = Math.floor(hour);
@@ -40,6 +45,189 @@ function formatSlot(hour: number): string {
 
 const URGENCY_LABEL: Record<CarUrgency, string> = { overdue: 'Overdue', 'due-soon': 'Due', later: '', done: '' };
 const URGENCY_COLOR: Record<CarUrgency, string> = { overdue: 'var(--pc-danger)', 'due-soon': 'var(--pc-info)', later: 'var(--pc-fg-3)', done: 'var(--pc-fg-3)' };
+
+// Due-line under a car row — Today reuses getCarUrgency's same-day hour math
+// (unchanged from before); Overdue/Tomorrow/Upcoming show the car's own
+// scheduled date instead, since urgency's hour-of-day comparison only means
+// something when the session is actually dated today.
+function DueLine({ car }: { car: CarListItem }) {
+  if (car.dueBucket === 'overdue') {
+    const dateStr = car.scheduledDate.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+    return (
+      <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11.5, fontWeight: 600, color: 'var(--pc-danger)', margin: '3px 0 0' }}>
+        Overdue · {dateStr}
+      </p>
+    );
+  }
+  if (car.dueBucket === 'tomorrow') {
+    return (
+      <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11.5, color: 'var(--pc-fg-3)', margin: '3px 0 0' }}>
+        Tomorrow · {formatSlot(car.preferredTime)}
+      </p>
+    );
+  }
+  if (car.dueBucket === 'later') {
+    const dateStr = car.scheduledDate.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+    return (
+      <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11.5, color: 'var(--pc-fg-3)', margin: '3px 0 0' }}>
+        {dateStr} · {formatSlot(car.preferredTime)}
+      </p>
+    );
+  }
+  const urgency = getCarUrgency(car.preferredTime, car.status as CleaningSessionCar['status']);
+  if (urgency === 'later') {
+    return (
+      <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11.5, color: 'var(--pc-fg-3)', margin: '3px 0 0' }}>
+        {formatSlot(car.preferredTime)}
+      </p>
+    );
+  }
+  return (
+    <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11.5, fontWeight: 600, color: URGENCY_COLOR[urgency], margin: '3px 0 0' }}>
+      {URGENCY_LABEL[urgency]} · {formatSlot(car.preferredTime)}
+    </p>
+  );
+}
+
+// One tower's card — list header (name + open count) plus its checklist.
+// Extracted so it can be rendered once per bucket without duplicating this
+// markup four times.
+function TowerGroupCard({ group, cars, workerNames, bucket, marking, toggling, isUnavailable, onMarkDone, onToggleUnavailable }: {
+  group: TowerGroupSummary;
+  cars: CarListItem[];
+  workerNames: string[];
+  bucket: CarDueBucket;
+  marking: string | null;
+  toggling: string | null;
+  isUnavailable: (c: CarListItem) => boolean;
+  onMarkDone: (c: CarListItem) => void;
+  onToggleUnavailable: (c: CarListItem) => void;
+}) {
+  return (
+    <div style={{ background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 12, overflow: 'hidden' }}>
+      {/* List header — name + open count, like a to-do "list" row */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+          <Icon name="list-checks" size={16} color="var(--pc-fg-3)" />
+          <div style={{ minWidth: 0 }}>
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 15, fontWeight: 600, color: 'var(--pc-fg)', margin: 0 }}>
+              {group.tower}
+            </p>
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', margin: '1px 0 0' }}>
+              {group.societyName}{workerNames.length > 0 ? ` · ${workerNames.join(', ')}` : ''}
+            </p>
+          </div>
+        </div>
+        <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 15, color: 'var(--pc-fg-3)', flexShrink: 0 }}>
+          {group.openCars}
+        </span>
+      </div>
+
+      <div style={{ borderTop: '1px solid var(--pc-line)', padding: '6px 4px 6px 16px' }}>
+        <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, color: 'var(--pc-fg-3)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+          {bucket === 'today' ? 'Sorted by urgency' : 'Sorted by time'}
+        </span>
+      </div>
+
+      {/* Checklist rows */}
+      {cars.length === 0 ? (
+        <div style={{ padding: 20, textAlign: 'center', fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)' }}>
+          No cars scheduled
+        </div>
+      ) : (
+        <div>
+          {cars.map((car, idx) => {
+            const isDone = car.status === 'done';
+            const unavailable = isUnavailable(car);
+            const busy = marking === `${car.sessionId}-${car.carIndex}`;
+
+            return (
+              <div
+                key={`${car.sessionId}-${car.carIndex}`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '10px 16px',
+                  borderTop: idx > 0 ? '1px solid var(--pc-line-faint)' : 'none',
+                  opacity: unavailable ? 0.45 : 1,
+                }}
+              >
+                {/* Checkbox — click to mark done */}
+                <button
+                  type="button"
+                  onClick={() => !isDone && !unavailable && onMarkDone(car)}
+                  disabled={isDone || unavailable || busy}
+                  title={isDone ? 'Cleaned' : 'Mark clean'}
+                  style={{
+                    width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+                    border: `1.5px solid ${isDone ? 'var(--pc-sage-hi)' : 'var(--pc-line-strong)'}`,
+                    background: isDone ? 'var(--pc-sage-hi)' : 'transparent',
+                    cursor: isDone || unavailable ? 'default' : 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    opacity: busy ? 0.5 : 1,
+                  }}
+                >
+                  {isDone && <Icon name="check" size={12} color="var(--pc-ink)" strokeWidth={2.5} />}
+                </button>
+
+                {/* Primary + secondary text */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{
+                    fontFamily: 'var(--pc-sans)', fontSize: 14.5, color: 'var(--pc-fg)', margin: 0,
+                    textDecoration: isDone ? 'line-through' : 'none',
+                    textDecorationColor: 'var(--pc-fg-3)',
+                  }}>
+                    Flat {car.unitNumber || '—'}
+                    {car.sessionType === 'deep-clean' && (
+                      <span style={{ marginLeft: 8, fontFamily: 'var(--pc-mono)', fontSize: 8.5, letterSpacing: '0.05em', color: 'var(--pc-info)' }}>
+                        DEEP CLEAN
+                      </span>
+                    )}
+                  </p>
+                  <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10.5, color: 'var(--pc-fg-3)', margin: '2px 0 0', letterSpacing: '0.02em' }}>
+                    CAR {car.carPlate}{car.parkingNumber ? ` · PARKING ${car.parkingNumber}` : ''}
+                    {(car.carMake || car.carModel) ? ` · ${[car.carMake, car.carModel].filter(Boolean).join(' ')}` : ''}
+                  </p>
+                  {!isDone && !unavailable && <DueLine car={car} />}
+                  {unavailable && (
+                    <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11.5, color: 'var(--pc-fg-3)', margin: '3px 0 0' }}>
+                      {car.status === 'skipped' ? 'Not available' : 'Marked unavailable'}
+                    </p>
+                  )}
+                </div>
+
+                {/* Unavailable toggle — hidden for auto-skipped cars, since that
+                    comes from the customer's own skip date, not this toggle */}
+                {car.status !== 'skipped' && (
+                  <button
+                    type="button"
+                    onClick={() => onToggleUnavailable(car)}
+                    disabled={toggling === `${car.sessionId}-${car.carIndex}`}
+                    title={car.unavailable ? 'Mark available' : 'Mark unavailable'}
+                    style={{
+                      width: 28, height: 28, borderRadius: 6, flexShrink: 0,
+                      border: 'none', background: 'transparent',
+                      cursor: toggling ? 'not-allowed' : 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      opacity: toggling === `${car.sessionId}-${car.carIndex}` ? 0.5 : 1,
+                    }}
+                  >
+                    <Icon
+                      name={car.unavailable ? 'x-circle' : 'star'}
+                      size={15}
+                      color={car.unavailable ? 'var(--pc-danger)' : 'var(--pc-fg-3)'}
+                    />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function LiveCleaningPage() {
   const [sessions, setSessions] = useState<(CleaningSessionEnhanced & { id: string })[]>([]);
@@ -58,16 +246,11 @@ export default function LiveCleaningPage() {
         where('status', 'in', ['scheduled', 'inprogress'])
       ),
       snap => {
-        const today = new Date();
-        const data = snap.docs
-          .map(d => ({ id: d.id, ...d.data() } as CleaningSessionEnhanced & { id: string }))
-          .filter(s => {
-            const raw = s.scheduledDate as unknown as { toDate?: () => Date } | Date | string | number;
-            const d = raw && typeof (raw as { toDate?: () => Date }).toDate === 'function'
-              ? (raw as { toDate: () => Date }).toDate()
-              : new Date(raw as string | number | Date);
-            return isSameDay(d, today);
-          });
+        // No date filter here — a session that missed its date used to just
+        // vanish once it was no longer "today", which is what made this
+        // board go empty the moment today's sessions were all marked done.
+        // Bucketing into Overdue/Today/Tomorrow/Upcoming happens below.
+        const data = snap.docs.map(d => ({ id: d.id, ...d.data() } as CleaningSessionEnhanced & { id: string }));
         setSessions(data);
 
         const socs = new Set<string>();
@@ -87,66 +270,99 @@ export default function LiveCleaningPage() {
     );
   }, []);
 
+  const now = new Date();
+
+  function toDate(raw: unknown): Date {
+    const r = raw as { toDate?: () => Date } | Date | string | number;
+    return r && typeof (r as { toDate?: () => Date }).toDate === 'function'
+      ? (r as { toDate: () => Date }).toDate()
+      : new Date(r as string | number | Date);
+  }
+
   const filteredSessions = sessions.filter(s => {
     if (filterSociety !== 'all' && s.societyName !== filterSociety) return false;
     if (filterTower !== 'all' && s.tower !== filterTower) return false;
     return true;
   });
 
-  const towerGroups: TowerGroupSummary[] = resolveTodaysTowerGroups(filteredSessions);
-
-  const carsByTowerKey = new Map<string, CarListItem[]>();
-  const workersByTowerKey = new Map<string, Set<string>>();
-
-  filteredSessions.forEach(session => {
-    if (!session.societyId || !session.tower) return;
-    const key = `${session.societyId}::${session.tower}`;
-
-    const list = carsByTowerKey.get(key) ?? [];
-    (session.cars ?? []).forEach((car, idx) => {
-      list.push({
-        sessionId: session.id,
-        carIndex: idx,
-        customerId: car.customerId,
-        unitNumber: car.unitNumber ?? '',
-        parkingNumber: car.parkingNumber ?? '',
-        carPlate: car.carPlate,
-        carMake: car.carMake,
-        carModel: car.carModel,
-        preferredTime: car.preferredTime,
-        status: car.status,
-        unavailable: Boolean((car as unknown as Record<string, unknown>)['unavailable']),
-        societyId: session.societyId,
-        societyName: session.societyName,
-        tower: session.tower,
-        sessionType: session.sessionType ?? 'wash',
-      });
-    });
-    carsByTowerKey.set(key, list);
-
-    const workerSet = workersByTowerKey.get(key) ?? new Set<string>();
-    (session.workerNames ?? []).forEach(name => workerSet.add(name));
-    workersByTowerKey.set(key, workerSet);
-  });
-
   // A car counts as unavailable either via this board's own toggle, or because
   // it was auto-marked 'skipped' at session-build time (customer's skip date).
   const isUnavailable = (c: CarListItem) => c.unavailable || c.status === 'skipped';
-
   const urgencyOrder: Record<CarUrgency, number> = { overdue: 0, 'due-soon': 1, later: 2, done: 3 };
 
-  // Sort: available cars first (by urgency), then unavailable
-  carsByTowerKey.forEach((cars, key) => {
-    const available = cars
-      .filter(c => !isUnavailable(c))
-      .sort((a, b) => {
-        const ua = getCarUrgency(a.preferredTime, a.status as CleaningSessionCar['status']);
-        const ub = getCarUrgency(b.preferredTime, b.status as CleaningSessionCar['status']);
-        return urgencyOrder[ua] - urgencyOrder[ub];
+  // Buckets sessions into Overdue / Today / Tomorrow / Upcoming, then builds
+  // each bucket's tower groups + per-tower checklist independently — merging
+  // sessions from different days into one tower group would blend an overdue
+  // count into a today count (see resolveTowerGroups' docstring).
+  function buildBucket(bucket: CarDueBucket) {
+    const bucketSessions = filteredSessions.filter(s => getSessionDayBucket(toDate(s.scheduledDate), now) === bucket);
+
+    const towerGroups: TowerGroupSummary[] = resolveTowerGroups(bucketSessions);
+    const carsByTowerKey = new Map<string, CarListItem[]>();
+    const workersByTowerKey = new Map<string, Set<string>>();
+
+    bucketSessions.forEach(session => {
+      if (!session.societyId || !session.tower) return;
+      const key = `${session.societyId}::${session.tower}`;
+      const scheduledDate = toDate(session.scheduledDate);
+
+      const list = carsByTowerKey.get(key) ?? [];
+      (session.cars ?? []).forEach((car, idx) => {
+        list.push({
+          sessionId: session.id,
+          carIndex: idx,
+          customerId: car.customerId,
+          unitNumber: car.unitNumber ?? '',
+          parkingNumber: car.parkingNumber ?? '',
+          carPlate: car.carPlate,
+          carMake: car.carMake,
+          carModel: car.carModel,
+          preferredTime: car.preferredTime,
+          status: car.status,
+          unavailable: Boolean((car as unknown as Record<string, unknown>)['unavailable']),
+          societyId: session.societyId,
+          societyName: session.societyName,
+          tower: session.tower,
+          sessionType: session.sessionType ?? 'wash',
+          dueBucket: bucket,
+          scheduledDate,
+        });
       });
-    const unavailable = cars.filter(isUnavailable);
-    carsByTowerKey.set(key, [...available, ...unavailable]);
-  });
+      carsByTowerKey.set(key, list);
+
+      const workerSet = workersByTowerKey.get(key) ?? new Set<string>();
+      (session.workerNames ?? []).forEach(name => workerSet.add(name));
+      workersByTowerKey.set(key, workerSet);
+    });
+
+    // Sort: available cars first — by same-day urgency for Today, by
+    // scheduled time otherwise (urgency's hour math only means something
+    // when the session's date is actually today) — then unavailable.
+    carsByTowerKey.forEach((cars, key) => {
+      const available = cars
+        .filter(c => !isUnavailable(c))
+        .sort((a, b) => {
+          if (bucket === 'today') {
+            const ua = getCarUrgency(a.preferredTime, a.status as CleaningSessionCar['status']);
+            const ub = getCarUrgency(b.preferredTime, b.status as CleaningSessionCar['status']);
+            if (ua !== ub) return urgencyOrder[ua] - urgencyOrder[ub];
+          }
+          return a.preferredTime - b.preferredTime;
+        });
+      const unavailable = cars.filter(isUnavailable);
+      carsByTowerKey.set(key, [...available, ...unavailable]);
+    });
+
+    return { towerGroups, carsByTowerKey, workersByTowerKey };
+  }
+
+  const bucketData: Record<CarDueBucket, ReturnType<typeof buildBucket>> = {
+    overdue:  buildBucket('overdue'),
+    today:    buildBucket('today'),
+    tomorrow: buildBucket('tomorrow'),
+    later:    buildBucket('later'),
+  };
+  const totalTowerGroups = BUCKETS.reduce((sum, b) => sum + bucketData[b.key].towerGroups.length, 0);
 
   async function toggleUnavailable(car: CarListItem) {
     if (toggling) return;
@@ -250,7 +466,7 @@ export default function LiveCleaningPage() {
         <Eyebrow style={{ display: 'block', marginBottom: 4 }}>OPERATIONS</Eyebrow>
         <h1 className="admin-page-title">Live Cleaning Task Board</h1>
         <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: '4px 0 0' }}>
-          Today&rsquo;s cars grouped by tower. Mark unavailable to move to bottom.
+          Every not-done car, grouped by tower — overdue, today, tomorrow, and beyond. Mark unavailable to move to bottom.
         </p>
       </div>
 
@@ -311,159 +527,46 @@ export default function LiveCleaningPage() {
         </div>
       </div>
 
-      {/* Lists — one per tower, to-do-style checklist inside each */}
+      {/* Lists — one section per day-bucket, one tower card per list inside each */}
       {loading ? (
         <Card style={{ padding: 48, textAlign: 'center', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)' }}>
           Loading…
         </Card>
+      ) : totalTowerGroups === 0 ? (
+        <Card style={{ padding: 48, textAlign: 'center', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)' }}>
+          No cars need cleaning right now. Start a cleaning session from the Schedule page.
+        </Card>
       ) : (
-        towerGroups.length === 0 ? (
-          <Card style={{ padding: 48, textAlign: 'center', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)' }}>
-            No cars scheduled for today. Start a cleaning session from the Schedule page.
-          </Card>
-        ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, alignItems: 'start' }}>
-          {towerGroups.map(group => {
-            const cars = carsByTowerKey.get(group.key) ?? [];
-            const workerNames = Array.from(workersByTowerKey.get(group.key) ?? []);
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {BUCKETS.map(({ key, label, color }) => {
+            const { towerGroups, carsByTowerKey, workersByTowerKey } = bucketData[key];
+            if (towerGroups.length === 0) return null;
 
             return (
-              <div key={group.key} style={{ background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 12, overflow: 'hidden' }}>
-                {/* List header — name + open count, like a to-do "list" row */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                    <Icon name="list-checks" size={16} color="var(--pc-fg-3)" />
-                    <div style={{ minWidth: 0 }}>
-                      <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 15, fontWeight: 600, color: 'var(--pc-fg)', margin: 0 }}>
-                        {group.tower}
-                      </p>
-                      <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', margin: '1px 0 0' }}>
-                        {group.societyName}{workerNames.length > 0 ? ` · ${workerNames.join(', ')}` : ''}
-                      </p>
-                    </div>
-                  </div>
-                  <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 15, color: 'var(--pc-fg-3)', flexShrink: 0 }}>
-                    {group.openCars}
-                  </span>
+              <div key={key}>
+                <Eyebrow color={color} style={{ display: 'block', marginBottom: 10 }}>
+                  {label} · {towerGroups.length} tower{towerGroups.length === 1 ? '' : 's'}
+                </Eyebrow>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, alignItems: 'start' }}>
+                  {towerGroups.map(group => (
+                    <TowerGroupCard
+                      key={group.key}
+                      group={group}
+                      cars={carsByTowerKey.get(group.key) ?? []}
+                      workerNames={Array.from(workersByTowerKey.get(group.key) ?? [])}
+                      bucket={key}
+                      marking={marking}
+                      toggling={toggling}
+                      isUnavailable={isUnavailable}
+                      onMarkDone={markDone}
+                      onToggleUnavailable={toggleUnavailable}
+                    />
+                  ))}
                 </div>
-
-                <div style={{ borderTop: '1px solid var(--pc-line)', padding: '6px 4px 6px 16px' }}>
-                  <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, color: 'var(--pc-fg-3)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                    Sorted by urgency
-                  </span>
-                </div>
-
-                {/* Checklist rows */}
-                {cars.length === 0 ? (
-                  <div style={{ padding: 20, textAlign: 'center', fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)' }}>
-                    No cars scheduled
-                  </div>
-                ) : (
-                  <div>
-                    {cars.map((car, idx) => {
-                      const urgency = getCarUrgency(car.preferredTime, car.status as CleaningSessionCar['status']);
-                      const isDone = car.status === 'done';
-                      const unavailable = isUnavailable(car);
-                      const busy = marking === `${car.sessionId}-${car.carIndex}`;
-
-                      return (
-                        <div
-                          key={`${car.sessionId}-${car.carIndex}`}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 12,
-                            padding: '10px 16px',
-                            borderTop: idx > 0 ? '1px solid var(--pc-line-faint)' : 'none',
-                            opacity: unavailable ? 0.45 : 1,
-                          }}
-                        >
-                          {/* Checkbox — click to mark done */}
-                          <button
-                            type="button"
-                            onClick={() => !isDone && !unavailable && markDone(car)}
-                            disabled={isDone || unavailable || busy}
-                            title={isDone ? 'Cleaned' : 'Mark clean'}
-                            style={{
-                              width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
-                              border: `1.5px solid ${isDone ? 'var(--pc-sage-hi)' : 'var(--pc-line-strong)'}`,
-                              background: isDone ? 'var(--pc-sage-hi)' : 'transparent',
-                              cursor: isDone || unavailable ? 'default' : 'pointer',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              opacity: busy ? 0.5 : 1,
-                            }}
-                          >
-                            {isDone && <Icon name="check" size={12} color="var(--pc-ink)" strokeWidth={2.5} />}
-                          </button>
-
-                          {/* Primary + secondary text */}
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{
-                              fontFamily: 'var(--pc-sans)', fontSize: 14.5, color: 'var(--pc-fg)', margin: 0,
-                              textDecoration: isDone ? 'line-through' : 'none',
-                              textDecorationColor: 'var(--pc-fg-3)',
-                            }}>
-                              Flat {car.unitNumber || '—'}
-                              {car.sessionType === 'deep-clean' && (
-                                <span style={{ marginLeft: 8, fontFamily: 'var(--pc-mono)', fontSize: 8.5, letterSpacing: '0.05em', color: 'var(--pc-info)' }}>
-                                  DEEP CLEAN
-                                </span>
-                              )}
-                            </p>
-                            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10.5, color: 'var(--pc-fg-3)', margin: '2px 0 0', letterSpacing: '0.02em' }}>
-                              CAR {car.carPlate}{car.parkingNumber ? ` · PARKING ${car.parkingNumber}` : ''}
-                              {(car.carMake || car.carModel) ? ` · ${[car.carMake, car.carModel].filter(Boolean).join(' ')}` : ''}
-                            </p>
-                            {!isDone && !unavailable && urgency !== 'later' && (
-                              <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11.5, fontWeight: 600, color: URGENCY_COLOR[urgency], margin: '3px 0 0' }}>
-                                {URGENCY_LABEL[urgency]} · {formatSlot(car.preferredTime)}
-                              </p>
-                            )}
-                            {!isDone && !unavailable && urgency === 'later' && (
-                              <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11.5, color: 'var(--pc-fg-3)', margin: '3px 0 0' }}>
-                                {formatSlot(car.preferredTime)}
-                              </p>
-                            )}
-                            {unavailable && (
-                              <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11.5, color: 'var(--pc-fg-3)', margin: '3px 0 0' }}>
-                                {car.status === 'skipped' ? 'Not available today' : 'Marked unavailable'}
-                              </p>
-                            )}
-                          </div>
-
-                          {/* Unavailable toggle — hidden for auto-skipped cars, since that
-                              comes from the customer's own skip date, not this toggle */}
-                          {car.status !== 'skipped' && (
-                            <button
-                              type="button"
-                              onClick={() => toggleUnavailable(car)}
-                              disabled={toggling === `${car.sessionId}-${car.carIndex}`}
-                              title={car.unavailable ? 'Mark available' : 'Mark unavailable'}
-                              style={{
-                                width: 28, height: 28, borderRadius: 6, flexShrink: 0,
-                                border: 'none', background: 'transparent',
-                                cursor: toggling ? 'not-allowed' : 'pointer',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                opacity: toggling === `${car.sessionId}-${car.carIndex}` ? 0.5 : 1,
-                              }}
-                            >
-                              <Icon
-                                name={car.unavailable ? 'x-circle' : 'star'}
-                                size={15}
-                                color={car.unavailable ? 'var(--pc-danger)' : 'var(--pc-fg-3)'}
-                              />
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
               </div>
             );
           })}
         </div>
-        )
       )}
     </div>
   );

@@ -86,20 +86,19 @@ type TowerSession = Pick<
 > & { id: string };
 
 /**
- * Towers a worker (or, unfiltered, the whole ops board) is actually cleaning
- * today, resolved from live cleaningSessions grouped by society+tower — the
+ * Groups live cleaningSessions by society+tower, summing totalCars/
+ * completedCars/openCars across every session in the group — the
  * tower-level analog of resolveTodaysSocieties above. Callers pass sessions
- * already scoped to the right audience (a worker's `workerIds`-filtered
- * sessions, or every session for the admin board); this only handles the
- * same-day filter and the tower grouping/aggregation on top.
+ * already scoped to the right audience *and* the right day-bucket (a
+ * worker's `workerIds`-filtered sessions for one bucket, or the admin
+ * board's full session list for one bucket) — this only handles the tower
+ * grouping/aggregation, not any date filtering, so a caller merging sessions
+ * across different days would blend an overdue count into a today count.
  */
-export function resolveTodaysTowerGroups(sessions: TowerSession[]): TowerGroupSummary[] {
-  const today = new Date();
+export function resolveTowerGroups(sessions: TowerSession[]): TowerGroupSummary[] {
   const groups = new Map<string, TowerGroupSummary>();
 
   for (const s of sessions) {
-    const d = toJsDate(s.scheduledDate);
-    if (!d || !isSameDay(d, today)) continue;
     if (!s.societyId || !s.tower) continue;
 
     const key = `${s.societyId}::${s.tower}`;
