@@ -311,7 +311,7 @@ export default function LiveCleaningPage() {
         </div>
       </div>
 
-      {/* Tower Cards */}
+      {/* Lists — one per tower, to-do-style checklist inside each */}
       {loading ? (
         <Card style={{ padding: 48, textAlign: 'center', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)' }}>
           Loading…
@@ -322,175 +322,144 @@ export default function LiveCleaningPage() {
             No cars scheduled for today. Start a cleaning session from the Schedule page.
           </Card>
         ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, alignItems: 'start' }}>
           {towerGroups.map(group => {
             const cars = carsByTowerKey.get(group.key) ?? [];
             const workerNames = Array.from(workersByTowerKey.get(group.key) ?? []);
-            const availableCount = cars.filter(c => !isUnavailable(c)).length;
 
             return (
-              <Card key={group.key} style={{ padding: 0, overflow: 'hidden' }}>
-                {/* Tower Header */}
-                <div style={{ padding: 16, borderBottom: '1px solid var(--pc-line)', background: 'var(--pc-card-hi)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                    <div>
-                      <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 18, color: 'var(--pc-fg)', margin: '0 0 4px', fontWeight: 600 }}>
+              <div key={group.key} style={{ background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 12, overflow: 'hidden' }}>
+                {/* List header — name + open count, like a to-do "list" row */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                    <Icon name="list-checks" size={16} color="var(--pc-fg-3)" />
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 15, fontWeight: 600, color: 'var(--pc-fg)', margin: 0 }}>
                         {group.tower}
                       </p>
-                      <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', margin: 0 }}>
-                        {group.societyName}
+                      <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', margin: '1px 0 0' }}>
+                        {group.societyName}{workerNames.length > 0 ? ` · ${workerNames.join(', ')}` : ''}
                       </p>
-                      <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', margin: '4px 0 0' }}>
-                        {availableCount} / {cars.length} CARS
-                      </p>
-                      {workerNames.length > 0 && (
-                        <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', margin: '2px 0 0' }}>
-                          WORKERS: {workerNames.join(', ')}
-                        </p>
-                      )}
-                    </div>
-                    <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--pc-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <Icon name="building-2" size={18} color="var(--pc-info)" />
                     </div>
                   </div>
+                  <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 15, color: 'var(--pc-fg-3)', flexShrink: 0 }}>
+                    {group.openCars}
+                  </span>
                 </div>
 
-                {/* Car List */}
+                <div style={{ borderTop: '1px solid var(--pc-line)', padding: '6px 4px 6px 16px' }}>
+                  <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, color: 'var(--pc-fg-3)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                    Sorted by urgency
+                  </span>
+                </div>
+
+                {/* Checklist rows */}
                 {cars.length === 0 ? (
                   <div style={{ padding: 20, textAlign: 'center', fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)' }}>
                     No cars scheduled
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                  <div>
                     {cars.map((car, idx) => {
                       const urgency = getCarUrgency(car.preferredTime, car.status as CleaningSessionCar['status']);
+                      const isDone = car.status === 'done';
+                      const unavailable = isUnavailable(car);
+                      const busy = marking === `${car.sessionId}-${car.carIndex}`;
+
                       return (
-                      <div
-                        key={`${car.sessionId}-${car.carIndex}`}
-                        style={{
-                          padding: 12,
-                          borderTop: idx > 0 ? '1px solid var(--pc-line)' : 'none',
-                          background: isUnavailable(car) ? 'var(--pc-card-hi)' : 'transparent',
-                          opacity: isUnavailable(car) ? 0.6 : 1,
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          {/* Car Info */}
+                        <div
+                          key={`${car.sessionId}-${car.carIndex}`}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 12,
+                            padding: '10px 16px',
+                            borderTop: idx > 0 ? '1px solid var(--pc-line-faint)' : 'none',
+                            opacity: unavailable ? 0.45 : 1,
+                          }}
+                        >
+                          {/* Checkbox — click to mark done */}
+                          <button
+                            type="button"
+                            onClick={() => !isDone && !unavailable && markDone(car)}
+                            disabled={isDone || unavailable || busy}
+                            title={isDone ? 'Cleaned' : 'Mark clean'}
+                            style={{
+                              width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+                              border: `1.5px solid ${isDone ? 'var(--pc-sage-hi)' : 'var(--pc-line-strong)'}`,
+                              background: isDone ? 'var(--pc-sage-hi)' : 'transparent',
+                              cursor: isDone || unavailable ? 'default' : 'pointer',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              opacity: busy ? 0.5 : 1,
+                            }}
+                          >
+                            {isDone && <Icon name="check" size={12} color="var(--pc-ink)" strokeWidth={2.5} />}
+                          </button>
+
+                          {/* Primary + secondary text */}
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', textTransform: 'uppercase', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                              FLAT {car.unitNumber || '—'}
+                            <p style={{
+                              fontFamily: 'var(--pc-sans)', fontSize: 14.5, color: 'var(--pc-fg)', margin: 0,
+                              textDecoration: isDone ? 'line-through' : 'none',
+                              textDecorationColor: 'var(--pc-fg-3)',
+                            }}>
+                              Flat {car.unitNumber || '—'}
                               {car.sessionType === 'deep-clean' && (
-                                <span style={{
-                                  fontFamily: 'var(--pc-mono)', fontSize: 8.5, letterSpacing: '0.05em',
-                                  color: 'var(--pc-info)', background: 'color-mix(in srgb, var(--pc-info) 15%, transparent)',
-                                  padding: '2px 6px', borderRadius: 999, textTransform: 'uppercase',
-                                }}>
-                                  Deep clean
-                                </span>
-                              )}
-                              {!isUnavailable(car) && urgency !== 'later' && urgency !== 'done' && (
-                                <span style={{
-                                  fontFamily: 'var(--pc-mono)', fontSize: 8.5, letterSpacing: '0.05em',
-                                  color: URGENCY_COLOR[urgency], background: `color-mix(in srgb, ${URGENCY_COLOR[urgency]} 15%, transparent)`,
-                                  padding: '2px 6px', borderRadius: 999, textTransform: 'uppercase',
-                                }}>
-                                  {URGENCY_LABEL[urgency]} · {formatSlot(car.preferredTime)}
+                                <span style={{ marginLeft: 8, fontFamily: 'var(--pc-mono)', fontSize: 8.5, letterSpacing: '0.05em', color: 'var(--pc-info)' }}>
+                                  DEEP CLEAN
                                 </span>
                               )}
                             </p>
-                            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)', margin: '0 0 2px', fontWeight: 500 }}>
-                              {car.carMake} {car.carModel}
+                            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10.5, color: 'var(--pc-fg-3)', margin: '2px 0 0', letterSpacing: '0.02em' }}>
+                              CAR {car.carPlate}{car.parkingNumber ? ` · PARKING ${car.parkingNumber}` : ''}
+                              {(car.carMake || car.carModel) ? ` · ${[car.carMake, car.carModel].filter(Boolean).join(' ')}` : ''}
                             </p>
-                            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10.5, color: 'var(--pc-fg-3)', margin: 0, letterSpacing: '0.02em' }}>
-                              CAR {car.carPlate}
-                              {car.parkingNumber ? ` · PARKING ${car.parkingNumber}` : ''}
-                            </p>
+                            {!isDone && !unavailable && urgency !== 'later' && (
+                              <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11.5, fontWeight: 600, color: URGENCY_COLOR[urgency], margin: '3px 0 0' }}>
+                                {URGENCY_LABEL[urgency]} · {formatSlot(car.preferredTime)}
+                              </p>
+                            )}
+                            {!isDone && !unavailable && urgency === 'later' && (
+                              <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11.5, color: 'var(--pc-fg-3)', margin: '3px 0 0' }}>
+                                {formatSlot(car.preferredTime)}
+                              </p>
+                            )}
+                            {unavailable && (
+                              <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11.5, color: 'var(--pc-fg-3)', margin: '3px 0 0' }}>
+                                {car.status === 'skipped' ? 'Not available today' : 'Marked unavailable'}
+                              </p>
+                            )}
                           </div>
 
-                          {/* Status Badge */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <div
+                          {/* Unavailable toggle — hidden for auto-skipped cars, since that
+                              comes from the customer's own skip date, not this toggle */}
+                          {car.status !== 'skipped' && (
+                            <button
+                              type="button"
+                              onClick={() => toggleUnavailable(car)}
+                              disabled={toggling === `${car.sessionId}-${car.carIndex}`}
+                              title={car.unavailable ? 'Mark available' : 'Mark unavailable'}
                               style={{
-                                padding: '4px 8px',
-                                borderRadius: 4,
-                                background: car.status === 'skipped' ? 'var(--pc-fg-4)' : car.status === 'done' ? 'var(--pc-sage)' : car.status === 'in_progress' ? 'var(--pc-warning)' : 'var(--pc-info)',
-                                fontFamily: 'var(--pc-mono)',
-                                fontSize: 9,
-                                color: 'white',
-                                textTransform: 'uppercase',
-                                fontWeight: 600,
+                                width: 28, height: 28, borderRadius: 6, flexShrink: 0,
+                                border: 'none', background: 'transparent',
+                                cursor: toggling ? 'not-allowed' : 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                opacity: toggling === `${car.sessionId}-${car.carIndex}` ? 0.5 : 1,
                               }}
                             >
-                              {car.status === 'skipped' ? 'not available' : car.status}
-                            </div>
-
-                            {/* Mark Done Button */}
-                            {car.status !== 'done' && !isUnavailable(car) && (
-                              <button
-                                type="button"
-                                onClick={() => markDone(car)}
-                                disabled={marking === `${car.sessionId}-${car.carIndex}`}
-                                title="Mark clean"
-                                style={{
-                                  padding: '0 10px',
-                                  height: 32,
-                                  borderRadius: 6,
-                                  border: '1px solid var(--pc-sage-hi)',
-                                  background: 'color-mix(in srgb, var(--pc-sage) 15%, transparent)',
-                                  cursor: marking ? 'not-allowed' : 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 6,
-                                  flexShrink: 0,
-                                  opacity: marking === `${car.sessionId}-${car.carIndex}` ? 0.6 : 1,
-                                  fontFamily: 'var(--pc-sans)',
-                                  fontSize: 11,
-                                  fontWeight: 600,
-                                  color: 'var(--pc-sage-hi)',
-                                }}
-                              >
-                                <Icon name="check" size={12} color="var(--pc-sage-hi)" />
-                                Done
-                              </button>
-                            )}
-
-                            {/* Mark Unavailable Button — hidden for auto-skipped cars, since
-                                that comes from the customer's own skip date, not this toggle */}
-                            {car.status !== 'skipped' && (
-                              <button
-                                type="button"
-                                onClick={() => toggleUnavailable(car)}
-                                disabled={toggling === `${car.sessionId}-${car.carIndex}`}
-                                title={car.unavailable ? 'Mark available' : 'Mark unavailable'}
-                                style={{
-                                  width: 32,
-                                  height: 32,
-                                  borderRadius: 6,
-                                  border: car.unavailable ? '1px solid var(--pc-danger)' : '1px solid var(--pc-line)',
-                                  background: car.unavailable ? 'color-mix(in srgb, var(--pc-danger) 10%, transparent)' : 'transparent',
-                                  cursor: toggling ? 'not-allowed' : 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  flexShrink: 0,
-                                  opacity: toggling === `${car.sessionId}-${car.carIndex}` ? 0.6 : 1,
-                                }}
-                              >
-                                <Icon
-                                  name={car.unavailable ? 'x' : 'check'}
-                                  size={14}
-                                  color={car.unavailable ? 'var(--pc-danger)' : 'var(--pc-fg-3)'}
-                                />
-                              </button>
-                            )}
-                          </div>
+                              <Icon
+                                name={car.unavailable ? 'x-circle' : 'star'}
+                                size={15}
+                                color={car.unavailable ? 'var(--pc-danger)' : 'var(--pc-fg-3)'}
+                              />
+                            </button>
+                          )}
                         </div>
-                      </div>
                       );
                     })}
                   </div>
                 )}
-              </Card>
+              </div>
             );
           })}
         </div>
