@@ -120,8 +120,11 @@ export async function POST(
         const data = snap.data()!;
 
         const cars = (data.cars as Record<string, unknown>[] | undefined) ?? [];
-        const idx  = cars.findIndex(c => c.customerId === customerId && c.status !== 'done');
-        if (idx === -1) throw new Error('CAR_NOT_FOUND');
+        const idx  = cars.findIndex(c => c.customerId === customerId);
+        if (idx === -1 || cars[idx].status === 'done') throw new Error('CAR_NOT_FOUND');
+        // Admin marked this car "not available today" on the Live Cleaning
+        // board — same as a customer's own skipDate, it can't be completed.
+        if (cars[idx].unavailable) throw new Error('CAR_UNAVAILABLE');
 
         const now         = new Date();
         const updatedCars = cars.slice();
@@ -231,9 +234,11 @@ export async function POST(
         // Firestore can't hold FieldValue.delete() inside an array element
         // (same restriction noted above for serverTimestamp) — rebuild the
         // car object without cleanedBy/cleanedAt instead of trying to unset them.
-        const { cleanedBy: _cleanedBy, cleanedAt: _cleanedAt, ...rest } = cars[idx];
+        const restoredCar = { ...cars[idx] };
+        delete restoredCar['cleanedBy'];
+        delete restoredCar['cleanedAt'];
         const updatedCars = cars.slice();
-        updatedCars[idx]  = { ...rest, status: 'pending' };
+        updatedCars[idx]  = { ...restoredCar, status: 'pending' };
 
         const wasDone = data.status === 'done';
         const sessionUpdate: Record<string, unknown> = {
@@ -326,6 +331,9 @@ export async function POST(
     }
     if (err instanceof Error && err.message === 'CAR_NOT_FOUND') {
       return NextResponse.json({ error: 'Car not found or already cleaned.' }, { status: 400 });
+    }
+    if (err instanceof Error && err.message === 'CAR_UNAVAILABLE') {
+      return NextResponse.json({ error: 'This car was marked not available today.' }, { status: 400 });
     }
     if (err instanceof Error && err.message === 'NOT_INPROGRESS') {
       return NextResponse.json({ error: 'Session is not in progress.' }, { status: 400 });

@@ -331,7 +331,7 @@ export default function LiveCleaningPage() {
           carModel: car.carModel,
           preferredTime: car.preferredTime,
           status: car.status,
-          unavailable: Boolean((car as unknown as Record<string, unknown>)['unavailable']),
+          unavailable: Boolean(car.unavailable),
           societyId: session.societyId,
           societyName: session.societyName,
           tower: session.tower,
@@ -385,11 +385,29 @@ export default function LiveCleaningPage() {
       await runTransaction(db, async tx => {
         const snap = await tx.get(sessionRef);
         if (!snap.exists()) return;
-        const currentCars = (snap.data().cars ?? []) as Record<string, unknown>[];
+        const data = snap.data();
+        const currentCars = (data.cars ?? []) as Record<string, unknown>[];
+        const target = currentCars[car.carIndex];
+        // Can't toggle a car that's already cleaned, or one that's already
+        // 'skipped' via the customer's own skipDate — this toggle is
+        // ops-only and shouldn't override that.
+        if (!target || target.status === 'done' || target.status === 'skipped') return;
+
+        const makingUnavailable = !target.unavailable;
         const newCars = currentCars.map((c, idx) =>
-          idx === car.carIndex ? { ...c, unavailable: !car.unavailable } : c
+          idx === car.carIndex ? { ...c, unavailable: makingUnavailable } : c
         );
-        tx.update(sessionRef, { cars: newCars });
+
+        // Keeps totalCars an accurate denominator for "is this session fully
+        // done" — an unavailable car can never be completed, same reasoning
+        // as skippedCars being excluded from totalCars at creation time.
+        // Without this, a tower with an unavailable car could never satisfy
+        // completedCars >= totalCars and would sit 'inprogress' forever.
+        const totalCars = (data.totalCars as number | undefined) ?? currentCars.length;
+        tx.update(sessionRef, {
+          cars: newCars,
+          totalCars: makingUnavailable ? totalCars - 1 : totalCars + 1,
+        });
       });
     } catch (err: unknown) {
       console.error('[LiveCleaning] toggle failed:', err instanceof Error ? err.message : err);

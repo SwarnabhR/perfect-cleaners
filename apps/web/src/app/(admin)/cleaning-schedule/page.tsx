@@ -1,8 +1,8 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
-import { collection, query, where, orderBy, limit, getDocs, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, getDocs, getDoc, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@pc/firebase';
-import type { CleaningSessionEnhanced, CleaningSessionStatus, Worker, Society } from '@pc/firebase';
+import type { CleaningSessionEnhanced, CleaningSessionStatus, CustomerSocietyRecord, Worker, Society } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
@@ -67,10 +67,6 @@ function formatDate(date: unknown): string {
   return toDate(date).toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
-function formatTime(date: unknown): string {
-  return toDate(date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-}
-
 type LiveWorker  = Worker  & { id: string };
 type LiveSociety = Society & { id: string };
 
@@ -115,7 +111,7 @@ function SessionRow({
             </span>
           )}
         </p>
-        <StatusPill status={session.status.replace('_', ' ') as any} />
+        <StatusPill status={session.status.replace('_', ' ')} />
       </div>
 
       {/* Progress */}
@@ -228,6 +224,7 @@ export default function CleaningSchedulePage() {
   const [creating,     setCreating]     = useState(false);
   const [form,         setForm]         = useState<CreateSessionForm>(BLANK_FORM);
   const [saving,       setSaving]       = useState(false);
+  const [createError,  setCreateError]  = useState('');
   const [reassigning,  setReassigning]  = useState<LiveSession | null>(null);
   const [reassignIds,  setReassignIds]  = useState<string[]>([]);
   const [markingMissed, setMarkingMissed] = useState<LiveSession | null>(null);
@@ -267,7 +264,7 @@ export default function CleaningSchedulePage() {
 
   // Mirrors the cron job's car-list logic (api/cron/generate-sessions) so a
   // session created by hand from this page carries the same real cars[] /
-  // totalCars the Live Cleaning board and the /session/[id] link depend on —
+  // totalCars the Live Cleaning board and worker dashboard depend on —
   // previously this always wrote an empty array, so neither ever showed anything.
   function isSameDay(a: Date, b: Date) {
     return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -308,13 +305,13 @@ export default function CleaningSchedulePage() {
         }
 
         // Check for a one-off rescheduled slot for this specific date
-        const rescheduledSlots = (customer.rescheduledSlots as any[] | undefined) ?? [];
-        const rescheduled = rescheduledSlots.find((s: any) => {
+        const rescheduledSlots = (customer.rescheduledSlots as CustomerSocietyRecord['rescheduledSlots'] | undefined) ?? [];
+        const rescheduled = rescheduledSlots.find(s => {
           const slotDate = toDate(s.date);
           return isSameDay(slotDate, scheduledDate);
         });
         const preferredTime = rescheduled
-          ? (rescheduled.toTime as number)
+          ? rescheduled.toTime
           : ((customer.permanentTime ?? customer.preferredCleaningTime ?? 9) as number);
 
         return { ...base, preferredTime, status: 'pending' as const };
@@ -327,14 +324,29 @@ export default function CleaningSchedulePage() {
   async function handleCreateSession() {
     if (!form.societyId.trim() || !form.tower.trim() || form.workerIds.length === 0 || saving) return;
     setSaving(true);
+    setCreateError('');
 
     try {
       const scheduledDate = new Date(form.scheduledDate);
-      // Doc IDs become URL path segments (worker links to /session/<id>) — a raw
-      // space in the tower name survives as literal "%20" through Next.js's
-      // dynamic route params instead of being decoded back, which 404s. Slug it.
+      // The session doc ID is deterministic (society_tower_date) — the same
+      // scheme the generate-sessions cron uses, so a raw space in the tower
+      // name is slugged to keep the ID URL-safe.
       const towerSlug = form.tower.trim().replace(/\s+/g, '-');
       const sessionId = `${form.societyId}_${towerSlug}_${form.scheduledDate}`;
+
+      // A session for this tower+date may already exist — either pre-staged
+      // by the cron, or from an earlier click of this same button. Without
+      // this check, setDoc() below would silently overwrite it wholesale:
+      // cars, completedCars, and worker assignments all reset, wiping out
+      // any progress already recorded. The cron's own creation path guards
+      // against exactly this with an equivalent existence check.
+      const existing = await getDoc(doc(db, 'cleaningSessions', sessionId));
+      if (existing.exists()) {
+        setCreateError('A session for this tower and date already exists. Edit or reassign it instead of creating a new one.');
+        setSaving(false);
+        return;
+      }
+
       const selectedWorkers = workers.filter(w => form.workerIds.includes(w.id));
       const workerNames = selectedWorkers.map(w => w.name);
       const cars = await buildCarsForSession(form.societyId.trim(), form.tower.trim(), scheduledDate);
@@ -362,6 +374,7 @@ export default function CleaningSchedulePage() {
       setForm(BLANK_FORM);
     } catch (err: unknown) {
       console.error('[CleaningSchedule] create failed:', err instanceof Error ? err.message : err);
+      setCreateError('Failed to create session. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -526,7 +539,7 @@ export default function CleaningSchedulePage() {
         </div>
         <button
           type="button"
-          onClick={() => setCreating(true)}
+          onClick={() => { setCreating(true); setCreateError(''); }}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -746,7 +759,7 @@ export default function CleaningSchedulePage() {
             </p>
             <button
               type="button"
-              onClick={() => setCreating(true)}
+              onClick={() => { setCreating(true); setCreateError(''); }}
               style={{
                 padding: '10px 24px',
                 borderRadius: 999,
@@ -793,7 +806,7 @@ export default function CleaningSchedulePage() {
             justifyContent: 'center',
             padding: 16,
           }}
-          onClick={() => setCreating(false)}
+          onClick={() => { setCreating(false); setCreateError(''); }}
         >
           <div
             style={{
@@ -934,6 +947,12 @@ export default function CleaningSchedulePage() {
                 </div>
               </div>
 
+              {createError && (
+                <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12.5, color: 'var(--pc-danger)', margin: 0 }}>
+                  {createError}
+                </p>
+              )}
+
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                 <button
                   type="button"
@@ -957,7 +976,7 @@ export default function CleaningSchedulePage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setCreating(false)}
+                  onClick={() => { setCreating(false); setCreateError(''); }}
                   style={{
                     padding: '11px 20px',
                     borderRadius: 999,

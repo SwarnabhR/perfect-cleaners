@@ -194,6 +194,10 @@ export function resolveWorkerTodoCars(sessions: TodoSession[], now: Date = new D
 
     for (const c of s.cars ?? []) {
       if (c.status !== 'pending' && c.status !== 'in_progress') continue;
+      // Admin-toggled "not available today" (Live Cleaning board) — excluded
+      // the same as a 'skipped' status would be, so it doesn't sit on a
+      // worker's to-do list as actionable when it isn't.
+      if (c.unavailable) continue;
       rows.push({
         sessionId:     s.id,
         societyId:     s.societyId,

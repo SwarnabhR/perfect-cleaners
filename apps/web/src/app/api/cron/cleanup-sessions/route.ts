@@ -42,13 +42,28 @@ export async function GET(req: NextRequest) {
     const CHUNK = 499;
     for (let i = 0; i < stale.length; i += CHUNK) {
       const batch = db.batch();
-      stale.slice(i, i + CHUNK).forEach(d =>
+      stale.slice(i, i + CHUNK).forEach(d => {
+        // Any car still pending/in_progress must be flipped to 'skipped'
+        // here, same as the manual "complete" action does — otherwise it
+        // stays 'pending' forever inside a session that's now 'done', which
+        // makes it invisible everywhere (resolveWorkerTodoCars and the Live
+        // Cleaning board both skip 'done' sessions entirely) without ever
+        // having actually been cleaned or explicitly marked unavailable.
+        const data = d.data();
+        const cars = (data.cars as Record<string, unknown>[] | undefined) ?? [];
+        const updatedCars = cars.map(c =>
+          c.status === 'done' || c.status === 'skipped' ? c : { ...c, status: 'skipped' }
+        );
+        const skippedCars = updatedCars.filter(c => c.status === 'skipped').length;
+
         batch.update(d.ref, {
           status:             'done',
+          cars:               updatedCars,
+          skippedCars,
           completedAt:        FieldValue.serverTimestamp(),
           autoClosedBySystem: true,
-        }),
-      );
+        });
+      });
       await batch.commit();
     }
 

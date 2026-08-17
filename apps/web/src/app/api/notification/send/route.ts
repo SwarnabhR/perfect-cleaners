@@ -1,11 +1,17 @@
 import 'server-only';
 import { toErrMsg } from '@/lib/api-error';
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth } from '@/lib/firebase/admin';
+import { adminAuth, adminFirestore } from '@/lib/firebase/admin';
 import { sendAndStoreSMS, type NotificationPayload } from '@/lib/notify-sms';
 
 export async function POST(req: NextRequest) {
-  // Accept either a Firebase ID token (admin dashboard) or CRON_SECRET (internal server calls).
+  // Accept either a Firebase ID token belonging to an admin, or CRON_SECRET
+  // (internal server calls). Every real caller of this route is an admin
+  // page (live-cleaning, cleaning-schedule, customer-enrollments,
+  // pending-approvals) — a bare verifyIdToken() would let ANY signed-in
+  // customer or worker send an arbitrary SMS to an arbitrary phone number
+  // with attacker-supplied template data, so this must check admin
+  // membership the same way every other admin-only route does.
   // CRON_SECRET must actually be configured to count — otherwise a request
   // with no Authorization header at all would satisfy `bearer !== ''`.
   const bearer     = (req.headers.get('authorization') ?? '').replace(/^Bearer\s+/, '');
@@ -14,7 +20,11 @@ export async function POST(req: NextRequest) {
   if (!isCronCall) {
     if (!bearer) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     try {
-      await adminAuth().verifyIdToken(bearer);
+      const decoded = await adminAuth().verifyIdToken(bearer);
+      const adminSnap = await adminFirestore().collection('admins').doc(decoded.uid).get();
+      if (!adminSnap.exists) {
+        return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
+      }
     } catch {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }

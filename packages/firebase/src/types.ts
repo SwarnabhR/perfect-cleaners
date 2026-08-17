@@ -387,6 +387,12 @@ export interface CleaningSessionCar {
   // still included in cars[] (not dropped) so the worker sees "Not available" rather
   // than the car silently vanishing from the list.
   status: 'pending' | 'in_progress' | 'done' | 'skipped';
+  // Ops-only "not available today" toggle (Live Cleaning board) — distinct
+  // from status: 'skipped', which means the customer opted out via their own
+  // skipDates. Both must exclude the car from a worker's actionable to-do
+  // list and from the session's completable denominator (see
+  // resolveWorkerTodoCars and the toggleUnavailable totalCars adjustment).
+  unavailable?: boolean;
   cleanedBy?: string;          // Worker ID who cleaned it
   cleanedAt?: Date;
 }
