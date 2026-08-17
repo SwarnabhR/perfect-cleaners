@@ -187,26 +187,29 @@ export default function WorkerDashboard() {
           <Eyebrow style={{ display: 'block', marginBottom: 10 }}>
             {todaysSessions.length > 1 ? `TODAY'S ASSIGNMENTS (${todaysSessions.length})` : "TODAY'S ASSIGNMENT"}
           </Eyebrow>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {todaysSessions.map(s => (
+          <div style={{ background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 14, overflow: 'hidden' }}>
+            {todaysSessions.map((s, i) => (
               <Link key={s.id} href={`/session/${s.id}?from=/worker/dashboard`} style={{ textDecoration: 'none' }}>
-                <Card style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 9, background: 'var(--pc-sage)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Icon name="building-2" size={16} color="var(--pc-sage-ink)" />
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '14px 16px',
+                  borderTop: i === 0 ? 'none' : '1px solid var(--pc-line-faint)',
+                }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 9, background: 'var(--pc-sage)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Icon name="building-2" size={15} color="var(--pc-sage-ink)" />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 600, color: 'var(--pc-fg)', margin: '0 0 2px' }}>
+                    <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 600, color: 'var(--pc-fg)', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {s.societyName}{s.tower ? ` · ${s.tower}` : ''}
                     </p>
                     <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', margin: 0, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
                       {s.status === 'inprogress' ? 'In progress' : s.status === 'done' ? 'Done' : s.status === 'missed' ? 'Missed' : 'Scheduled'}
                     </p>
                   </div>
-                  <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', flexShrink: 0 }}>
-                    {s.completedCars}/{s.totalCars} done
-                  </div>
-                  <Icon name="arrow-right" size={14} color="var(--pc-fg-3)" />
-                </Card>
+                  <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 12, color: 'var(--pc-fg-3)', flexShrink: 0 }}>
+                    {s.completedCars}/{s.totalCars}
+                  </span>
+                </div>
               </Link>
             ))}
           </div>

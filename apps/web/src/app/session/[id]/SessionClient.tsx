@@ -53,13 +53,18 @@ function minutesUntilScheduled(hour: number | null): number | null {
   return Math.round((scheduled.getTime() - Date.now()) / 60_000);
 }
 
-// Red inside 30 minutes of (or past) the scheduled time, yellow inside an hour —
-// matches the operator's "1 hour = yellow, 30 min = red" rule of thumb.
-function urgencyColor(mins: number | null): string | null {
+// Due-status label + colour for a car's scheduled slot — red once the slot
+// has passed (still not done), blue inside the hour leading up to it,
+// muted grey otherwise. Mirrors the red/blue "Yesterday"/"Today" convention
+// list apps use for due dates.
+function scheduleStatus(hour: number | null): { label: string; color: string } | null {
+  if (hour == null) return null;
+  const mins = minutesUntilScheduled(hour);
   if (mins == null) return null;
-  if (mins <= 30) return 'var(--pc-danger)';
-  if (mins <= 60) return 'var(--pc-warning)';
-  return null;
+  const time = formatPreferredTime(hour);
+  if (mins <= 0) return { label: `Overdue · ${time}`, color: 'var(--pc-danger)' };
+  if (mins <= 60) return { label: `Due soon · ${time}`, color: 'var(--pc-info)' };
+  return { label: time, color: 'var(--pc-fg-3)' };
 }
 
 // Not-available (skipped) cars sink to the bottom; done cars sit above them
@@ -103,6 +108,20 @@ function ChevronDown({ open }: { open: boolean }) {
     <span style={{ display: 'inline-flex', transform: `rotate(${open ? 90 : -90}deg)`, transition: 'transform 0.15s ease' }}>
       <ChevronLeft />
     </span>
+  );
+}
+
+// Marks a car's due time as recurring (this session repeats weekly) —
+// same visual cue a "Yesterday / Today / Tomorrow" list app uses next to
+// a repeating task's due date.
+function RepeatIcon({ color }: { color: string }) {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="m17 2 4 4-4 4" />
+      <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+      <path d="m7 22-4-4 4-4" />
+      <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+    </svg>
   );
 }
 
@@ -339,12 +358,12 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
       {/* Car checklist — this is the actual work list; the ring above is just a summary.
           Sorted by urgency (soonest scheduled time first); done cars sink below the
           active work, and not-available (skipped) cars sink to the very bottom. */}
-      <div style={{ width: '100%', maxWidth: 480, display: 'flex', flexDirection: 'column' }}>
-        {sortForWorker(cars).map((car, idx) => {
+      <div style={{ width: '100%', maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {sortForWorker(cars).map(car => {
           const done    = car.status === 'done';
           const skipped = car.status === 'skipped';
           const acting  = actingId === car.customerId;
-          const urgency = !done && !skipped ? urgencyColor(minutesUntilScheduled(car.preferredTime)) : null;
+          const due     = !done && !skipped ? scheduleStatus(car.preferredTime) : null;
           const parkingLabel = car.parkingNumber ? `Parking ${car.parkingNumber}` : '';
           const expanded = expandedId === car.customerId;
           return (
@@ -352,14 +371,8 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
               key={car.customerId}
               style={{
                 background: 'var(--pc-card)',
-                borderTop: idx === 0 ? '1px solid var(--pc-line)' : '1px solid var(--pc-line-faint)',
-                borderLeft: '1px solid var(--pc-line)',
-                borderRight: '1px solid var(--pc-line)',
-                borderBottom: idx === cars.length - 1 ? '1px solid var(--pc-line)' : 'none',
-                borderTopLeftRadius: idx === 0 ? 14 : 0,
-                borderTopRightRadius: idx === 0 ? 14 : 0,
-                borderBottomLeftRadius: idx === cars.length - 1 ? 14 : 0,
-                borderBottomRightRadius: idx === cars.length - 1 ? 14 : 0,
+                border: '1px solid var(--pc-line)',
+                borderRadius: 14,
                 overflow: 'hidden',
               }}
             >
@@ -410,12 +423,13 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
                     }}>
                       Not available today
                     </span>
-                  ) : urgency && !done ? (
+                  ) : due ? (
                     <span style={{
                       display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 4,
-                      fontFamily: 'var(--pc-sans)', fontSize: 11.5, fontWeight: 600, color: urgency,
+                      fontFamily: 'var(--pc-sans)', fontSize: 11.5, fontWeight: 600, color: due.color,
                     }}>
-                      {urgency === 'var(--pc-danger)' ? 'Overdue' : 'Due soon'}
+                      <RepeatIcon color={due.color} />
+                      {due.label}
                     </span>
                   ) : null}
                 </div>
