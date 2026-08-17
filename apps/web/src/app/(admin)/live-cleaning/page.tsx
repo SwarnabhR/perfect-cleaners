@@ -12,6 +12,7 @@ interface CarListItem {
   sessionId: string;
   carIndex: number;
   customerId: string;
+  customerName: string;
   customerPhone: string;
   unitNumber: string;
   parkingNumber: string;
@@ -93,7 +94,7 @@ function DueLine({ car }: { car: CarListItem }) {
 // One tower's card — list header (name + open count) plus its checklist.
 // Extracted so it can be rendered once per bucket without duplicating this
 // markup four times.
-function TowerGroupCard({ group, cars, workerNames, bucket, marking, toggling, isUnavailable, onMarkDone, onToggleUnavailable }: {
+function TowerGroupCard({ group, cars, workerNames, bucket, marking, toggling, isUnavailable, onMarkDone, onToggleUnavailable, onViewDetails }: {
   group: TowerGroupSummary;
   cars: CarListItem[];
   workerNames: string[];
@@ -103,6 +104,7 @@ function TowerGroupCard({ group, cars, workerNames, bucket, marking, toggling, i
   isUnavailable: (c: CarListItem) => boolean;
   onMarkDone: (c: CarListItem) => void;
   onToggleUnavailable: (c: CarListItem) => void;
+  onViewDetails: (c: CarListItem) => void;
 }) {
   return (
     <div style={{ background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 12, overflow: 'hidden' }}>
@@ -208,6 +210,20 @@ function TowerGroupCard({ group, cars, workerNames, bucket, marking, toggling, i
                   )}
                 </div>
 
+                {/* View details — full car/customer info in a popup */}
+                <button
+                  type="button"
+                  onClick={() => onViewDetails(car)}
+                  title="View details"
+                  style={{
+                    width: 28, height: 28, borderRadius: 6, flexShrink: 0,
+                    border: 'none', background: 'transparent', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                >
+                  <Icon name="file-text" size={15} color="var(--pc-fg-3)" />
+                </button>
+
                 {/* Unavailable toggle — hidden for auto-skipped cars, since that
                     comes from the customer's own skip date, not this toggle */}
                 {car.status !== 'skipped' && (
@@ -240,6 +256,97 @@ function TowerGroupCard({ group, cars, workerNames, bucket, marking, toggling, i
   );
 }
 
+// Full-detail popup for one car — customer name, phone, flat, parking,
+// vehicle, tower/society, and scheduled date/time, plus a Mark Clean action.
+function CarDetailsModal({ car, busy, onClose, onMarkDone }: {
+  car: CarListItem; busy: boolean; onClose: () => void; onMarkDone: () => void;
+}) {
+  const done = car.status === 'done';
+  const unavailable = car.unavailable || car.status === 'skipped';
+  const rows: [string, string][] = [
+    ['Customer',  car.customerName || '—'],
+    ['Phone',     car.customerPhone || 'No phone on file'],
+    ['Flat',      car.unitNumber || '—'],
+    ['Parking',   car.parkingNumber || '—'],
+    ['Vehicle',   `${car.carPlate || '—'}${(car.carMake || car.carModel) ? ` · ${[car.carMake, car.carModel].filter(Boolean).join(' ')}` : ''}`],
+    ['Tower',     `${car.tower} · ${car.societyName}`],
+    ['Scheduled', car.scheduledDate.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })],
+    ['Time',      formatSlot(car.preferredTime)],
+  ];
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 100,
+        background: 'rgba(0,0,0,0.5)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 20, boxSizing: 'border-box',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: 420,
+          background: 'var(--pc-card)', border: '1px solid var(--pc-line)',
+          borderRadius: 16, padding: 20, boxSizing: 'border-box',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
+          <div>
+            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 4px' }}>
+              {done ? 'Cleaned' : unavailable ? 'Unavailable' : 'Pending'}
+            </p>
+            <h2 style={{ fontFamily: 'var(--pc-sans)', fontSize: 18, fontWeight: 600, color: 'var(--pc-fg)', margin: 0 }}>
+              Flat {car.unitNumber || '—'}
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            style={{ background: 'none', border: 'none', color: 'var(--pc-fg-3)', cursor: 'pointer', padding: 4, flexShrink: 0 }}
+          >
+            <Icon name="x" size={20} />
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+          {rows.map(([label, value]) => (
+            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+              <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-4)', textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>
+                {label}
+              </span>
+              <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)', textAlign: 'right' }}>
+                {label === 'Phone' && car.customerPhone
+                  ? <a href={`tel:${car.customerPhone}`} style={{ color: 'var(--pc-info)', textDecoration: 'none' }}>{value}</a>
+                  : value}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {!done && !unavailable && (
+          <button
+            type="button"
+            onClick={onMarkDone}
+            disabled={busy}
+            style={{
+              width: '100%', padding: '12px 0', borderRadius: 10,
+              border: 'none', background: 'var(--pc-sage-hi)',
+              fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600,
+              color: 'var(--pc-ink)', letterSpacing: '0.04em',
+              cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1,
+            }}
+          >
+            {busy ? '…' : 'MARK CLEAN'}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function LiveCleaningPage() {
   const [sessions, setSessions] = useState<(CleaningSessionEnhanced & { id: string })[]>([]);
   const [loading, setLoading] = useState(true);
@@ -249,6 +356,7 @@ export default function LiveCleaningPage() {
   const [towers, setTowers] = useState<Set<string>>(new Set());
   const [toggling, setToggling] = useState<string | null>(null);
   const [marking, setMarking] = useState<string | null>(null);
+  const [detailsCar, setDetailsCar] = useState<CarListItem | null>(null);
 
   useEffect(() => {
     return onSnapshot(
@@ -323,6 +431,7 @@ export default function LiveCleaningPage() {
           sessionId: session.id,
           carIndex: idx,
           customerId: car.customerId,
+          customerName: car.customerName ?? '',
           customerPhone: car.customerPhone ?? '',
           unitNumber: car.unitNumber ?? '',
           parkingNumber: car.parkingNumber ?? '',
@@ -590,6 +699,7 @@ export default function LiveCleaningPage() {
                       isUnavailable={isUnavailable}
                       onMarkDone={markDone}
                       onToggleUnavailable={toggleUnavailable}
+                      onViewDetails={setDetailsCar}
                     />
                   ))}
                 </div>
@@ -597,6 +707,15 @@ export default function LiveCleaningPage() {
             );
           })}
         </div>
+      )}
+
+      {detailsCar && (
+        <CarDetailsModal
+          car={detailsCar}
+          busy={marking === `${detailsCar.sessionId}-${detailsCar.carIndex}`}
+          onClose={() => setDetailsCar(null)}
+          onMarkDone={() => { markDone(detailsCar); setDetailsCar(null); }}
+        />
       )}
     </div>
   );

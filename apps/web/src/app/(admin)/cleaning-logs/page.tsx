@@ -52,6 +52,68 @@ const monoLabel: React.CSSProperties = {
   textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0,
 };
 
+// Full-detail popup for one cleaning log entry.
+function LogDetailsModal({ log, onClose }: { log: LiveCleaningLog; onClose: () => void }) {
+  const rows: [string, string][] = [
+    ['Resident',   log.customerName || '—'],
+    ['Unit',       log.unitNumber || '—'],
+    ['Vehicle',    `${log.vehicleRegistration || '—'}${(log.vehicleMake || log.vehicleModel) ? ` · ${[log.vehicleMake, log.vehicleModel].filter(Boolean).join(' ')}` : ''}`],
+    ['Society',    `${log.societyName || '—'}${log.tower ? ` · ${log.tower}` : ''}`],
+    ['Worker',     log.workerName || '—'],
+    ['Service',    SERVICE_LABEL[log.serviceType ?? 'exterior']],
+    ['Cleaned at', fmtDateTime(log.cleanedAt)],
+    ...(log.rating ? [['Rating', `${log.rating} / 5`] as [string, string]] : []),
+  ];
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 100,
+        background: 'rgba(0,0,0,0.5)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 20, boxSizing: 'border-box',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: 420,
+          background: 'var(--pc-card)', border: '1px solid var(--pc-line)',
+          borderRadius: 16, padding: 20, boxSizing: 'border-box',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
+          <h2 style={{ fontFamily: 'var(--pc-sans)', fontSize: 18, fontWeight: 600, color: 'var(--pc-fg)', margin: 0 }}>
+            Unit {log.unitNumber || '—'}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            style={{ background: 'none', border: 'none', color: 'var(--pc-fg-3)', cursor: 'pointer', padding: 4, flexShrink: 0 }}
+          >
+            <Icon name="x" size={20} />
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {rows.map(([label, value]) => (
+            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+              <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-4)', textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>
+                {label}
+              </span>
+              <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)', textAlign: 'right' }}>
+                {value}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function CleaningLogsPage() {
   const [logs,       setLogs]       = useState<LiveCleaningLog[]>([]);
   const [workers,    setWorkers]    = useState<LiveWorker[]>([]);
@@ -60,6 +122,7 @@ export default function CleaningLogsPage() {
   const [search,     setSearch]     = useState('');
   const [expandedWorkerId, setExpandedWorkerId] = useState<string | null>(null);
   const [workerCounts, setWorkerCounts] = useState<Record<string, number>>({});
+  const [detailsLog, setDetailsLog] = useState<LiveCleaningLog | null>(null);
 
   useEffect(() => {
     return onSnapshot(
@@ -118,7 +181,7 @@ export default function CleaningLogsPage() {
   const workersById = new Map(workers.map(w => [w.id, w]));
 
   // ── Time window ──────────────────────────────────────────────────────────
-  const now = Date.now();
+  const now = new Date().getTime();
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
   const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
 
@@ -277,7 +340,7 @@ export default function CleaningLogsPage() {
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--pc-line)' }}>
-                    {['Time', 'Resident', 'Unit', 'Vehicle', 'Service', 'Worker'].map(h => (
+                    {['Time', 'Resident', 'Unit', 'Vehicle', 'Service', 'Worker', ''].map(h => (
                       <th key={h} style={{ padding: '13px 18px', textAlign: 'left', fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
                     ))}
                   </tr>
@@ -291,6 +354,16 @@ export default function CleaningLogsPage() {
                       <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-mono)', fontSize: 12, color: 'var(--pc-fg-2)' }}>{l.vehicleRegistration || '—'}</td>
                       <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)' }}>{SERVICE_LABEL[l.serviceType ?? 'exterior']}</td>
                       <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)' }}>{l.workerName || '—'}</td>
+                      <td style={{ padding: '13px 18px' }}>
+                        <button
+                          type="button"
+                          onClick={() => setDetailsLog(l)}
+                          title="View details"
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex' }}
+                        >
+                          <Icon name="file-text" size={15} color="var(--pc-fg-3)" />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -349,7 +422,7 @@ export default function CleaningLogsPage() {
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                           <thead>
                             <tr style={{ borderBottom: '1px solid var(--pc-line)' }}>
-                              {['Time', 'Unit', 'Resident', 'Vehicle', 'Service'].map(h => (
+                              {['Time', 'Unit', 'Resident', 'Vehicle', 'Service', ''].map(h => (
                                 <th key={h} style={{ padding: '9px 18px 9px 66px', textAlign: 'left', fontFamily: 'var(--pc-sans)', fontSize: 10.5, color: 'var(--pc-fg-3)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
                               ))}
                             </tr>
@@ -365,6 +438,16 @@ export default function CleaningLogsPage() {
                                 <td style={{ padding: '9px 18px', fontFamily: 'var(--pc-sans)', fontSize: 12.5, color: 'var(--pc-fg)' }}>{l.customerName || '—'}</td>
                                 <td style={{ padding: '9px 18px', fontFamily: 'var(--pc-mono)', fontSize: 11.5, color: 'var(--pc-fg-2)' }}>{l.vehicleRegistration || '—'}</td>
                                 <td style={{ padding: '9px 18px', fontFamily: 'var(--pc-sans)', fontSize: 12.5, color: 'var(--pc-fg-2)' }}>{SERVICE_LABEL[l.serviceType ?? 'exterior']}</td>
+                                <td style={{ padding: '9px 18px' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => setDetailsLog(l)}
+                                    title="View details"
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex' }}
+                                  >
+                                    <Icon name="file-text" size={14} color="var(--pc-fg-3)" />
+                                  </button>
+                                </td>
                               </tr>
                             ))}
                           </tbody>
@@ -377,6 +460,10 @@ export default function CleaningLogsPage() {
             </div>
           )}
         </Card>
+      )}
+
+      {detailsLog && (
+        <LogDetailsModal log={detailsLog} onClose={() => setDetailsLog(null)} />
       )}
     </div>
   );
