@@ -52,19 +52,26 @@ function dueLabel(row: WorkerTodoCar, now: Date): { text: string; color: string 
   if (row.dueBucket === 'tomorrow') {
     return { text: `Tomorrow · ${time}`, color: 'var(--pc-fg-4)' };
   }
+  if (row.dueBucket === 'later') {
+    // Not due yet, but a worker can still tap it early for an emergency
+    // clean — getCarUrgency's same-day hour math doesn't apply here since
+    // this row's scheduledDate is a future day, not today.
+    const dateStr = row.scheduledDate.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+    return { text: `${dateStr} · ${time}`, color: 'var(--pc-fg-4)' };
+  }
   const urgency = getCarUrgency(row.preferredTime, row.status, now);
   if (urgency === 'overdue')  return { text: `Overdue · ${time}`,  color: URGENCY_COLOR.overdue };
   if (urgency === 'due-soon') return { text: `Due soon · ${time}`, color: URGENCY_COLOR['due-soon'] };
   return { text: time, color: 'var(--pc-fg-3)' };
 }
 
-const BUCKET_ORDER: Record<CarDueBucket, number> = { overdue: 0, today: 1, tomorrow: 2 };
+const BUCKET_ORDER: Record<CarDueBucket, number> = { overdue: 0, today: 1, tomorrow: 2, later: 3 };
 const URGENCY_ORDER: Record<CarUrgency, number> = { overdue: 0, 'due-soon': 1, later: 2, done: 3 };
 
 function sortTodoCars(rows: WorkerTodoCar[], now: Date): WorkerTodoCar[] {
   return [...rows].sort((a, b) => {
     if (a.dueBucket !== b.dueBucket) return BUCKET_ORDER[a.dueBucket] - BUCKET_ORDER[b.dueBucket];
-    if (a.dueBucket === 'overdue') {
+    if (a.dueBucket === 'overdue' || a.dueBucket === 'later') {
       const sd = a.scheduledDate.getTime() - b.scheduledDate.getTime();
       if (sd !== 0) return sd;
     }
@@ -259,7 +266,7 @@ export default function WorkerDashboard() {
   const towerCounts = (() => {
     const map = new Map<string, { key: string; tower: string; societyName: string; count: number }>();
     for (const c of todoCars) {
-      if (c.dueBucket === 'tomorrow') continue;
+      if (c.dueBucket !== 'overdue' && c.dueBucket !== 'today') continue;
       const key = `${c.societyId}::${c.tower}`;
       const entry = map.get(key) ?? { key, tower: c.tower, societyName: c.societyName, count: 0 };
       entry.count += 1;
@@ -275,6 +282,7 @@ export default function WorkerDashboard() {
   const overdueRows  = visibleCars.filter(c => c.dueBucket === 'overdue');
   const todayRows    = visibleCars.filter(c => c.dueBucket === 'today');
   const tomorrowRows = visibleCars.filter(c => c.dueBucket === 'tomorrow');
+  const laterRows    = visibleCars.filter(c => c.dueBucket === 'later');
 
   const doneToday = logs.length;
 
@@ -368,6 +376,10 @@ export default function WorkerDashboard() {
           <TodoGroup title="OVERDUE"  color="var(--pc-danger)" rows={overdueRows}  actingId={actingId} showTowerTag={showTowerPicker} onToggle={markClean} />
           <TodoGroup title="TODAY"    color="var(--pc-fg-3)"   rows={todayRows}    actingId={actingId} showTowerTag={showTowerPicker} onToggle={markClean} />
           <TodoGroup title="TOMORROW" color="var(--pc-fg-4)"   rows={tomorrowRows} actingId={actingId} showTowerTag={showTowerPicker} onToggle={markClean} />
+          {/* Everything further out — a worker can still tap one early for an
+              emergency clean, so these stay actionable rather than hidden
+              behind the calendar page. */}
+          <TodoGroup title="UPCOMING" color="var(--pc-fg-4)"   rows={laterRows}    actingId={actingId} showTowerTag={showTowerPicker} onToggle={markClean} />
 
           <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', textAlign: 'center', margin: '4px 0 0', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
             {doneToday} car{doneToday !== 1 ? 's' : ''} cleaned today

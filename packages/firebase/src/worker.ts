@@ -129,7 +129,7 @@ export function resolveTodaysTowerGroups(sessions: TowerSession[]): TowerGroupSu
   return [...groups.values()].sort((a, b) => a.tower.localeCompare(b.tower, 'en', { numeric: true }));
 }
 
-export type CarDueBucket = 'overdue' | 'today' | 'tomorrow';
+export type CarDueBucket = 'overdue' | 'today' | 'tomorrow' | 'later';
 
 function startOfDay(d: Date): Date {
   const x = new Date(d);
@@ -138,16 +138,17 @@ function startOfDay(d: Date): Date {
 }
 
 /**
- * Which relative-day bucket a session's scheduledDate falls into, capped at
- * tomorrow — anything further out belongs on the calendar page, not a
- * worker's day-to-day to-do list. Returns null outside that window.
+ * Which relative-day bucket a session's scheduledDate falls into. Unbounded
+ * in both directions — a worker must be able to see (and, for an emergency
+ * early clean, act on) every not-done car regardless of how far overdue or
+ * how far out it's scheduled, not just a same-week window.
  */
-export function getSessionDayBucket(scheduledDate: Date, now: Date = new Date()): CarDueBucket | null {
+export function getSessionDayBucket(scheduledDate: Date, now: Date = new Date()): CarDueBucket {
   const diffDays = Math.round((startOfDay(scheduledDate).getTime() - startOfDay(now).getTime()) / 86_400_000);
   if (diffDays < 0) return 'overdue';
   if (diffDays === 0) return 'today';
   if (diffDays === 1) return 'tomorrow';
-  return null;
+  return 'later';
 }
 
 export interface WorkerTodoCar {
@@ -176,7 +177,9 @@ type TodoSession = Pick<
 
 /**
  * Flattens a worker's assigned sessions into per-car to-do rows spanning
- * Overdue (any earlier not-done session) / Today / Tomorrow — the multi-day
+ * every not-done car: Overdue (any earlier not-done session, no matter how
+ * many days back) / Today / Tomorrow / Later (any future scheduled session —
+ * a worker can still tap one early for an emergency clean) — the multi-day
  * view getCarUrgency below deliberately doesn't attempt (see its docstring).
  * Without this, a session that missed its date just silently dropped off
  * anything scoped to "today", which is the dashboard bug this exists to fix.
@@ -188,7 +191,6 @@ export function resolveWorkerTodoCars(sessions: TodoSession[], now: Date = new D
     const d = toJsDate(s.scheduledDate);
     if (!d) continue;
     const dueBucket = getSessionDayBucket(d, now);
-    if (!dueBucket) continue;
     if (!s.societyId || !s.tower) continue;
 
     for (const c of s.cars ?? []) {
