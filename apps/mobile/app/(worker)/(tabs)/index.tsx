@@ -9,7 +9,7 @@ import { Building2 } from 'lucide-react-native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import type { Worker } from '@pc/firebase';
-import { getAssignedSocieties, resolveTodaysTowerGroups } from '@pc/firebase';
+import { getAssignedSocieties, resolveTowerGroups } from '@pc/firebase';
 import type { TowerGroupSummary } from '@pc/firebase';
 import { typography, spacing, radii } from '@pc/tokens';
 import { useThemeColors } from '../../../theme';
@@ -103,7 +103,7 @@ export default function WorkerHome() {
       });
   }, [uid]);
 
-  const towerGroups: TowerGroupSummary[] = resolveTodaysTowerGroups(sessions);
+  const towerGroups: TowerGroupSummary[] = resolveTowerGroups(sessions);
 
   const total = towerGroups.reduce((sum, g) => sum + g.totalCars, 0);
   const done  = towerGroups.reduce((sum, g) => sum + g.completedCars, 0);

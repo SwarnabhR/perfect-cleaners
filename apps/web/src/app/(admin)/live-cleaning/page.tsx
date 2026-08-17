@@ -393,7 +393,6 @@ export default function LiveCleaningPage() {
 
     try {
       const sessionRef = doc(db, 'cleaningSessions', car.sessionId);
-      let record: Record<string, unknown> | undefined;
       await runTransaction(db, async tx => {
         const snap = await tx.get(sessionRef);
         if (!snap.exists()) return;
@@ -440,7 +439,8 @@ export default function LiveCleaningPage() {
         collection(db, 'customerSocietyRecords'),
         where('customerId', '==', car.customerId),
       ));
-      record = recordsSnap.docs.find(d => (d.data() as any).tower === car.tower)?.data() as Record<string, unknown>
+      const record: Record<string, unknown> | undefined =
+        recordsSnap.docs.find(d => (d.data() as Record<string, unknown>).tower === car.tower)?.data() as Record<string, unknown> | undefined
         ?? recordsSnap.docs[0]?.data() as Record<string, unknown> | undefined;
 
       if (record?.customerPhone) {
