@@ -1,28 +1,31 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ScrollView, View, Text, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Alert,
+  StyleSheet, ActivityIndicator,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Building2, CheckCircle2, Circle, Loader, Clock } from 'lucide-react-native';
+import { Building2 } from 'lucide-react-native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
-import type { Worker, CleaningSessionCar } from '@pc/firebase';
-import { getAssignedSocieties } from '@pc/firebase';
+import type { Worker } from '@pc/firebase';
+import { getAssignedSocieties, resolveTodaysTowerGroups } from '@pc/firebase';
+import type { TowerGroupSummary } from '@pc/firebase';
 import { typography, spacing, radii } from '@pc/tokens';
 import { useThemeColors } from '../../../theme';
 import { useSharedStyles } from '../../../theme/sharedStyles';
+import { Group, Row } from '../../../components/RowGroup';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface SessionCar extends CleaningSessionCar {
-  sessionId: string;
-  carIndex: number;
+interface SessionSummary {
+  id: string;
   societyId: string;
   societyName: string;
   tower: string;
-  sessionType: 'wash' | 'deep-clean';
-  logId?: string;
+  scheduledDate: Date;
+  totalCars: number;
+  completedCars: number;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -39,31 +42,18 @@ function isLocalDateMatch(a: Date, b: Date): boolean {
     && a.getDate() === b.getDate();
 }
 
-function getTimeSlotLabel(hour: number): string {
-  const h      = Math.floor(hour);
-  const m      = Math.round((hour % 1) * 60);
-  const h12    = h % 12 || 12;
-  const ampm   = h < 12 ? 'AM' : 'PM';
-  const period = h < 12 ? 'Morning' : h < 17 ? 'Afternoon' : 'Evening';
-  return `${h12}:${String(m).padStart(2, '0')} ${ampm} · ${period}`;
-}
-
-function unitSort(a: SessionCar, b: SessionCar) {
-  return (a.unitNumber ?? '').localeCompare(b.unitNumber ?? '', 'en', { numeric: true });
-}
-
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function WorkerHome() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const c      = useThemeColors();
   const ss     = useSharedStyles();
 
-  const [worker,          setWorker]          = useState<(Worker & { id: string }) | null>(null);
-  const [cars,            setCars]            = useState<SessionCar[]>([]);
-  const [loading,         setLoading]         = useState(true);
-  const [toggling,        setToggling]        = useState(false);
-  const [marking,         setMarking]         = useState<string | null>(null);
+  const [worker,   setWorker]   = useState<(Worker & { id: string }) | null>(null);
+  const [sessions, setSessions] = useState<SessionSummary[]>([]);
+  const [loading,  setLoading]  = useState(true);
+  const [toggling, setToggling] = useState(false);
 
   const uid = auth().currentUser?.uid;
 
@@ -80,76 +70,32 @@ export default function WorkerHome() {
     if (!uid) return;
 
     const today = todayStart();
-    const tomorrow = new Date(today.getTime() + 86400000);
 
     return firestore()
       .collection('cleaningSessions')
       .where('workerIds', 'array-contains', uid)
       .onSnapshot(snap => {
-        const allCars: SessionCar[] = [];
+        const todaysSessions: SessionSummary[] = [];
 
         snap.docs.forEach(d => {
           const data = d.data() as any;
           const scheduledDate = data.scheduledDate?.toDate?.() ?? data.scheduledDate;
-
           if (!scheduledDate) return;
           const sessionDate = scheduledDate instanceof Date ? scheduledDate : new Date(scheduledDate);
           if (!isLocalDateMatch(sessionDate, today)) return;
 
-          const societyId   = data.societyId ?? '';
-          const societyName = data.societyName ?? '';
-          const tower = data.tower ?? '';
-          const sessionType: 'wash' | 'deep-clean' = data.sessionType ?? 'wash';
-
-          (data.cars ?? []).forEach((car: any, idx: number) => {
-            // Skipped (customer opted out today) cars are shown on the web
-            // session view as "Not available" but stay out of the mobile
-            // worker list entirely — nothing here is actionable for them.
-            if (car.status === 'skipped') return;
-
-            allCars.push({
-              customerId:    car.customerId ?? '',
-              customerName:  car.customerName ?? '',
-              unitNumber:    car.unitNumber ?? '',
-              carPlate:      car.carPlate ?? '',
-              carMake:       car.carMake ?? '',
-              carModel:      car.carModel ?? '',
-              preferredTime: car.preferredTime ?? 9,
-              status:        car.status ?? 'pending',
-              cleanedBy:     car.cleanedBy,
-              cleanedAt:     car.cleanedAt,
-              sessionId:     d.id,
-              carIndex:      idx,
-              societyId,
-              societyName,
-              tower,
-              sessionType,
-            });
+          todaysSessions.push({
+            id: d.id,
+            societyId: data.societyId ?? '',
+            societyName: data.societyName ?? '',
+            tower: data.tower ?? '',
+            scheduledDate: sessionDate,
+            totalCars: data.totalCars ?? (data.cars ?? []).length,
+            completedCars: data.completedCars ?? 0,
           });
         });
 
-        setCars(allCars.sort(unitSort));
-
-        // Load today's cleaning logs to enrich with logId
-        firestore()
-          .collection('cleaningLogs')
-          .where('workerId', '==', uid)
-          .where('cleanedAt', '>=', firestore.Timestamp.fromDate(today))
-          .get()
-          .then(logsSnap => {
-            const logMap = new Map<string, string>();
-            logsSnap.docs.forEach(d => {
-              const data = d.data();
-              const key = `${data.sessionId ?? ''}_${data.vehicleRegistration ?? ''}`;
-              logMap.set(key, d.id);
-            });
-            setCars(prev => prev.map(c => ({
-              ...c,
-              logId: logMap.get(`${c.sessionId}_${c.carPlate}`),
-            })));
-          })
-          .catch(() => {});
-
+        setSessions(todaysSessions);
         setLoading(false);
       }, err => {
         console.warn('[WorkerHome] sessions:', err.message);
@@ -157,80 +103,11 @@ export default function WorkerHome() {
       });
   }, [uid]);
 
-  const markCleaning = useCallback(async (sessionId: string, carIndex: number) => {
-    setCars(prev => prev.map(c =>
-      c.sessionId === sessionId && c.carIndex === carIndex
-        ? { ...c, status: 'in_progress' as const }
-        : c,
-    ));
-    try {
-      await firestore()
-        .collection('cleaningSessions')
-        .doc(sessionId)
-        .update({
-          [`cars.${carIndex}.status`]: 'in_progress',
-          updatedAt: firestore.FieldValue.serverTimestamp(),
-        });
-    } catch {} // optimistic update already applied
-  }, []);
+  const towerGroups: TowerGroupSummary[] = resolveTodaysTowerGroups(sessions);
 
-  const markDone = useCallback(async (car: SessionCar) => {
-    if (marking || !uid || !worker) return;
-    const key = `${car.sessionId}-${car.carIndex}`;
-    setMarking(key);
-
-    try {
-      const sessionRef = firestore().collection('cleaningSessions').doc(car.sessionId);
-      const batch = firestore().batch();
-
-      // Update session cars array
-      batch.update(sessionRef, {
-        [`cars.${car.carIndex}.status`]: 'done',
-        [`cars.${car.carIndex}.cleanedBy`]: uid,
-        [`cars.${car.carIndex}.cleanedAt`]: firestore.FieldValue.serverTimestamp(),
-        completedCars: firestore.FieldValue.increment(1),
-        updatedAt: firestore.FieldValue.serverTimestamp(),
-      });
-
-      // Write cleaning log
-      const logRef = firestore().collection('cleaningLogs').doc();
-      batch.set(logRef, {
-        id:                  logRef.id,
-        sessionId:           car.sessionId,
-        societyId:           car.societyId,
-        societyName:         car.societyName,
-        tower:               car.tower,
-        vehicleRegistration: car.carPlate,
-        vehicleMake:         car.carMake,
-        vehicleModel:        car.carModel,
-        customerId:          car.customerId,
-        customerName:        car.customerName,
-        unitNumber:          car.unitNumber,
-        workerId:            uid,
-        workerName:          worker.name,
-        cleanedAt:           firestore.FieldValue.serverTimestamp(),
-        serviceType:         'exterior',
-        servicePrice:        0,
-        photoUrls:           [],
-        notificationSent:    false,
-        billed:              false,
-      });
-
-      await batch.commit();
-    } catch (err: any) {
-      Alert.alert('Error', err?.message ?? 'Failed to mark car as done.');
-    } finally {
-      setMarking(null);
-    }
-  }, [marking, uid, worker]);
-
-  const total   = cars.length;
-  const done    = cars.filter(c => c.status === 'done').length;
-  const ongoing = cars.filter(c => c.status === 'in_progress').length;
-  const pct     = total > 0 ? Math.round((done / total) * 100) : 0;
-
-  // Group cars by time slot
-  const timeSlots = [...new Set(cars.map(c => c.preferredTime))].sort((a, b) => a - b);
+  const total = towerGroups.reduce((sum, g) => sum + g.totalCars, 0);
+  const done  = towerGroups.reduce((sum, g) => sum + g.completedCars, 0);
+  const pct   = total > 0 ? Math.round((done / total) * 100) : 0;
 
   const assignedSocieties = worker ? getAssignedSocieties(worker) : [];
 
@@ -293,8 +170,8 @@ export default function WorkerHome() {
                 {assignedSocieties.length > 1 ? `${assignedSocieties.length} SOCIETIES` : "TODAY'S ASSIGNMENT"}
               </Text>
             </View>
-            <View style={[s.progressBadge, pct === 100 && s.progressBadgeDone]}>
-              <Text style={[s.progressBadgeText, pct === 100 && s.progressBadgeTextDone]}>
+            <View style={[s.progressBadge, pct === 100 && total > 0 && s.progressBadgeDone]}>
+              <Text style={[s.progressBadgeText, pct === 100 && total > 0 && s.progressBadgeTextDone]}>
                 {done}/{total} done
               </Text>
             </View>
@@ -305,19 +182,6 @@ export default function WorkerHome() {
               <View style={[s.progressFill, { width: `${pct}%` as any }]} />
             </View>
           )}
-
-          <View style={s.statsRow}>
-            {[
-              { label: 'PENDING',  value: total - done - ongoing, color: c.fg3    },
-              { label: 'CLEANING', value: ongoing,                color: c.warning },
-              { label: 'DONE',     value: done,                   color: c.success },
-            ].map(({ label, value, color }) => (
-              <View key={label} style={s.statItem}>
-                <Text style={[s.statValue, { color }]}>{value}</Text>
-                <Text style={s.statLabel}>{label}</Text>
-              </View>
-            ))}
-          </View>
         </View>
       ) : (
         <View style={s.noSocietyCard}>
@@ -329,116 +193,38 @@ export default function WorkerHome() {
         </View>
       )}
 
-      {/* Car list grouped by time slot */}
+      {/* Towers list */}
       {assignedSocieties.length > 0 && (
-        <View style={s.listSection}>
+        <>
           {loading ? (
             <ActivityIndicator style={{ marginTop: spacing[8] }} color={c.fg3} />
-          ) : cars.length === 0 ? (
+          ) : towerGroups.length === 0 ? (
             <View style={s.emptyList}>
               <Text style={s.emptyListText}>
                 No cars scheduled for today. Sessions are created by your admin.
               </Text>
             </View>
           ) : (
-            timeSlots.map(slot => {
-              const slotCars = cars.filter(c => c.preferredTime === slot);
-              const slotDone = slotCars.filter(c => c.status === 'done').length;
-              return (
-                <View key={slot} style={s.slotSection}>
-                  {/* Time slot header */}
-                  <View style={s.slotHeader}>
-                    <Clock size={14} color={c.fg3} strokeWidth={1.5} />
-                    <Text style={s.slotLabel}>{getTimeSlotLabel(slot)}</Text>
-                    <Text style={s.slotMeta}>
-                      {slotDone}/{slotCars.length} done
-                    </Text>
-                  </View>
-
-                  {/* Cars in this slot */}
-                  <View style={s.carList}>
-                    {slotCars.map(car => (
-                      <CarRow
-                        key={`${car.sessionId}-${car.carIndex}`}
-                        car={car}
-                        isMarking={marking === `${car.sessionId}-${car.carIndex}`}
-                        onStartCleaning={() => markCleaning(car.sessionId, car.carIndex)}
-                        onMarkDone={() => markDone(car)}
-                        c={c}
-                        s={s}
-                      />
-                    ))}
-                  </View>
-                </View>
-              );
-            })
+            <Group header="TODAY'S TOWERS">
+              {towerGroups.map((group, i) => (
+                <Row
+                  key={group.key}
+                  icon={<Building2 size={16} color={c.sageInk} strokeWidth={1.5} />}
+                  title={group.tower}
+                  sub={group.societyName}
+                  value={`${group.openCars} open`}
+                  onPress={() => router.push({
+                    pathname: '/(worker)/tower-detail',
+                    params: { societyId: group.societyId, tower: group.tower },
+                  })}
+                  isLast={i === towerGroups.length - 1}
+                />
+              ))}
+            </Group>
           )}
-        </View>
+        </>
       )}
     </ScrollView>
-  );
-}
-
-// ─── Car Row ──────────────────────────────────────────────────────────────────
-
-function CarRow({
-  car, isMarking, onStartCleaning, onMarkDone, c, s,
-}: {
-  car: SessionCar;
-  isMarking: boolean;
-  onStartCleaning: () => void;
-  onMarkDone: () => void;
-  c: ReturnType<typeof useThemeColors>;
-  s: ReturnType<typeof makeStyles>;
-}) {
-  const isDone     = car.status === 'done';
-  const isCleaning = car.status === 'in_progress';
-
-  return (
-    <View style={[s.carRow, isDone && s.carRowDone]}>
-      <View style={s.carStatusIcon}>
-        {isDone
-          ? <CheckCircle2 size={20} color={c.success} strokeWidth={2} />
-          : isCleaning
-            ? <Loader size={20} color={c.warning} strokeWidth={1.5} />
-            : <Circle size={20} color={c.fg3} strokeWidth={1.5} />
-        }
-      </View>
-
-      <View style={s.carInfo}>
-        <View style={s.carInfoTop}>
-          <Text style={[s.carUnit, isDone && s.textMuted]}>{car.unitNumber}</Text>
-          <Text style={[s.carName, isDone && s.textMuted]} numberOfLines={1}>
-            {car.customerName}
-          </Text>
-          {car.sessionType === 'deep-clean' && (
-            <View style={s.deepCleanTag}>
-              <Text style={s.deepCleanTagText}>DEEP CLEAN</Text>
-            </View>
-          )}
-        </View>
-        <Text style={[s.carPlate, isDone && s.textMuted]}>
-          {car.carPlate}
-          {(car.carMake || car.carModel)
-            ? ` · ${[car.carMake, car.carModel].filter(Boolean).join(' ')}`
-            : ''}
-        </Text>
-      </View>
-
-      {!isDone && (
-        <TouchableOpacity
-          style={[s.carAction, isCleaning ? s.carActionDone : s.carActionStart]}
-          onPress={isCleaning ? onMarkDone : onStartCleaning}
-          disabled={isMarking}
-          activeOpacity={0.8}
-        >
-          {isMarking
-            ? <ActivityIndicator size="small" color="#fff" />
-            : <Text style={s.carActionText}>{isCleaning ? 'DONE ✓' : 'CLEAN →'}</Text>
-          }
-        </TouchableOpacity>
-      )}
-    </View>
   );
 }
 
@@ -470,35 +256,10 @@ function makeStyles(c: ReturnType<typeof useThemeColors>) {
     progressBadgeTextDone: { color: c.success },
     progressTrack:         { height: 4, backgroundColor: c.lineFaint, borderRadius: 999, overflow: 'hidden' },
     progressFill:          { height: '100%', backgroundColor: c.sage, borderRadius: 999 },
-    statsRow:              { flexDirection: 'row', borderTopWidth: 1, borderTopColor: c.line, paddingTop: spacing[3] },
-    statItem:              { flex: 1, alignItems: 'center', gap: 3 },
-    statValue:             { fontFamily: typography.sansSemiBold, fontSize: 20 },
-    statLabel:             { fontFamily: typography.mono, fontSize: 9, color: c.fg3, letterSpacing: 0.6 },
     noSocietyCard:         { marginHorizontal: spacing[5], marginTop: spacing[4], backgroundColor: c.card, borderRadius: radii.lg, borderWidth: 1, borderColor: c.line, padding: spacing[8], alignItems: 'center', gap: spacing[3] },
     noSocietyTitle:        { fontFamily: typography.serif, fontSize: 18, color: c.fg, letterSpacing: -0.2 },
     noSocietyBody:         { fontFamily: typography.sans, fontSize: 13, color: c.fg2, textAlign: 'center', lineHeight: 20 },
-    listSection:           { paddingHorizontal: spacing[5], paddingTop: spacing[5], gap: spacing[4] },
-    slotSection:           { gap: spacing[2] },
-    slotHeader:            { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    slotLabel:             { fontFamily: typography.sansSemiBold, fontSize: 13, color: c.fg, letterSpacing: -0.1 },
-    slotMeta:              { fontFamily: typography.mono, fontSize: 10, color: c.fg3, letterSpacing: 0.4, marginLeft: 'auto' },
-    carList:               { gap: spacing[2] },
-    emptyList:             { paddingVertical: spacing[6] },
+    emptyList:             { paddingVertical: spacing[6], paddingHorizontal: spacing[5] },
     emptyListText:         { fontFamily: typography.sans, fontSize: 13, color: c.fg3, textAlign: 'center', lineHeight: 20 },
-    carRow:                { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, borderRadius: radii.md, padding: 12 },
-    carRowDone:            { opacity: 0.5 },
-    carStatusIcon:         { flexShrink: 0 },
-    carInfo:               { flex: 1, gap: 3 },
-    carInfoTop:            { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
-    carUnit:               { fontFamily: typography.mono, fontSize: 11, color: c.sageHi, letterSpacing: 0.6 },
-    carName:               { fontFamily: typography.sansMedium, fontSize: 13, color: c.fg, flex: 1 },
-    deepCleanTag:          { flexShrink: 0, backgroundColor: c.info + '26', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
-    deepCleanTagText:      { fontFamily: typography.mono, fontSize: 8.5, color: c.info, letterSpacing: 0.4 },
-    carPlate:              { fontFamily: typography.mono, fontSize: 10.5, color: c.fg3, letterSpacing: 0.5 },
-    textMuted:             { color: c.fg4 },
-    carAction:             { borderRadius: radii.pill, borderWidth: 1, paddingVertical: 7, paddingHorizontal: 12, minWidth: 72, alignItems: 'center' },
-    carActionStart:        { backgroundColor: c.sage, borderColor: c.sage },
-    carActionDone:         { backgroundColor: c.success, borderColor: c.success },
-    carActionText:         { fontFamily: typography.mono, fontSize: 10.5, color: '#fff', letterSpacing: 0.6 },
   });
 }
