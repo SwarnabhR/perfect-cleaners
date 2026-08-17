@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import {
   collection, query, where, onSnapshot,
@@ -84,8 +84,8 @@ function sortTodoCars(rows: WorkerTodoCar[], now: Date): WorkerTodoCar[] {
   });
 }
 
-function CarRow({ row, isFirst, busy, showTowerTag, onToggle }: {
-  row: WorkerTodoCar; isFirst: boolean; busy: boolean; showTowerTag: boolean; onToggle: () => void;
+function CarRow({ row, isFirst, busy, showTowerTag, onToggle, onViewDetails }: {
+  row: WorkerTodoCar; isFirst: boolean; busy: boolean; showTowerTag: boolean; onToggle: () => void; onViewDetails: () => void;
 }) {
   const due = dueLabel(row, new Date());
   return (
@@ -146,13 +146,120 @@ function CarRow({ row, isFirst, busy, showTowerTag, onToggle }: {
           )}
         </div>
       </div>
+
+      <button
+        type="button"
+        onClick={onViewDetails}
+        aria-label="View details"
+        title="View details"
+        style={{
+          flexShrink: 0, width: 28, height: 28, borderRadius: 6,
+          border: 'none', background: 'transparent', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}
+      >
+        <Icon name="file-text" size={15} color="var(--pc-fg-3)" />
+      </button>
     </div>
   );
 }
 
-function TodoGroup({ title, color, rows, actingId, showTowerTag, onToggle }: {
+// Full-detail popup for one car — everything CarRow doesn't already show
+// inline (customer name, status) plus a duplicate of the visible fields, so
+// a worker can read everything without hunting across a dense row.
+function CarDetailsModal({ car, busy, onClose, onToggle }: {
+  car: WorkerTodoCar; busy: boolean; onClose: () => void; onToggle: () => void;
+}) {
+  const due = dueLabel(car, new Date());
+  const done = car.status === 'done';
+  const rows: [string, ReactNode][] = [
+    ['Customer',     car.customerName || '—'],
+    ['Phone',        car.customerPhone
+      ? <a href={`tel:${car.customerPhone}`} style={{ color: 'var(--pc-info)', textDecoration: 'none' }}>{car.customerPhone}</a>
+      : 'No phone on file'],
+    ['Flat',         car.unitNumber || '—'],
+    ['Parking',      car.parkingNumber || '—'],
+    ['Vehicle',      `${car.carPlate || '—'}${(car.carMake || car.carModel) ? ` · ${[car.carMake, car.carModel].filter(Boolean).join(' ')}` : ''}`],
+    ['Tower',        `${car.tower} · ${car.societyName}`],
+    ['Scheduled',    car.scheduledDate.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })],
+    ['Time',         formatSlot(car.preferredTime)],
+  ];
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 100,
+        background: 'rgba(0,0,0,0.5)',
+        display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: 480,
+          background: 'var(--pc-card)', border: '1px solid var(--pc-line)',
+          borderRadius: '16px 16px 0 0',
+          padding: '20px 20px calc(20px + env(safe-area-inset-bottom))',
+          boxSizing: 'border-box',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
+          <div>
+            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: due.color, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 4px' }}>
+              {done ? 'Cleaned' : due.text}
+            </p>
+            <h2 style={{ fontFamily: 'var(--pc-serif)', fontSize: 20, fontWeight: 400, color: 'var(--pc-fg)', margin: 0 }}>
+              Flat {car.unitNumber || '—'}
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            style={{ background: 'none', border: 'none', color: 'var(--pc-fg-3)', cursor: 'pointer', padding: 4, flexShrink: 0 }}
+          >
+            <Icon name="x" size={20} />
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+          {rows.map(([label, value]) => (
+            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+              <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-4)', textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>
+                {label}
+              </span>
+              <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)', textAlign: 'right' }}>
+                {value}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {!done && (
+          <button
+            type="button"
+            onClick={onToggle}
+            disabled={busy}
+            style={{
+              width: '100%', padding: '14px 0', borderRadius: 14,
+              border: 'none', background: 'var(--pc-sage-hi)',
+              fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600,
+              color: 'var(--pc-ink)', letterSpacing: '0.04em',
+              cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1,
+            }}
+          >
+            {busy ? '…' : 'MARK CLEAN'}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TodoGroup({ title, color, rows, actingId, showTowerTag, onToggle, onViewDetails }: {
   title: string; color: string; rows: WorkerTodoCar[]; actingId: string | null; showTowerTag: boolean;
-  onToggle: (row: WorkerTodoCar) => void;
+  onToggle: (row: WorkerTodoCar) => void; onViewDetails: (row: WorkerTodoCar) => void;
 }) {
   if (rows.length === 0) return null;
   return (
@@ -169,6 +276,7 @@ function TodoGroup({ title, color, rows, actingId, showTowerTag, onToggle }: {
             busy={actingId === row.customerId}
             showTowerTag={showTowerTag}
             onToggle={() => onToggle(row)}
+            onViewDetails={() => onViewDetails(row)}
           />
         ))}
       </div>
@@ -183,6 +291,7 @@ export default function WorkerDashboard() {
   const [loading,  setLoading]  = useState(true);
   const [toggling, setToggling] = useState(false);
   const [selectedTower, setSelectedTower] = useState<string | null>(null);
+  const [detailsCar, setDetailsCar] = useState<WorkerTodoCar | null>(null);
   const [actingId, setActingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState('');
 
@@ -420,13 +529,13 @@ export default function WorkerDashboard() {
       {/* Per-car to-do checklist, grouped Overdue / Today / Tomorrow */}
       {visibleCars.length > 0 && (
         <div>
-          <TodoGroup title="OVERDUE"  color="var(--pc-danger)" rows={overdueRows}  actingId={actingId} showTowerTag={showTowerPicker} onToggle={markClean} />
-          <TodoGroup title="TODAY"    color="var(--pc-fg-3)"   rows={todayRows}    actingId={actingId} showTowerTag={showTowerPicker} onToggle={markClean} />
-          <TodoGroup title="TOMORROW" color="var(--pc-fg-4)"   rows={tomorrowRows} actingId={actingId} showTowerTag={showTowerPicker} onToggle={markClean} />
+          <TodoGroup title="OVERDUE"  color="var(--pc-danger)" rows={overdueRows}  actingId={actingId} showTowerTag={showTowerPicker} onToggle={markClean} onViewDetails={setDetailsCar} />
+          <TodoGroup title="TODAY"    color="var(--pc-fg-3)"   rows={todayRows}    actingId={actingId} showTowerTag={showTowerPicker} onToggle={markClean} onViewDetails={setDetailsCar} />
+          <TodoGroup title="TOMORROW" color="var(--pc-fg-4)"   rows={tomorrowRows} actingId={actingId} showTowerTag={showTowerPicker} onToggle={markClean} onViewDetails={setDetailsCar} />
           {/* Everything further out — a worker can still tap one early for an
               emergency clean, so these stay actionable rather than hidden
               behind the calendar page. */}
-          <TodoGroup title="UPCOMING" color="var(--pc-fg-4)"   rows={laterRows}    actingId={actingId} showTowerTag={showTowerPicker} onToggle={markClean} />
+          <TodoGroup title="UPCOMING" color="var(--pc-fg-4)"   rows={laterRows}    actingId={actingId} showTowerTag={showTowerPicker} onToggle={markClean} onViewDetails={setDetailsCar} />
 
           <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', textAlign: 'center', margin: '4px 0 0', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
             {doneToday} car{doneToday !== 1 ? 's' : ''} cleaned today
@@ -527,6 +636,15 @@ export default function WorkerDashboard() {
             )}
           </div>
         </div>
+      )}
+
+      {detailsCar && (
+        <CarDetailsModal
+          car={detailsCar}
+          busy={actingId === detailsCar.customerId}
+          onClose={() => setDetailsCar(null)}
+          onToggle={() => { markClean(detailsCar); setDetailsCar(null); }}
+        />
       )}
     </div>
   );
