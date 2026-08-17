@@ -4,11 +4,10 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   collection, query, where, onSnapshot,
-  doc, updateDoc, orderBy, limit, Timestamp, getDocs,
+  doc, updateDoc, orderBy, limit, Timestamp,
 } from 'firebase/firestore';
-import { db } from '@pc/firebase';
-import { resolveTodaysSocieties } from '@pc/firebase';
-import type { CleaningLog, CustomerSocietyRecord, CleaningSessionEnhanced } from '@pc/firebase';
+import { db, resolveTodaysSocieties, resolveWorkerTodoCars, getCarUrgency } from '@pc/firebase';
+import type { CleaningLog, CleaningSessionEnhanced, WorkerTodoCar, CarUrgency, CarDueBucket } from '@pc/firebase';
 import { useWorkerAuth } from '@/components/WorkerAuthProvider';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
@@ -29,35 +28,153 @@ function formatTime(ts: Timestamp | Date | null | undefined): string {
   return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 }
 
-function toDate(ts: Timestamp | Date | null | undefined): Date | null {
-  if (!ts) return null;
-  return ts instanceof Timestamp ? ts.toDate() : new Date(ts);
+function formatSlot(hour: number): string {
+  const h    = Math.floor(hour);
+  const m    = Math.round((hour % 1) * 60);
+  const h12  = h % 12 || 12;
+  const ampm = h < 12 ? 'AM' : 'PM';
+  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
 }
 
-function isSameDay(a: Date, b: Date): boolean {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+// Colour/label convention shared with the admin live-cleaning board — red
+// overdue, blue due-soon — extended here with the multi-day buckets
+// resolveWorkerTodoCars adds on top of getCarUrgency's same-day math.
+const URGENCY_COLOR: Record<CarUrgency, string> = {
+  overdue: 'var(--pc-danger)', 'due-soon': 'var(--pc-info)', later: 'var(--pc-fg-3)', done: 'var(--pc-fg-3)',
+};
+
+function dueLabel(row: WorkerTodoCar, now: Date): { text: string; color: string } {
+  const time = formatSlot(row.preferredTime);
+  if (row.dueBucket === 'overdue') {
+    const dateStr = row.scheduledDate.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+    return { text: `Overdue · ${dateStr}`, color: URGENCY_COLOR.overdue };
+  }
+  if (row.dueBucket === 'tomorrow') {
+    return { text: `Tomorrow · ${time}`, color: 'var(--pc-fg-4)' };
+  }
+  const urgency = getCarUrgency(row.preferredTime, row.status, now);
+  if (urgency === 'overdue')  return { text: `Overdue · ${time}`,  color: URGENCY_COLOR.overdue };
+  if (urgency === 'due-soon') return { text: `Due soon · ${time}`, color: URGENCY_COLOR['due-soon'] };
+  return { text: time, color: 'var(--pc-fg-3)' };
+}
+
+const BUCKET_ORDER: Record<CarDueBucket, number> = { overdue: 0, today: 1, tomorrow: 2 };
+const URGENCY_ORDER: Record<CarUrgency, number> = { overdue: 0, 'due-soon': 1, later: 2, done: 3 };
+
+function sortTodoCars(rows: WorkerTodoCar[], now: Date): WorkerTodoCar[] {
+  return [...rows].sort((a, b) => {
+    if (a.dueBucket !== b.dueBucket) return BUCKET_ORDER[a.dueBucket] - BUCKET_ORDER[b.dueBucket];
+    if (a.dueBucket === 'overdue') {
+      const sd = a.scheduledDate.getTime() - b.scheduledDate.getTime();
+      if (sd !== 0) return sd;
+    }
+    if (a.dueBucket === 'today') {
+      const ua = getCarUrgency(a.preferredTime, a.status, now);
+      const ub = getCarUrgency(b.preferredTime, b.status, now);
+      if (ua !== ub) return URGENCY_ORDER[ua] - URGENCY_ORDER[ub];
+    }
+    return a.preferredTime - b.preferredTime;
+  });
+}
+
+function CarRow({ row, isFirst, busy, showTowerTag, onToggle }: {
+  row: WorkerTodoCar; isFirst: boolean; busy: boolean; showTowerTag: boolean; onToggle: () => void;
+}) {
+  const due = dueLabel(row, new Date());
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px',
+      borderTop: isFirst ? 'none' : '1px solid var(--pc-line-faint)',
+    }}>
+      <button
+        type="button"
+        onClick={onToggle}
+        disabled={busy}
+        aria-label="Mark clean"
+        style={{
+          width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+          border: '1.5px solid var(--pc-line-strong)', background: 'transparent',
+          cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.5 : 1,
+        }}
+      />
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 600, color: 'var(--pc-fg)', margin: '0 0 3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          Flat {row.unitNumber || '—'} · {row.carPlate}
+        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          {row.customerPhone && (
+            <a
+              href={`tel:${row.customerPhone}`}
+              onClick={e => e.stopPropagation()}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-info)', textDecoration: 'none' }}
+            >
+              <Icon name="phone" size={11} color="var(--pc-info)" />
+              {row.customerPhone}
+            </a>
+          )}
+          {showTowerTag && (
+            <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-4)', letterSpacing: '0.04em' }}>
+              {row.tower} · {row.societyName}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+        <Icon name="clock" size={11} color={due.color} />
+        <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 11.5, fontWeight: 600, color: due.color, whiteSpace: 'nowrap' }}>
+          {due.text}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function TodoGroup({ title, color, rows, actingId, showTowerTag, onToggle }: {
+  title: string; color: string; rows: WorkerTodoCar[]; actingId: string | null; showTowerTag: boolean;
+  onToggle: (row: WorkerTodoCar) => void;
+}) {
+  if (rows.length === 0) return null;
+  return (
+    <div>
+      <Eyebrow color={color} style={{ display: 'block', marginBottom: 8 }}>
+        {title} · {rows.length}
+      </Eyebrow>
+      <div style={{ background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 14, overflow: 'hidden', marginBottom: 16 }}>
+        {rows.map((row, i) => (
+          <CarRow
+            key={`${row.sessionId}-${row.customerId}`}
+            row={row}
+            isFirst={i === 0}
+            busy={actingId === row.customerId}
+            showTowerTag={showTowerTag}
+            onToggle={() => onToggle(row)}
+          />
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default function WorkerDashboard() {
   const { worker, user } = useWorkerAuth();
   const [logs,     setLogs]     = useState<LogRow[]>([]);
   const [sessions, setSessions] = useState<SessionRow[]>([]);
-  const [total,    setTotal]    = useState(0);
   const [loading,  setLoading]  = useState(true);
   const [toggling, setToggling] = useState(false);
+  const [selectedTower, setSelectedTower] = useState<string | null>(null);
+  const [actingId, setActingId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState('');
 
   // Live cleaning sessions this worker is assigned to (any tower/society) —
   // this is the actual source of truth for assignment, independent of the
   // single static worker.assignedSocietyId field below. Without this, a
   // worker assigned to two towers on the same day had no way to see either
   // one on their own dashboard.
-  // No status filter — this used to be scoped to ['scheduled','inprogress'],
-  // which meant a session flipping to 'done' (the worker finishing their
-  // actual job) dropped out of `sessions` entirely, taking the "assigned
-  // society" card with it (resolveTodaysSocieties falls back to the static
-  // field, which is usually unset) and making a *completed* dashboard look
-  // like an *unconfigured* one. todaysSessions/resolveTodaysSocieties below
-  // already scope everything to today, so this can safely fetch every status.
+  // No status filter — resolveWorkerTodoCars below does its own
+  // done/missed/date filtering, and needs sessions from *any* date (not just
+  // today) to surface overdue work that was previously invisible here.
   useEffect(() => {
     if (!user) return;
     const q = query(
@@ -85,37 +202,9 @@ export default function WorkerDashboard() {
     }, err => { console.warn('[WorkerDashboard] logs listener:', err); setLoading(false); });
   }, [user]);
 
-  // See resolveTodaysSocieties (@pc/firebase) — prefers live cleaningSessions
-  // assignments for *today* over the legacy static assignedSocietyId(s) field,
-  // so a worker whose only assignment is a live session isn't shown "No
-  // society assigned". Restricted to today only: the sessions listener below
-  // has no date filter (the generate-sessions cron pre-stages a full week),
-  // so pulling in a future-only assignment here would both mislabel this
-  // "TODAY'S ASSIGNMENT" card and inflate the total-cars denominator below
-  // with cars that aren't due until later in the week.
+  // See resolveTodaysSocieties (@pc/firebase) — used here only to tell "no
+  // assignment at all" apart from "assigned, just nothing due right now".
   const assignedSocieties = worker ? resolveTodaysSocieties(worker, sessions) : [];
-  const assignedSocietyIds = assignedSocieties.map(a => a.id);
-
-  // Total subscribed cars across all assigned societies (for progress denominator).
-  // Society-program enrollment lives in customerSocietyRecords, not as a
-  // societyId field on the customers collection (that field is only ever set
-  // for old/bulk-imported docs) — querying customers here always returned 0,
-  // which is why the card showed "X/? done".
-  useEffect(() => {
-    if (assignedSocietyIds.length === 0) { setTotal(0); return; }
-    const q = query(
-      collection(db, 'customerSocietyRecords'),
-      where('societyId', 'in', assignedSocietyIds.slice(0, 30)),
-      where('status', '==', 'active'),
-    );
-    // One-time fetch is enough for the denominator
-    getDocs(q).then(snap => {
-      const carCount = snap.docs.reduce(
-        (sum, d) => sum + ((d.data() as CustomerSocietyRecord).cars?.length || 1), 0,
-      );
-      setTotal(carCount);
-    }).catch(err => console.warn('[WorkerDashboard] car count fetch:', err));
-  }, [assignedSocietyIds.join(',')]);
 
   async function toggleOnline() {
     if (!user || !worker) return;
@@ -124,14 +213,70 @@ export default function WorkerDashboard() {
     setToggling(false);
   }
 
-  const done = logs.length;
-  const pct  = total > 0 ? Math.round((done / total) * 100) : 0;
+  // Marks one car clean via the same worker-scoped, server-validated route
+  // SessionClient uses (apps/web/src/app/session/[id]) — the dashboard now
+  // drives it per-row instead of per-session, but the auth/side-effect
+  // guarantees (cleaningLogs entry, billing, notifications) stay in one place.
+  async function markClean(row: WorkerTodoCar) {
+    if (!user) return;
+    setActingId(row.customerId);
+    setActionError('');
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch(`/api/session/${row.sessionId}`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body:    JSON.stringify({ action: 'clean_car', customerId: row.customerId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Failed.');
+      // Optimistic local update — the sessions listener above will confirm
+      // the same values shortly after via Firestore.
+      setSessions(prev => prev.map(s => s.id === row.sessionId
+        ? {
+            ...s,
+            completedCars: data.completedCars,
+            totalCars:     data.totalCars,
+            status:        data.status,
+            cars: s.cars.map(c => c.customerId === row.customerId ? { ...c, status: 'done' } : c),
+          }
+        : s));
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setActingId(null);
+    }
+  }
 
   const now      = new Date();
   const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 17 ? 'Good afternoon' : 'Good evening';
 
-  const todaysSessions = sessions
-    .filter(s => { const d = toDate(s.scheduledDate as unknown as Timestamp); return d ? isSameDay(d, now) : false; });
+  const todoCars = sortTodoCars(resolveWorkerTodoCars(sessions, now), now);
+
+  // Tower picker counts — Overdue + Today only, per the earlier "A tower · 77"
+  // reference: tomorrow's cars aren't due yet, so they don't inflate a count
+  // that's meant to answer "how much is left for this tower right now".
+  const towerCounts = (() => {
+    const map = new Map<string, { key: string; tower: string; societyName: string; count: number }>();
+    for (const c of todoCars) {
+      if (c.dueBucket === 'tomorrow') continue;
+      const key = `${c.societyId}::${c.tower}`;
+      const entry = map.get(key) ?? { key, tower: c.tower, societyName: c.societyName, count: 0 };
+      entry.count += 1;
+      map.set(key, entry);
+    }
+    return [...map.values()].sort((a, b) => b.count - a.count);
+  })();
+  const showTowerPicker = towerCounts.length > 1;
+
+  const visibleCars = selectedTower
+    ? todoCars.filter(c => `${c.societyId}::${c.tower}` === selectedTower)
+    : todoCars;
+  const overdueRows  = visibleCars.filter(c => c.dueBucket === 'overdue');
+  const todayRows    = visibleCars.filter(c => c.dueBucket === 'today');
+  const tomorrowRows = visibleCars.filter(c => c.dueBucket === 'tomorrow');
+
+  const doneToday = logs.length;
 
   return (
     <div style={{ padding: 'var(--pc-space-5) var(--pc-screen-pad-lg)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-5)' }}>
@@ -163,60 +308,87 @@ export default function WorkerDashboard() {
         </button>
       </div>
 
-      {/* Stats strip */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 10 }}>
-        {[
-          { label: 'Cars Done Today', value: done,                                        icon: 'check-circle' },
-          { label: 'Remaining',       value: total > 0 ? Math.max(0, total - done) : '—', icon: 'circle-dot'  },
-        ].map(s => (
-          <Card key={s.label} style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <Icon name={s.icon} size={16} color="var(--pc-fg-3)" />
-            <div style={{ fontFamily: 'var(--pc-sans)', fontSize: 18, fontWeight: 600, color: 'var(--pc-fg)', lineHeight: 1 }}>
-              {s.value}
-            </div>
-            <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 9, color: 'var(--pc-fg-4)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-              {s.label}
-            </div>
-          </Card>
-        ))}
-      </div>
+      {actionError && (
+        <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-danger)', margin: 0 }}>{actionError}</p>
+      )}
 
-      {/* Live cleaning session assignments — can be more than one tower/society on the same day */}
-      {todaysSessions.length > 0 && (
+      {/* Tower picker — mirrors a to-do app's list sidebar (name + open count);
+          tapping one filters the checklist below to just that tower. */}
+      {showTowerPicker && (
         <div>
-          <Eyebrow style={{ display: 'block', marginBottom: 10 }}>
-            {todaysSessions.length > 1 ? `TODAY'S ASSIGNMENTS (${todaysSessions.length})` : "TODAY'S ASSIGNMENT"}
-          </Eyebrow>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <Eyebrow>YOUR TOWERS</Eyebrow>
+            {selectedTower && (
+              <button
+                type="button"
+                onClick={() => setSelectedTower(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-sage-hi)' }}
+              >
+                Show all
+              </button>
+            )}
+          </div>
           <div style={{ background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 14, overflow: 'hidden' }}>
-            {todaysSessions.map((s, i) => (
-              <Link key={s.id} href={`/session/${s.id}?from=/worker/dashboard`} style={{ textDecoration: 'none' }}>
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  padding: '14px 16px',
-                  borderTop: i === 0 ? 'none' : '1px solid var(--pc-line-faint)',
-                }}>
-                  <div style={{ width: 34, height: 34, borderRadius: 9, background: 'var(--pc-sage)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Icon name="building-2" size={15} color="var(--pc-sage-ink)" />
-                  </div>
+            {towerCounts.map((t, i) => {
+              const active = selectedTower === t.key;
+              return (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => setSelectedTower(active ? null : t.key)}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '12px 16px', background: active ? 'var(--pc-card-hi)' : 'transparent',
+                    border: 'none', borderTop: i === 0 ? 'none' : '1px solid var(--pc-line-faint)',
+                    cursor: 'pointer', textAlign: 'left',
+                  }}
+                >
+                  <Icon name="list-checks" size={16} color={active ? 'var(--pc-sage-hi)' : 'var(--pc-fg-3)'} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 600, color: 'var(--pc-fg)', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {s.societyName}{s.tower ? ` · ${s.tower}` : ''}
+                    <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 600, color: 'var(--pc-fg)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {t.tower}
                     </p>
-                    <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', margin: 0, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                      {s.status === 'inprogress' ? 'In progress' : s.status === 'done' ? 'Done' : s.status === 'missed' ? 'Missed' : 'Scheduled'}
+                    <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', margin: '1px 0 0' }}>
+                      {t.societyName}
                     </p>
                   </div>
-                  <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 12, color: 'var(--pc-fg-3)', flexShrink: 0 }}>
-                    {s.completedCars}/{s.totalCars}
+                  <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 15, color: 'var(--pc-fg-3)', flexShrink: 0 }}>
+                    {t.count}
                   </span>
-                </div>
-              </Link>
-            ))}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* Full future/past browsing now lives on the calendar page — this dashboard
+      {/* Per-car to-do checklist, grouped Overdue / Today / Tomorrow */}
+      {visibleCars.length > 0 && (
+        <div>
+          <TodoGroup title="OVERDUE"  color="var(--pc-danger)" rows={overdueRows}  actingId={actingId} showTowerTag={showTowerPicker} onToggle={markClean} />
+          <TodoGroup title="TODAY"    color="var(--pc-fg-3)"   rows={todayRows}    actingId={actingId} showTowerTag={showTowerPicker} onToggle={markClean} />
+          <TodoGroup title="TOMORROW" color="var(--pc-fg-4)"   rows={tomorrowRows} actingId={actingId} showTowerTag={showTowerPicker} onToggle={markClean} />
+
+          <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', textAlign: 'center', margin: '4px 0 0', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+            {doneToday} car{doneToday !== 1 ? 's' : ''} cleaned today
+          </p>
+        </div>
+      )}
+
+      {!loading && assignedSocieties.length > 0 && visibleCars.length === 0 && (
+        <Card style={{ padding: 'var(--pc-space-8)', textAlign: 'center' }}>
+          <Icon name="check-circle" size={32} color="var(--pc-success)" style={{ margin: '0 auto 12px' }} />
+          <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 20, color: 'var(--pc-fg)', margin: '0 0 8px' }}>All caught up.</p>
+          <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: '0 0 4px', lineHeight: 1.6 }}>
+            No cars left to clean right now.
+          </p>
+          <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', margin: 0, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+            {doneToday} car{doneToday !== 1 ? 's' : ''} cleaned today
+          </p>
+        </Card>
+      )}
+
+      {/* Full future/past browsing lives on the calendar page — this dashboard
           stays focused on "what do I do right now". */}
       <Link href="/worker/calendar" style={{ textDecoration: 'none' }}>
         <Card style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -232,55 +404,7 @@ export default function WorkerDashboard() {
         </Card>
       </Link>
 
-      {/* Society assignment card */}
-      {assignedSocieties.length > 0 ? (
-        <div>
-          <Eyebrow style={{ display: 'block', marginBottom: 10 }}>
-            {assignedSocieties.length > 1 ? `YOUR SOCIETIES (${assignedSocieties.length})` : "TODAY'S ASSIGNMENT"}
-          </Eyebrow>
-          <Card style={{ padding: 'var(--pc-space-5)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--pc-sage)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon name="building-2" size={18} color="var(--pc-sage-ink)" />
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 16, fontWeight: 600, color: 'var(--pc-fg)', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {assignedSocieties.map(a => a.name).join(', ')}
-                </p>
-                <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', margin: 0, letterSpacing: '0.05em' }}>
-                  {assignedSocieties.length > 1 ? 'ASSIGNED SOCIETIES' : 'ASSIGNED SOCIETY'}
-                </p>
-              </div>
-              <div style={{
-                flexShrink: 0,
-                padding: '4px 12px', borderRadius: 999,
-                background: pct === 100 ? 'rgba(111,174,106,0.15)' : 'rgba(91,111,82,0.15)',
-                border: `1px solid ${pct === 100 ? 'rgba(111,174,106,0.4)' : 'rgba(91,111,82,0.4)'}`,
-                fontFamily: 'var(--pc-mono)', fontSize: 11,
-                color: pct === 100 ? 'var(--pc-success)' : 'var(--pc-sage-hi)',
-              }}>
-                {done}/{total > 0 ? total : '?'} done
-              </div>
-            </div>
-
-            {/* Progress bar */}
-            {total > 0 && (
-              <div style={{ height: 4, background: 'var(--pc-line)', borderRadius: 999, overflow: 'hidden', marginBottom: 16 }}>
-                <div style={{ height: '100%', background: pct === 100 ? 'var(--pc-success)' : 'var(--pc-sage)', borderRadius: 999, width: `${pct}%`, transition: 'width 0.4s ease' }} />
-              </div>
-            )}
-
-            <Link href="/worker/cleaning-logs" style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-sage-hi)',
-              textDecoration: 'none',
-            }}>
-              <span>View full cleaning log</span>
-              <Icon name="arrow-right" size={14} color="var(--pc-sage-hi)" />
-            </Link>
-          </Card>
-        </div>
-      ) : (
+      {assignedSocieties.length === 0 && (
         <Card style={{ padding: 'var(--pc-space-8)', textAlign: 'center' }}>
           <Icon name="building-2" size={32} color="var(--pc-fg-4)" style={{ margin: '0 auto 12px' }} />
           <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 20, color: 'var(--pc-fg)', margin: '0 0 8px' }}>No society assigned.</p>
@@ -323,15 +447,6 @@ export default function WorkerDashboard() {
             )}
           </div>
         </div>
-      )}
-
-      {!loading && logs.length === 0 && assignedSocieties.length > 0 && (
-        <Card style={{ padding: 'var(--pc-space-8)', textAlign: 'center' }}>
-          <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 20, color: 'var(--pc-fg)', margin: '0 0 8px' }}>No cleans logged yet.</p>
-          <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: 0, lineHeight: 1.6 }}>
-            Use the mobile app to mark cars as cleaned. Logs appear here in real time.
-          </p>
-        </Card>
       )}
     </div>
   );

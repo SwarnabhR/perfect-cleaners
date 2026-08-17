@@ -129,6 +129,93 @@ export function resolveTodaysTowerGroups(sessions: TowerSession[]): TowerGroupSu
   return [...groups.values()].sort((a, b) => a.tower.localeCompare(b.tower, 'en', { numeric: true }));
 }
 
+export type CarDueBucket = 'overdue' | 'today' | 'tomorrow';
+
+function startOfDay(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+/**
+ * Which relative-day bucket a session's scheduledDate falls into, capped at
+ * tomorrow — anything further out belongs on the calendar page, not a
+ * worker's day-to-day to-do list. Returns null outside that window.
+ */
+export function getSessionDayBucket(scheduledDate: Date, now: Date = new Date()): CarDueBucket | null {
+  const diffDays = Math.round((startOfDay(scheduledDate).getTime() - startOfDay(now).getTime()) / 86_400_000);
+  if (diffDays < 0) return 'overdue';
+  if (diffDays === 0) return 'today';
+  if (diffDays === 1) return 'tomorrow';
+  return null;
+}
+
+export interface WorkerTodoCar {
+  sessionId: string;
+  societyId: string;
+  societyName: string;
+  tower: string;
+  scheduledDate: Date;
+  dueBucket: CarDueBucket;
+  customerId: string;
+  customerName: string;
+  customerPhone: string;
+  unitNumber: string;
+  parkingNumber: string;
+  carPlate: string;
+  carMake: string;
+  carModel: string;
+  preferredTime: number;
+  status: CleaningSessionCar['status'];
+}
+
+type TodoSession = Pick<
+  CleaningSessionEnhanced,
+  'societyId' | 'societyName' | 'tower' | 'scheduledDate' | 'status' | 'cars'
+> & { id: string };
+
+/**
+ * Flattens a worker's assigned sessions into per-car to-do rows spanning
+ * Overdue (any earlier not-done session) / Today / Tomorrow — the multi-day
+ * view getCarUrgency below deliberately doesn't attempt (see its docstring).
+ * Without this, a session that missed its date just silently dropped off
+ * anything scoped to "today", which is the dashboard bug this exists to fix.
+ */
+export function resolveWorkerTodoCars(sessions: TodoSession[], now: Date = new Date()): WorkerTodoCar[] {
+  const rows: WorkerTodoCar[] = [];
+  for (const s of sessions) {
+    if (s.status === 'done' || s.status === 'missed') continue;
+    const d = toJsDate(s.scheduledDate);
+    if (!d) continue;
+    const dueBucket = getSessionDayBucket(d, now);
+    if (!dueBucket) continue;
+    if (!s.societyId || !s.tower) continue;
+
+    for (const c of s.cars ?? []) {
+      if (c.status !== 'pending' && c.status !== 'in_progress') continue;
+      rows.push({
+        sessionId:     s.id,
+        societyId:     s.societyId,
+        societyName:   s.societyName ?? s.societyId,
+        tower:         s.tower,
+        scheduledDate: d,
+        dueBucket,
+        customerId:    c.customerId,
+        customerName:  c.customerName ?? '',
+        customerPhone: c.customerPhone ?? '',
+        unitNumber:    c.unitNumber ?? '',
+        parkingNumber: c.parkingNumber ?? '',
+        carPlate:      c.carPlate,
+        carMake:       c.carMake,
+        carModel:      c.carModel,
+        preferredTime: c.preferredTime,
+        status:        c.status,
+      });
+    }
+  }
+  return rows;
+}
+
 export type CarUrgency = 'done' | 'overdue' | 'due-soon' | 'later';
 
 /**
