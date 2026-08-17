@@ -339,92 +339,95 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
       {/* Car checklist — this is the actual work list; the ring above is just a summary.
           Sorted by urgency (soonest scheduled time first); done cars sink below the
           active work, and not-available (skipped) cars sink to the very bottom. */}
-      <div style={{ width: '100%', maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {sortForWorker(cars).map(car => {
+      <div style={{ width: '100%', maxWidth: 480, display: 'flex', flexDirection: 'column' }}>
+        {sortForWorker(cars).map((car, idx) => {
           const done    = car.status === 'done';
           const skipped = car.status === 'skipped';
           const acting  = actingId === car.customerId;
           const urgency = !done && !skipped ? urgencyColor(minutesUntilScheduled(car.preferredTime)) : null;
-          const borderColor = skipped ? 'var(--pc-line)' : urgency ?? (done ? 'var(--pc-line)' : 'var(--pc-line-strong)');
           const parkingLabel = car.parkingNumber ? `Parking ${car.parkingNumber}` : '';
           const expanded = expandedId === car.customerId;
           return (
             <div
               key={car.customerId}
               style={{
-                borderRadius: 14,
                 background: 'var(--pc-card)',
-                border: `1px solid ${borderColor}`,
+                borderTop: idx === 0 ? '1px solid var(--pc-line)' : '1px solid var(--pc-line-faint)',
+                borderLeft: '1px solid var(--pc-line)',
+                borderRight: '1px solid var(--pc-line)',
+                borderBottom: idx === cars.length - 1 ? '1px solid var(--pc-line)' : 'none',
+                borderTopLeftRadius: idx === 0 ? 14 : 0,
+                borderTopRightRadius: idx === 0 ? 14 : 0,
+                borderBottomLeftRadius: idx === cars.length - 1 ? 14 : 0,
+                borderBottomRightRadius: idx === cars.length - 1 ? 14 : 0,
                 overflow: 'hidden',
               }}
             >
-              <div
-                role="button"
-                tabIndex={0}
-                onClick={() => setExpandedId(expanded ? null : car.customerId)}
-                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedId(expanded ? null : car.customerId); } }}
-                style={{
-                  width: '100%', display: 'flex', alignItems: 'center', gap: 12,
-                  padding: '14px 16px', boxSizing: 'border-box',
-                  cursor: 'pointer',
-                  opacity: done || skipped ? 0.55 : 1,
-                }}
-              >
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  {urgency && (
-                    <span style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 5, marginBottom: 4,
-                      fontFamily: 'var(--pc-mono)', fontSize: 10, color: urgency,
-                      textTransform: 'uppercase', letterSpacing: '0.06em',
-                    }}>
-                      <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: '50%', background: urgency, display: 'inline-block' }} />
-                      {urgency === 'var(--pc-danger)' ? 'Due now' : 'Due soon'}
-                    </span>
+              <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', boxSizing: 'border-box' }}>
+                {/* Checkbox — the primary action; tap to mark this car clean */}
+                <button
+                  type="button"
+                  disabled={done || skipped || acting}
+                  onClick={() => sendAction('clean_car', car.customerId)}
+                  aria-label={done ? 'Cleaned' : 'Mark clean'}
+                  style={{
+                    flexShrink: 0, width: 24, height: 24, borderRadius: '50%',
+                    border: `1.5px solid ${done ? 'var(--pc-sage-hi)' : skipped ? 'var(--pc-line)' : 'var(--pc-line-strong)'}`,
+                    background: done ? 'var(--pc-sage-hi)' : 'transparent',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: done || skipped ? 'default' : 'pointer',
+                    opacity: acting ? 0.5 : 1,
+                  }}
+                >
+                  {done && (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--pc-ink)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
                   )}
-                  <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 600, color: 'var(--pc-fg)', margin: '0 0 2px' }}>
-                    {car.unitNumber ? `${car.unitNumber} · ` : ''}{car.customerName || 'Resident'}
+                </button>
+
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setExpandedId(expanded ? null : car.customerId)}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedId(expanded ? null : car.customerId); } }}
+                  style={{ flex: 1, minWidth: 0, cursor: 'pointer', opacity: done || skipped ? 0.55 : 1 }}
+                >
+                  <p style={{
+                    fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 600, color: 'var(--pc-fg)', margin: '0 0 2px',
+                    textDecoration: done ? 'line-through' : 'none', textDecorationColor: 'var(--pc-fg-3)',
+                  }}>
+                    {car.unitNumber ? `Flat ${car.unitNumber} · ` : ''}{car.customerName || 'Resident'}
                   </p>
                   <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', margin: 0, letterSpacing: '0.03em' }}>
                     {car.carPlate}{(car.carMake || car.carModel) && ` · ${[car.carMake, car.carModel].filter(Boolean).join(' ')}`}
                     {parkingLabel && ` · ${parkingLabel}`}
                   </p>
+                  {skipped ? (
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 4,
+                      fontFamily: 'var(--pc-sans)', fontSize: 11.5, color: 'var(--pc-fg-4)',
+                    }}>
+                      Not available today
+                    </span>
+                  ) : urgency && !done ? (
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 4,
+                      fontFamily: 'var(--pc-sans)', fontSize: 11.5, fontWeight: 600, color: urgency,
+                    }}>
+                      {urgency === 'var(--pc-danger)' ? 'Overdue' : 'Due soon'}
+                    </span>
+                  ) : null}
                 </div>
-                {skipped ? (
-                  <span style={{
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-4)',
-                    textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0,
-                  }}>
-                    Not available
-                  </span>
-                ) : done ? (
-                  <span style={{
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-success)',
-                    textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0,
-                  }}>
-                    ✓ Done
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    disabled={acting}
-                    onClick={e => { e.stopPropagation(); sendAction('clean_car', car.customerId); }}
-                    style={{
-                      flexShrink: 0, padding: '10px 16px', borderRadius: 10, border: 'none',
-                      background: acting ? 'var(--pc-line)' : 'var(--pc-warm)',
-                      fontFamily: 'var(--pc-sans)', fontSize: 12, fontWeight: 700,
-                      color: acting ? 'var(--pc-fg-4)' : 'var(--pc-ink)',
-                      cursor: acting ? 'default' : 'pointer',
-                      letterSpacing: '0.03em', textTransform: 'uppercase',
-                    }}
-                  >
-                    {acting ? '…' : 'Mark clean'}
-                  </button>
-                )}
-                <span style={{ flexShrink: 0, color: 'var(--pc-fg-4)' }}>
+
+                <button
+                  type="button"
+                  onClick={() => setExpandedId(expanded ? null : car.customerId)}
+                  aria-label={expanded ? 'Hide details' : 'Show details'}
+                  style={{ flexShrink: 0, background: 'none', border: 'none', color: 'var(--pc-fg-4)', cursor: 'pointer', padding: 4 }}
+                >
                   <ChevronDown open={expanded} />
-                </span>
+                </button>
               </div>
 
               {expanded && (
