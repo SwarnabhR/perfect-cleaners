@@ -213,10 +213,10 @@ export default function WorkerDashboard() {
     setToggling(false);
   }
 
-  // Marks one car clean via the same worker-scoped, server-validated route
-  // SessionClient uses (apps/web/src/app/session/[id]) — the dashboard now
-  // drives it per-row instead of per-session, but the auth/side-effect
-  // guarantees (cleaningLogs entry, billing, notifications) stay in one place.
+  // Marks one car clean via the worker-scoped, server-validated
+  // /api/session/[id] route — driven per-row here instead of per-session,
+  // but the auth/side-effect guarantees (cleaningLogs entry, billing,
+  // notifications) stay in one place.
   async function markClean(row: WorkerTodoCar) {
     if (!user) return;
     setActingId(row.customerId);

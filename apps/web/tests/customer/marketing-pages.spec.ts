@@ -1,11 +1,10 @@
 /**
  * Marketing / support surface — /for-societies (top-of-funnel entry point),
  * /contact (lead-capture form), /app (mobile-app waitlist), /societies
- * (legacy redirect), /session/[id] (public, unauthenticated live-cleaning
- * tracker). All run unauthenticated — no customer session needed.
+ * (legacy redirect). All run unauthenticated — no customer session needed.
  */
 import { test, expect } from '@playwright/test';
-import { adminDb, Timestamp, PW_TEST_PREFIX } from '../lib/firestore-admin';
+import { PW_TEST_PREFIX } from '../lib/firestore-admin';
 
 test.use({ storageState: { cookies: [], origins: [] } });
 
@@ -101,43 +100,6 @@ test.describe('App waitlist', () => {
     await expect(page.locator('button:has-text("Notify me")')).toBeDisabled();
     await page.fill('#waitlist-phone', '98765');
     await expect(page.locator('button:has-text("Notify me")')).toBeDisabled();
-  });
-
-});
-
-test.describe('Live cleaning session tracker (public, unauthenticated)', () => {
-
-  test('a valid session id renders live progress', async ({ page }) => {
-    const ref = await adminDb().collection('cleaningSessions').add({
-      societyId:     'pw_test_society',
-      societyName:   `${PW_TEST_PREFIX}Society`,
-      tower:         'Tower Z',
-      workerId:      'pw_test_worker',
-      workerName:    `${PW_TEST_PREFIX}Worker`,
-      scheduledDate: Timestamp.now(),
-      status:        'inprogress',
-      totalCars:     10,
-      completedCars: 4,
-      startedAt:     Timestamp.now(),
-    });
-
-    await page.goto(`/session/${ref.id}`);
-    // The society name also appears in the <title> tag, which the text=
-    // locator matches too (strict-mode violation) — scope to the visible h1.
-    await expect(page.locator('h1')).toContainText('Tower Z');
-    await expect(page.locator('h1')).toContainText(`${PW_TEST_PREFIX}Society`);
-    // "X cars cleaned" is the done-state summary only — mid-progress shows a
-    // count circle ("4" / "of 10") plus a "Cars cleaned" label instead.
-    await expect(page.locator('text=of 10')).toBeVisible({ timeout: 10_000 });
-    await expect(page.locator('text=Cars cleaned')).toBeVisible();
-  });
-
-  test('a nonexistent session id 404s', async ({ page }) => {
-    // Next dev server serves the not-found boundary's content with a 200 in
-    // dev mode (only production returns the real 404 status) — assert on
-    // the rendered not-found content instead of the HTTP status.
-    await page.goto('/session/pw-test-nonexistent-session-id');
-    await expect(page.locator('h1')).toContainText('Page not found.');
   });
 
 });

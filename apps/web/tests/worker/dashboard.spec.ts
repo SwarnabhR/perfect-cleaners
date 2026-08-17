@@ -25,8 +25,7 @@ test.describe('Worker Dashboard', () => {
   });
 
   test('renders greeting and worker name', async ({ page }) => {
-    const greetings = ['Good morning', 'Good afternoon', 'Good evening'];
-    const heading   = page.locator('h1');
+    const heading = page.locator('h1');
     await expect(heading).toBeVisible({ timeout: 10_000 });
     const text = await heading.textContent();
     // Heading ends with worker's first name followed by a period
@@ -39,9 +38,15 @@ test.describe('Worker Dashboard', () => {
     ).toBeVisible({ timeout: 10_000 });
   });
 
-  test('KPI stats strip renders three cards', async ({ page }) => {
-    await expect(page.locator('text=Cars Done Today').or(page.locator('text=cars done today'))).toBeVisible({ timeout: 10_000 });
-    await expect(page.locator('text=Remaining').or(page.locator('text=remaining'))).toBeVisible();
+  // The dashboard's content is now conditional on live data (per-car
+  // checklist / "All caught up" / "No society assigned"), so — unlike the
+  // old always-on stat cards — the one thing guaranteed to render is exactly
+  // one of these three states.
+  test('renders one of: checklist, all-caught-up, or no-society state', async ({ page }) => {
+    await expect(
+      page.locator('text=/\\d+ cars? cleaned today/')
+        .or(page.locator('text=No society assigned.'))
+    ).toBeVisible({ timeout: 10_000 });
   });
 
   test('bottom tab bar has three navigation items', async ({ page }) => {
@@ -66,11 +71,8 @@ test.describe('Worker Dashboard', () => {
     }
   });
 
-  test('society assignment card or "no society" message is shown', async ({ page }) => {
-    await expect(
-      page.locator('text=ASSIGNED SOCIETY')
-        .or(page.locator('text=No society assigned.'))
-    ).toBeVisible({ timeout: 10_000 });
+  test('View full calendar link is always visible', async ({ page }) => {
+    await expect(page.locator('text=View full calendar')).toBeVisible({ timeout: 10_000 });
   });
 
   test('online toggle changes worker status', async ({ page }) => {
@@ -115,10 +117,10 @@ base.describe('Worker Dashboard — empty states', () => {
     await page.waitForURL('**/worker/dashboard', { timeout: 15_000 });
 
     await baseExpect(page.locator('text=No society assigned.')).toBeVisible({ timeout: 10_000 });
-    await baseExpect(page.locator('text=ASSIGNED SOCIETY')).not.toBeVisible();
+    await baseExpect(page.locator('text=YOUR TOWERS')).not.toBeVisible();
   });
 
-  base('shows "No cleans logged yet." for a worker assigned to a society with zero cleans today', async ({ page }) => {
+  base('shows the "All caught up" empty state for a worker assigned to a society with nothing to clean', async ({ page }) => {
     const societiesSnap = await adminDb().collection('societies').where('isActive', '==', true).limit(1).get();
     if (societiesSnap.empty) { base.skip(true, 'No active society to assign'); return; }
     const society = societiesSnap.docs[0];
@@ -138,8 +140,9 @@ base.describe('Worker Dashboard — empty states', () => {
     await signInWithBypassToken(page, uid);
     await page.waitForURL('**/worker/dashboard', { timeout: 15_000 });
 
-    await baseExpect(page.locator('text=ASSIGNED SOCIETY')).toBeVisible({ timeout: 10_000 });
-    await baseExpect(page.locator('text=No cleans logged yet.')).toBeVisible({ timeout: 10_000 });
+    await baseExpect(page.locator('text=No society assigned.')).not.toBeVisible();
+    await baseExpect(page.locator('text=All caught up.')).toBeVisible({ timeout: 10_000 });
+    await baseExpect(page.locator('text=0 cars cleaned today')).toBeVisible();
   });
 
 });
@@ -159,10 +162,14 @@ base.describe('Worker Dashboard — empty states', () => {
 // firestore.rules now also accepts
 // resource.data.workerIds.hasAny([request.auth.uid]) (deployed) — confirmed
 // live via a fresh worker + workerIds-only session before un-skipping these.
+//
+// The dashboard is now per-car, not per-session — a session with an empty
+// cars[] renders nothing in the checklist regardless of totalCars, so every
+// fixture below populates real car entries.
 
 base.describe('Worker Dashboard — live session assignments', () => {
 
-  base('shows a session card linking to /session/[id] for a scheduled assignment', async ({ page }) => {
+  base('renders per-car checklist rows for a scheduled session with cars', async ({ page }) => {
     const ts  = Date.now();
     const uid = `pw_test_worker_${ts}`;
     const phone = `+919${String(ts).slice(-9)}`;
@@ -171,10 +178,15 @@ base.describe('Worker Dashboard — live session assignments', () => {
       phone, isOnline: true, rating: 5, totalJobs: 0,
       createdAt: Timestamp.now(),
     });
-    const sessionRef = await adminDb().collection('cleaningSessions').add({
+    await adminDb().collection('cleaningSessions').add({
       societyId: 'pw_test_society', societyName: `${PW_TEST_PREFIX}Society`, tower: 'Tower Z',
       scheduledDate: Timestamp.now(), status: 'scheduled',
-      cars: [], totalCars: 3, completedCars: 0, skippedCars: 0,
+      cars: [
+        { customerId: 'pw_c1', customerName: 'Resident One',   customerPhone: '+919000000001', unitNumber: '101', parkingNumber: 'P-1', carPlate: 'DL01AB0001', carMake: 'Honda',   carModel: 'City',  preferredTime: 9,  status: 'pending' },
+        { customerId: 'pw_c2', customerName: 'Resident Two',   customerPhone: '+919000000002', unitNumber: '102', parkingNumber: 'P-2', carPlate: 'DL01AB0002', carMake: 'Maruti',  carModel: 'Swift', preferredTime: 11, status: 'pending' },
+        { customerId: 'pw_c3', customerName: 'Resident Three', customerPhone: '+919000000003', unitNumber: '103', parkingNumber: 'P-3', carPlate: 'DL01AB0003', carMake: 'Hyundai', carModel: 'i20',   preferredTime: 14, status: 'pending' },
+      ],
+      totalCars: 3, completedCars: 0, skippedCars: 0,
       workerIds: [uid], workerNames: [`${PW_TEST_PREFIX}Session Worker`],
       createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
     });
@@ -183,13 +195,15 @@ base.describe('Worker Dashboard — live session assignments', () => {
     await signInWithBypassToken(page, uid);
     await page.waitForURL('**/worker/dashboard', { timeout: 15_000 });
 
-    const card = page.locator(`a[href="/session/${sessionRef.id}"]`);
-    await baseExpect(card).toBeVisible({ timeout: 10_000 });
-    await baseExpect(card).toContainText('Tower Z');
-    await baseExpect(card).toContainText('0/3 done');
+    await baseExpect(page.locator('text=Flat 101 · DL01AB0001')).toBeVisible({ timeout: 10_000 });
+    await baseExpect(page.locator('text=Flat 102 · DL01AB0002')).toBeVisible();
+    await baseExpect(page.locator('text=Flat 103 · DL01AB0003')).toBeVisible();
+    // Single tower — the "YOUR TOWERS" picker is skipped, per-row tower tags too
+    await baseExpect(page.locator('text=YOUR TOWERS')).not.toBeVisible();
+    await baseExpect(page.locator('text=0 cars cleaned today')).toBeVisible();
   });
 
-  base('assigning one worker to two towers on the same day shows both, plural heading', async ({ page }) => {
+  base('assigning one worker to two towers on the same day shows a tower picker with both', async ({ page }) => {
     const ts  = Date.now();
     const uid = `pw_test_worker_${ts}`;
     const phone = `+919${String(ts).slice(-9)}`;
@@ -201,14 +215,23 @@ base.describe('Worker Dashboard — live session assignments', () => {
     await adminDb().collection('cleaningSessions').add({
       societyId: 'pw_test_society_a', societyName: `${PW_TEST_PREFIX}Society A`, tower: 'Tower 1',
       scheduledDate: Timestamp.now(), status: 'scheduled',
-      cars: [], totalCars: 2, completedCars: 0, skippedCars: 0,
+      cars: [
+        { customerId: 'pw_a1', customerName: 'A One', customerPhone: '+919000000011', unitNumber: '201', parkingNumber: 'P-1', carPlate: 'DL02AB0001', carMake: 'Tata', carModel: 'Nexon', preferredTime: 9,  status: 'pending' },
+        { customerId: 'pw_a2', customerName: 'A Two', customerPhone: '+919000000012', unitNumber: '202', parkingNumber: 'P-2', carPlate: 'DL02AB0002', carMake: 'Kia',  carModel: 'Seltos', preferredTime: 10, status: 'pending' },
+      ],
+      totalCars: 2, completedCars: 0, skippedCars: 0,
       workerIds: [uid], workerNames: [`${PW_TEST_PREFIX}MultiTower Worker`],
       createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
     });
     await adminDb().collection('cleaningSessions').add({
       societyId: 'pw_test_society_b', societyName: `${PW_TEST_PREFIX}Society B`, tower: 'Tower 2',
       scheduledDate: Timestamp.now(), status: 'inprogress',
-      cars: [], totalCars: 4, completedCars: 1, skippedCars: 0,
+      cars: [
+        { customerId: 'pw_b1', customerName: 'B One',   customerPhone: '+919000000021', unitNumber: '301', parkingNumber: 'P-1', carPlate: 'DL03AB0001', carMake: 'Honda',  carModel: 'Amaze', preferredTime: 9,  status: 'done' },
+        { customerId: 'pw_b2', customerName: 'B Two',   customerPhone: '+919000000022', unitNumber: '302', parkingNumber: 'P-2', carPlate: 'DL03AB0002', carMake: 'Toyota', carModel: 'Glanza', preferredTime: 11, status: 'pending' },
+        { customerId: 'pw_b3', customerName: 'B Three', customerPhone: '+919000000023', unitNumber: '303', parkingNumber: 'P-3', carPlate: 'DL03AB0003', carMake: 'Ford',   carModel: 'Ecosport', preferredTime: 13, status: 'pending' },
+      ],
+      totalCars: 3, completedCars: 1, skippedCars: 0,
       workerIds: [uid], workerNames: [`${PW_TEST_PREFIX}MultiTower Worker`],
       createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
     });
@@ -217,14 +240,17 @@ base.describe('Worker Dashboard — live session assignments', () => {
     await signInWithBypassToken(page, uid);
     await page.waitForURL('**/worker/dashboard', { timeout: 15_000 });
 
-    await baseExpect(page.locator("text=TODAY'S ASSIGNMENTS (2)")).toBeVisible({ timeout: 10_000 });
-    // "text=Society A" is a case-insensitive substring match, and "No society
-    // assigned." contains "society a..." too — match the full prefixed name.
-    await baseExpect(page.locator(`text=${PW_TEST_PREFIX}Society A`)).toBeVisible();
-    await baseExpect(page.locator(`text=${PW_TEST_PREFIX}Society B`)).toBeVisible();
+    await baseExpect(page.locator('text=YOUR TOWERS')).toBeVisible({ timeout: 10_000 });
+    const tower1Row = page.locator('button', { hasText: 'Tower 1' });
+    const tower2Row = page.locator('button', { hasText: 'Tower 2' });
+    await baseExpect(tower1Row).toBeVisible();
+    await baseExpect(tower2Row).toBeVisible();
+    // Tower 1: 2 pending cars. Tower 2: 1 done + 2 pending — only pending counts.
+    await baseExpect(tower1Row).toContainText('2');
+    await baseExpect(tower2Row).toContainText('2');
   });
 
-  base('a session already marked done does not appear in the assignment list', async ({ page }) => {
+  base('a session already marked done does not appear in the checklist', async ({ page }) => {
     const ts  = Date.now();
     const uid = `pw_test_worker_${ts}`;
     const phone = `+919${String(ts).slice(-9)}`;
@@ -236,7 +262,10 @@ base.describe('Worker Dashboard — live session assignments', () => {
     await adminDb().collection('cleaningSessions').add({
       societyId: 'pw_test_society_done', societyName: `${PW_TEST_PREFIX}Finished Society`, tower: 'Tower Done',
       scheduledDate: Timestamp.now(), status: 'done', completedAt: Timestamp.now(),
-      cars: [], totalCars: 1, completedCars: 1, skippedCars: 0,
+      cars: [
+        { customerId: 'pw_d1', customerName: 'Done One', customerPhone: '+919000000031', unitNumber: '401', parkingNumber: 'P-1', carPlate: 'DL04AB0001', carMake: 'Honda', carModel: 'Civic', preferredTime: 9, status: 'done' },
+      ],
+      totalCars: 1, completedCars: 1, skippedCars: 0,
       workerIds: [uid], workerNames: [`${PW_TEST_PREFIX}DoneSession Worker`],
       createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
     });
@@ -245,8 +274,8 @@ base.describe('Worker Dashboard — live session assignments', () => {
     await signInWithBypassToken(page, uid);
     await page.waitForURL('**/worker/dashboard', { timeout: 15_000 });
 
-    await baseExpect(page.locator('text=No society assigned.')).toBeVisible({ timeout: 10_000 });
-    await baseExpect(page.locator('text=Finished Society')).not.toBeVisible();
+    await baseExpect(page.locator('text=Flat 401')).not.toBeVisible();
+    await baseExpect(page.locator('text=Tower Done')).not.toBeVisible();
   });
 
 });

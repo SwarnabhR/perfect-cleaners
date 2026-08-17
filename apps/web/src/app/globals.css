@@ -163,11 +163,10 @@
 
 /* ====================================================================
    Forced-dark override — for subtrees that must render dark regardless
-   of the site's [data-theme] (e.g. the worker-facing /session/[id]
-   tracker). :root only applies to <html>, so a nested element can never
-   match it directly — this class re-declares the same dark values so
-   any var(--pc-*) used underneath resolves to dark tokens no matter
-   what data-theme is set on <html>.
+   of the site's [data-theme]. :root only applies to <html>, so a nested
+   element can never match it directly — this class re-declares the same
+   dark values so any var(--pc-*) used underneath resolves to dark tokens
+   no matter what data-theme is set on <html>.
    ==================================================================== */
 .pc-force-dark {
   --pc-ink:          #0E0D0B;

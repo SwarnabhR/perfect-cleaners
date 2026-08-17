@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import { collection, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
 import { db } from '@pc/firebase';
 import type { CleaningSessionEnhanced } from '@pc/firebase';
@@ -115,31 +114,32 @@ export default function WorkerCalendarPage() {
           </Card>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {/* Summary only — no drill-in page. The per-car checklist for what's
+                actually actionable (overdue / today / tomorrow) lives on the
+                dashboard itself; a session outside that window has nothing to
+                action here, so these rows are informational, not links. */}
             {selectedSessions.map(s => (
-              <Link key={s.id} href={`/session/${s.id}?from=/worker/calendar`} style={{ textDecoration: 'none' }}>
-                <Card style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: 9, flexShrink: 0,
-                    background: s.status === 'done' ? 'var(--pc-card-hi)' : 'var(--pc-sage)',
-                    border: s.status === 'done' ? '1px solid var(--pc-line)' : 'none',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <Icon name="building-2" size={16} color={s.status === 'done' ? 'var(--pc-fg-3)' : 'var(--pc-sage-ink)'} />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 600, color: 'var(--pc-fg)', margin: '0 0 2px' }}>
-                      {s.societyName}{s.tower ? ` · ${s.tower}` : ''}
-                    </p>
-                    <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', margin: 0, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                      {s.status === 'inprogress' ? 'In progress' : s.status === 'done' ? 'Done' : s.status === 'missed' ? 'Missed' : 'Scheduled'}
-                    </p>
-                  </div>
-                  <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', flexShrink: 0 }}>
-                    {s.completedCars}/{s.totalCars} done
-                  </div>
-                  <Icon name="arrow-right" size={14} color="var(--pc-fg-3)" />
-                </Card>
-              </Link>
+              <Card key={s.id} style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: 9, flexShrink: 0,
+                  background: s.status === 'done' ? 'var(--pc-card-hi)' : 'var(--pc-sage)',
+                  border: s.status === 'done' ? '1px solid var(--pc-line)' : 'none',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Icon name="building-2" size={16} color={s.status === 'done' ? 'var(--pc-fg-3)' : 'var(--pc-sage-ink)'} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 600, color: 'var(--pc-fg)', margin: '0 0 2px' }}>
+                    {s.societyName}{s.tower ? ` · ${s.tower}` : ''}
+                  </p>
+                  <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', margin: 0, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                    {s.status === 'inprogress' ? 'In progress' : s.status === 'done' ? 'Done' : s.status === 'missed' ? 'Missed' : 'Scheduled'}
+                  </p>
+                </div>
+                <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', flexShrink: 0 }}>
+                  {s.completedCars}/{s.totalCars} done
+                </div>
+              </Card>
             ))}
           </div>
         )}
