@@ -122,6 +122,7 @@ function CarRow({ row, isFirst, busy, showTowerTag, onToggle }: {
         <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 12, color: 'var(--pc-fg-3)', margin: '2px 0 0', letterSpacing: '0.02em' }}>
           {row.carPlate || '—'}
           {(row.carMake || row.carModel) && ` · ${[row.carMake, row.carModel].filter(Boolean).join(' ')}`}
+          {row.parkingNumber && ` · PARKING ${row.parkingNumber}`}
         </p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 3 }}>
           {row.customerPhone ? (

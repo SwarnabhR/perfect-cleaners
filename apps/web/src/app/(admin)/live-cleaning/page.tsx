@@ -12,6 +12,7 @@ interface CarListItem {
   sessionId: string;
   carIndex: number;
   customerId: string;
+  customerPhone: string;
   unitNumber: string;
   parkingNumber: string;
   carPlate: string;
@@ -189,6 +190,16 @@ function TowerGroupCard({ group, cars, workerNames, bucket, marking, toggling, i
                     CAR {car.carPlate}{car.parkingNumber ? ` · PARKING ${car.parkingNumber}` : ''}
                     {(car.carMake || car.carModel) ? ` · ${[car.carMake, car.carModel].filter(Boolean).join(' ')}` : ''}
                   </p>
+                  {car.customerPhone && (
+                    <a
+                      href={`tel:${car.customerPhone}`}
+                      onClick={e => e.stopPropagation()}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 3, fontFamily: 'var(--pc-sans)', fontSize: 11.5, color: 'var(--pc-info)', textDecoration: 'none' }}
+                    >
+                      <Icon name="phone" size={10} color="var(--pc-info)" />
+                      {car.customerPhone}
+                    </a>
+                  )}
                   {!isDone && !unavailable && <DueLine car={car} />}
                   {unavailable && (
                     <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11.5, color: 'var(--pc-fg-3)', margin: '3px 0 0' }}>
@@ -312,6 +323,7 @@ export default function LiveCleaningPage() {
           sessionId: session.id,
           carIndex: idx,
           customerId: car.customerId,
+          customerPhone: car.customerPhone ?? '',
           unitNumber: car.unitNumber ?? '',
           parkingNumber: car.parkingNumber ?? '',
           carPlate: car.carPlate,
