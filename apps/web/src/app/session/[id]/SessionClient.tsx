@@ -151,6 +151,11 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const timerRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
   const intervalRef = useRef(POLL_INITIAL_MS);
+  // setTimeout below re-arms the next poll by calling back through this ref
+  // rather than closing over `poll` directly — referencing the in-progress
+  // `const poll = ...` from inside its own initializer is what the compiler
+  // flags (react-hooks/immutability), even though it's safe at runtime.
+  const pollRef = useRef<() => Promise<void>>(async () => {});
 
   const poll = useCallback(async () => {
     try {
@@ -176,13 +181,18 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
       if (err instanceof Error && err.message === 'UNAUTHENTICATED') setAuthError(true);
       intervalRef.current = Math.min(intervalRef.current * 2, POLL_MAX_MS); // backoff
     }
-    timerRef.current = setTimeout(poll, intervalRef.current);
+    timerRef.current = setTimeout(() => pollRef.current(), intervalRef.current);
   }, [sessionId]);
 
+  // Keeps pollRef current without assigning to a ref during render.
+  useEffect(() => { pollRef.current = poll; }, [poll]);
+
   // Fetch immediately on mount (the car list starts empty — see page.tsx),
-  // then keep polling; clean up on unmount.
+  // then keep polling; clean up on unmount. Kicking off through a 0ms
+  // setTimeout (rather than calling poll() directly) keeps the state
+  // updates inside a callback instead of the effect body itself.
   useEffect(() => {
-    poll();
+    timerRef.current = setTimeout(() => pollRef.current(), 0);
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [poll]);
 
@@ -217,8 +227,8 @@ export default function SessionClient({ initialSession, sessionId }: Props) {
       } else {
         setSession(s => ({ ...s, ...data }));
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setActingId(null);
     }
