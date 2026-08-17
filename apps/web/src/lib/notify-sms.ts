@@ -1,7 +1,7 @@
 import 'server-only';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminFirestore } from './firebase/admin';
-import { sendSMSVia91msg, normalizePhoneFor91msg } from './91msg';
+import { sendSMSViaMsg91, normalizePhoneForMsg91 } from './msg91-sms';
 
 export type NotificationType = 'approval' | 'car_cleaned' | 'weekly_reminder' | 'payment_reminder' | 'cleaning_missed';
 
@@ -72,7 +72,7 @@ export async function sendAndStoreSMS(
 
   let smsResponse: SMSResponse;
   try {
-    smsResponse = await sendSMSVia91msg(normalizePhoneFor91msg(payload.recipientPhone), message);
+    smsResponse = await sendSMSViaMsg91(normalizePhoneForMsg91(payload.recipientPhone), message);
   } catch (err: unknown) {
     smsResponse = { success: false, error: err instanceof Error ? err.message : String(err) };
   }
