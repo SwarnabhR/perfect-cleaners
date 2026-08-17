@@ -1,43 +1,45 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { collection, query, where, getDocs, onSnapshot, doc, runTransaction, serverTimestamp, addDoc } from 'firebase/firestore';
-import { db } from '@pc/firebase';
-import type { CleaningSessionEnhanced, CleaningSessionCar } from '@pc/firebase';
+import { db, resolveTodaysTowerGroups, getCarUrgency } from '@pc/firebase';
+import type { CleaningSessionEnhanced, CleaningSessionCar, TowerGroupSummary, CarUrgency } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
 import { notifyCarCleaned } from '@/lib/notification';
 
-interface CarWithSession extends CleaningSessionCar {
-  sessionId: string;
-  societyName: string;
-  tower: string;
-  sessionDate: Date;
-}
-
-function getTimeSlotLabel(hour: number): string {
-  const h    = Math.floor(hour);
-  const m    = Math.round((hour % 1) * 60);
-  const h12  = h % 12 || 12;
-  const ampm = h < 12 ? 'AM' : 'PM';
-  const label = h < 12 ? 'Morning' : h < 17 ? 'Afternoon' : 'Evening';
-  return `${h12}:${String(m).padStart(2, '0')} ${ampm} (${label})`;
-}
-
 interface CarListItem {
   sessionId: string;
   carIndex: number;
   customerId: string;
+  unitNumber: string;
+  parkingNumber: string;
   carPlate: string;
   carMake: string;
   carModel: string;
   preferredTime: number;
   status: string;
   unavailable?: boolean;
+  societyId: string;
   societyName: string;
   tower: string;
   sessionType: 'wash' | 'deep-clean';
 }
+
+function isSameDay(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function formatSlot(hour: number): string {
+  const h    = Math.floor(hour);
+  const m    = Math.round((hour % 1) * 60);
+  const h12  = h % 12 || 12;
+  const ampm = h < 12 ? 'AM' : 'PM';
+  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+}
+
+const URGENCY_LABEL: Record<CarUrgency, string> = { overdue: 'Overdue', 'due-soon': 'Due', later: '', done: '' };
+const URGENCY_COLOR: Record<CarUrgency, string> = { overdue: 'var(--pc-danger)', 'due-soon': 'var(--pc-info)', later: 'var(--pc-fg-3)', done: 'var(--pc-fg-3)' };
 
 export default function LiveCleaningPage() {
   const [sessions, setSessions] = useState<(CleaningSessionEnhanced & { id: string })[]>([]);
@@ -56,7 +58,16 @@ export default function LiveCleaningPage() {
         where('status', 'in', ['scheduled', 'inprogress'])
       ),
       snap => {
-        const data = snap.docs.map(d => ({ id: d.id, ...d.data() } as CleaningSessionEnhanced & { id: string }));
+        const today = new Date();
+        const data = snap.docs
+          .map(d => ({ id: d.id, ...d.data() } as CleaningSessionEnhanced & { id: string }))
+          .filter(s => {
+            const raw = s.scheduledDate as unknown as { toDate?: () => Date } | Date | string | number;
+            const d = raw && typeof (raw as { toDate?: () => Date }).toDate === 'function'
+              ? (raw as { toDate: () => Date }).toDate()
+              : new Date(raw as string | number | Date);
+            return isSameDay(d, today);
+          });
         setSessions(data);
 
         const socs = new Set<string>();
@@ -82,44 +93,60 @@ export default function LiveCleaningPage() {
     return true;
   });
 
-  const carsBySlot = new Map<number, CarListItem[]>();
+  const towerGroups: TowerGroupSummary[] = resolveTodaysTowerGroups(filteredSessions);
+
+  const carsByTowerKey = new Map<string, CarListItem[]>();
+  const workersByTowerKey = new Map<string, Set<string>>();
 
   filteredSessions.forEach(session => {
+    if (!session.societyId || !session.tower) return;
+    const key = `${session.societyId}::${session.tower}`;
+
+    const list = carsByTowerKey.get(key) ?? [];
     (session.cars ?? []).forEach((car, idx) => {
-      const timeSlot = car.preferredTime ?? 7;
-      if (!carsBySlot.has(timeSlot)) {
-        carsBySlot.set(timeSlot, []);
-      }
-      carsBySlot.get(timeSlot)!.push({
+      list.push({
         sessionId: session.id,
         carIndex: idx,
         customerId: car.customerId,
+        unitNumber: car.unitNumber ?? '',
+        parkingNumber: car.parkingNumber ?? '',
         carPlate: car.carPlate,
         carMake: car.carMake,
         carModel: car.carModel,
         preferredTime: car.preferredTime,
         status: car.status,
         unavailable: Boolean((car as unknown as Record<string, unknown>)['unavailable']),
+        societyId: session.societyId,
         societyName: session.societyName,
         tower: session.tower,
         sessionType: session.sessionType ?? 'wash',
       });
     });
+    carsByTowerKey.set(key, list);
+
+    const workerSet = workersByTowerKey.get(key) ?? new Set<string>();
+    (session.workerNames ?? []).forEach(name => workerSet.add(name));
+    workersByTowerKey.set(key, workerSet);
   });
 
   // A car counts as unavailable either via this board's own toggle, or because
   // it was auto-marked 'skipped' at session-build time (customer's skip date).
   const isUnavailable = (c: CarListItem) => c.unavailable || c.status === 'skipped';
 
-  // Sort: available cars first, then unavailable
-  carsBySlot.forEach((cars, slot) => {
-    const available = cars.filter(c => !isUnavailable(c));
-    const unavailable = cars.filter(isUnavailable);
-    carsBySlot.set(slot, [...available, ...unavailable]);
-  });
+  const urgencyOrder: Record<CarUrgency, number> = { overdue: 0, 'due-soon': 1, later: 2, done: 3 };
 
-  // Derive sorted list of time slots from data (no longer hardcoded)
-  const dynamicTimeSlots = [...carsBySlot.keys()].sort((a, b) => a - b);
+  // Sort: available cars first (by urgency), then unavailable
+  carsByTowerKey.forEach((cars, key) => {
+    const available = cars
+      .filter(c => !isUnavailable(c))
+      .sort((a, b) => {
+        const ua = getCarUrgency(a.preferredTime, a.status as CleaningSessionCar['status']);
+        const ub = getCarUrgency(b.preferredTime, b.status as CleaningSessionCar['status']);
+        return urgencyOrder[ua] - urgencyOrder[ub];
+      });
+    const unavailable = cars.filter(isUnavailable);
+    carsByTowerKey.set(key, [...available, ...unavailable]);
+  });
 
   async function toggleUnavailable(car: CarListItem) {
     if (toggling) return;
@@ -173,7 +200,7 @@ export default function LiveCleaningPage() {
       // Write cleaningLog — rules now allow isAdmin() on cleaningLogs create
       await addDoc(collection(db, 'cleaningLogs'), {
         sessionId:           car.sessionId,
-        societyId:           '',
+        societyId:           car.societyId,
         societyName:         car.societyName,
         tower:               car.tower,
         vehicleRegistration: car.carPlate,
@@ -181,7 +208,7 @@ export default function LiveCleaningPage() {
         vehicleModel:        car.carModel,
         customerId:          car.customerId,
         customerName:        '',
-        unitNumber:          '',
+        unitNumber:          car.unitNumber,
         workerId:            '',
         workerName:          'Admin',
         cleanedAt:           serverTimestamp(),
@@ -223,7 +250,7 @@ export default function LiveCleaningPage() {
         <Eyebrow style={{ display: 'block', marginBottom: 4 }}>OPERATIONS</Eyebrow>
         <h1 className="admin-page-title">Live Cleaning Task Board</h1>
         <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: '4px 0 0' }}>
-          Real-time car list grouped by time slots. Mark unavailable to move to bottom.
+          Today&rsquo;s cars grouped by tower. Mark unavailable to move to bottom.
         </p>
       </div>
 
@@ -284,37 +311,46 @@ export default function LiveCleaningPage() {
         </div>
       </div>
 
-      {/* Time Slot Cards */}
+      {/* Tower Cards */}
       {loading ? (
         <Card style={{ padding: 48, textAlign: 'center', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)' }}>
           Loading…
         </Card>
       ) : (
-        dynamicTimeSlots.length === 0 ? (
+        towerGroups.length === 0 ? (
           <Card style={{ padding: 48, textAlign: 'center', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)' }}>
             No cars scheduled for today. Start a cleaning session from the Schedule page.
           </Card>
         ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
-          {dynamicTimeSlots.map(slot => {
-            const cars = carsBySlot.get(slot) ?? [];
+          {towerGroups.map(group => {
+            const cars = carsByTowerKey.get(group.key) ?? [];
+            const workerNames = Array.from(workersByTowerKey.get(group.key) ?? []);
             const availableCount = cars.filter(c => !isUnavailable(c)).length;
 
             return (
-              <Card key={slot} style={{ padding: 0, overflow: 'hidden' }}>
-                {/* Slot Header */}
+              <Card key={group.key} style={{ padding: 0, overflow: 'hidden' }}>
+                {/* Tower Header */}
                 <div style={{ padding: 16, borderBottom: '1px solid var(--pc-line)', background: 'var(--pc-card-hi)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                     <div>
                       <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 18, color: 'var(--pc-fg)', margin: '0 0 4px', fontWeight: 600 }}>
-                        {getTimeSlotLabel(slot)}
+                        {group.tower}
                       </p>
-                      <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', margin: 0 }}>
+                      <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', margin: 0 }}>
+                        {group.societyName}
+                      </p>
+                      <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', margin: '4px 0 0' }}>
                         {availableCount} / {cars.length} CARS
                       </p>
+                      {workerNames.length > 0 && (
+                        <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', margin: '2px 0 0' }}>
+                          WORKERS: {workerNames.join(', ')}
+                        </p>
+                      )}
                     </div>
                     <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--pc-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <Icon name="clock" size={18} color="var(--pc-info)" />
+                      <Icon name="building-2" size={18} color="var(--pc-info)" />
                     </div>
                   </div>
                 </div>
@@ -326,7 +362,9 @@ export default function LiveCleaningPage() {
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-                    {cars.map((car, idx) => (
+                    {cars.map((car, idx) => {
+                      const urgency = getCarUrgency(car.preferredTime, car.status as CleaningSessionCar['status']);
+                      return (
                       <div
                         key={`${car.sessionId}-${car.carIndex}`}
                         style={{
@@ -339,8 +377,8 @@ export default function LiveCleaningPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                           {/* Car Info */}
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', textTransform: 'uppercase', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                              {car.carPlate}
+                            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', textTransform: 'uppercase', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                              FLAT {car.unitNumber || '—'}
                               {car.sessionType === 'deep-clean' && (
                                 <span style={{
                                   fontFamily: 'var(--pc-mono)', fontSize: 8.5, letterSpacing: '0.05em',
@@ -350,12 +388,22 @@ export default function LiveCleaningPage() {
                                   Deep clean
                                 </span>
                               )}
+                              {!isUnavailable(car) && urgency !== 'later' && urgency !== 'done' && (
+                                <span style={{
+                                  fontFamily: 'var(--pc-mono)', fontSize: 8.5, letterSpacing: '0.05em',
+                                  color: URGENCY_COLOR[urgency], background: `color-mix(in srgb, ${URGENCY_COLOR[urgency]} 15%, transparent)`,
+                                  padding: '2px 6px', borderRadius: 999, textTransform: 'uppercase',
+                                }}>
+                                  {URGENCY_LABEL[urgency]} · {formatSlot(car.preferredTime)}
+                                </span>
+                              )}
                             </p>
                             <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)', margin: '0 0 2px', fontWeight: 500 }}>
                               {car.carMake} {car.carModel}
                             </p>
-                            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', margin: 0 }}>
-                              {car.societyName} · {car.tower}
+                            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10.5, color: 'var(--pc-fg-3)', margin: 0, letterSpacing: '0.02em' }}>
+                              CAR {car.carPlate}
+                              {car.parkingNumber ? ` · PARKING ${car.parkingNumber}` : ''}
                             </p>
                           </div>
 
@@ -438,7 +486,8 @@ export default function LiveCleaningPage() {
                           </div>
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </Card>
