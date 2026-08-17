@@ -5,13 +5,14 @@ import {
   doc, addDoc, updateDoc, deleteDoc, serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '@pc/firebase';
-import type { Society } from '@pc/firebase';
+import type { Society, Worker } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
 import StatusPill from '@/components/ui/StatusPill';
 
 type LiveSociety  = Society & { id: string };
+type LiveWorker   = Worker & { id: string };
 type StatusFilter = 'All' | 'Active' | 'Inactive';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -252,16 +253,118 @@ function SocietyFormModal({
   );
 }
 
+// Per-tower worker roster — read by the generate-sessions cron so a newly
+// created session is born already assigned instead of always needing a
+// manual "Reassign" on the schedule page. Its own decoupled save action
+// (not bundled into the main edit form) mirrors how WorkerDetailPanel
+// (apps/web/src/app/(admin)/workers/page.tsx) handles the reverse
+// worker->society assignment.
+function TowerAssignmentsSection({ society, workers }: { society: LiveSociety; workers: LiveWorker[] }) {
+  const [assignments, setAssignments] = useState<Record<string, string[]>>(() => society.towerWorkerAssignments ?? {});
+  const [saving, setSaving] = useState(false);
+  const [saved,  setSaved]  = useState(false);
+
+  const towers = society.towers ?? [];
+  if (towers.length === 0) return null;
+
+  function toggleWorker(tower: string, workerId: string) {
+    setAssignments(prev => {
+      const current = prev[tower] ?? [];
+      const next = current.includes(workerId)
+        ? current.filter(id => id !== workerId)
+        : [...current, workerId];
+      return { ...prev, [tower]: next };
+    });
+    setSaved(false);
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await updateDoc(doc(db, 'societies', society.id), { towerWorkerAssignments: assignments });
+      setSaved(true);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div>
+      <p style={monoLabel}>Tower worker assignments</p>
+      <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11.5, color: 'var(--pc-fg-4)', margin: '-4px 0 10px' }}>
+        A tower can have multiple workers; a worker can cover multiple towers. New sessions for a tower are
+        created with these workers already assigned.
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {towers.map(tower => {
+          const selected = assignments[tower] ?? [];
+          return (
+            <div key={tower} style={{ background: 'var(--pc-card-hi)', borderRadius: 8, padding: 12 }}>
+              <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600, color: 'var(--pc-fg)', margin: '0 0 8px' }}>
+                {tower}
+              </p>
+              {workers.length === 0 ? (
+                <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)', margin: 0 }}>No workers found.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {workers.map(w => {
+                    const checked = selected.includes(w.id);
+                    return (
+                      <label key={w.id} style={{
+                        display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '6px 8px', borderRadius: 6,
+                        background: checked ? 'color-mix(in srgb, var(--pc-sage) 10%, transparent)' : 'transparent',
+                        border: `1px solid ${checked ? 'var(--pc-sage-hi)' : 'transparent'}`,
+                      }}>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleWorker(tower, w.id)}
+                          style={{ accentColor: 'var(--pc-sage)', width: 15, height: 15, flexShrink: 0 }}
+                        />
+                        <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)', flex: 1 }}>{w.name}</span>
+                        <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-4)' }}>
+                          {w.isOnline ? '● Online' : '○ Offline'}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <button
+        type="button"
+        onClick={handleSave}
+        disabled={saving}
+        style={{
+          marginTop: 10, width: '100%', padding: '10px 0', borderRadius: 999,
+          background: saved ? 'color-mix(in srgb, var(--pc-success) 15%, transparent)' : 'var(--pc-card-hi)',
+          border: `1px solid ${saved ? 'var(--pc-success)' : 'var(--pc-line)'}`,
+          fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600,
+          color: saved ? 'var(--pc-success)' : 'var(--pc-fg-2)',
+          cursor: saving ? 'not-allowed' : 'pointer',
+        }}
+      >
+        {saving ? 'Saving…' : saved ? 'Saved' : 'Save assignments'}
+      </button>
+    </div>
+  );
+}
+
 // ─── Detail panel ─────────────────────────────────────────────────────────────
 
 function SocietyDetailPanel({
   society,
+  workers,
   onClose,
   onEdit,
   onDelete,
   onToggleActive,
 }: {
   society:        LiveSociety;
+  workers:        LiveWorker[];
   onClose:        () => void;
   onEdit:         () => void;
   onDelete:       () => void;
@@ -334,6 +437,8 @@ function SocietyDetailPanel({
           </div>
         )}
 
+        <TowerAssignmentsSection society={society} workers={workers} />
+
         {/* Actions */}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button type="button" onClick={onEdit} style={{
@@ -383,6 +488,7 @@ function SocietyDetailPanel({
 
 export default function SocietiesMgmtPage() {
   const [societies,    setSocieties]    = useState<LiveSociety[]>([]);
+  const [workers,      setWorkers]      = useState<LiveWorker[]>([]);
   const [selected,     setSelected]     = useState<LiveSociety | null>(null);
   const [editing,      setEditing]      = useState<LiveSociety | null>(null);
   const [addOpen,      setAddOpen]      = useState(false);
@@ -398,6 +504,15 @@ export default function SocietiesMgmtPage() {
         setLoading(false);
       },
       err => { console.warn('[Societies]', err.message); setLoading(false); },
+    );
+  }, []);
+
+  // Powers the tower worker-assignment checkboxes in SocietyDetailPanel.
+  useEffect(() => {
+    return onSnapshot(
+      collection(db, 'workers'),
+      snap => setWorkers(snap.docs.map(d => ({ id: d.id, ...d.data() } as LiveWorker))),
+      err => console.warn('[Societies] workers:', err.message),
     );
   }, []);
 
@@ -592,6 +707,7 @@ export default function SocietiesMgmtPage() {
       {selected && !editing && (
         <SocietyDetailPanel
           society={selected}
+          workers={workers}
           onClose={() => setSelected(null)}
           onEdit={() => { setEditing(selected); setSelected(null); }}
           onDelete={() => handleDelete(selected.id)}

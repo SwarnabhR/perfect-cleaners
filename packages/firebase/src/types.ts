@@ -199,6 +199,13 @@ export interface Society {
   cleaningSchedule: string;    // e.g. "Mon, Wed, Fri · 7:00 AM"
   contactPerson: SocietyContact;
   assignedWorkerIds: string[];
+  // Per-tower worker roster — many-to-many: a tower can have multiple workers,
+  // a worker can cover multiple towers. Keyed by exact tower name (must match
+  // an entry in `towers` above). Read by the generate-sessions cron to
+  // auto-populate a new session's workerIds/workerNames instead of leaving it
+  // unassigned. Absent/missing keys mean "no default worker for that tower" —
+  // sessions fall back to workerIds: [] exactly as before this field existed.
+  towerWorkerAssignments?: Record<string, string[]>;
   createdAt: Date;
 }
 

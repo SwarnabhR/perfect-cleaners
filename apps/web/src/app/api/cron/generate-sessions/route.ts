@@ -3,6 +3,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminFirestore } from '@/lib/firebase/admin';
 
+function tsToDate(v: unknown): Date {
+  const val = v as { toDate?: () => Date } | Date | string | number | undefined;
+  return val && typeof (val as { toDate?: () => Date }).toDate === 'function'
+    ? (val as { toDate: () => Date }).toDate()
+    : new Date(val as string | number | Date);
+}
+
+interface RescheduledSlot { date: unknown; fromTime?: number; toTime: number; }
+
 export async function GET(req: NextRequest) {
   const auth = req.headers.get('authorization');
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -17,10 +26,26 @@ export async function GET(req: NextRequest) {
     let sessionsCreated = 0;
     let errors = 0;
 
+    // Fetched once up front (not per society) so resolving a tower's default
+    // worker roster below doesn't cost an extra read per worker per tower.
+    const workerNamesById = new Map<string, string>();
+    const workersSnap = await db.collection('workers').get();
+    workersSnap.docs.forEach(d => workerNamesById.set(d.id, (d.data().name as string | undefined) ?? 'Worker'));
+
     for (const societyDoc of societiesSnap.docs) {
       try {
         const config = societyDoc.data();
         const { societyId, tower, cleaningSchedule, cleaningDays } = config;
+
+        // Default worker(s) for this tower, set on the society doc via
+        // societies-mgmt's "Tower worker assignments" panel — a session is
+        // now born already assigned instead of always needing a manual
+        // "Reassign" on the schedule page. Absent for un-configured
+        // towers/societies, which fall back to [] exactly as before.
+        const societySnap = await db.collection('societies').doc(societyId).get();
+        const towerWorkerAssignments = societySnap.data()?.towerWorkerAssignments as Record<string, string[]> | undefined;
+        const assignedWorkerIds = towerWorkerAssignments?.[tower] ?? [];
+        const assignedWorkerNames = assignedWorkerIds.map(id => workerNamesById.get(id) ?? 'Worker');
 
         const weekdays: number[] = Array.isArray(cleaningDays) && cleaningDays.length > 0
           ? cleaningDays
@@ -50,10 +75,9 @@ export async function GET(req: NextRequest) {
           return customersSnap.docs
             .map(docSnap => {
               const customer = docSnap.data();
-              const skipDate = (customer.skipDates as any[] | undefined)?.find(d => {
-                const skip = new Date(d.toDate?.() || d);
-                return skip.toDateString() === cleaningDate.toDateString();
-              });
+              const skipDate = (customer.skipDates as unknown[] | undefined)?.find(d =>
+                tsToDate(d).toDateString() === cleaningDate.toDateString()
+              );
 
               // Unset/empty preferredCleaningDays means "every day the tower is cleaned".
               const preferredDays = customer.preferredCleaningDays as number[] | undefined;
@@ -77,18 +101,17 @@ export async function GET(req: NextRequest) {
               }
 
               // Check for a one-off rescheduled slot for this specific date
-              const rescheduledSlots = (customer.rescheduledSlots as any[] | undefined) ?? [];
-              const rescheduled = rescheduledSlots.find((s: any) => {
-                const slotDate = new Date(s.date?.toDate?.() || s.date);
-                return slotDate.toDateString() === cleaningDate.toDateString();
-              });
+              const rescheduledSlots = (customer.rescheduledSlots as RescheduledSlot[] | undefined) ?? [];
+              const rescheduled = rescheduledSlots.find(s =>
+                tsToDate(s.date).toDateString() === cleaningDate.toDateString()
+              );
               const preferredTime = rescheduled
                 ? rescheduled.toTime
                 : (customer.permanentTime || customer.preferredCleaningTime || 9);
 
               return { ...base, preferredTime, status: 'pending' };
             })
-            .filter(Boolean);
+            .filter((c): c is NonNullable<typeof c> => c !== null);
         }
 
         async function createSessionIfMissing(sessionId: string, cleaningDate: Date, sessionType: 'wash' | 'deep-clean') {
@@ -96,7 +119,7 @@ export async function GET(req: NextRequest) {
           if (existing.exists) return false;
 
           const cars = buildCarsForDate(cleaningDate);
-          const skippedCars = cars.filter((c: any) => c.status === 'skipped').length;
+          const skippedCars = cars.filter(c => c.status === 'skipped').length;
 
           await db.collection('cleaningSessions').doc(sessionId).set({
             societyId,
@@ -111,8 +134,8 @@ export async function GET(req: NextRequest) {
             totalCars:     cars.length - skippedCars,
             completedCars: 0,
             skippedCars,
-            workerIds:     [],
-            workerNames:   [],
+            workerIds:     assignedWorkerIds,
+            workerNames:   assignedWorkerNames,
             createdAt:     FieldValue.serverTimestamp(),
             updatedAt:     FieldValue.serverTimestamp(),
           });
