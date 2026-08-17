@@ -206,6 +206,7 @@ export interface Society {
 // triggers a push notification + billing update via Cloud Function.
 export interface CleaningLog {
   id: string;
+  sessionId?: string;            // absent on logs written before this field existed
   societyId: string;
   societyName: string;          // denormalized
   vehicleRegistration: string;  // e.g. "DL 01 AB 1234"

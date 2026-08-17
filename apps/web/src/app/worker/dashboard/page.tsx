@@ -106,11 +106,25 @@ function CarRow({ row, isFirst, busy, showTowerTag, onToggle }: {
       />
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 600, color: 'var(--pc-fg)', margin: '0 0 3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          Flat {row.unitNumber || '—'} · {row.carPlate}
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
+          <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 600, color: 'var(--pc-fg)', margin: 0 }}>
+            Flat {row.unitNumber || '—'}
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+            <Icon name="clock" size={11} color={due.color} />
+            <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 11.5, fontWeight: 600, color: due.color, whiteSpace: 'nowrap' }}>
+              {due.text}
+            </span>
+          </div>
+        </div>
+        {/* Car number always gets its own line — never truncated, since it's
+            one of the exact fields a worker needs to identify the car. */}
+        <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 12, color: 'var(--pc-fg-3)', margin: '2px 0 0', letterSpacing: '0.02em' }}>
+          {row.carPlate || '—'}
+          {(row.carMake || row.carModel) && ` · ${[row.carMake, row.carModel].filter(Boolean).join(' ')}`}
         </p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          {row.customerPhone && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 3 }}>
+          {row.customerPhone ? (
             <a
               href={`tel:${row.customerPhone}`}
               onClick={e => e.stopPropagation()}
@@ -119,6 +133,10 @@ function CarRow({ row, isFirst, busy, showTowerTag, onToggle }: {
               <Icon name="phone" size={11} color="var(--pc-info)" />
               {row.customerPhone}
             </a>
+          ) : (
+            <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-4)' }}>
+              No phone on file
+            </span>
           )}
           {showTowerTag && (
             <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-4)', letterSpacing: '0.04em' }}>
@@ -126,13 +144,6 @@ function CarRow({ row, isFirst, busy, showTowerTag, onToggle }: {
             </span>
           )}
         </div>
-      </div>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-        <Icon name="clock" size={11} color={due.color} />
-        <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 11.5, fontWeight: 600, color: due.color, whiteSpace: 'nowrap' }}>
-          {due.text}
-        </span>
       </div>
     </div>
   );
@@ -248,6 +259,41 @@ export default function WorkerDashboard() {
             cars: s.cars.map(c => c.customerId === row.customerId ? { ...c, status: 'done' } : c),
           }
         : s));
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setActingId(null);
+    }
+  }
+
+  // Reverses an accidental tap — puts the car back to pending in its
+  // session and removes the cleaningLog entry the mark-clean created.
+  // Server-side re-checks the same-worker + time-window guardrails; this is
+  // just the UI trigger.
+  async function undoClean(log: LogRow) {
+    if (!user || !log.sessionId) return;
+    setActingId(log.customerId);
+    setActionError('');
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch(`/api/session/${log.sessionId}`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body:    JSON.stringify({ action: 'undo_car', customerId: log.customerId, logId: log.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Failed.');
+      // Optimistic local update — the cars/logs listeners above confirm shortly after.
+      setSessions(prev => prev.map(s => s.id === log.sessionId
+        ? {
+            ...s,
+            completedCars: data.completedCars,
+            totalCars:     data.totalCars,
+            status:        data.status,
+            cars: s.cars.map(c => c.customerId === log.customerId ? { ...c, status: 'pending' } : c),
+          }
+        : s));
+      setLogs(prev => prev.filter(l => l.id !== log.id));
     } catch (err) {
       setActionError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -430,28 +476,49 @@ export default function WorkerDashboard() {
       {logs.length > 0 && (
         <div>
           <Eyebrow style={{ display: 'block', marginBottom: 10 }}>RECENT CLEANS · TODAY</Eyebrow>
+          <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11.5, color: 'var(--pc-fg-4)', margin: '-4px 0 10px' }}>
+            Tapped one by mistake? Tap the checkmark to undo it.
+          </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {logs.slice(0, 10).map(log => (
-              <Card key={log.id} style={{ padding: '12px 16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: 6, background: 'rgba(111,174,106,0.15)', border: '1px solid rgba(111,174,106,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Icon name="check" size={12} color="var(--pc-success)" />
+            {logs.slice(0, 10).map(log => {
+              const undoBusy = actingId === log.customerId;
+              const canUndo  = Boolean(log.sessionId);
+              return (
+                <Card key={log.id} style={{ padding: '12px 16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <button
+                      type="button"
+                      onClick={() => canUndo && undoClean(log)}
+                      disabled={!canUndo || undoBusy}
+                      aria-label={canUndo ? 'Undo this clean' : 'Cleaned'}
+                      title={canUndo ? 'Undo' : undefined}
+                      style={{
+                        width: 28, height: 28, borderRadius: 6, flexShrink: 0,
+                        background: 'rgba(111,174,106,0.15)', border: '1px solid rgba(111,174,106,0.3)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        cursor: canUndo && !undoBusy ? 'pointer' : 'default',
+                        opacity: undoBusy ? 0.5 : 1,
+                        padding: 0,
+                      }}
+                    >
+                      <Icon name={canUndo ? 'repeat' : 'check'} size={12} color="var(--pc-success)" />
+                    </button>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 500, color: 'var(--pc-fg)', margin: '0 0 1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {log.unitNumber} · {log.customerName}
+                      </p>
+                      <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10.5, color: 'var(--pc-fg-3)', margin: 0, letterSpacing: '0.04em' }}>
+                        {log.vehicleRegistration}
+                        {(log.vehicleMake || log.vehicleModel) && ` · ${[log.vehicleMake, log.vehicleModel].filter(Boolean).join(' ')}`}
+                      </p>
+                    </div>
+                    <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', flexShrink: 0 }}>
+                      {formatTime(log.cleanedAt as unknown as Timestamp)}
+                    </span>
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 500, color: 'var(--pc-fg)', margin: '0 0 1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {log.unitNumber} · {log.customerName}
-                    </p>
-                    <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10.5, color: 'var(--pc-fg-3)', margin: 0, letterSpacing: '0.04em' }}>
-                      {log.vehicleRegistration}
-                      {(log.vehicleMake || log.vehicleModel) && ` · ${[log.vehicleMake, log.vehicleModel].filter(Boolean).join(' ')}`}
-                    </p>
-                  </div>
-                  <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', flexShrink: 0 }}>
-                    {formatTime(log.cleanedAt as unknown as Timestamp)}
-                  </span>
-                </div>
-              </Card>
-            ))}
+                </Card>
+              );
+            })}
             {logs.length > 10 && (
               <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)', textAlign: 'center', margin: 0 }}>
                 +{logs.length - 10} more cleans today

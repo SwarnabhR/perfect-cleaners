@@ -153,7 +153,12 @@ export async function POST(
         // notification, the customer's cleaning history, and star ratings —
         // nothing else in this flow produces one, so it has to happen here.
         const car = updatedCars[idx];
-        t.set(db.collection('cleaningLogs').doc(), {
+        const logRef = db.collection('cleaningLogs').doc();
+        t.set(logRef, {
+          // sessionId + this doc's own id are what let a mis-tap be undone
+          // (action: 'undo_car' below) — without sessionId there'd be no way
+          // to find which cleaningSessions doc to revert from the log alone.
+          sessionId:            id,
           societyId:            data.societyId,
           societyName:          data.societyName,
           vehicleRegistration:  car.carPlate  ?? '',
@@ -182,9 +187,76 @@ export async function POST(
 
         response = {
           car,
+          logId: logRef.id,
           completedCars,
           totalCars,
           status: allDone ? 'done' : wasScheduled ? 'inprogress' : (data.status as string),
+        };
+      });
+
+      return NextResponse.json(response);
+
+    } else if (action === 'undo_car') {
+      // Reverses a 'clean_car' mis-tap: only the worker who logged it, only
+      // for this session, and only within a short window — this is meant to
+      // fix an accidental tap, not to reopen arbitrary past work.
+      const customerId = body.customerId as string | undefined;
+      const logId      = body.logId as string | undefined;
+      if (!customerId || !logId) {
+        return NextResponse.json({ error: 'customerId and logId are required.' }, { status: 400 });
+      }
+
+      const UNDO_WINDOW_MS = 6 * 60 * 60 * 1000; // one full shift
+      let response: Record<string, unknown> | null = null;
+
+      await db.runTransaction(async (t) => {
+        const logRef  = db.collection('cleaningLogs').doc(logId);
+        const logSnap = await t.get(logRef);
+        if (!logSnap.exists) throw new Error('LOG_NOT_FOUND');
+        const log = logSnap.data()!;
+
+        if (log.workerId !== workerId) throw new Error('FORBIDDEN_LOG');
+        if (log.sessionId !== id) throw new Error('LOG_SESSION_MISMATCH');
+        const cleanedAt = (log.cleanedAt?.toDate?.() as Date | undefined) ?? new Date(0);
+        if (Date.now() - cleanedAt.getTime() > UNDO_WINDOW_MS) throw new Error('UNDO_EXPIRED');
+
+        const snap = await t.get(ref);
+        if (!snap.exists) throw new Error('NOT_FOUND');
+        const data = snap.data()!;
+
+        const cars = (data.cars as Record<string, unknown>[] | undefined) ?? [];
+        const idx  = cars.findIndex(c => c.customerId === customerId && c.status === 'done');
+        if (idx === -1) throw new Error('CAR_NOT_FOUND');
+
+        // Firestore can't hold FieldValue.delete() inside an array element
+        // (same restriction noted above for serverTimestamp) — rebuild the
+        // car object without cleanedBy/cleanedAt instead of trying to unset them.
+        const { cleanedBy: _cleanedBy, cleanedAt: _cleanedAt, ...rest } = cars[idx];
+        const updatedCars = cars.slice();
+        updatedCars[idx]  = { ...rest, status: 'pending' };
+
+        const wasDone = data.status === 'done';
+        const sessionUpdate: Record<string, unknown> = {
+          cars:          updatedCars,
+          completedCars: FieldValue.increment(-1),
+          updatedAt:     FieldValue.serverTimestamp(),
+        };
+        if (wasDone) {
+          sessionUpdate.status      = 'inprogress';
+          sessionUpdate.completedAt = FieldValue.delete();
+        }
+        t.update(ref, sessionUpdate);
+        t.delete(logRef);
+        t.update(db.collection('workers').doc(workerId), {
+          totalJobs:          FieldValue.increment(-1),
+          carsCompletedToday: FieldValue.increment(-1),
+        });
+
+        response = {
+          customerId,
+          completedCars: ((data.completedCars as number | undefined) ?? 1) - 1,
+          totalCars:     data.totalCars,
+          status:        wasDone ? 'inprogress' : (data.status as string),
         };
       });
 
@@ -257,6 +329,18 @@ export async function POST(
     }
     if (err instanceof Error && err.message === 'NOT_INPROGRESS') {
       return NextResponse.json({ error: 'Session is not in progress.' }, { status: 400 });
+    }
+    if (err instanceof Error && err.message === 'LOG_NOT_FOUND') {
+      return NextResponse.json({ error: 'Clean record not found.' }, { status: 404 });
+    }
+    if (err instanceof Error && err.message === 'FORBIDDEN_LOG') {
+      return NextResponse.json({ error: 'You can only undo your own cleans.' }, { status: 403 });
+    }
+    if (err instanceof Error && err.message === 'LOG_SESSION_MISMATCH') {
+      return NextResponse.json({ error: 'This clean does not belong to this session.' }, { status: 400 });
+    }
+    if (err instanceof Error && err.message === 'UNDO_EXPIRED') {
+      return NextResponse.json({ error: 'Too much time has passed to undo this — ask your admin.' }, { status: 400 });
     }
     console.error('[session/POST]', err);
     return NextResponse.json({ error: toErrMsg(err) }, { status: 500 });
