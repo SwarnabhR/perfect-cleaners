@@ -13,6 +13,7 @@ import { AdminAuthProvider, useAdminAuth } from '@/components/AdminAuthProvider'
 // Module-level so React never sees a new component type on re-render of AdminShell.
 function Sidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname();
+  const { role } = useAdminAuth();
   return (
     <aside style={{
       width: 240, flexShrink: 0,
@@ -38,7 +39,7 @@ function Sidebar({ onClose }: { onClose?: () => void }) {
       </div>
 
       <nav style={{ flex: 1, padding: 'var(--pc-space-3) var(--pc-space-2)' }}>
-        {NAV.map(({ label, href, icon }) => {
+        {NAV.filter(item => canAccess(role, item.capability)).map(({ label, href, icon }) => {
           const active = pathname === href || pathname.startsWith(href + '/');
           return (
             <Link key={href} href={href} style={{ textDecoration: 'none' }} onClick={onClose}>
@@ -88,30 +89,37 @@ function SidebarFooter() {
 }
 
 const NAV = [
-  { label: 'Dashboard',   href: '/dashboard',       icon: 'layout-dashboard' },
+  { label: 'Dashboard',   href: '/dashboard',       icon: 'layout-dashboard', capability: 'analyst' },
   // Society Cleaning Program
-  { label: 'Societies',   href: '/societies-mgmt',  icon: 'building-2'      },
-  { label: 'Tower Billing', href: '/tower-billing', icon: 'credit-card'    },
-  { label: 'Approvals',   href: '/pending-approvals', icon: 'check-circle' },
-  { label: 'Schedule',    href: '/cleaning-schedule', icon: 'calendar'     },
-  { label: 'Live Cleaning', href: '/live-cleaning', icon: 'activity'      },
-  { label: 'Cleaning Logs', href: '/cleaning-logs', icon: 'list-checks'   },
-  { label: 'Enrollments', href: '/customer-enrollments', icon: 'users'     },
+  { label: 'Societies',   href: '/societies-mgmt',  icon: 'building-2', capability: 'operations' },
+  { label: 'Tower Billing', href: '/tower-billing', icon: 'credit-card', capability: 'billing' },
+  { label: 'Approvals',   href: '/pending-approvals', icon: 'check-circle', capability: 'operations' },
+  { label: 'Schedule',    href: '/cleaning-schedule', icon: 'calendar', capability: 'operations' },
+  { label: 'Live Cleaning', href: '/live-cleaning', icon: 'activity', capability: 'operations' },
+  { label: 'Cleaning Logs', href: '/cleaning-logs', icon: 'list-checks', capability: 'operations' },
+  { label: 'Enrollments', href: '/customer-enrollments', icon: 'users', capability: 'operations' },
   // People & Services
-  { label: 'Customers',   href: '/customers',      icon: 'users'            },
-  { label: 'Workers',     href: '/workers',        icon: 'hard-hat'         },
+  { label: 'Customers',   href: '/customers',      icon: 'users', capability: 'support' },
+  { label: 'Workers',     href: '/workers',        icon: 'hard-hat', capability: 'operations' },
   // Finance
-  { label: 'Billing',     href: '/billing',        icon: 'indian-rupee'    },
+  { label: 'Billing',     href: '/billing',        icon: 'indian-rupee', capability: 'billing' },
   // Comms
-  { label: 'Notifications', href: '/notifications', icon: 'bell'           },
-  { label: 'Operations', href: '/operations', icon: 'inbox'                },
-  { label: 'System Health', href: '/system-health', icon: 'heart-pulse'    },
+  { label: 'Notifications', href: '/notifications', icon: 'bell', capability: 'support' },
+  { label: 'Operations', href: '/operations', icon: 'inbox', capability: 'operations' },
+  { label: 'System Health', href: '/system-health', icon: 'heart-pulse', capability: 'operations' },
   // Config
-  { label: 'Settings',    href: '/settings',       icon: 'settings'         },
+  { label: 'Settings',    href: '/settings',       icon: 'settings', capability: 'owner' },
 ];
 
+function canAccess(role: ReturnType<typeof useAdminAuth>['role'], capability: typeof NAV[number]['capability']) {
+  if (role === 'owner') return true;
+  if (role === 'operations') return ['analyst', 'operations'].includes(capability);
+  if (role === 'billing') return ['analyst', 'billing'].includes(capability);
+  if (role === 'support') return ['analyst', 'support'].includes(capability);
+  return capability === 'analyst';
+}
+
 // Bottom-tab items (5 most important for mobile)
-const TABS = NAV.slice(0, 5);
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -128,7 +136,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [alerts, setAlerts] = useState<{ id: string; message?: string; type?: string }[]>([]);
   const { theme, toggle } = useTheme();
-  const { user, signOut } = useAdminAuth();
+  const { user, role, signOut } = useAdminAuth();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -276,7 +284,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
       {/* ── Bottom tab bar (mobile ≤639px) ───────────────────────────────── */}
       <nav className="bottom-nav" aria-label="Main navigation">
         <div className="bottom-nav-inner">
-          {TABS.map(({ label, href, icon }) => {
+          {NAV.filter(item => canAccess(role, item.capability)).slice(0, 5).map(({ label, href, icon }) => {
             const active = pathname === href || pathname.startsWith(href + '/');
             return (
               <Link key={href} href={href} className={`bottom-nav-item${active ? ' active' : ''}`}>

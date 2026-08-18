@@ -2,10 +2,10 @@
 import { useEffect, useState } from 'react';
 import {
   collection, query, orderBy, limit, onSnapshot,
-  doc, getDoc, updateDoc, addDoc, serverTimestamp,
+  doc, serverTimestamp,
   Timestamp, where,
 } from 'firebase/firestore';
-import { db } from '@pc/firebase';
+import { auth, db } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
@@ -34,6 +34,7 @@ interface CustomerRow {
 
 interface SocietyDueRow {
   id:               string;
+  customerId:       string;
   customerName:     string;
   societyName:      string;
   tower:            string;
@@ -151,6 +152,7 @@ export default function BillingPage() {
               const data = d.data();
               return {
                 id:               d.id,
+                customerId:       data.customerId ?? '',
                 customerName:     data.customerName ?? '—',
                 societyName:      data.societyName,
                 tower:            data.tower,
@@ -170,22 +172,9 @@ export default function BillingPage() {
     if (markingSociety) return;
     setMarkingSociety(due.id);
     try {
-      await addDoc(collection(db, 'paymentLogs'), {
-        customerId:   due.id,
-        customerName: due.customerName,
-        amount:       due.amountDue,
-        type:         'manual_dues',
-        paidAt:       serverTimestamp(),
-      });
-      const statsRef = doc(db, 'stats', 'income');
-      const snap = await getDoc(statsRef);
-      if (snap.exists()) {
-        await updateDoc(statsRef, { totalIncome: (snap.data().totalIncome ?? 0) + due.amountDue });
-      } else {
-        const { setDoc } = await import('firebase/firestore');
-        await setDoc(statsRef, { totalIncome: due.amountDue });
-      }
-      await updateDoc(doc(db, 'customerSocietyRecords', due.id), { paymentStatus: 'paid', pendingAmount: 0, updatedAt: serverTimestamp() });
+      const token = await auth.currentUser?.getIdToken();
+      const res = await fetch('/api/admin/record-payment', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token ?? ''}` }, body: JSON.stringify({ kind: 'society', recordId: due.id, customerId: due.customerId, customerName: due.customerName, amount: due.amountDue }) });
+      if (!res.ok) throw new Error((await res.json()).error ?? 'Payment could not be recorded.');
     } finally {
       setMarkingSociety(null);
     }
@@ -197,28 +186,9 @@ export default function BillingPage() {
     try {
       const amount = customer.outstandingBalance;
 
-      // Write payment log
-      await addDoc(collection(db, 'paymentLogs'), {
-        customerId:   customer.id,
-        customerName: customer.name,
-        customerPhone:customer.phone,
-        amount,
-        type:    'manual_dues',
-        paidAt:  serverTimestamp(),
-      });
-
-      // Increment stats
-      const statsRef = doc(db, 'stats', 'income');
-      const snap = await getDoc(statsRef);
-      if (snap.exists()) {
-        await updateDoc(statsRef, { totalIncome: (snap.data().totalIncome ?? 0) + amount });
-      } else {
-        const { setDoc } = await import('firebase/firestore');
-        await setDoc(statsRef, { totalIncome: amount });
-      }
-
-      // Clear the customer's outstanding balance
-      await updateDoc(doc(db, 'customers', customer.id), { outstandingBalance: 0 });
+      const token = await auth.currentUser?.getIdToken();
+      const res = await fetch('/api/admin/record-payment', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token ?? ''}` }, body: JSON.stringify({ kind: 'balance', customerId: customer.id, customerName: customer.name, amount }) });
+      if (!res.ok) throw new Error((await res.json()).error ?? 'Payment could not be recorded.');
     } finally {
       setMarking(null);
     }

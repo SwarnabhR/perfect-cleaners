@@ -2,6 +2,8 @@ import { toErrMsg } from '@/lib/api-error';
 import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminAuth, adminFirestore } from '@/lib/firebase/admin';
+import { requireAdmin } from '@/lib/admin-server-auth';
+import { writeAdminAudit } from '@/lib/admin-audit';
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,13 +18,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Phone must be a 10-digit Indian number.' }, { status: 400 });
     }
 
-    // Verify the caller is an admin
-    const decoded = await adminAuth().verifyIdToken(idToken);
-    const adminSnap = await adminFirestore()
-      .collection('admins').doc(decoded.uid).get();
-    if (!adminSnap.exists) {
-      return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
-    }
+    const admin = await requireAdmin(`Bearer ${idToken}`, ['operations']);
 
     const formattedPhone = `+91${digits}`;
 
@@ -51,6 +47,7 @@ export async function POST(req: NextRequest) {
       await workerRef.update({ name: name.trim(), phone: formattedPhone });
       // Ensure the customer doc has role: 'worker' (may have been missing)
       await customerRef.set({ role: 'worker', name: name.trim(), phone: formattedPhone }, { merge: true });
+      await writeAdminAudit({ adminId: admin.uid, action: 'worker.updated', entityType: 'worker', entityId: uid, summary: `Updated worker ${name.trim()}`, before: snap.data(), after: { name: name.trim(), phone: formattedPhone } });
       return NextResponse.json({ uid, updated: true });
     }
 
@@ -75,8 +72,13 @@ export async function POST(req: NextRequest) {
       createdAt: FieldValue.serverTimestamp(),
     }, { merge: true });
 
+    await writeAdminAudit({ adminId: admin.uid, action: 'worker.created', entityType: 'worker', entityId: uid, summary: `Created worker ${name.trim()}`, after: { name: name.trim(), phone: formattedPhone } });
+
     return NextResponse.json({ uid, created: true });
   } catch (err: unknown) {
+    if (err instanceof Error && (err.message === 'UNAUTHORIZED' || err.message === 'FORBIDDEN')) {
+      return NextResponse.json({ error: err.message === 'UNAUTHORIZED' ? 'Unauthorized.' : 'Forbidden.' }, { status: err.message === 'UNAUTHORIZED' ? 401 : 403 });
+    }
     console.error('[create-worker]', err);
     return NextResponse.json({ error: toErrMsg(err) }, { status: 500 });
   }

@@ -41,14 +41,14 @@ const monoLabel: React.CSSProperties = {
 
 interface SocietyDraft {
   name: string; address: string; city: string; pincode: string;
-  towers: string; totalUnits: string; pricePerWash: string;
+  towers: string[]; totalUnits: string; pricePerWash: string;
   cleaningSchedule: string; isActive: boolean;
   cpName: string; cpPhone: string; cpRole: string; cpEmail: string;
 }
 
 const EMPTY_DRAFT: SocietyDraft = {
   name: '', address: '', city: 'Delhi', pincode: '',
-  towers: '', totalUnits: '', pricePerWash: '',
+  towers: [], totalUnits: '', pricePerWash: '',
   cleaningSchedule: 'Mon, Wed, Fri · 7:00 AM', isActive: true,
   cpName: '', cpPhone: '', cpRole: 'Facility Manager', cpEmail: '',
 };
@@ -59,7 +59,7 @@ function toDraft(s: LiveSociety): SocietyDraft {
     address:          s.address,
     city:             s.city,
     pincode:          s.pincode,
-    towers:           (s.towers ?? []).join(', '),
+    towers:           s.towers ?? [],
     totalUnits:       String(s.totalUnits ?? ''),
     pricePerWash:     String(s.pricePerWash ?? ''),
     cleaningSchedule: s.cleaningSchedule ?? '',
@@ -77,7 +77,7 @@ function fromDraft(d: SocietyDraft) {
     address:          d.address.trim(),
     city:             d.city.trim(),
     pincode:          d.pincode.trim(),
-    towers:           d.towers.split(',').map(t => t.trim()).filter(Boolean),
+    towers:           d.towers.map(t => t.trim()).filter(Boolean),
     totalUnits:       parseInt(d.totalUnits) || 0,
     pricePerWash:     parseFloat(d.pricePerWash) || 0,
     cleaningSchedule: d.cleaningSchedule.trim(),
@@ -139,12 +139,24 @@ function SocietyFormModal({
   const [draft, setDraft] = useState<SocietyDraft>(initial ? toDraft(initial) : EMPTY_DRAFT);
   const [busy,  setBusy]  = useState(false);
   const [err,   setErr]   = useState('');
+  const [towerInput, setTowerInput] = useState('');
 
   function field(key: keyof SocietyDraft) {
     return (e: React.ChangeEvent<HTMLInputElement>) => {
       setDraft(d => ({ ...d, [key]: e.target.value }));
       setErr('');
     };
+  }
+
+  function addTower() {
+    const name = towerInput.trim();
+    if (!name) return;
+    if (draft.towers.some(t => t.toLowerCase() === name.toLowerCase())) {
+      setErr('That tower has already been added.');
+      return;
+    }
+    setDraft(d => ({ ...d, towers: [...d.towers, name] }));
+    setTowerInput(''); setErr('');
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -190,7 +202,16 @@ function SocietyFormModal({
           </div>
 
           {/* Towers */}
-          <FormRow label="Towers / blocks (comma-separated)" value={draft.towers} onChange={field('towers')} ph="Tower A, Tower B, Tower C" />
+          <div>
+            <p style={monoLabel}>Towers / blocks</p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input value={towerInput} onChange={e => setTowerInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTower(); } }} placeholder="e.g. Tower A" style={{ ...inputStyle, flex: 1 }} />
+              <button type="button" onClick={addTower} style={{ padding: '0 16px', borderRadius: 8, border: '1px solid var(--pc-line)', background: 'var(--pc-card-hi)', color: 'var(--pc-fg)', fontFamily: 'var(--pc-sans)', fontWeight: 600, cursor: 'pointer' }}>+ Add</button>
+            </div>
+            {draft.towers.length > 0 ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+              {draft.towers.map(tower => <span key={tower} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '6px 9px', borderRadius: 999, background: 'color-mix(in srgb, var(--pc-sage) 14%, transparent)', border: '1px solid var(--pc-line)', fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg)' }}>{tower}<button type="button" aria-label={`Remove ${tower}`} onClick={() => setDraft(d => ({ ...d, towers: d.towers.filter(t => t !== tower) }))} style={{ border: 0, background: 'transparent', color: 'var(--pc-fg-3)', cursor: 'pointer', padding: 0, lineHeight: 1 }}>×</button></span>)}
+            </div> : <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-4)', margin: '8px 0 0' }}>Add each tower separately. You can remove one before saving.</p>}
+          </div>
 
           {/* Billing & schedule */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>

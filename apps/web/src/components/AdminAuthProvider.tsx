@@ -7,16 +7,18 @@ import { useRouter, usePathname } from 'next/navigation';
 
 interface AdminAuthCtx {
   user:    User | null;
+  role:    'owner' | 'operations' | 'billing' | 'support' | 'analyst' | null;
   loading: boolean;
   signOut: () => Promise<void>;
 }
 
 const Ctx = createContext<AdminAuthCtx>({
-  user: null, loading: true, signOut: async () => {},
+  user: null, role: null, loading: true, signOut: async () => {},
 });
 
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const [user,    setUser]    = useState<User | null>(null);
+  const [role,    setRole]    = useState<AdminAuthCtx['role']>(null);
   const [loading, setLoading] = useState(true);
   const router   = useRouter();
   const pathname = usePathname();
@@ -24,7 +26,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     return onAuthStateChanged(auth, async u => {
       if (!u) {
-        setUser(null);
+        setUser(null); setRole(null);
         setLoading(false);
         if (pathname !== '/login') router.replace(`/login?from=${encodeURIComponent(pathname)}`);
         return;
@@ -34,13 +36,14 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       const adminSnap = await getDoc(doc(db, 'admins', u.uid));
       if (!adminSnap.exists()) {
         await fbSignOut(auth);
-        setUser(null);
+        setUser(null); setRole(null);
         setLoading(false);
         router.replace('/login?error=unauthorized');
         return;
       }
 
       setUser(u);
+      setRole((adminSnap.data()?.role as AdminAuthCtx['role']) ?? 'owner');
       setLoading(false);
       if (pathname === '/login') router.replace('/dashboard');
     });
@@ -82,7 +85,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     );
   }
 
-  return <Ctx.Provider value={{ user, loading, signOut }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ user, role, loading, signOut }}>{children}</Ctx.Provider>;
 }
 
 export function useAdminAuth() { return useContext(Ctx); }
