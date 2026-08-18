@@ -118,6 +118,8 @@ type NavItem = {
 const NAV_SECTIONS: { heading: string | null; items: NavItem[] }[] = [
   { heading: null, items: [
     { label: 'Dashboard',   href: '/dashboard',       icon: 'layout-dashboard', capability: 'analyst' },
+    // The owner's daily starting point: everything waiting on a person.
+    { label: 'Needs attention', href: '/operations', icon: 'inbox', capability: 'operations' },
   ]},
   { heading: 'Today', items: [
     { label: 'Live Cleaning', href: '/live-cleaning', icon: 'activity', capability: 'operations' },
@@ -137,10 +139,10 @@ const NAV_SECTIONS: { heading: string | null; items: NavItem[] }[] = [
   { heading: 'Money', items: [
     { label: 'Billing',     href: '/billing',        icon: 'indian-rupee', capability: 'billing' },
   ]},
-  { heading: 'System', items: [
-    { label: 'Operations', href: '/operations', icon: 'inbox', capability: 'operations' },
-    // Exception tool, not daily workflow — sessions generate, start, and
-    // close automatically; this page is for reassignment and corrections.
+  // Advanced: nothing here is part of the daily loop. Sessions generate,
+  // start, and close on their own; these pages exist for corrections and for
+  // diagnosing what the "Needs attention" queue is already surfacing.
+  { heading: 'Advanced', items: [
     { label: 'Session Monitor', href: '/cleaning-schedule', icon: 'calendar', capability: 'operations' },
     { label: 'Notifications', href: '/notifications', icon: 'bell', capability: 'support' },
     { label: 'System Health', href: '/system-health', icon: 'heart-pulse', capability: 'operations' },

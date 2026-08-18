@@ -28,6 +28,20 @@ function buildScheduleString(days: DayOfWeek[], time: string): string {
   return time ? `${label} · ${time}` : label;
 }
 
+// "9:00 AM" → 540. The structured source of truth the crons read
+// (cleaningTimeMinutes); the display string above is presentation only.
+function parseTimeToMinutes(time: string): number | null {
+  const m = time.match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)$/i);
+  if (!m) return null;
+  let hour = Number(m[1]);
+  const minute = Number(m[2] ?? 0);
+  if (hour < 1 || hour > 12 || minute > 59) return null;
+  const meridiem = m[3].toUpperCase();
+  if (meridiem === 'AM' && hour === 12) hour = 0;
+  if (meridiem === 'PM' && hour !== 12) hour += 12;
+  return hour * 60 + minute;
+}
+
 type BillingFrequency = 'monthly' | 'one-time' | 'per-day';
 type DeepCleanFrequency = 'weekly' | 'daily' | 'one-time';
 
@@ -170,6 +184,9 @@ export default function TowerBillingPage() {
           : {}),
         cleaningDays: form.cleaningDays,
         cleaningSchedule: buildScheduleString(form.cleaningDays, form.cleaningTime.trim()),
+        // null (not absent) when the time doesn't parse, so a bad edit can't
+        // silently leave a stale structured time from a previous save behind.
+        cleaningTimeMinutes: parseTimeToMinutes(form.cleaningTime.trim()),
         currency: 'INR',
         billingDay: 1,
         updatedAt: serverTimestamp(),

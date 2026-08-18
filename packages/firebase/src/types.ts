@@ -242,6 +242,11 @@ export interface SocietyBillingConfig {
   billingDay: number;          // 1 (1st of month)
   cleaningDays: DayOfWeek[];   // admin-configured allowed cleaning days for this tower
   cleaningSchedule: string;    // display string derived from cleaningDays, e.g. "Mon, Wed, Fri · 9:00 AM"
+  // Structured start time: minutes after midnight IST (540 = 9:00 AM).
+  // Authoritative when set; absent on configs saved before this field existed,
+  // null when the admin's free-text time didn't parse at save time — readers
+  // fall back to parsing the display string in both cases.
+  cleaningTimeMinutes?: number | null;
 
   // undefined = 'monthly' (today's only behavior — every existing config keeps
   // billing exactly as before until an admin explicitly picks a different mode).

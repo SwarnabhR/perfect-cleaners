@@ -27,8 +27,13 @@ export async function GET(req: NextRequest) {
           .where('societyId', '==', data.societyId)
           .where('tower', '==', data.tower)
           .limit(1).get();
-        const schedule = config.docs[0]?.data()?.cleaningSchedule as string | undefined;
-        startMinutes = parseStartMinutes(schedule) ?? 7 * 60;
+        const cfg = config.docs[0]?.data();
+        // Structured field is authoritative; the display-string parse only
+        // covers configs saved before cleaningTimeMinutes existed.
+        const structured = cfg?.cleaningTimeMinutes;
+        startMinutes = typeof structured === 'number'
+          ? structured
+          : parseStartMinutes(cfg?.cleaningSchedule as string | undefined) ?? 7 * 60;
         startMinutesCache.set(cacheKey, startMinutes);
       }
       if (minutesInIndia(now) < startMinutes) continue;

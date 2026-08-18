@@ -682,7 +682,7 @@ export default function LiveCleaningPage() {
         </Card>
       ) : totalTowerGroups === 0 ? (
         <Card style={{ padding: 48, textAlign: 'center', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)' }}>
-          No cars need cleaning right now. Start a cleaning session from the Schedule page.
+          No cars need cleaning right now. Sessions start automatically at each tower’s configured time.
         </Card>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
