@@ -156,7 +156,7 @@ export default function DashboardPage() {
       {/* Automation health rollup — one line; details live on /system-health */}
       {cronIssues !== null && (
         <Link href="/system-health" style={{ textDecoration: 'none' }}>
-          <Card interactive style={{
+          <Card hover style={{
             padding: 'var(--pc-space-3) var(--pc-space-4)',
             display: 'flex', alignItems: 'center', gap: 'var(--pc-space-3)', flexWrap: 'wrap',
             borderColor: cronIssues === 0 ? 'var(--pc-line)' : 'color-mix(in srgb, var(--pc-danger) 35%, transparent)',
