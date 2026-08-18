@@ -839,27 +839,38 @@ export default function CleaningPage() {
     });
   }, [user?.uid]);
 
-  async function toggleSkip(date: Date) {
-    if (!record || record === 'loading') return;
+  // Routed through /api/customer/unavailability (rather than a direct
+  // updateDoc) so the same request also resyncs any cleaningSessions doc
+  // already generated for the affected date — otherwise a skip/reschedule/
+  // permanentTime change made after that week's session exists would update
+  // this record but never reach the worker's actual car list.
+  async function postUnavailability(body: Record<string, unknown>) {
+    if (!record || record === 'loading' || !user) return;
     setSaving(true);
-    const alreadySkipped = record.skipDates.some(d => isSameDay(d, date));
-    await updateDoc(doc(db, 'customerSocietyRecords', record.id), {
-      skipDates:  alreadySkipped
-        ? record.skipDates.filter(d => !isSameDay(d, date))
-        : [...record.skipDates, date],
-      updatedAt:  serverTimestamp(),
-    });
-    setSaving(false);
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch('/api/customer/unavailability', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body:    JSON.stringify({ recordId: record.id, ...body }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        console.error('[CleaningAccount] unavailability update failed:', data.error);
+      }
+    } catch (err) {
+      console.error('[CleaningAccount] unavailability update failed:', err);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function toggleSkip(date: Date) {
+    await postUnavailability({ action: 'toggleSkip', date: date.toISOString() });
   }
 
   async function savePermanentTime(hour: number) {
-    if (!record || record === 'loading') return;
-    setSaving(true);
-    await updateDoc(doc(db, 'customerSocietyRecords', record.id), {
-      permanentTime: hour,
-      updatedAt:     serverTimestamp(),
-    });
-    setSaving(false);
+    await postUnavailability({ action: 'permanentTime', hour });
   }
 
   async function savePreferredDays(days: DayOfWeek[]) {
@@ -888,32 +899,13 @@ export default function CleaningPage() {
   }
 
   async function toggleReschedule(date: Date, toTime: number) {
-    if (!record || record === 'loading') return;
     setReschedulingDate(null);
-    setSaving(true);
-    const existing = getRescheduledForDate(date);
-    const updated = existing
-      ? (record.rescheduledSlots ?? []).map((s: any) =>
-          isSameDay(s.date, date) ? { ...s, toTime } : s
-        )
-      : [...(record.rescheduledSlots ?? []), { date, fromTime: activeTime, toTime }];
-    await updateDoc(doc(db, 'customerSocietyRecords', record.id), {
-      rescheduledSlots: updated,
-      updatedAt:        serverTimestamp(),
-    });
-    setSaving(false);
+    await postUnavailability({ action: 'reschedule', date: date.toISOString(), toTime });
   }
 
   async function clearReschedule(date: Date) {
-    if (!record || record === 'loading') return;
     setReschedulingDate(null);
-    setSaving(true);
-    const updated = (record.rescheduledSlots ?? []).filter((s: any) => !isSameDay(s.date, date));
-    await updateDoc(doc(db, 'customerSocietyRecords', record.id), {
-      rescheduledSlots: updated,
-      updatedAt:        serverTimestamp(),
-    });
-    setSaving(false);
+    await postUnavailability({ action: 'clearReschedule', date: date.toISOString() });
   }
 
   if (loading || record === 'loading') return (

@@ -2,7 +2,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { collection, query, where, orderBy, limit, getDocs, getDoc, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@pc/firebase';
-import type { CleaningSessionEnhanced, CleaningSessionStatus, CustomerSocietyRecord, Worker, Society } from '@pc/firebase';
+import type { CleaningSessionEnhanced, CleaningSessionStatus, Worker, Society } from '@pc/firebase';
+import { buildSessionCars, type SocietyCarSourceCustomer } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
@@ -262,14 +263,11 @@ export default function CleaningSchedulePage() {
     );
   }, []);
 
-  // Mirrors the cron job's car-list logic (api/cron/generate-sessions) so a
+  // Shares its car-list logic (skip/reschedule/permanentTime handling) with
+  // the generate-sessions cron via @pc/firebase's buildSessionCars, so a
   // session created by hand from this page carries the same real cars[] /
   // totalCars the Live Cleaning board and worker dashboard depend on —
   // previously this always wrote an empty array, so neither ever showed anything.
-  function isSameDay(a: Date, b: Date) {
-    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-  }
-
   async function buildCarsForSession(societyId: string, tower: string, scheduledDate: Date) {
     const customersSnap = await getDocs(query(
       collection(db, 'customerSocietyRecords'),
@@ -278,47 +276,7 @@ export default function CleaningSchedulePage() {
       where('status', '==', 'active'),
     ));
 
-    const cars = customersSnap.docs
-      .map(docSnap => {
-        const customer = docSnap.data();
-        const skipDates = (customer.skipDates as unknown[] | undefined) ?? [];
-        const isSkipped = skipDates.some(d => toDate(d).toDateString() === scheduledDate.toDateString());
-
-        const preferredDays = customer.preferredCleaningDays as number[] | undefined;
-        if (preferredDays?.length && !preferredDays.includes(scheduledDate.getDay())) return null;
-
-        const base = {
-          customerId:    customer.customerId as string,
-          customerName:  (customer.customerName as string | undefined) ?? '',
-          customerPhone: (customer.customerPhone as string | undefined) ?? '',
-          unitNumber:    (customer.unitNumber as string | undefined) ?? '',
-          parkingNumber: (customer.parkingNumber as string | undefined) ?? '',
-          carPlate:      customer.cars?.[0]?.plate ?? '',
-          carMake:       customer.cars?.[0]?.make  ?? '',
-          carModel:      customer.cars?.[0]?.model ?? '',
-        };
-
-        // Skipped customers still get an entry (not dropped) so the worker sees
-        // "Not available" for this car instead of it silently missing from the list.
-        if (isSkipped) {
-          return { ...base, preferredTime: (customer.preferredCleaningTime as number | undefined) ?? 9, status: 'skipped' as const };
-        }
-
-        // Check for a one-off rescheduled slot for this specific date
-        const rescheduledSlots = (customer.rescheduledSlots as CustomerSocietyRecord['rescheduledSlots'] | undefined) ?? [];
-        const rescheduled = rescheduledSlots.find(s => {
-          const slotDate = toDate(s.date);
-          return isSameDay(slotDate, scheduledDate);
-        });
-        const preferredTime = rescheduled
-          ? rescheduled.toTime
-          : ((customer.permanentTime ?? customer.preferredCleaningTime ?? 9) as number);
-
-        return { ...base, preferredTime, status: 'pending' as const };
-      })
-      .filter((c): c is NonNullable<typeof c> => c !== null);
-
-    return cars;
+    return buildSessionCars(customersSnap.docs.map(d => d.data() as SocietyCarSourceCustomer), scheduledDate);
   }
 
   async function handleCreateSession() {

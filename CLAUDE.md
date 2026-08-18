@@ -383,10 +383,10 @@ All generated images are also copied to `apps/web/public/` so Next.js can serve 
 - Reminder: "🧹 Cleaning reminder: Your car will be cleaned Mon/Wed/Fri"
 - Payment: "💳 Payment reminder: ₹500 due for this month's cleanings"
 
-**SMS Provider (Placeholder):**
-- Currently logs to console (no external SMS service)
-- Implement with: Twilio, AWS SNS, or Firebase Extensions
-- Environment: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE`
+**SMS Provider (live):**
+- MSG91 (`apps/web/src/lib/msg91-sms.ts`), reusing the same account already configured for OTP auth
+- Environment: `MSG91_AUTH_KEY`
+- Every send is recorded in the `notifications` collection (`apps/web/src/lib/notify-sms.ts`) regardless of success/failure, with `status: 'sent' | 'failed'`
 
 ---
 

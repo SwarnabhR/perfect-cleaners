@@ -2,6 +2,7 @@ import { toErrMsg } from '@/lib/api-error';
 import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminFirestore, adminAuth } from '@/lib/firebase/admin';
+import { sendAndStoreSMS } from '@/lib/notify-sms';
 
 export async function GET(
   req: NextRequest,
@@ -113,6 +114,7 @@ export async function POST(
       }
 
       let response: Record<string, unknown> | null = null;
+      let notifyCar: { phone: string; name: string; plate: string; societyName: string; tower: string } | null = null;
 
       await db.runTransaction(async (t) => {
         const snap = await t.get(ref);
@@ -188,6 +190,16 @@ export async function POST(
           carsCompletedToday: FieldValue.increment(1),
         });
 
+        if (car.customerPhone) {
+          notifyCar = {
+            phone:       car.customerPhone as string,
+            name:        (car.customerName as string | undefined) || 'there',
+            plate:       (car.carPlate as string | undefined) ?? '',
+            societyName: (data.societyName as string | undefined) ?? '',
+            tower:       (data.tower as string | undefined) ?? '',
+          };
+        }
+
         response = {
           car,
           logId: logRef.id,
@@ -196,6 +208,26 @@ export async function POST(
           status: allDone ? 'done' : wasScheduled ? 'inprogress' : (data.status as string),
         };
       });
+
+      // Best-effort — a worker's completed clean must never fail on this.
+      // This is the SMS the customer expects ("your car is clean"); the
+      // admin's own manual mark-done on the Live Cleaning board sends the
+      // same SMS immediately, so this mirrors that for the primary (worker
+      // app) path instead of only surfacing via the ~5min FCM-push cron.
+      if (notifyCar) {
+        const nc = notifyCar as { phone: string; name: string; plate: string; societyName: string; tower: string };
+        await sendAndStoreSMS({
+          type:           'car_cleaned',
+          recipientPhone: nc.phone,
+          recipientName:  nc.name,
+          data: {
+            customerId,
+            carPlate:    nc.plate,
+            societyName: nc.societyName,
+            tower:       nc.tower,
+          },
+        }).catch(err => console.warn('[session/clean_car] SMS notify failed:', err));
+      }
 
       return NextResponse.json(response);
 

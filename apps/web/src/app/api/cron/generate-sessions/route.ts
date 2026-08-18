@@ -2,15 +2,7 @@ import { toErrMsg } from '@/lib/api-error';
 import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminFirestore } from '@/lib/firebase/admin';
-
-function tsToDate(v: unknown): Date {
-  const val = v as { toDate?: () => Date } | Date | string | number | undefined;
-  return val && typeof (val as { toDate?: () => Date }).toDate === 'function'
-    ? (val as { toDate: () => Date }).toDate()
-    : new Date(val as string | number | Date);
-}
-
-interface RescheduledSlot { date: unknown; fromTime?: number; toTime: number; }
+import { buildSessionCars, type SocietyCarSourceCustomer } from '@pc/firebase';
 
 export async function GET(req: NextRequest) {
   const auth = req.headers.get('authorization');
@@ -69,56 +61,11 @@ export async function GET(req: NextRequest) {
         // dynamic route params instead of being decoded back, which 404s. Slug it.
         const towerSlug = String(tower).trim().replace(/\s+/g, '-');
 
-        // Shared by both the regular wash loop and the deep-clean loop below —
-        // same active-customer population, just written into different session docs.
-        function buildCarsForDate(cleaningDate: Date) {
-          return customersSnap.docs
-            .map(docSnap => {
-              const customer = docSnap.data();
-              const skipDate = (customer.skipDates as unknown[] | undefined)?.find(d =>
-                tsToDate(d).toDateString() === cleaningDate.toDateString()
-              );
-
-              // Unset/empty preferredCleaningDays means "every day the tower is cleaned".
-              const preferredDays = customer.preferredCleaningDays as number[] | undefined;
-              if (preferredDays?.length && !preferredDays.includes(cleaningDate.getDay())) return null;
-
-              const base = {
-                customerId:    customer.customerId,
-                customerName:  customer.customerName || '',
-                customerPhone: customer.customerPhone || '',
-                unitNumber:    customer.unitNumber || '',
-                parkingNumber: customer.parkingNumber || '',
-                carPlate:      customer.cars?.[0]?.plate  || '',
-                carMake:       customer.cars?.[0]?.make   || '',
-                carModel:      customer.cars?.[0]?.model  || '',
-              };
-
-              // Skipped customers still get an entry (not dropped) so the worker
-              // sees "Not available" for this car instead of it silently vanishing.
-              if (skipDate) {
-                return { ...base, preferredTime: customer.preferredCleaningTime || 9, status: 'skipped' };
-              }
-
-              // Check for a one-off rescheduled slot for this specific date
-              const rescheduledSlots = (customer.rescheduledSlots as RescheduledSlot[] | undefined) ?? [];
-              const rescheduled = rescheduledSlots.find(s =>
-                tsToDate(s.date).toDateString() === cleaningDate.toDateString()
-              );
-              const preferredTime = rescheduled
-                ? rescheduled.toTime
-                : (customer.permanentTime || customer.preferredCleaningTime || 9);
-
-              return { ...base, preferredTime, status: 'pending' };
-            })
-            .filter((c): c is NonNullable<typeof c> => c !== null);
-        }
-
         async function createSessionIfMissing(sessionId: string, cleaningDate: Date, sessionType: 'wash' | 'deep-clean') {
           const existing = await db.collection('cleaningSessions').doc(sessionId).get();
           if (existing.exists) return false;
 
-          const cars = buildCarsForDate(cleaningDate);
+          const cars = buildSessionCars(customersSnap.docs.map(d => d.data() as SocietyCarSourceCustomer), cleaningDate);
           const skippedCars = cars.filter(c => c.status === 'skipped').length;
 
           await db.collection('cleaningSessions').doc(sessionId).set({

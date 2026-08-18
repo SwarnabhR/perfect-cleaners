@@ -1,6 +1,8 @@
 export { firebaseApp, db, auth } from './config';
 export { getAssignedSocieties, resolveTodaysSocieties, resolveTowerGroups, getCarUrgency, getSessionDayBucket, resolveWorkerTodoCars } from './worker';
 export type { WorkerSocietyAssignment, SessionSocietyRef, TowerGroupSummary, CarUrgency, CarDueBucket, WorkerTodoCar } from './worker';
+export { buildSessionCarForCustomer, buildSessionCars, sessionIdFor } from './societyCars';
+export type { SocietyCarSourceCustomer, SessionCarDraft } from './societyCars';
 export type {
   Booking,
   BookingAddress,
