@@ -52,11 +52,17 @@ export async function GET(req: NextRequest) {
           .where('status', '==', 'active')
           .get();
 
-        const today = new Date();
-        const nextWeekStart = new Date(today);
-        nextWeekStart.setDate(today.getDate() + ((1 - today.getDay() + 7) % 7));
+        // Rolling two-week horizon starting tomorrow (never today — a session
+        // born mid-morning would auto-start at the next start-sessions tick,
+        // surprising a crew that has already left; same-day gaps are what
+        // scripts/generate-today-session.mjs is for). Creation is idempotent
+        // (deterministic doc IDs + exists check), so runs overlap harmlessly
+        // and a missed weekly run still leaves the following week fully
+        // covered by the previous run's horizon.
+        const windowStart = new Date();
+        windowStart.setDate(windowStart.getDate() + 1);
 
-        const cleaningDates = getCleaningDatesForNextWeek(nextWeekStart, weekdays);
+        const cleaningDates = getCleaningDatesInWindow(windowStart, 14, weekdays);
 
         // Doc IDs become URL path segments (worker links to /session/<id>) — a raw
         // space in the tower name survives as literal "%20" through Next.js's
@@ -165,9 +171,9 @@ function parseWeekdaysFromSchedule(scheduleStr: string): number[] {
     .filter((d): d is number => d !== undefined);
 }
 
-function getCleaningDatesForNextWeek(startDate: Date, weekdays: number[]): Date[] {
+function getCleaningDatesInWindow(startDate: Date, days: number, weekdays: number[]): Date[] {
   const dates: Date[] = [];
-  for (let i = 0; i < 7; i++) {
+  for (let i = 0; i < days; i++) {
     const date = new Date(startDate);
     date.setDate(date.getDate() + i);
     if (weekdays.includes(date.getDay())) dates.push(new Date(date));

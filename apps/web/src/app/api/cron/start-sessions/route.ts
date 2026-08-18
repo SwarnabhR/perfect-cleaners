@@ -12,26 +12,42 @@ export async function GET(req: NextRequest) {
     const now = new Date();
     let started = 0;
 
+    // One billing-config read per society+tower per run, not per session.
+    const startMinutesCache = new Map<string, number>();
+
     for (const session of snap.docs) {
       const data = session.data();
       const scheduled = data.scheduledDate?.toDate?.() as Date | undefined;
       if (!scheduled || !isDueToday(scheduled, now)) continue;
 
-      const config = await db.collection('societyBillingConfig')
-        .where('societyId', '==', data.societyId)
-        .where('tower', '==', data.tower)
-        .limit(1).get();
-      const schedule = config.docs[0]?.data()?.cleaningSchedule as string | undefined;
-      const startMinutes = parseStartMinutes(schedule) ?? 7 * 60;
+      const cacheKey = `${data.societyId}::${data.tower}`;
+      let startMinutes = startMinutesCache.get(cacheKey);
+      if (startMinutes === undefined) {
+        const config = await db.collection('societyBillingConfig')
+          .where('societyId', '==', data.societyId)
+          .where('tower', '==', data.tower)
+          .limit(1).get();
+        const schedule = config.docs[0]?.data()?.cleaningSchedule as string | undefined;
+        startMinutes = parseStartMinutes(schedule) ?? 7 * 60;
+        startMinutesCache.set(cacheKey, startMinutes);
+      }
       if (minutesInIndia(now) < startMinutes) continue;
 
-      await session.ref.update({
-        status: 'inprogress',
-        startedAt: FieldValue.serverTimestamp(),
-        startedBySystem: true,
-        updatedAt: FieldValue.serverTimestamp(),
+      // Conditional promotion inside a transaction — an overlapping cron run
+      // (or a worker tapping "start" at the same moment) re-reads the doc and
+      // finds it already inprogress, so startedAt is only ever written once.
+      const didStart = await db.runTransaction(async t => {
+        const fresh = await t.get(session.ref);
+        if (fresh.data()?.status !== 'scheduled') return false;
+        t.update(session.ref, {
+          status: 'inprogress',
+          startedAt: FieldValue.serverTimestamp(),
+          startedBySystem: true,
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+        return true;
       });
-      started++;
+      if (didStart) started++;
     }
 
     return NextResponse.json({ success: true, started, inspected: snap.size, timestamp: new Date().toISOString() });

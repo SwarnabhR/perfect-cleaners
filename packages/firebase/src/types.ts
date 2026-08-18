@@ -401,7 +401,10 @@ export interface CleaningSession {
   status: CleaningSessionStatus;
   startedAt?: Date;
   completedAt?: Date;
-  missedReason?: 'holiday' | 'worker_unavailable' | 'other';
+  // 'session_expired' is written only by the cleanup-sessions cron when a
+  // 'scheduled' session's date passes without it ever starting; the other
+  // three are the admin's manual mark-missed choices.
+  missedReason?: 'holiday' | 'worker_unavailable' | 'session_expired' | 'other';
   missedNotes?: string;
 
   // Real-time car tracking
