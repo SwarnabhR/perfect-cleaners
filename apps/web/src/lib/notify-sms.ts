@@ -53,8 +53,12 @@ async function storeNotification(payload: NotificationPayload, message: string, 
     data:           payload.data,
     message,
     status:         smsResponse.success ? 'sent' : 'failed',
-    messageId:      smsResponse.messageId,
-    error:          smsResponse.error,
+    // The Admin SDK rejects `undefined` field values outright — exactly one
+    // of messageId/error is always undefined (success has no error, failure
+    // has no messageId), so this write threw on every single call until now,
+    // meaning no notification has ever actually been recorded to Firestore.
+    messageId:      smsResponse.messageId ?? null,
+    error:          smsResponse.error ?? null,
     sentAt:         FieldValue.serverTimestamp(),
   });
   return notificationId;

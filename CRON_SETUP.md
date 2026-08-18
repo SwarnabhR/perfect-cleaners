@@ -62,12 +62,29 @@ openssl rand -hex 32
 2. Sign up with email
 3. Verify email
 
+**Every job below needs a custom request header, not a query string** — the
+routes only ever check `Authorization: Bearer <CRON_SECRET>` (see
+`isAuthorizedCron` in `src/lib/cron-monitor.ts`); none of them read a
+`?secret=` query parameter. On cron-jobs.org, add the header under the job's
+**"Advanced" → "Request headers"** section:
+
+```
+Authorization: Bearer <CRON_SECRET>
+```
+
+A job created with `?secret=...` in the URL instead of this header will 401
+on every single run — silently, since cron-jobs.org still shows the job as
+"executed," just with a 401 response — and never write to `cronHealth`. If
+`/system-health` shows every task as "No heartbeat / Last success: Never",
+check this first before anything else.
+
 ### Create Job #1: Generate Sessions
 
 1. Click **"Create Cron Job"**
 2. Fill in:
    - **Title:** `Generate Cleaning Sessions`
-   - **URL:** `https://your-domain.com/api/cron/generate-sessions?secret=your-secret-key`
+   - **URL:** `https://your-domain.com/api/cron/generate-sessions`
+   - **Header:** `Authorization: Bearer <CRON_SECRET>`
    - **Schedule:** Every week on Sunday at 23:00 (11 PM)
      - Or use cron expression: `0 23 * * 0`
    - **Timeout:** 60 seconds
@@ -78,7 +95,8 @@ openssl rand -hex 32
 1. Click **"Create Cron Job"**
 2. Fill in:
    - **Title:** `Weekly Cleaning Reminders`
-   - **URL:** `https://your-domain.com/api/cron/weekly-reminders?secret=your-secret-key`
+   - **URL:** `https://your-domain.com/api/cron/weekly-reminders`
+   - **Header:** `Authorization: Bearer <CRON_SECRET>`
    - **Schedule:** Every week on Sunday at 23:30 (11:30 PM)
      - Or use cron expression: `30 23 * * 0`
    - **Timeout:** 60 seconds
@@ -89,7 +107,8 @@ openssl rand -hex 32
 1. Click **"Create Cron Job"**
 2. Fill in:
    - **Title:** `Payment Reminders`
-   - **URL:** `https://your-domain.com/api/cron/payment-reminders?secret=your-secret-key`
+   - **URL:** `https://your-domain.com/api/cron/payment-reminders`
+   - **Header:** `Authorization: Bearer <CRON_SECRET>`
    - **Schedule:** 25th of every month at 10:00 AM
      - Or use cron expression: `0 10 25 * *`
    - **Timeout:** 60 seconds
@@ -100,7 +119,8 @@ openssl rand -hex 32
 1. Click **"Create Cron Job"**
 2. Fill in:
    - **Title:** `Monthly Billing`
-   - **URL:** `https://your-domain.com/api/cron/monthly-billing?secret=your-secret-key`
+   - **URL:** `https://your-domain.com/api/cron/monthly-billing`
+   - **Header:** `Authorization: Bearer <CRON_SECRET>`
    - **Schedule:** 1st of every month at 00:01 AM
      - Or use cron expression: `1 0 1 * *`
    - **Timeout:** 60 seconds
@@ -111,7 +131,8 @@ openssl rand -hex 32
 1. Click **"Create Cron Job"**
 2. Fill in:
    - **Title:** `Process Cleaning Logs`
-   - **URL:** `https://your-domain.com/api/cron/process-cleaning-logs?secret=your-secret-key`
+   - **URL:** `https://your-domain.com/api/cron/process-cleaning-logs`
+   - **Header:** `Authorization: Bearer <CRON_SECRET>`
    - **Schedule:** Every 5 minutes
      - Or use cron expression: `*/5 * * * *`
    - **Timeout:** 60 seconds
@@ -122,7 +143,8 @@ openssl rand -hex 32
 1. Click **"Create Cron Job"**
 2. Fill in:
    - **Title:** `Cleanup Sessions`
-   - **URL:** `https://your-domain.com/api/cron/cleanup-sessions?secret=your-secret-key`
+   - **URL:** `https://your-domain.com/api/cron/cleanup-sessions`
+   - **Header:** `Authorization: Bearer <CRON_SECRET>`
    - **Schedule:** Nightly at 00:30 IST (19:00 UTC)
      - Or use cron expression: `0 19 * * *`
    - **Timeout:** 60 seconds
@@ -133,9 +155,22 @@ openssl rand -hex 32
 1. Click **"Create Cron Job"**
 2. Fill in:
    - **Title:** `Reset Earnings`
-   - **URL:** `https://your-domain.com/api/cron/reset-earnings?secret=your-secret-key`
+   - **URL:** `https://your-domain.com/api/cron/reset-earnings`
+   - **Header:** `Authorization: Bearer <CRON_SECRET>`
    - **Schedule:** Daily at 00:00 IST (18:30 UTC)
      - Or use cron expression: `30 18 * * *`
+   - **Timeout:** 60 seconds
+3. Click **"Create"**
+
+### Create Job #8: Cron Health Watchdog
+
+1. Click **"Create Cron Job"**
+2. Fill in:
+   - **Title:** `Cron Health Watchdog`
+   - **URL:** `https://your-domain.com/api/cron/health-check`
+   - **Header:** `Authorization: Bearer <CRON_SECRET>`
+   - **Schedule:** Every 15 minutes
+     - Or use cron expression: `*/15 * * * *`
    - **Timeout:** 60 seconds
 3. Click **"Create"**
 
@@ -243,9 +278,9 @@ Due: June 5 (5 days from billing date)
    - Log in and verify jobs are enabled (green toggle)
    - Check "Last Execution" time
 
-2. **Verify URL is correct:**
-   - Test manually: `curl "https://your-domain.com/api/cron/generate-sessions?secret=YOUR-SECRET"`
-   - Should get HTTP 200 with JSON response
+2. **Verify URL and header are correct:**
+   - Test manually: `curl -H "Authorization: Bearer YOUR-SECRET" "https://your-domain.com/api/cron/generate-sessions"`
+   - Should get HTTP 200 with JSON response — a `?secret=` query param is not read anywhere and will 401
 
 3. **Check environment variables:**
    ```bash
@@ -272,9 +307,13 @@ Due: June 5 (5 days from billing date)
 
 ### Getting 401 Unauthorized?
 
-1. **Secret mismatch:**
-   - URL secret must match `.env.local` CRON_SECRET
-   - Example: If env says `CRON_SECRET=abc123`, URL must have `?secret=abc123`
+1. **Secret mismatch or wrong transport:**
+   - The route checks the `Authorization` request header, not a URL query
+     parameter — a `?secret=abc123` in the URL is silently ignored and will
+     always 401.
+   - The job's `Authorization` header value must be `Bearer <CRON_SECRET>`,
+     matching the **production** (Vercel) value of `CRON_SECRET`, not
+     necessarily your local `.env.local` value if the two have drifted.
 
 2. **Missing environment variable:**
    - Add `CRON_SECRET` to `.env.local`
@@ -285,9 +324,9 @@ Due: June 5 (5 days from billing date)
 
 ## SMS Integration
 
-SMS is sent via 91msg (`NINEONE_MSG_API_KEY` / `NINEONE_MSG_SENDER_ID` in env) through the shared `sendAndStoreSMS` helper in `src/lib/notify-sms.ts`. `weekly-reminders`, `payment-reminders`, and `monthly-billing` all call it directly (not via HTTP — they're server-to-server, so they skip the `/api/notification/send` round-trip and call the same underlying function it uses). Every send, successful or not, is logged to the `notifications` collection for the admin Notifications history page.
+SMS is sent via MSG91 (`MSG91_AUTH_KEY` in env, see `src/lib/msg91-sms.ts`) through the shared `sendAndStoreSMS` helper in `src/lib/notify-sms.ts`. `weekly-reminders`, `payment-reminders`, and `monthly-billing` all call it directly (not via HTTP — they're server-to-server, so they skip the `/api/notification/send` round-trip and call the same underlying function it uses). Every send, successful or not, is logged to the `notifications` collection for the admin Notifications history page.
 
-If `NINEONE_MSG_API_KEY`/`NINEONE_MSG_SENDER_ID` aren't set, sends fail gracefully (logged as `status: 'failed'`, cron job still completes) rather than throwing.
+If `MSG91_AUTH_KEY` isn't set, sends fail gracefully (logged as `status: 'failed'`, cron job still completes) rather than throwing.
 
 ---
 

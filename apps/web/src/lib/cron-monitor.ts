@@ -40,8 +40,10 @@ async function sendOperationsAlert(task: CronTaskName, reason: string, signature
   await alertRef.set({
     type: 'cron_alert', recipientName: 'Operations', recipientPhone: phone ?? '',
     message: `Cron ${task}: ${reason}`,
-    status: sms.success ? 'sent' : 'failed', messageId: sms.messageId,
-    error: sms.error, sentAt: FieldValue.serverTimestamp(), task, signature,
+    // The Admin SDK rejects `undefined` field values outright — exactly one
+    // of messageId/error is always undefined, so this write threw every time.
+    status: sms.success ? 'sent' : 'failed', messageId: sms.messageId ?? null,
+    error: sms.error ?? null, sentAt: FieldValue.serverTimestamp(), task, signature,
   });
 }
 
