@@ -104,6 +104,8 @@ const NAV = [
   { label: 'Billing',     href: '/billing',        icon: 'indian-rupee'    },
   // Comms
   { label: 'Notifications', href: '/notifications', icon: 'bell'           },
+  { label: 'Operations', href: '/operations', icon: 'inbox'                },
+  { label: 'System Health', href: '/system-health', icon: 'heart-pulse'    },
   // Config
   { label: 'Settings',    href: '/settings',       icon: 'settings'         },
 ];
