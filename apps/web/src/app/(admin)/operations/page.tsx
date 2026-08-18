@@ -68,6 +68,11 @@ export default function OperationsPage() {
       const today = startOfToday();
       const cutoff = new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000);
       const next: Item[] = [];
+      // Unassigned sessions are grouped by tower: one tower with no roster
+      // produces a session every cleaning day for the whole generated
+      // horizon, and listing each one separately would bury every other
+      // item in the queue. The fix is per-tower, so the row is too.
+      const unassigned = new Map<string, { place: string; count: number; earliest: Date }>();
 
       for (const d of snap.docs) {
         const s = d.data();
@@ -91,13 +96,23 @@ export default function OperationsPage() {
         // Scheduled with no worker: nobody can see or do this work.
         const workerIds = (s.workerIds as string[] | undefined) ?? [];
         if (workerIds.length === 0 && when >= today) {
-          next.push({
-            id: d.id, kind: 'No worker assigned', severity: 'high',
-            title: place || 'Cleaning session',
-            detail: `${formatDay(when)} — assign a worker so the crew can see it`,
-            href: '/societies-mgmt',
-          });
+          const key = `${s.societyId ?? ''}::${s.tower ?? ''}`;
+          const g = unassigned.get(key);
+          if (!g) unassigned.set(key, { place: place || 'Cleaning session', count: 1, earliest: when });
+          else {
+            g.count++;
+            if (when < g.earliest) g.earliest = when;
+          }
         }
+      }
+
+      for (const [key, g] of unassigned) {
+        next.push({
+          id: key, kind: 'No worker assigned', severity: 'high',
+          title: g.place,
+          detail: `${g.count} upcoming ${g.count === 1 ? 'session has' : 'sessions have'} no worker — from ${formatDay(g.earliest)}. Set this tower's roster.`,
+          href: '/societies-mgmt',
+        });
       }
       setSessionItems(next);
     },
@@ -107,13 +122,19 @@ export default function OperationsPage() {
   // ── Automation health ─────────────────────────────────────────────────────
   useEffect(() => onSnapshot(collection(db, 'cronHealth'),
     snap => {
-      const byId = new Map(snap.docs.map(d => [d.id, d.data() as { lastRunStatus?: string; lastRunDetail?: string }]));
+      const byId = new Map(snap.docs.map(d => [d.id, d.data() as { lastRunStatus?: string; lastRunDetail?: string; lastRunAt?: unknown }]));
       setCronItems(CRON_TASKS.filter(t => byId.get(t)?.lastRunStatus !== 'success').map(t => {
         const h = byId.get(t);
+        // "Never ran" and "ran and failed" need different fixes — the first
+        // means the job isn't registered with the external scheduler, the
+        // second means the endpoint itself is erroring. Don't conflate them.
+        const neverRan = !h?.lastRunAt;
         return {
-          id: t, kind: 'Automation', severity: 'critical' as Severity,
+          id: t, kind: neverRan ? 'Never run' : 'Automation failing', severity: 'critical' as Severity,
           title: t.replace(/-/g, ' '),
-          detail: h ? (h.lastRunDetail ?? 'Last run did not succeed') : 'No heartbeat recorded yet',
+          detail: neverRan
+            ? 'No run ever recorded — check this job is registered with the external scheduler.'
+            : (h?.lastRunDetail ?? 'Last run did not succeed'),
           href: '/system-health',
         };
       }));
