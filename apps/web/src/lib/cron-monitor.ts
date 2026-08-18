@@ -3,7 +3,6 @@ import 'server-only';
 import { FieldValue } from 'firebase-admin/firestore';
 import { NextRequest, NextResponse } from 'next/server';
 import { adminFirestore } from './firebase/admin';
-import { normalizePhoneForMsg91, sendSMSViaMsg91 } from './msg91-sms';
 
 export const CRON_TASKS = {
   'generate-sessions':    { maxAgeMinutes: 8 * 24 * 60 },
@@ -21,29 +20,18 @@ export function isAuthorizedCron(req: NextRequest): boolean {
   return req.headers.get('authorization') === `Bearer ${process.env.CRON_SECRET}`;
 }
 
+// SMS alerting is disabled for now (OPERATIONS_ALERT_PHONE isn't in use) —
+// this only records the incident to Firestore for the admin Notifications
+// history / system-health page, without attempting to text anyone.
 async function sendOperationsAlert(task: CronTaskName, reason: string, signature: string) {
   const db = adminFirestore();
   const alertRef = db.collection('notifications').doc(`cron_alert_${task}_${signature}`);
-  const phone = process.env.OPERATIONS_ALERT_PHONE;
-  let sms: { success: boolean; messageId?: string; error?: string } = {
-    success: false,
-    error: 'OPERATIONS_ALERT_PHONE not configured',
-  };
-
-  if (phone) {
-    sms = await sendSMSViaMsg91(
-      normalizePhoneForMsg91(phone),
-      `ALERT: Perfect Cleaners cron ${task} ${reason}. Check Admin > Notifications.`,
-    );
-  }
-
   await alertRef.set({
-    type: 'cron_alert', recipientName: 'Operations', recipientPhone: phone ?? '',
+    type: 'cron_alert', recipientName: 'Operations', recipientPhone: '',
     message: `Cron ${task}: ${reason}`,
-    // The Admin SDK rejects `undefined` field values outright — exactly one
-    // of messageId/error is always undefined, so this write threw every time.
-    status: sms.success ? 'sent' : 'failed', messageId: sms.messageId ?? null,
-    error: sms.error ?? null, sentAt: FieldValue.serverTimestamp(), task, signature,
+    status: 'skipped', messageId: null,
+    error: 'SMS alerting is currently disabled.',
+    sentAt: FieldValue.serverTimestamp(), task, signature,
   });
 }
 
@@ -88,8 +76,8 @@ export async function runMonitoredCron(
   }
 }
 
-/** Called by the watchdog schedule. Sends one SMS per missed-success incident,
- * while storing the current status in Firestore for the admin console. */
+/** Called by the watchdog schedule. Records one incident per missed-success
+ * signature in Firestore for the admin console (SMS alerting is disabled). */
 export async function checkCronHealth(): Promise<{ task: CronTaskName; healthy: boolean; reason?: string }[]> {
   const db = adminFirestore();
   const now = Date.now();

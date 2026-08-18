@@ -5,16 +5,18 @@ This guide explains how to set up automated tasks using **cron-jobs.org** (a fre
 ## Monitoring and operations alerts
 
 Every production cron route records its latest result in Firestore's `cronHealth`
-collection. Set `OPERATIONS_ALERT_PHONE` to the operations team's Indian mobile
-number and keep `MSG91_AUTH_KEY` configured: an SMS is sent when a task returns
-an error, and when the watchdog sees that a task has missed its expected success
-window.
+collection, viewable on the admin `/system-health` page. SMS alerting on failure
+is currently **disabled** (not needed yet) — a failed or missed run still gets
+recorded as a `cron_alert` doc in the `notifications` collection with
+`status: 'skipped'`, it just doesn't text anyone. To re-enable it later, set
+`OPERATIONS_ALERT_PHONE` and restore the `sendSMSViaMsg91` call in
+`sendOperationsAlert` (`apps/web/src/lib/cron-monitor.ts`).
 
 Create one additional cron-jobs.org task:
 
 | Task | Schedule | Endpoint | Purpose |
 |---|---|---|---|
-| **Cron health watchdog** | Every 15 minutes | `/api/cron/health-check` | Detects missed runs across all seven operational tasks and alerts Operations |
+| **Cron health watchdog** | Every 15 minutes | `/api/cron/health-check` | Detects missed runs across all seven operational tasks and records the incident |
 
 All cron calls must send `Authorization: Bearer <CRON_SECRET>`. Do not put the
 secret in a query string, as query strings are commonly retained in logs.
