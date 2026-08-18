@@ -34,6 +34,9 @@ const eslintConfig = defineConfig([
   {
     // Advisory performance hints from the React hooks plugin, not
     // correctness bugs — keep them visible as warnings without failing lint.
+    // Scoped to src so this object only applies where the Next.js base
+    // configs have already registered the react-hooks plugin.
+    files: ['src/**/*.{ts,tsx}'],
     rules: {
       'react-hooks/set-state-in-effect': 'warn',
       'react-hooks/purity': 'warn',
