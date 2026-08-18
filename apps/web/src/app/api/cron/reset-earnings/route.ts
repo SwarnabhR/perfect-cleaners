@@ -1,12 +1,14 @@
 import { toErrMsg } from '@/lib/api-error';
 import { NextRequest, NextResponse } from 'next/server';
 import { adminFirestore } from '@/lib/firebase/admin';
+import { runMonitoredCron } from '@/lib/cron-monitor';
 
 // Runs daily at 00:00 IST (18:30 UTC) via cron-jobs.org.
 // Resets carsCompletedToday on every worker doc. Kept at this URL (despite the
 // stale "reset-earnings" name) because the external cron-jobs.org schedule
 // already points at this path — renaming the route would silently break it.
 export async function GET(req: NextRequest) {
+  return runMonitoredCron(req, 'reset-earnings', async () => {
   const auth = req.headers.get('authorization');
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
@@ -32,4 +34,5 @@ export async function GET(req: NextRequest) {
     console.error('[reset-earnings] failed:', err instanceof Error ? err.message : String(err));
     return NextResponse.json({ error: toErrMsg(err, 'Reset earnings failed') }, { status: 500 });
   }
+  });
 }

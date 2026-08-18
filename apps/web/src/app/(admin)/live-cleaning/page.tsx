@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { collection, query, where, getDocs, onSnapshot, doc, runTransaction, serverTimestamp, addDoc } from 'firebase/firestore';
 import { db, resolveTowerGroups, getCarUrgency, getSessionDayBucket } from '@pc/firebase';
 import type { CleaningSessionEnhanced, CleaningSessionCar, TowerGroupSummary, CarUrgency, CarDueBucket } from '@pc/firebase';
@@ -348,6 +349,8 @@ function CarDetailsModal({ car, busy, onClose, onMarkDone }: {
 }
 
 export default function LiveCleaningPage() {
+  const searchParams = useSearchParams();
+  const searchTerm = (searchParams.get('q') ?? '').trim().toLowerCase();
   const [sessions, setSessions] = useState<(CleaningSessionEnhanced & { id: string })[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterSociety, setFilterSociety] = useState('all');
@@ -401,6 +404,12 @@ export default function LiveCleaningPage() {
   const filteredSessions = sessions.filter(s => {
     if (filterSociety !== 'all' && s.societyName !== filterSociety) return false;
     if (filterTower !== 'all' && s.tower !== filterTower) return false;
+    if (searchTerm) {
+      const sessionMatch = [s.societyName, s.tower, s.id].some(value => String(value ?? '').toLowerCase().includes(searchTerm));
+      const carMatch = (s.cars ?? []).some(car => [car.customerName, car.customerPhone, car.carPlate, car.unitNumber, car.parkingNumber, car.carMake, car.carModel]
+        .some(value => String(value ?? '').toLowerCase().includes(searchTerm)));
+      if (!sessionMatch && !carMatch) return false;
+    }
     return true;
   });
 

@@ -2,12 +2,14 @@ import { toErrMsg } from '@/lib/api-error';
 import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminFirestore } from '@/lib/firebase/admin';
+import { runMonitoredCron } from '@/lib/cron-monitor';
 
 // Runs nightly at 00:30 IST (19:00 UTC) via cron-jobs.org.
 // Auto-completes any CleaningSession that is still 'inprogress' from a
 // previous calendar day — prevents the admin dashboard from filling with
 // stale open sessions when workers forget to tap "complete".
 export async function GET(req: NextRequest) {
+  return runMonitoredCron(req, 'cleanup-sessions', async () => {
   const auth = req.headers.get('authorization');
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
@@ -73,4 +75,5 @@ export async function GET(req: NextRequest) {
     console.error('[cleanup-sessions]', err);
     return NextResponse.json({ error: toErrMsg(err) }, { status: 500 });
   }
+  });
 }

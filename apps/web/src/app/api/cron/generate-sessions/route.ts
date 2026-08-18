@@ -3,8 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminFirestore } from '@/lib/firebase/admin';
 import { buildSessionCars, type SocietyCarSourceCustomer } from '@pc/firebase';
+import { runMonitoredCron } from '@/lib/cron-monitor';
 
 export async function GET(req: NextRequest) {
+  return runMonitoredCron(req, 'generate-sessions', async () => {
   const auth = req.headers.get('authorization');
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
@@ -150,6 +152,7 @@ export async function GET(req: NextRequest) {
     console.error('[CRON] Generate sessions failed:', err instanceof Error ? err.message : String(err));
     return NextResponse.json({ error: toErrMsg(err, 'Session generation failed') }, { status: 500 });
   }
+  });
 }
 
 function parseWeekdaysFromSchedule(scheduleStr: string): number[] {

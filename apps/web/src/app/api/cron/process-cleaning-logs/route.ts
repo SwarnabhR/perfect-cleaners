@@ -2,11 +2,13 @@ import { toErrMsg } from '@/lib/api-error';
 import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminFirestore, adminMessaging } from '@/lib/firebase/admin';
+import { runMonitoredCron } from '@/lib/cron-monitor';
 
 // Runs every 5 minutes via cron-jobs.org.
 // Picks up cleaning logs that haven't been billed yet, increments the
 // customer's outstanding balance, writes a transaction, and sends an FCM push.
 export async function GET(req: NextRequest) {
+  return runMonitoredCron(req, 'process-cleaning-logs', async () => {
   const auth = req.headers.get('authorization');
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
@@ -126,4 +128,5 @@ export async function GET(req: NextRequest) {
     console.error('[process-cleaning-logs] failed:', err instanceof Error ? err.message : String(err));
     return NextResponse.json({ error: toErrMsg(err, 'Processing cleaning logs failed') }, { status: 500 });
   }
+  });
 }

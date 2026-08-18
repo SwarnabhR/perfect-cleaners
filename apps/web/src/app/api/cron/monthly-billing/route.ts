@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminFirestore } from '@/lib/firebase/admin';
 import { sendAndStoreSMS } from '@/lib/notify-sms';
+import { runMonitoredCron } from '@/lib/cron-monitor';
 
 // This cron runs on the 1st of the month (per cron-jobs.org) and bills every
 // active record whose billingFrequency (undefined = 'monthly') says it's due:
@@ -19,6 +20,7 @@ function firstOfNextMonth(): Date {
 }
 
 export async function GET(req: NextRequest) {
+  return runMonitoredCron(req, 'monthly-billing', async () => {
   const auth = req.headers.get('authorization');
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
@@ -149,4 +151,5 @@ export async function GET(req: NextRequest) {
     console.error('[CRON] Monthly billing failed:', err instanceof Error ? err.message : String(err));
     return NextResponse.json({ error: toErrMsg(err, 'Billing failed') }, { status: 500 });
   }
+  });
 }

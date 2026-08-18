@@ -2,8 +2,10 @@ import { toErrMsg } from '@/lib/api-error';
 import { NextRequest, NextResponse } from 'next/server';
 import { adminFirestore } from '@/lib/firebase/admin';
 import { sendAndStoreSMS } from '@/lib/notify-sms';
+import { runMonitoredCron } from '@/lib/cron-monitor';
 
 export async function GET(req: NextRequest) {
+  return runMonitoredCron(req, 'payment-reminders', async () => {
   const auth = req.headers.get('authorization');
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
@@ -63,4 +65,5 @@ export async function GET(req: NextRequest) {
     console.error('[CRON] Payment reminders failed:', err instanceof Error ? err.message : String(err));
     return NextResponse.json({ error: toErrMsg(err, 'Payment reminders failed') }, { status: 500 });
   }
+  });
 }

@@ -3,7 +3,9 @@ export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { collection, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { db } from '@pc/firebase';
 import Icon from '@/components/ui/Icon';
 import { useTheme } from '@/components/ThemeProvider';
 import { AdminAuthProvider, useAdminAuth } from '@/components/AdminAuthProvider';
@@ -122,10 +124,20 @@ function AdminShell({ children }: { children: React.ReactNode }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [alertsOpen,  setAlertsOpen]  = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [alerts, setAlerts] = useState<{ id: string; message?: string; type?: string }[]>([]);
   const { theme, toggle } = useTheme();
   const { user, signOut } = useAdminAuth();
   const pathname = usePathname();
   const router = useRouter();
+
+  useEffect(() => onSnapshot(
+    query(collection(db, 'notifications'), orderBy('sentAt', 'desc'), limit(50)),
+    snap => setAlerts(snap.docs
+      .map(d => ({ id: d.id, ...d.data() } as { id: string; message?: string; type?: string; status?: string }))
+      .filter(n => n.type === 'cron_alert' || n.status === 'failed')
+      .slice(0, 5)),
+    err => console.warn('[AdminAlerts]', err.message),
+  ), []);
 
   // /login renders its own full-screen layout — don't bleed the
   // authenticated sidebar/topbar chrome behind it.
@@ -183,7 +195,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
 
             {/* Search */}
             <form
-              onSubmit={e => { e.preventDefault(); if (searchQuery.trim()) { router.push(`/live-cleaning`); setSearchQuery(''); } }}
+              onSubmit={e => { e.preventDefault(); const term = searchQuery.trim(); if (term) { router.push(`/live-cleaning?q=${encodeURIComponent(term)}`); setSearchQuery(''); } }}
               style={{ flex: 1, maxWidth: 400 }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pc-space-2)', background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 'var(--pc-radius-pill)', padding: 'var(--pc-space-2) var(--pc-space-4)' }}>
@@ -214,12 +226,18 @@ function AdminShell({ children }: { children: React.ReactNode }) {
                   style={{ display: 'flex', alignItems: 'center', gap: 'var(--pc-space-2)', background: alertsOpen ? 'var(--pc-card-hi)' : 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 'var(--pc-radius-pill)', padding: 'var(--pc-space-2) var(--pc-space-4)', cursor: 'pointer', fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg)' }}
                 >
                   <Icon name="bell" size={14} color="var(--pc-fg-3)" />
-                  <span className="hide-xs">Alerts</span>
+                  <span className="hide-xs">Alerts{alerts.length ? ` (${alerts.length})` : ''}</span>
                 </button>
                 {alertsOpen && (
                   <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 8px)', background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 10, padding: 16, minWidth: 240, boxShadow: '0 8px 24px rgba(0,0,0,0.3)', zIndex: 100 }}>
                     <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>ALERTS</p>
-                    <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: 0, lineHeight: 1.5 }}>No new alerts.</p>
+                    {alerts.length === 0 ? (
+                      <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: 0, lineHeight: 1.5 }}>No active delivery or cron alerts.</p>
+                    ) : alerts.map(alert => (
+                      <Link key={alert.id} href="/notifications" onClick={() => setAlertsOpen(false)} style={{ display: 'block', color: 'var(--pc-danger)', fontFamily: 'var(--pc-sans)', fontSize: 12, lineHeight: 1.4, textDecoration: 'none', padding: '8px 0', borderTop: '1px solid var(--pc-line)' }}>
+                        {alert.message ?? 'A notification delivery failed.'}
+                      </Link>
+                    ))}
                   </div>
                 )}
               </div>

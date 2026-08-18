@@ -2,6 +2,23 @@
 
 This guide explains how to set up automated tasks using **cron-jobs.org** (a free cron scheduling service).
 
+## Monitoring and operations alerts
+
+Every production cron route records its latest result in Firestore's `cronHealth`
+collection. Set `OPERATIONS_ALERT_PHONE` to the operations team's Indian mobile
+number and keep `MSG91_AUTH_KEY` configured: an SMS is sent when a task returns
+an error, and when the watchdog sees that a task has missed its expected success
+window.
+
+Create one additional cron-jobs.org task:
+
+| Task | Schedule | Endpoint | Purpose |
+|---|---|---|---|
+| **Cron health watchdog** | Every 15 minutes | `/api/cron/health-check` | Detects missed runs across all seven operational tasks and alerts Operations |
+
+All cron calls must send `Authorization: Bearer <CRON_SECRET>`. Do not put the
+secret in a query string, as query strings are commonly retained in logs.
+
 ## Overview
 
 We have 7 automated tasks that need to run on a schedule:
