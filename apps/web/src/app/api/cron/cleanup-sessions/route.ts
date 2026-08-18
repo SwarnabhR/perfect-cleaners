@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
     // Date filtering is done in memory (collection stays small).
     const snap = await db
       .collection('cleaningSessions')
-      .where('status', '==', 'inprogress')
+      .where('status', 'in', ['scheduled', 'inprogress'])
       .get();
 
     const stale = snap.docs.filter(d => {
@@ -58,11 +58,12 @@ export async function GET(req: NextRequest) {
         );
         const skippedCars = updatedCars.filter(c => c.status === 'skipped').length;
 
+        const wasScheduled = data.status === 'scheduled';
         batch.update(d.ref, {
-          status:             'done',
+          status:             wasScheduled ? 'missed' : 'done',
           cars:               updatedCars,
           skippedCars,
-          completedAt:        FieldValue.serverTimestamp(),
+          ...(wasScheduled ? { missedAt: FieldValue.serverTimestamp(), missedReason: 'session_expired' } : { completedAt: FieldValue.serverTimestamp() }),
           autoClosedBySystem: true,
         });
       });

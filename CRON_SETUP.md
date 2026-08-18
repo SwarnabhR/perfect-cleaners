@@ -56,6 +56,8 @@ openssl rand -hex 32
 
 **Important:** Use the same secret for all cron jobs. Requests without the correct secret will be rejected (401 Unauthorized).
 
+**Use the bare domain, not `www.`** — `https://www.perfectcleaners.co.in` 307-redirects to `https://perfectcleaners.co.in` site-wide, and cron-jobs.org does not follow redirects. A job pointed at the `www.` host will never actually reach the API and cron-jobs.org will flag it as a "Redirection detected" error. Every job below must use `https://perfectcleaners.co.in/api/cron/...` exactly.
+
 ---
 
 ## Step 2: Create Cron Jobs on cron-jobs.org

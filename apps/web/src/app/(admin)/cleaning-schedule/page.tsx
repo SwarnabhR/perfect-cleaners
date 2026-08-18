@@ -490,9 +490,9 @@ export default function CleaningSchedulePage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <Eyebrow style={{ display: 'block', marginBottom: 4 }}>OPERATIONS</Eyebrow>
-          <h1 className="admin-page-title">Weekly Cleaning Schedule</h1>
+          <h1 className="admin-page-title">Cleaning Schedule</h1>
           <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: '4px 0 0' }}>
-            Create & manage cleaning sessions. Assign workers and track progress.
+            Sessions start automatically at each tower’s configured time. Use this page for exceptions, reassignment, and corrections.
           </p>
         </div>
         <button
@@ -514,7 +514,7 @@ export default function CleaningSchedulePage() {
           }}
         >
           <Icon name="plus" size={14} color="var(--pc-ink)" />
-          Create Session
+          Create Exception Session
         </button>
       </div>
 
@@ -540,7 +540,7 @@ export default function CleaningSchedulePage() {
               {loading ? '—' : stats.scheduled}
             </p>
             <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', margin: 0 }}>
-              AWAITING WORKERS
+              SCHEDULED / UPCOMING
             </p>
           </div>
         </Card>
