@@ -12,6 +12,7 @@ export const CRON_TASKS = {
   'process-cleaning-logs': { maxAgeMinutes: 15 },
   'cleanup-sessions':     { maxAgeMinutes: 26 * 60 },
   'reset-earnings':       { maxAgeMinutes: 26 * 60 },
+  'start-sessions':       { maxAgeMinutes: 15 },
 } as const;
 
 export type CronTaskName = keyof typeof CRON_TASKS;

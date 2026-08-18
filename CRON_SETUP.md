@@ -23,11 +23,12 @@ secret in a query string, as query strings are commonly retained in logs.
 
 ## Overview
 
-We have 7 automated tasks that need to run on a schedule:
+We have 8 operational tasks plus one health watchdog that need to run on a schedule:
 
 | Task | Schedule | Endpoint | Purpose |
 |------|----------|----------|---------|
 | **Generate Sessions** | Every Sunday 11 PM | `/api/cron/generate-sessions` | Create cleaning sessions for next week |
+| **Start Sessions** | Every 5 minutes | `/api/cron/start-sessions` | Automatically start due sessions at each tower's cleaning time |
 | **Weekly Reminders** | Every Sunday 11:30 PM | `/api/cron/weekly-reminders` | Send "Cleaning reminder: Mon/Wed/Fri" SMS |
 | **Payment Reminders** | 25th of month, 10 AM | `/api/cron/payment-reminders` | Send "Payment due: ₹500" SMS |
 | **Monthly Billing** | 1st of month, 12:01 AM | `/api/cron/monthly-billing` | Create billing records, set payment status to pending, send due-notice SMS |
@@ -91,6 +92,16 @@ check this first before anything else.
      - Or use cron expression: `0 23 * * 0`
    - **Timeout:** 60 seconds
 3. Click **"Create"**
+
+### Create Job: Start Sessions
+
+Create this job in addition to the existing session-generation job:
+
+- **Title:** `Start Due Cleaning Sessions`
+- **URL:** `https://your-domain.com/api/cron/start-sessions`
+- **Schedule:** Every 5 minutes (`*/5 * * * *`)
+- **Header:** `Authorization: Bearer <CRON_SECRET>`
+- **Purpose:** Promotes due sessions to `inprogress` at the tower's configured cleaning time.
 
 ### Create Job #2: Weekly Reminders
 
