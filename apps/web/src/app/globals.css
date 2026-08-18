@@ -864,6 +864,15 @@ html {
   width: 280px;
   box-shadow: 4px 0 24px rgba(0,0,0,0.3);
 }
+
+/* Header dropdowns (alerts, profile) mount conditionally — the entry
+   animation keeps them from popping in at full size in a single frame.
+   prefers-reduced-motion zeroes this via the global override above. */
+@keyframes dropdown-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.admin-dropdown-pop { animation: dropdown-in var(--pc-dur-fast) var(--pc-ease); }
 .hamburger-btn { display: none; }
 
 .bottom-nav {
@@ -925,8 +934,28 @@ html {
 @media (max-width: 1023px) {
   .sidebar-static  { display: none !important; }
   .hamburger-btn   { display: flex !important; }
-  .sidebar-overlay.is-open { display: block; }
-  .sidebar-drawer.is-open  { display: flex !important; flex-direction: column; }
+  /* Overlay and drawer stay mounted below the desktop breakpoint and animate
+     with opacity/transform instead of a display flip, so opening the menu
+     eases in rather than popping in a single frame. visibility flips at the
+     transition boundary to keep the closed drawer out of the tab order. */
+  .sidebar-overlay {
+    display: block;
+    opacity: 0; pointer-events: none;
+    transition: opacity var(--pc-dur-base) var(--pc-ease);
+  }
+  .sidebar-overlay.is-open { opacity: 1; pointer-events: auto; }
+  .sidebar-drawer {
+    display: flex !important; flex-direction: column;
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition: transform var(--pc-dur-base) var(--pc-ease),
+                visibility 0s linear var(--pc-dur-base);
+  }
+  .sidebar-drawer.is-open {
+    transform: translateX(0);
+    visibility: visible;
+    transition: transform var(--pc-dur-base) var(--pc-ease), visibility 0s;
+  }
 }
 
 @media (max-width: 767px) {

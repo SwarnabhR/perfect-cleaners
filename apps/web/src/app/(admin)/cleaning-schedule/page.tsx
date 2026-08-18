@@ -10,6 +10,7 @@ import Icon from '@/components/ui/Icon';
 import StatusPill from '@/components/ui/StatusPill';
 import CalendarMonth from '@/components/ui/CalendarMonth';
 import { notifyCleaningMissed } from '@/lib/notification';
+import { sessionStatusLabel } from '@/lib/session-status';
 
 const MISSED_REASONS: { value: 'holiday' | 'worker_unavailable' | 'other'; label: string }[] = [
   { value: 'holiday',            label: 'Society holiday' },
@@ -112,7 +113,7 @@ function SessionRow({
             </span>
           )}
         </p>
-        <StatusPill status={session.status.replace('_', ' ')} />
+        <StatusPill status={sessionStatusLabel(session.status)} />
       </div>
 
       {/* Progress */}
@@ -614,10 +615,10 @@ export default function CleaningSchedulePage() {
                 fontFamily: 'var(--pc-sans)',
                 fontSize: 13,
                 cursor: 'pointer',
-                textTransform: 'capitalize',
+                transition: 'background var(--pc-dur-fast) var(--pc-ease), border-color var(--pc-dur-fast) var(--pc-ease), color var(--pc-dur-fast) var(--pc-ease)',
               }}
             >
-              {status === 'all' ? 'All' : status.replace('_', ' ')}
+              {status === 'all' ? 'All' : sessionStatusLabel(status)}
             </button>
           ))}
         </div>

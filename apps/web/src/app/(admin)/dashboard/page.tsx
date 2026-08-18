@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { collection, query, orderBy, limit, onSnapshot, Timestamp, where, getDocs } from 'firebase/firestore';
 import { db } from '@pc/firebase';
 import type { Booking, Worker, BookingStatus } from '@pc/firebase';
@@ -7,6 +8,7 @@ import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
 import StatusPill from '@/components/ui/StatusPill';
+import { CRON_TASKS } from '@/lib/cron-tasks';
 
 type LiveBooking = Booking & { id: string };
 type LiveWorker  = Worker  & { id: string };
@@ -73,6 +75,18 @@ export default function DashboardPage() {
   const [societyRevenue, setSocietyRevenue] = useState(0);
   const [societyLoading, setSocietyLoading] = useState(true);
 
+  // null while loading — the banner only renders once real data is in, so it
+  // never flashes "healthy" and then flips to an issue count a beat later.
+  const [cronIssues, setCronIssues] = useState<number | null>(null);
+
+  useEffect(() => onSnapshot(collection(db, 'cronHealth'),
+    snap => {
+      const byId = new Map(snap.docs.map(d => [d.id, d.data() as { lastRunStatus?: string }]));
+      setCronIssues(CRON_TASKS.filter(t => byId.get(t)?.lastRunStatus !== 'success').length);
+    },
+    err => console.warn('[Dashboard] cronHealth:', err.message),
+  ), []);
+
   useEffect(() => {
     const q = query(collection(db, 'bookings'), orderBy('createdAt', 'desc'), limit(50));
     return onSnapshot(q,
@@ -138,6 +152,29 @@ export default function DashboardPage() {
         <Eyebrow style={{ display: 'block', marginBottom: 'var(--pc-space-1)' }}>OVERVIEW</Eyebrow>
         <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 'var(--pc-text-2xl)', fontWeight: 400, color: 'var(--pc-fg)', margin: 0 }}>Dashboard</h1>
       </div>
+
+      {/* Automation health rollup — one line; details live on /system-health */}
+      {cronIssues !== null && (
+        <Link href="/system-health" style={{ textDecoration: 'none' }}>
+          <Card interactive style={{
+            padding: 'var(--pc-space-3) var(--pc-space-4)',
+            display: 'flex', alignItems: 'center', gap: 'var(--pc-space-3)', flexWrap: 'wrap',
+            borderColor: cronIssues === 0 ? 'var(--pc-line)' : 'color-mix(in srgb, var(--pc-danger) 35%, transparent)',
+          }}>
+            <span aria-hidden="true" style={{
+              width: 8, height: 8, borderRadius: 999, flexShrink: 0,
+              background: cronIssues === 0 ? 'var(--pc-sage)' : 'var(--pc-danger)',
+            }} />
+            <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)', color: 'var(--pc-fg)', fontWeight: 500 }}>
+              {cronIssues === 0 ? 'All systems healthy' : `${cronIssues} automated ${cronIssues === 1 ? 'task needs' : 'tasks need'} attention`}
+            </span>
+            <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-xs)', color: 'var(--pc-fg-3)', marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              System health
+              <Icon name="arrow-up-right" size={12} color="var(--pc-fg-3)" />
+            </span>
+          </Card>
+        </Link>
+      )}
 
       {/* KPI cards — individual bookings */}
       <div className="kpi-grid-4">

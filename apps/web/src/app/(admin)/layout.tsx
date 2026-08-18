@@ -38,25 +38,42 @@ function Sidebar({ onClose }: { onClose?: () => void }) {
         )}
       </div>
 
-      <nav style={{ flex: 1, padding: 'var(--pc-space-3) var(--pc-space-2)' }}>
-        {NAV.filter(item => canAccess(role, item.capability)).map(({ label, href, icon }) => {
-          const active = pathname === href || pathname.startsWith(href + '/');
+      <nav style={{ flex: 1, padding: 'var(--pc-space-3) var(--pc-space-2)', overflowY: 'auto' }}>
+        {NAV_SECTIONS.map(section => {
+          const visible = section.items.filter(item => canAccess(role, item.capability));
+          if (visible.length === 0) return null;
           return (
-            <Link key={href} href={href} style={{ textDecoration: 'none' }} onClick={onClose}>
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 'var(--pc-space-3)',
-                padding: 'var(--pc-space-2) var(--pc-space-3)',
-                borderRadius: 'var(--pc-radius-sm)', marginBottom: 'var(--pc-space-1)',
-                background: active ? 'color-mix(in srgb, var(--pc-sage) 12%, transparent)' : 'transparent',
-                color: active ? 'var(--pc-sage)' : 'var(--pc-fg-2)',
-                fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)',
-                fontWeight: active ? 600 : 400,
-                transition: 'background var(--pc-dur-fast) var(--pc-ease)',
-              }}>
-                <Icon name={icon} size={15} color={active ? 'var(--pc-sage)' : 'var(--pc-fg-3)'} />
-                {label}
-              </div>
-            </Link>
+            <div key={section.heading ?? 'top'}>
+              {section.heading && (
+                <p style={{
+                  fontFamily: 'var(--pc-mono)', fontSize: 10, letterSpacing: '0.12em',
+                  textTransform: 'uppercase', color: 'var(--pc-fg-4)',
+                  margin: 'var(--pc-space-4) 0 var(--pc-space-1)', padding: '0 var(--pc-space-3)',
+                }}>
+                  {section.heading}
+                </p>
+              )}
+              {visible.map(({ label, href, icon }) => {
+                const active = pathname === href || pathname.startsWith(href + '/');
+                return (
+                  <Link key={href} href={href} style={{ textDecoration: 'none' }} onClick={onClose}>
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 'var(--pc-space-3)',
+                      padding: 'var(--pc-space-2) var(--pc-space-3)',
+                      borderRadius: 'var(--pc-radius-sm)', marginBottom: 'var(--pc-space-1)',
+                      background: active ? 'color-mix(in srgb, var(--pc-sage) 12%, transparent)' : 'transparent',
+                      color: active ? 'var(--pc-sage)' : 'var(--pc-fg-2)',
+                      fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)',
+                      fontWeight: active ? 600 : 400,
+                      transition: 'background var(--pc-dur-fast) var(--pc-ease)',
+                    }}>
+                      <Icon name={icon} size={15} color={active ? 'var(--pc-sage)' : 'var(--pc-fg-3)'} />
+                      {label}
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
           );
         })}
       </nav>
@@ -88,30 +105,51 @@ function SidebarFooter() {
   );
 }
 
-const NAV = [
-  { label: 'Dashboard',   href: '/dashboard',       icon: 'layout-dashboard', capability: 'analyst' },
-  // Society Cleaning Program
-  { label: 'Societies',   href: '/societies-mgmt',  icon: 'building-2', capability: 'operations' },
-  { label: 'Tower Billing', href: '/tower-billing', icon: 'credit-card', capability: 'billing' },
-  { label: 'Approvals',   href: '/pending-approvals', icon: 'check-circle', capability: 'operations' },
-  { label: 'Schedule',    href: '/cleaning-schedule', icon: 'calendar', capability: 'operations' },
-  { label: 'Live Cleaning', href: '/live-cleaning', icon: 'activity', capability: 'operations' },
-  { label: 'Cleaning Logs', href: '/cleaning-logs', icon: 'list-checks', capability: 'operations' },
-  { label: 'Enrollments', href: '/customer-enrollments', icon: 'users', capability: 'operations' },
-  // People & Services
-  { label: 'Customers',   href: '/customers',      icon: 'users', capability: 'support' },
-  { label: 'Workers',     href: '/workers',        icon: 'hard-hat', capability: 'operations' },
-  // Finance
-  { label: 'Billing',     href: '/billing',        icon: 'indian-rupee', capability: 'billing' },
-  // Comms
-  { label: 'Notifications', href: '/notifications', icon: 'bell', capability: 'support' },
-  { label: 'Operations', href: '/operations', icon: 'inbox', capability: 'operations' },
-  { label: 'System Health', href: '/system-health', icon: 'heart-pulse', capability: 'operations' },
-  // Config
-  { label: 'Settings',    href: '/settings',       icon: 'settings', capability: 'owner' },
+type NavItem = {
+  label: string;
+  href: string;
+  icon: string;
+  capability: 'analyst' | 'operations' | 'billing' | 'support' | 'owner';
+};
+
+// Grouped by the owner's mental model — run today's work, manage customers,
+// configure once, reconcile money, supervise the automation — rather than by
+// which subsystem a page happens to belong to.
+const NAV_SECTIONS: { heading: string | null; items: NavItem[] }[] = [
+  { heading: null, items: [
+    { label: 'Dashboard',   href: '/dashboard',       icon: 'layout-dashboard', capability: 'analyst' },
+  ]},
+  { heading: 'Today', items: [
+    { label: 'Live Cleaning', href: '/live-cleaning', icon: 'activity', capability: 'operations' },
+    { label: 'Schedule',    href: '/cleaning-schedule', icon: 'calendar', capability: 'operations' },
+    { label: 'Cleaning Logs', href: '/cleaning-logs', icon: 'list-checks', capability: 'operations' },
+  ]},
+  { heading: 'Customers', items: [
+    { label: 'Approvals',   href: '/pending-approvals', icon: 'check-circle', capability: 'operations' },
+    { label: 'Enrollments', href: '/customer-enrollments', icon: 'users', capability: 'operations' },
+    { label: 'Customers',   href: '/customers',      icon: 'users', capability: 'support' },
+  ]},
+  { heading: 'Setup', items: [
+    { label: 'Societies',   href: '/societies-mgmt',  icon: 'building-2', capability: 'operations' },
+    { label: 'Tower Billing', href: '/tower-billing', icon: 'credit-card', capability: 'billing' },
+    { label: 'Workers',     href: '/workers',        icon: 'hard-hat', capability: 'operations' },
+    { label: 'Settings',    href: '/settings',       icon: 'settings', capability: 'owner' },
+  ]},
+  { heading: 'Money', items: [
+    { label: 'Billing',     href: '/billing',        icon: 'indian-rupee', capability: 'billing' },
+  ]},
+  { heading: 'System', items: [
+    { label: 'Operations', href: '/operations', icon: 'inbox', capability: 'operations' },
+    { label: 'Notifications', href: '/notifications', icon: 'bell', capability: 'support' },
+    { label: 'System Health', href: '/system-health', icon: 'heart-pulse', capability: 'operations' },
+  ]},
 ];
 
-function canAccess(role: ReturnType<typeof useAdminAuth>['role'], capability: typeof NAV[number]['capability']) {
+// Flat list, section order preserved — the mobile bottom bar takes the first
+// five visible items, so "Today" pages land right after Dashboard.
+const NAV: NavItem[] = NAV_SECTIONS.flatMap(s => s.items);
+
+function canAccess(role: ReturnType<typeof useAdminAuth>['role'], capability: NavItem['capability']) {
   if (role === 'owner') return true;
   if (role === 'operations') return ['analyst', 'operations'].includes(capability);
   if (role === 'billing') return ['analyst', 'billing'].includes(capability);
@@ -239,7 +277,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
                   <span className="hide-xs">Alerts{alerts.length ? ` (${alerts.length})` : ''}</span>
                 </button>
                 {alertsOpen && (
-                  <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 8px)', background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 10, padding: 16, minWidth: 240, boxShadow: '0 8px 24px rgba(0,0,0,0.3)', zIndex: 100 }}>
+                  <div className="admin-dropdown-pop" style={{ position: 'absolute', right: 0, top: 'calc(100% + 8px)', background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 10, padding: 16, minWidth: 240, boxShadow: '0 8px 24px rgba(0,0,0,0.3)', zIndex: 100 }}>
                     <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>ALERTS</p>
                     {alerts.length === 0 ? (
                       <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: 0, lineHeight: 1.5 }}>No active delivery or cron alerts.</p>
@@ -260,7 +298,7 @@ function AdminShell({ children }: { children: React.ReactNode }) {
                   <Icon name="user" size={14} color="var(--pc-fg-2)" />
                 </button>
                 {profileOpen && (
-                  <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 8px)', background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 10, padding: 16, minWidth: 220, boxShadow: '0 8px 24px rgba(0,0,0,0.3)', zIndex: 100 }}>
+                  <div className="admin-dropdown-pop" style={{ position: 'absolute', right: 0, top: 'calc(100% + 8px)', background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 10, padding: 16, minWidth: 220, boxShadow: '0 8px 24px rgba(0,0,0,0.3)', zIndex: 100 }}>
                     <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 600, color: 'var(--pc-fg)', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.displayName ?? 'Admin'}</p>
                     <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)', margin: '0 0 12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email ?? 'ops@perfectcleaners.in'}</p>
                     <button type="button" onClick={signOut} style={{ width: '100%', padding: '9px 0', borderRadius: 6, background: 'transparent', border: '1px solid var(--pc-line)', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-danger)', cursor: 'pointer' }}>Sign out</button>

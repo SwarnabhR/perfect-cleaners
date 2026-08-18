@@ -23,9 +23,14 @@ const PALETTE: Record<string, { text: string; bg: string; border: string }> = {
   'In Progress': tint('--pc-sage',    12, 20),
   'Done':        tint('--pc-success', 12, 20),
   'Cancelled':   tint('--pc-danger',  12, 20),
+  // Cleaning sessions (owner-facing labels, see lib/session-status.ts)
+  'Upcoming':    tint('--pc-info',    12, 20),
+  'Completed':   tint('--pc-success', 12, 20),
   'Missed':      tint('--pc-danger',  12, 20),
-  // Subscription status
-  'Active':      tint('--pc-success', 12, 20),
+  // Subscription status; 'Active' doubles as the live-session state, so it
+  // takes sage (the brand "working" colour) rather than success green —
+  // green is reserved for finished/positive-outcome states.
+  'Active':      tint('--pc-sage',    12, 20),
   'Paused':      tint('--pc-fg-3',     8, 14),
   // Worker status
   'Available':   tint('--pc-sage',    12, 20),

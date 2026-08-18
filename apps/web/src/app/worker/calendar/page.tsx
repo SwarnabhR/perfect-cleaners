@@ -5,6 +5,7 @@ import { collection, query, where, onSnapshot, Timestamp } from 'firebase/firest
 import { db } from '@pc/firebase';
 import type { CleaningSession } from '@pc/firebase';
 import { useWorkerAuth } from '@/components/WorkerAuthProvider';
+import { sessionStatusLabel } from '@/lib/session-status';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
@@ -136,7 +137,7 @@ export default function WorkerCalendarPage() {
                     {s.societyName}{s.tower ? ` · ${s.tower}` : ''}
                   </p>
                   <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', margin: 0, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                    {s.status === 'inprogress' ? 'In progress' : s.status === 'done' ? 'Done' : s.status === 'missed' ? 'Missed' : 'Scheduled'}
+                    {sessionStatusLabel(s.status)}
                   </p>
                 </div>
                 <div style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', flexShrink: 0 }}>

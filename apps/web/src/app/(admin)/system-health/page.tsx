@@ -4,8 +4,8 @@ import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
+import { CRON_TASKS as TASKS } from '@/lib/cron-tasks';
 
-const TASKS = ['generate-sessions', 'start-sessions', 'weekly-reminders', 'payment-reminders', 'monthly-billing', 'process-cleaning-logs', 'cleanup-sessions', 'reset-earnings'];
 type Health = { id: string; lastRunStatus?: string; lastRunDetail?: string; lastSuccessAt?: { toDate(): Date }; lastRunAt?: { toDate(): Date } };
 function time(v?: { toDate(): Date }) { return v?.toDate ? v.toDate().toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Never'; }
 export default function SystemHealthPage() {
