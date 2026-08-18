@@ -1,4 +1,4 @@
-import type { CleaningSessionCar, CleaningSessionEnhanced, Worker } from './types';
+import type { CleaningSessionCar, CleaningSession, Worker } from './types';
 
 export interface WorkerSocietyAssignment {
   id: string;
@@ -81,7 +81,7 @@ export interface TowerGroupSummary {
 }
 
 type TowerSession = Pick<
-  CleaningSessionEnhanced,
+  CleaningSession,
   'societyId' | 'societyName' | 'tower' | 'totalCars' | 'completedCars' | 'scheduledDate'
 > & { id: string };
 
@@ -170,7 +170,7 @@ export interface WorkerTodoCar {
 }
 
 type TodoSession = Pick<
-  CleaningSessionEnhanced,
+  CleaningSession,
   'societyId' | 'societyName' | 'tower' | 'scheduledDate' | 'status' | 'cars'
 > & { id: string };
 

@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { collection, query, where, orderBy, limit, getDocs, getDoc, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@pc/firebase';
-import type { CleaningSessionEnhanced, CleaningSessionStatus, Worker, Society } from '@pc/firebase';
+import type { CleaningSession, CleaningSessionStatus, Worker, Society } from '@pc/firebase';
 import { buildSessionCars, type SocietyCarSourceCustomer } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
@@ -17,7 +17,7 @@ const MISSED_REASONS: { value: 'holiday' | 'worker_unavailable' | 'other'; label
   { value: 'other',              label: 'Other' },
 ];
 
-type LiveSession = CleaningSessionEnhanced & { id: string };
+type LiveSession = CleaningSession & { id: string };
 
 interface CreateSessionForm {
   societyId: string;

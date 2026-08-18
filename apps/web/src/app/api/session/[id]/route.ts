@@ -25,11 +25,8 @@ export async function GET(
     }
 
     const data = snap.data()!;
-    // Sessions are now written with a multi-worker array (workerIds), but
-    // older docs (and /api/session/create) still only set the legacy
-    // singular workerId — both must grant access.
     const workerIds = (data.workerIds as string[] | undefined) ?? [];
-    const isAssignedWorker = workerIds.includes(decoded.uid) || data.workerId === decoded.uid;
+    const isAssignedWorker = workerIds.includes(decoded.uid);
     if (!isAssignedWorker) {
       const adminSnap = await db.collection('admins').doc(decoded.uid).get();
       if (!adminSnap.exists) {
@@ -99,7 +96,7 @@ export async function POST(
     }
     const sessionData      = sessionSnap.data();
     const sessionWorkerIds = (sessionData?.workerIds as string[] | undefined) ?? [];
-    const isAssignedWorker = sessionWorkerIds.includes(workerId) || sessionData?.workerId === workerId;
+    const isAssignedWorker = sessionWorkerIds.includes(workerId);
     if (!isAssignedWorker) {
       return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
     }

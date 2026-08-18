@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { collection, query, where, getDocs, onSnapshot, doc, runTransaction, serverTimestamp, addDoc } from 'firebase/firestore';
 import { db, resolveTowerGroups, getCarUrgency, getSessionDayBucket } from '@pc/firebase';
-import type { CleaningSessionEnhanced, CleaningSessionCar, TowerGroupSummary, CarUrgency, CarDueBucket } from '@pc/firebase';
+import type { CleaningSession, CleaningSessionCar, TowerGroupSummary, CarUrgency, CarDueBucket } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
@@ -351,7 +351,7 @@ function CarDetailsModal({ car, busy, onClose, onMarkDone }: {
 export default function LiveCleaningPage() {
   const searchParams = useSearchParams();
   const searchTerm = (searchParams.get('q') ?? '').trim().toLowerCase();
-  const [sessions, setSessions] = useState<(CleaningSessionEnhanced & { id: string })[]>([]);
+  const [sessions, setSessions] = useState<(CleaningSession & { id: string })[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterSociety, setFilterSociety] = useState('all');
   const [filterTower, setFilterTower] = useState('all');
@@ -372,7 +372,7 @@ export default function LiveCleaningPage() {
         // vanish once it was no longer "today", which is what made this
         // board go empty the moment today's sessions were all marked done.
         // Bucketing into Overdue/Today/Tomorrow/Upcoming happens below.
-        const data = snap.docs.map(d => ({ id: d.id, ...d.data() } as CleaningSessionEnhanced & { id: string }));
+        const data = snap.docs.map(d => ({ id: d.id, ...d.data() } as CleaningSession & { id: string }));
         setSessions(data);
 
         const socs = new Set<string>();

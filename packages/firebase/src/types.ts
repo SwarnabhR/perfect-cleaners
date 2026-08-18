@@ -101,31 +101,11 @@ export interface Worker {
   createdAt: Date;
 }
 
-// A single day's cleaning assignment for a worker at a society.
-// Created by admin; worker marks it in-progress then done.
 // 'missed' — the session didn't happen (society holiday, worker no-show); see missedReason.
 export type CleaningSessionStatus = 'scheduled' | 'inprogress' | 'done' | 'missed';
 
 // 0 = Sunday … 6 = Saturday, matches JS Date.getDay().
 export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6;
-
-export interface CleaningSession {
-  id: string;
-  societyId: string;
-  societyName: string;
-  tower?: string;
-  workerId: string;
-  workerName: string;
-  scheduledDate: Date;       // calendar day (time is start of day)
-  status: CleaningSessionStatus;
-  totalCars: number;         // set from subscribed resident count at session start
-  completedCars: number;     // incremented as cleaningLogs are written
-  startedAt?: Date;
-  completedAt?: Date;
-  missedReason?: 'holiday' | 'worker_unavailable' | 'other';
-  missedNotes?: string;
-  createdAt: Date;
-}
 
 export interface BookingAddress {
   line1:        string;
@@ -379,7 +359,7 @@ export interface PendingApproval {
   submittedAt: Date;
 }
 
-// Enhanced CleaningSession with real-time tracking
+// A car on a session's real-time shared checklist.
 export interface CleaningSessionCar {
   customerId: string;
   customerName?: string;       // denormalized — who the car belongs to, for the worker on the ground
@@ -404,7 +384,12 @@ export interface CleaningSessionCar {
   cleanedAt?: Date;
 }
 
-export interface CleaningSessionEnhanced {
+// A single day's cleaning assignment at a society tower, with real-time
+// per-car tracking. Created by the generate-sessions cron; workers mark
+// cars done via /api/session/[id]. (Formerly named CleaningSessionEnhanced —
+// the earlier single-worker CleaningSession shape is gone, along with its
+// singular workerId field.)
+export interface CleaningSession {
   id: string;
   societyId: string;
   societyName: string;

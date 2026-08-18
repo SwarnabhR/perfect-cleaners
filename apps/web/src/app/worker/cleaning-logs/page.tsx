@@ -7,14 +7,14 @@ import {
 } from 'firebase/firestore';
 import { db } from '@pc/firebase';
 import { resolveTodaysSocieties } from '@pc/firebase';
-import type { CleaningLog, CleaningSessionEnhanced } from '@pc/firebase';
+import type { CleaningLog, CleaningSession } from '@pc/firebase';
 import { useWorkerAuth } from '@/components/WorkerAuthProvider';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
 
 type LiveLog = CleaningLog & { id: string };
-type LiveSession = CleaningSessionEnhanced & { id: string };
+type LiveSession = CleaningSession & { id: string };
 type DateFilter = 'today' | 'week' | 'all';
 
 function todayStart() {
@@ -50,14 +50,11 @@ export default function WorkerCleaningLogsPage() {
   // session flipping to 'done' shouldn't make it disappear from here either.
   useEffect(() => {
     if (!user) return;
-    const live = new Map<string, LiveSession>();
-    const onResult = (snap: { docs: { id: string; data(): unknown }[] }) => {
-      snap.docs.forEach(d => live.set(d.id, { id: d.id, ...(d.data() as Record<string, unknown>) } as LiveSession));
-      setSessions([...live.values()]);
-    };
-    const current = onSnapshot(query(collection(db, 'cleaningSessions'), where('workerIds', 'array-contains', user.uid)), onResult, err => console.warn('[WorkerCleaningLogs] sessions listener:', err));
-    const legacy = onSnapshot(query(collection(db, 'cleaningSessions'), where('workerId', '==', user.uid)), onResult, err => console.warn('[WorkerCleaningLogs] legacy sessions listener:', err));
-    return () => { current(); legacy(); };
+    return onSnapshot(
+      query(collection(db, 'cleaningSessions'), where('workerIds', 'array-contains', user.uid)),
+      snap => setSessions(snap.docs.map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) } as LiveSession))),
+      err => console.warn('[WorkerCleaningLogs] sessions listener:', err),
+    );
   }, [user]);
 
   useEffect(() => {

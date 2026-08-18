@@ -11,7 +11,6 @@ export type {
   CleaningLog,
   CleaningSession,
   CleaningSessionCar,
-  CleaningSessionEnhanced,
   CleaningSessionStatus,
   Customer,
   CustomerSocietyRecord,

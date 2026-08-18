@@ -3,14 +3,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { collection, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
 import { db } from '@pc/firebase';
-import type { CleaningSessionEnhanced } from '@pc/firebase';
+import type { CleaningSession } from '@pc/firebase';
 import { useWorkerAuth } from '@/components/WorkerAuthProvider';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
 import CalendarMonth from '@/components/ui/CalendarMonth';
 
-interface SessionRow extends CleaningSessionEnhanced { id: string }
+interface SessionRow extends CleaningSession { id: string }
 
 function toDate(ts: Timestamp | Date | null | undefined): Date | null {
   if (!ts) return null;
@@ -46,14 +46,14 @@ export default function WorkerCalendarPage() {
   // forward and backward through the calendar.
   useEffect(() => {
     if (!user) return;
-    const live = new Map<string, SessionRow>();
-    const onResult = (snap: { docs: { id: string; data(): unknown }[] }) => {
-      snap.docs.forEach(d => live.set(d.id, { id: d.id, ...(d.data() as Record<string, unknown>) } as SessionRow));
-      setSessions([...live.values()]); setLoading(false);
-    };
-    const current = onSnapshot(query(collection(db, 'cleaningSessions'), where('workerIds', 'array-contains', user.uid)), onResult, err => { console.warn('[WorkerCalendar] sessions listener:', err); setLoading(false); });
-    const legacy = onSnapshot(query(collection(db, 'cleaningSessions'), where('workerId', '==', user.uid)), onResult, err => { console.warn('[WorkerCalendar] legacy sessions listener:', err); setLoading(false); });
-    return () => { current(); legacy(); };
+    return onSnapshot(
+      query(collection(db, 'cleaningSessions'), where('workerIds', 'array-contains', user.uid)),
+      snap => {
+        setSessions(snap.docs.map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) } as SessionRow)));
+        setLoading(false);
+      },
+      err => { console.warn('[WorkerCalendar] sessions listener:', err); setLoading(false); },
+    );
   }, [user]);
 
   const sessionsByDate = useMemo(() => {

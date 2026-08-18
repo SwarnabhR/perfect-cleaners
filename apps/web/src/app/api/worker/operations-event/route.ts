@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     const db = adminFirestore();
     const session = await db.collection('cleaningSessions').doc(sessionId).get();
     const data = session.data();
-    const assigned = data?.workerId === decoded.uid || ((data?.workerIds as string[] | undefined) ?? []).includes(decoded.uid);
+    const assigned = ((data?.workerIds as string[] | undefined) ?? []).includes(decoded.uid);
     const ownsCar = ((data?.cars as { customerId?: string }[] | undefined) ?? []).some(car => car.customerId === customerId);
     if (!session.exists || !assigned || !ownsCar) return NextResponse.json({ error: 'This job is not assigned to you.' }, { status: 403 });
     await db.collection(type === 'contact' ? 'workerContactEvents' : 'workerIssues').add({

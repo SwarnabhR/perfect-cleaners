@@ -7,14 +7,14 @@ import {
   doc, updateDoc, orderBy, limit, Timestamp,
 } from 'firebase/firestore';
 import { db, resolveTodaysSocieties, resolveWorkerTodoCars, getCarUrgency } from '@pc/firebase';
-import type { CleaningLog, CleaningSessionEnhanced, WorkerTodoCar, CarUrgency, CarDueBucket } from '@pc/firebase';
+import type { CleaningLog, CleaningSession, WorkerTodoCar, CarUrgency, CarDueBucket } from '@pc/firebase';
 import { useWorkerAuth } from '@/components/WorkerAuthProvider';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
 
 interface LogRow extends CleaningLog { id: string }
-interface SessionRow extends CleaningSessionEnhanced { id: string }
+interface SessionRow extends CleaningSession { id: string }
 
 function todayStart() {
   const d = new Date();
@@ -305,17 +305,11 @@ export default function WorkerDashboard() {
   // today) to surface overdue work that was previously invisible here.
   useEffect(() => {
     if (!user) return;
-    const live = new Map<string, SessionRow>();
-    const publish = () => setSessions([...live.values()]);
-    const onResult = (snap: { docs: { id: string; data(): unknown }[] }) => {
-      snap.docs.forEach(d => live.set(d.id, { id: d.id, ...(d.data() as Record<string, unknown>) } as SessionRow));
-      publish();
-    };
-    // Support both the current multi-worker model and legacy single-worker
-    // sessions so assigned work never vanishes from the portal.
-    const current = onSnapshot(query(collection(db, 'cleaningSessions'), where('workerIds', 'array-contains', user.uid)), onResult, err => console.warn('[WorkerDashboard] sessions listener:', err));
-    const legacy = onSnapshot(query(collection(db, 'cleaningSessions'), where('workerId', '==', user.uid)), onResult, err => console.warn('[WorkerDashboard] legacy sessions listener:', err));
-    return () => { current(); legacy(); };
+    return onSnapshot(
+      query(collection(db, 'cleaningSessions'), where('workerIds', 'array-contains', user.uid)),
+      snap => setSessions(snap.docs.map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) } as SessionRow))),
+      err => console.warn('[WorkerDashboard] sessions listener:', err),
+    );
   }, [user]);
 
   // Today's cleaning logs for this worker
