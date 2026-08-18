@@ -43,7 +43,15 @@ service cloud.firestore {
 
     // ── Customers ─────────────────────────────────────────────────────────────
     match /customers/{userId} {
-      allow read, write: if isOwner(userId) || isAdmin();
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAdmin() || (isOwner(userId)
+        && request.resource.data.phone == request.auth.token.phone_number);
+      // Financial, referral and service-status fields are company-managed.
+      // Customers may change only their contact/profile preferences.
+      allow update: if isAdmin() || (isOwner(userId)
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['name', 'email', 'phone', 'vehicles', 'fcmToken', 'updatedAt']));
+      allow delete: if isAdmin();
 
       match /addresses/{addressId} {
         allow read, write: if isOwner(userId) || isAdmin();
@@ -109,8 +117,12 @@ service cloud.firestore {
       // tab, which both query  where('customerPhone', '==', user.phoneNumber).
       allow read: if isBookingCustomer() || isAssignedWorker() || isAdmin();
 
-      // Any signed-in user may create a booking (the booking flow requires auth).
-      allow create: if isSignedIn();
+      // A booking must belong to the verified caller; client-supplied identity
+      // cannot be used to create work for another resident.
+      allow create: if isSignedIn() && (
+        request.resource.data.customerId == request.auth.uid ||
+        request.resource.data.customerPhone == request.auth.token.phone_number
+      );
 
       // Customers may cancel their own booking (status → cancelled only).
       // Workers may advance status and write checklist / photos / notes.

@@ -231,7 +231,7 @@ export default function ProfilePage() {
     setSaving(true); setError('');
     try {
       await setDoc(doc(db, 'customers', user.uid), {
-        id: user.uid, name: name.trim(), email: email.trim(), phone: user.phoneNumber ?? '',
+        name: name.trim(), email: email.trim(), phone: user.phoneNumber ?? '',
         ...(!hasCreatedAt && { createdAt: serverTimestamp() }),
         updatedAt: serverTimestamp(),
       }, { merge: true });
@@ -384,7 +384,7 @@ export default function ProfilePage() {
           <p style={sectionTitle}>SUPPORT</p>
           <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 'var(--pc-radius-md)', overflow: 'hidden' }}>
             {[
-              { label: 'Raise a Complaint', sub: 'We respond within 24 hours', href: 'mailto:support@perfectcleaners.in?subject=Customer Complaint' },
+              { label: 'Support', sub: 'Track your question or complaint', href: '/account/support' },
               { label: 'Help & FAQ',        sub: 'Find answers to common questions', href: '/faq'     },
               { label: 'Privacy Policy',    sub: '',                                  href: '/privacy' },
               { label: 'Terms of Service',  sub: '',                                  href: '/terms'   },

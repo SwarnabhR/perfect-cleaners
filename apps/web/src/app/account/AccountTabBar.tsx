@@ -6,6 +6,7 @@ const ACCOUNT_TABS = [
   { label: 'Bookings', href: '/account'          },
   { label: 'Profile',  href: '/account/profile'  },
   { label: 'Bill',     href: '/account/wallet'   },
+  { label: 'Alerts',   href: '/account/notifications' },
 ];
 
 // Shared by every /account/* page so a tab added here shows up everywhere,
