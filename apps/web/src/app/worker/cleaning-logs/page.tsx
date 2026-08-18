@@ -41,6 +41,7 @@ export default function WorkerCleaningLogsPage() {
   const [sessions,   setSessions]   = useState<LiveSession[]>([]);
   const [loading,    setLoading]    = useState(true);
   const [dateFilter, setDateFilter] = useState<DateFilter>('today');
+  const [search,     setSearch]     = useState('');
 
   // Same live-assignment source the dashboard uses (see resolveTodaysSocieties)
   // — needed here too so the society subtitle doesn't go blank for a worker
@@ -49,13 +50,14 @@ export default function WorkerCleaningLogsPage() {
   // session flipping to 'done' shouldn't make it disappear from here either.
   useEffect(() => {
     if (!user) return;
-    const q = query(
-      collection(db, 'cleaningSessions'),
-      where('workerIds', 'array-contains', user.uid),
-    );
-    return onSnapshot(q, snap => {
-      setSessions(snap.docs.map(d => ({ id: d.id, ...d.data() } as LiveSession)));
-    }, err => console.warn('[WorkerCleaningLogs] sessions listener:', err));
+    const live = new Map<string, LiveSession>();
+    const onResult = (snap: { docs: { id: string; data(): unknown }[] }) => {
+      snap.docs.forEach(d => live.set(d.id, { id: d.id, ...(d.data() as Record<string, unknown>) } as LiveSession));
+      setSessions([...live.values()]);
+    };
+    const current = onSnapshot(query(collection(db, 'cleaningSessions'), where('workerIds', 'array-contains', user.uid)), onResult, err => console.warn('[WorkerCleaningLogs] sessions listener:', err));
+    const legacy = onSnapshot(query(collection(db, 'cleaningSessions'), where('workerId', '==', user.uid)), onResult, err => console.warn('[WorkerCleaningLogs] legacy sessions listener:', err));
+    return () => { current(); legacy(); };
   }, [user]);
 
   useEffect(() => {
@@ -98,6 +100,11 @@ export default function WorkerCleaningLogsPage() {
   }, [user, dateFilter]);
 
   const assignedSocieties = worker ? resolveTodaysSocieties(worker, sessions) : [];
+  const needle = search.trim().toLowerCase();
+  const visibleLogs = !needle ? logs : logs.filter(log =>
+    [log.customerName, log.unitNumber, log.vehicleRegistration, log.vehicleMake, log.vehicleModel, log.serviceType]
+      .some(value => String(value ?? '').toLowerCase().includes(needle)),
+  );
 
   return (
     <div style={{ padding: 'var(--pc-space-5) var(--pc-screen-pad-lg) var(--pc-space-10)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-5)' }}>
@@ -137,6 +144,11 @@ export default function WorkerCleaningLogsPage() {
         </div>
       </div>
 
+      <div style={{ position: 'relative', maxWidth: 420 }}>
+        <Icon name="search" size={14} color="var(--pc-fg-4)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search your past cleans by resident, unit or vehicle" style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px 10px 36px', background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 999, color: 'var(--pc-fg)', fontFamily: 'var(--pc-sans)', fontSize: 13, outline: 'none' }} />
+      </div>
+
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
         {[
@@ -164,7 +176,7 @@ export default function WorkerCleaningLogsPage() {
           <div style={{ padding: 48, textAlign: 'center', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-4)' }}>
             Loading…
           </div>
-        ) : logs.length === 0 ? (
+        ) : visibleLogs.length === 0 ? (
           <div style={{ padding: 48, textAlign: 'center' }}>
             <Icon name="check-circle" size={32} color="var(--pc-fg-4)" style={{ margin: '0 auto 12px' }} />
             <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 18, color: 'var(--pc-fg)', margin: '0 0 6px' }}>
@@ -187,7 +199,7 @@ export default function WorkerCleaningLogsPage() {
                 </tr>
               </thead>
               <tbody>
-                {logs.map(log => (
+                {visibleLogs.map(log => (
                   <tr key={log.id} style={{ borderBottom: '1px solid var(--pc-line)' }}>
                     <td style={{ padding: '11px 16px', whiteSpace: 'nowrap' }}>
                       <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', margin: 0 }}>

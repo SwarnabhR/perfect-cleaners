@@ -79,14 +79,15 @@ service cloud.firestore {
         || isAdmin()
         || (isSignedIn() && resource.data.phone == request.auth.token.phone_number);
       allow create, delete: if isAdmin();
-      // Workers may update only operational/preference fields (isOnline, fcmToken, name, phone).
+      // Workers may update only their own operational/preference fields.  Keep
+      // assignments, ratings, earnings and all company-managed fields admin-only.
       // totalJobs (a stat) is written exclusively by the server-side API
       // (job-complete route) — never by the client SDK.
       allow update:         if isAdmin()
         || (isOwner(workerId)
-            && !request.resource.data.diff(resource.data)
+            && request.resource.data.diff(resource.data)
                   .affectedKeys()
-                  .hasAny(['totalJobs', 'id', 'createdAt']));
+                  .hasOnly(['isOnline', 'fcmToken', 'name', 'phone', 'email', 'updatedAt']));
 
       match /notifications/{notifId} {
         allow read:   if isOwner(workerId) || isAdmin();

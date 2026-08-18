@@ -46,11 +46,14 @@ export default function WorkerCalendarPage() {
   // forward and backward through the calendar.
   useEffect(() => {
     if (!user) return;
-    const q = query(collection(db, 'cleaningSessions'), where('workerIds', 'array-contains', user.uid));
-    return onSnapshot(q, snap => {
-      setSessions(snap.docs.map(d => ({ id: d.id, ...d.data() } as SessionRow)));
-      setLoading(false);
-    }, err => { console.warn('[WorkerCalendar] sessions listener:', err); setLoading(false); });
+    const live = new Map<string, SessionRow>();
+    const onResult = (snap: { docs: { id: string; data(): unknown }[] }) => {
+      snap.docs.forEach(d => live.set(d.id, { id: d.id, ...(d.data() as Record<string, unknown>) } as SessionRow));
+      setSessions([...live.values()]); setLoading(false);
+    };
+    const current = onSnapshot(query(collection(db, 'cleaningSessions'), where('workerIds', 'array-contains', user.uid)), onResult, err => { console.warn('[WorkerCalendar] sessions listener:', err); setLoading(false); });
+    const legacy = onSnapshot(query(collection(db, 'cleaningSessions'), where('workerId', '==', user.uid)), onResult, err => { console.warn('[WorkerCalendar] legacy sessions listener:', err); setLoading(false); });
+    return () => { current(); legacy(); };
   }, [user]);
 
   const sessionsByDate = useMemo(() => {

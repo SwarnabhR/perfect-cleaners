@@ -10,6 +10,7 @@ const NAV = [
   { label: 'Dashboard', href: '/worker/dashboard',     icon: 'layout-dashboard' },
   { label: 'Calendar',  href: '/worker/calendar',      icon: 'calendar'         },
   { label: 'Cleans',    href: '/worker/cleaning-logs', icon: 'check-circle'     },
+  { label: 'Alerts',    href: '/worker/notifications', icon: 'bell'            },
   { label: 'Profile',   href: '/worker/profile',       icon: 'user'             },
 ] as const;
 

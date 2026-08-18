@@ -305,13 +305,17 @@ export default function WorkerDashboard() {
   // today) to surface overdue work that was previously invisible here.
   useEffect(() => {
     if (!user) return;
-    const q = query(
-      collection(db, 'cleaningSessions'),
-      where('workerIds', 'array-contains', user.uid),
-    );
-    return onSnapshot(q, snap => {
-      setSessions(snap.docs.map(d => ({ id: d.id, ...d.data() } as SessionRow)));
-    }, err => console.warn('[WorkerDashboard] sessions listener:', err));
+    const live = new Map<string, SessionRow>();
+    const publish = () => setSessions([...live.values()]);
+    const onResult = (snap: { docs: { id: string; data(): unknown }[] }) => {
+      snap.docs.forEach(d => live.set(d.id, { id: d.id, ...(d.data() as Record<string, unknown>) } as SessionRow));
+      publish();
+    };
+    // Support both the current multi-worker model and legacy single-worker
+    // sessions so assigned work never vanishes from the portal.
+    const current = onSnapshot(query(collection(db, 'cleaningSessions'), where('workerIds', 'array-contains', user.uid)), onResult, err => console.warn('[WorkerDashboard] sessions listener:', err));
+    const legacy = onSnapshot(query(collection(db, 'cleaningSessions'), where('workerId', '==', user.uid)), onResult, err => console.warn('[WorkerDashboard] legacy sessions listener:', err));
+    return () => { current(); legacy(); };
   }, [user]);
 
   // Today's cleaning logs for this worker

@@ -194,8 +194,19 @@ export default function WorkerProfilePage() {
         </button>
       </form>
 
-      {/* Addresses */}
-      <div>
+      {/* Company information replaces personal address storage: this portal is
+          for assigned work only, not a personal account. */}
+      <Card style={{ padding: 'var(--pc-space-5)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <Eyebrow>WORKPLACE PRIVACY</Eyebrow>
+        <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)', lineHeight: 1.55, margin: 0 }}>
+          Customer details are provided only to complete your assigned cleaning work. Do not save, share, or contact residents outside an active job. Report incorrect details or access issues to Operations.
+        </p>
+        <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)', lineHeight: 1.5, margin: 0 }}>
+          Your profile is limited to your name, contact details, job history, and company assignments. Payroll, customer billing, and other workers’ data are private and unavailable here.
+        </p>
+      </Card>
+
+      {false && <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <Eyebrow>SAVED ADDRESSES</Eyebrow>
           <button type="button" onClick={() => setAddAddrOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 999, background: 'transparent', border: '1px solid var(--pc-line)', fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-2)', cursor: 'pointer' }}>
@@ -233,7 +244,7 @@ export default function WorkerProfilePage() {
             ))}
           </div>
         )}
-      </div>
+      </div>}
 
       {/* Support */}
       <Card style={{ padding: 'var(--pc-space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-3)' }}>
