@@ -6,6 +6,7 @@ import { signInWithCustomToken } from 'firebase/auth';
 import { collection, query, where, limit, getDocs } from 'firebase/firestore';
 import { auth, db } from '@pc/firebase';
 import { useMsg91 } from '@/lib/auth/useMsg91';
+import { toErrMsg } from '@/lib/api-error';
 import OtpInput from '@/components/ui/OtpInput';
 import Icon from '@/components/ui/Icon';
 
@@ -43,7 +44,7 @@ function WorkerLoginContent() {
     window.sendOtp(
       `91${phone}`,
       () => { setBusy(false); setStep('otp'); setCountdown(60); },
-      (err: any) => { setBusy(false); setError(err?.message ?? 'Failed to send code.'); },
+      (err) => { setBusy(false); setError(err?.message ?? 'Failed to send code.'); },
     );
   }
 
@@ -53,7 +54,7 @@ function WorkerLoginContent() {
     setError(''); setBusy(true);
     window.verifyOtp(
       otp,
-      async (data: any) => {
+      async (data) => {
         const msg91Token =
           typeof data === 'string'
             ? data
@@ -83,12 +84,12 @@ function WorkerLoginContent() {
             return;
           }
           router.replace(redirectTo);
-        } catch (err: any) {
-          setError(err?.message ?? 'Sign-in failed.');
+        } catch (err) {
+          setError(toErrMsg(err, 'Sign-in failed.'));
           setBusy(false);
         }
       },
-      (err: any) => { setError(err?.message ?? 'Incorrect code.'); setOtp(''); setBusy(false); },
+      (err) => { setError(err?.message ?? 'Incorrect code.'); setOtp(''); setBusy(false); },
     );
   }
 

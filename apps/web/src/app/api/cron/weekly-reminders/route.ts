@@ -43,8 +43,8 @@ export async function GET(req: NextRequest) {
         const record = docSnap.data();
 
         const today = new Date();
-        const weekSkips = (record.skipDates as any[] | undefined)?.filter(d => {
-          const skipDate = new Date(d.toDate?.() || d);
+        const weekSkips = (record.skipDates as (Date | string | { toDate(): Date })[] | undefined)?.filter(d => {
+          const skipDate = typeof d === 'object' && 'toDate' in d ? d.toDate() : new Date(d);
           return (
             skipDate >= new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000) &&
             skipDate <= new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)

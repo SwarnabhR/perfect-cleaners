@@ -23,16 +23,21 @@ function todayStart() {
   return Timestamp.fromDate(d);
 }
 
-function formatTime(ts: any): string {
-  if (!ts) return '—';
-  const d = ts.toDate ? ts.toDate() : new Date(ts);
-  return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+type MaybeTs = { toDate?: () => Date } | string | number | Date | null | undefined;
+
+function tsToDate(ts: MaybeTs): Date {
+  const maybe = ts as { toDate?: () => Date };
+  return typeof maybe?.toDate === 'function' ? maybe.toDate() : new Date(ts as string | number | Date);
 }
 
-function formatDate(ts: any): string {
+function formatTime(ts: MaybeTs): string {
   if (!ts) return '—';
-  const d = ts.toDate ? ts.toDate() : new Date(ts);
-  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  return tsToDate(ts).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatDate(ts: MaybeTs): string {
+  if (!ts) return '—';
+  return tsToDate(ts).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 export default function WorkerCleaningLogsPage() {

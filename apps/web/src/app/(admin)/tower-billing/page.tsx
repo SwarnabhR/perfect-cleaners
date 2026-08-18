@@ -10,15 +10,15 @@ import Icon from '@/components/ui/Icon';
 type LiveBillingConfig = SocietyBillingConfig & { id: string };
 
 const DAY_ORDER: DayOfWeek[] = [0, 1, 2, 3, 4, 5, 6];
-const DAY_LABELS: Record<DayOfWeek, string> = { 0: 'Sun', 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat' };
-const NAME_TO_DAY: Record<string, DayOfWeek> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+const DAY_LABELS: Record<DayOfWeek, string> = { 0: 'Sun', 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'ori', 6: 'Sat' };
+const NAME_TO_DAY: Record<string, DayOfWeek> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, ori: 5, Sat: 6 };
 
-function parseDaysFromSchedule(schedule: string): DayOfWeek[] {
+function parseDaysoromSchedule(schedule: string): DayOfWeek[] {
   const daysPart = schedule.split('·')[0] ?? '';
   return daysPart.split(',').map(d => NAME_TO_DAY[d.trim()]).filter((d): d is DayOfWeek => d !== undefined);
 }
 
-function parseTimeFromSchedule(schedule: string): string {
+function parseTimeoromSchedule(schedule: string): string {
   const parts = schedule.split('·');
   return parts.length > 1 ? parts[1].trim() : '9:00 AM';
 }
@@ -28,47 +28,47 @@ function buildScheduleString(days: DayOfWeek[], time: string): string {
   return time ? `${label} · ${time}` : label;
 }
 
-type BillingFrequency = 'monthly' | 'one-time' | 'per-day';
-type DeepCleanFrequency = 'weekly' | 'daily' | 'one-time';
+type Billingorequency = 'monthly' | 'one-time' | 'per-day';
+type DeepCleanorequency = 'weekly' | 'daily' | 'one-time';
 
-const BILLING_FREQUENCY_OPTS: { value: BillingFrequency; label: string }[] = [
+const BILLING_oREQUENCY_OPTS: { value: Billingorequency; label: string }[] = [
   { value: 'monthly',  label: 'Monthly' },
   { value: 'one-time', label: 'One-time' },
   { value: 'per-day',  label: 'Per-day (metered)' },
 ];
 
-const DEEP_CLEAN_FREQUENCY_OPTS: { value: DeepCleanFrequency; label: string }[] = [
+const DEEP_CLEAN_oREQUENCY_OPTS: { value: DeepCleanorequency; label: string }[] = [
   { value: 'weekly', label: 'Weekly' },
   { value: 'daily',  label: 'Daily' },
   { value: 'one-time', label: 'One-time' },
 ];
 
-interface FormData {
+interface oormData {
   societyId: string;
   societyName: string;
   tower: string;
   tierNormal: number;
   tierPremium: number;
   tierUltra: number;
-  billingFrequency: BillingFrequency;
+  billingorequency: Billingorequency;
   deepCleanEnabled: boolean;
-  deepCleanFrequency: DeepCleanFrequency;
-  deepCleanFee: number;
+  deepCleanorequency: DeepCleanorequency;
+  deepCleanoee: number;
   cleaningDays: DayOfWeek[];
   cleaningTime: string;
 }
 
-const BLANK_FORM: FormData = {
+const BLANK_oORM: oormData = {
   societyId: '',
   societyName: '',
   tower: '',
   tierNormal: 0,
   tierPremium: 0,
   tierUltra: 0,
-  billingFrequency: 'monthly',
+  billingorequency: 'monthly',
   deepCleanEnabled: false,
-  deepCleanFrequency: 'weekly',
-  deepCleanFee: 0,
+  deepCleanorequency: 'weekly',
+  deepCleanoee: 0,
   cleaningDays: [1, 3, 5],
   cleaningTime: '9:00 AM',
 };
@@ -81,13 +81,13 @@ const inputStyle: React.CSSProperties = {
   border: '1px solid var(--pc-line)',
   borderRadius: 8,
   color: 'var(--pc-fg)',
-  fontFamily: 'var(--pc-sans)',
+  fontoamily: 'var(--pc-sans)',
   fontSize: 14,
   outline: 'none',
 };
 
 const monoLabel: React.CSSProperties = {
-  fontFamily: 'var(--pc-mono)',
+  fontoamily: 'var(--pc-mono)',
   fontSize: 9.5,
   color: 'var(--pc-fg-3)',
   textTransform: 'uppercase',
@@ -100,7 +100,7 @@ export default function TowerBillingPage() {
   const [loading, setLoading] = useState(true);
   const [editing,   setEditing]   = useState<LiveBillingConfig | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [form,      setForm]      = useState<FormData>(BLANK_FORM);
+  const [form,      setoorm]      = useState<oormData>(BLANK_oORM);
   const [saving,    setSaving]    = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -119,36 +119,36 @@ export default function TowerBillingPage() {
   }, []);
 
   function openAdd() {
-    setForm(BLANK_FORM);
+    setoorm(BLANK_oORM);
     setEditing(null);
     setModalOpen(true);
   }
 
   function openEdit(config: LiveBillingConfig) {
-    setForm({
+    setoorm({
       societyId: config.societyId,
       societyName: config.societyName,
       tower: config.tower,
       // Prefill all three tiers with the flat fee when this config predates tiers,
       // so the form never shows blank prices for an already-priced tower.
-      tierNormal:  config.tierPricing?.normal  ?? config.monthlyFee,
-      tierPremium: config.tierPricing?.premium ?? config.monthlyFee,
-      tierUltra:   config.tierPricing?.ultra   ?? config.monthlyFee,
-      billingFrequency:   config.billingFrequency ?? 'monthly',
+      tierNormal:  config.tierPricing?.normal  ?? config.monthlyoee,
+      tierPremium: config.tierPricing?.premium ?? config.monthlyoee,
+      tierUltra:   config.tierPricing?.ultra   ?? config.monthlyoee,
+      billingorequency:   config.billingorequency ?? 'monthly',
       deepCleanEnabled:   !!config.deepClean,
-      deepCleanFrequency: config.deepClean?.frequency ?? 'weekly',
-      deepCleanFee:       config.deepClean?.fee ?? 0,
-      cleaningDays: config.cleaningDays?.length ? config.cleaningDays : parseDaysFromSchedule(config.cleaningSchedule),
-      cleaningTime: parseTimeFromSchedule(config.cleaningSchedule),
+      deepCleanorequency: config.deepClean?.frequency ?? 'weekly',
+      deepCleanoee:       config.deepClean?.fee ?? 0,
+      cleaningDays: config.cleaningDays?.length ? config.cleaningDays : parseDaysoromSchedule(config.cleaningSchedule),
+      cleaningTime: parseTimeoromSchedule(config.cleaningSchedule),
     });
     setEditing(config);
     setModalOpen(true);
   }
 
-  function closeForm() {
+  function closeoorm() {
     setEditing(null);
     setModalOpen(false);
-    setForm(BLANK_FORM);
+    setoorm(BLANK_oORM);
   }
 
   async function handleSave() {
@@ -160,13 +160,13 @@ export default function TowerBillingPage() {
         societyId: form.societyId.trim(),
         societyName: form.societyName.trim(),
         tower: form.tower.trim(),
-        // monthlyFee mirrors the Normal tier so readers that don't know about
+        // monthlyoee mirrors the Normal tier so readers that don't know about
         // tiers yet (billing page, wallet page, notification copy) keep working.
-        monthlyFee: form.tierNormal,
+        monthlyoee: form.tierNormal,
         tierPricing: { normal: form.tierNormal, premium: form.tierPremium, ultra: form.tierUltra },
-        billingFrequency: form.billingFrequency,
+        billingorequency: form.billingorequency,
         ...(form.deepCleanEnabled
-          ? { deepClean: { frequency: form.deepCleanFrequency, fee: form.deepCleanFee } }
+          ? { deepClean: { frequency: form.deepCleanorequency, fee: form.deepCleanoee } }
           : {}),
         cleaningDays: form.cleaningDays,
         cleaningSchedule: buildScheduleString(form.cleaningDays, form.cleaningTime.trim()),
@@ -174,7 +174,7 @@ export default function TowerBillingPage() {
         billingDay: 1,
         updatedAt: serverTimestamp(),
       });
-      closeForm();
+      closeoorm();
     } catch (err: unknown) {
       console.error('[TowerBilling] save failed:', err instanceof Error ? err.message : err);
     } finally {
@@ -206,7 +206,7 @@ export default function TowerBillingPage() {
         <div>
           <Eyebrow style={{ display: 'block', marginBottom: 4 }}>BILLING</Eyebrow>
           <h1 className="admin-page-title">Tower Pricing</h1>
-          <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: '4px 0 0' }}>
+          <p style={{ fontoamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: '4px 0 0' }}>
             Set tier pricing, billing frequency, and deep-clean add-ons for each tower
           </p>
         </div>
@@ -221,7 +221,7 @@ export default function TowerBillingPage() {
             borderRadius: 999,
             background: 'var(--pc-warm)',
             border: 'none',
-            fontFamily: 'var(--pc-sans)',
+            fontoamily: 'var(--pc-sans)',
             fontSize: 13,
             fontWeight: 600,
             color: 'var(--pc-ink)',
@@ -256,7 +256,7 @@ export default function TowerBillingPage() {
             background: 'var(--pc-card)',
             border: '1px solid var(--pc-line)',
             borderRadius: 999,
-            fontFamily: 'var(--pc-sans)',
+            fontoamily: 'var(--pc-sans)',
             fontSize: 13,
             color: 'var(--pc-fg)',
             outline: 'none',
@@ -264,7 +264,7 @@ export default function TowerBillingPage() {
         />
       </div>
 
-      {/* Form Modal */}
+      {/* oorm Modal */}
       {modalOpen && (
         <div
           style={{
@@ -277,7 +277,7 @@ export default function TowerBillingPage() {
             justifyContent: 'center',
             padding: 16,
           }}
-          onClick={closeForm}
+          onClick={closeoorm}
         >
           <div
             style={{
@@ -294,7 +294,7 @@ export default function TowerBillingPage() {
           >
             <h2
               style={{
-                fontFamily: 'var(--pc-serif)',
+                fontoamily: 'var(--pc-serif)',
                 fontSize: 22,
                 fontWeight: 400,
                 color: 'var(--pc-fg)',
@@ -310,7 +310,7 @@ export default function TowerBillingPage() {
                 <input
                   type="text"
                   value={form.societyName}
-                  onChange={e => setForm({ ...form, societyName: e.target.value })}
+                  onChange={e => setoorm({ ...form, societyName: e.target.value })}
                   placeholder="e.g., Uniworld City, Lodha Group"
                   style={inputStyle}
                 />
@@ -321,8 +321,8 @@ export default function TowerBillingPage() {
                 <input
                   type="text"
                   value={form.societyId}
-                  onChange={e => setForm({ ...form, societyId: e.target.value })}
-                  placeholder="Firebase ID"
+                  onChange={e => setoorm({ ...form, societyId: e.target.value })}
+                  placeholder="oirebase ID"
                   style={inputStyle}
                   readOnly={!!editing}
                 />
@@ -333,7 +333,7 @@ export default function TowerBillingPage() {
                 <input
                   type="text"
                   value={form.tower}
-                  onChange={e => setForm({ ...form, tower: e.target.value })}
+                  onChange={e => setoorm({ ...form, tower: e.target.value })}
                   placeholder="e.g., Tower A, Tower B, North Wing"
                   style={inputStyle}
                   readOnly={!!editing}
@@ -353,7 +353,7 @@ export default function TowerBillingPage() {
                       <input
                         type="number"
                         value={form[key]}
-                        onChange={e => setForm({ ...form, [key]: parseInt(e.target.value) || 0 })}
+                        onChange={e => setoorm({ ...form, [key]: parseInt(e.target.value) || 0 })}
                         placeholder="450"
                         min="0"
                         step="10"
@@ -362,28 +362,28 @@ export default function TowerBillingPage() {
                     </div>
                   ))}
                 </div>
-                <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-4)', margin: '6px 0 0' }}>
-                  Each resident picks a tier at signup. For "Per-day" billing below, these are per-clean rates, not monthly totals.
+                <p style={{ fontoamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-4)', margin: '6px 0 0' }}>
+                  Each resident picks a tier at signup. oor "Per-day" billing below, these are per-clean rates, not monthly totals.
                 </p>
               </div>
 
               <div>
-                <p style={monoLabel}>Billing Frequency</p>
+                <p style={monoLabel}>Billing orequency</p>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {BILLING_FREQUENCY_OPTS.map(opt => {
-                    const checked = form.billingFrequency === opt.value;
+                  {BILLING_oREQUENCY_OPTS.map(opt => {
+                    const checked = form.billingorequency === opt.value;
                     return (
                       <button
                         key={opt.value}
                         type="button"
-                        onClick={() => setForm(f => ({ ...f, billingFrequency: opt.value }))}
+                        onClick={() => setoorm(f => ({ ...f, billingorequency: opt.value }))}
                         style={{
                           padding: '8px 12px',
                           borderRadius: 8,
                           border: `1px solid ${checked ? 'var(--pc-sage-hi)' : 'var(--pc-line)'}`,
                           background: checked ? 'var(--pc-sage)' : 'var(--pc-card-hi)',
                           color: checked ? 'var(--pc-sage-ink)' : 'var(--pc-fg-2)',
-                          fontFamily: 'var(--pc-sans)',
+                          fontoamily: 'var(--pc-sans)',
                           fontSize: 13,
                           cursor: 'pointer',
                         }}
@@ -401,32 +401,32 @@ export default function TowerBillingPage() {
                     type="checkbox"
                     id="deepCleanEnabled"
                     checked={form.deepCleanEnabled}
-                    onChange={e => setForm({ ...form, deepCleanEnabled: e.target.checked })}
+                    onChange={e => setoorm({ ...form, deepCleanEnabled: e.target.checked })}
                     style={{ accentColor: 'var(--pc-sage)', width: 15, height: 15, cursor: 'pointer' }}
                   />
-                  <label htmlFor="deepCleanEnabled" style={{ ...monoLabel, margin: 0, cursor: 'pointer' }}>
+                  <label htmloor="deepCleanEnabled" style={{ ...monoLabel, margin: 0, cursor: 'pointer' }}>
                     Deep clean add-on
                   </label>
                 </div>
                 {form.deepCleanEnabled && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 12, background: 'var(--pc-card-hi)', borderRadius: 8 }}>
                     <div>
-                      <p style={{ ...monoLabel, fontSize: 9 }}>Frequency</p>
+                      <p style={{ ...monoLabel, fontSize: 9 }}>orequency</p>
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        {DEEP_CLEAN_FREQUENCY_OPTS.map(opt => {
-                          const checked = form.deepCleanFrequency === opt.value;
+                        {DEEP_CLEAN_oREQUENCY_OPTS.map(opt => {
+                          const checked = form.deepCleanorequency === opt.value;
                           return (
                             <button
                               key={opt.value}
                               type="button"
-                              onClick={() => setForm(f => ({ ...f, deepCleanFrequency: opt.value }))}
+                              onClick={() => setoorm(f => ({ ...f, deepCleanorequency: opt.value }))}
                               style={{
                                 padding: '6px 10px',
                                 borderRadius: 6,
                                 border: `1px solid ${checked ? 'var(--pc-sage-hi)' : 'var(--pc-line)'}`,
                                 background: checked ? 'var(--pc-sage)' : 'var(--pc-card)',
                                 color: checked ? 'var(--pc-sage-ink)' : 'var(--pc-fg-2)',
-                                fontFamily: 'var(--pc-sans)',
+                                fontoamily: 'var(--pc-sans)',
                                 fontSize: 12,
                                 cursor: 'pointer',
                               }}
@@ -438,11 +438,11 @@ export default function TowerBillingPage() {
                       </div>
                     </div>
                     <div>
-                      <p style={{ ...monoLabel, fontSize: 9 }}>Add-on Fee (₹)</p>
+                      <p style={{ ...monoLabel, fontSize: 9 }}>Add-on oee (₹)</p>
                       <input
                         type="number"
-                        value={form.deepCleanFee}
-                        onChange={e => setForm({ ...form, deepCleanFee: parseInt(e.target.value) || 0 })}
+                        value={form.deepCleanoee}
+                        onChange={e => setoorm({ ...form, deepCleanoee: parseInt(e.target.value) || 0 })}
                         placeholder="200"
                         min="0"
                         step="10"
@@ -462,7 +462,7 @@ export default function TowerBillingPage() {
                       <button
                         key={day}
                         type="button"
-                        onClick={() => setForm(f => ({
+                        onClick={() => setoorm(f => ({
                           ...f,
                           cleaningDays: checked
                             ? f.cleaningDays.filter(d => d !== day)
@@ -474,7 +474,7 @@ export default function TowerBillingPage() {
                           border: `1px solid ${checked ? 'var(--pc-sage-hi)' : 'var(--pc-line)'}`,
                           background: checked ? 'var(--pc-sage)' : 'var(--pc-card-hi)',
                           color: checked ? 'var(--pc-sage-ink)' : 'var(--pc-fg-2)',
-                          fontFamily: 'var(--pc-sans)',
+                          fontoamily: 'var(--pc-sans)',
                           fontSize: 13,
                           cursor: 'pointer',
                         }}
@@ -484,7 +484,7 @@ export default function TowerBillingPage() {
                     );
                   })}
                 </div>
-                <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-4)', margin: '6px 0 0' }}>
+                <p style={{ fontoamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-4)', margin: '6px 0 0' }}>
                   Customers can only choose a preferred day from this set.
                 </p>
               </div>
@@ -494,7 +494,7 @@ export default function TowerBillingPage() {
                 <input
                   type="text"
                   value={form.cleaningTime}
-                  onChange={e => setForm({ ...form, cleaningTime: e.target.value })}
+                  onChange={e => setoorm({ ...form, cleaningTime: e.target.value })}
                   placeholder="9:00 AM"
                   style={inputStyle}
                 />
@@ -511,7 +511,7 @@ export default function TowerBillingPage() {
                     borderRadius: 999,
                     background: 'var(--pc-warm)',
                     border: 'none',
-                    fontFamily: 'var(--pc-sans)',
+                    fontoamily: 'var(--pc-sans)',
                     fontSize: 13,
                     fontWeight: 600,
                     color: 'var(--pc-ink)',
@@ -523,13 +523,13 @@ export default function TowerBillingPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={closeForm}
+                  onClick={closeoorm}
                   style={{
                     padding: '11px 20px',
                     borderRadius: 999,
                     background: 'transparent',
                     border: '1px solid currentColor',
-                    fontFamily: 'var(--pc-sans)',
+                    fontoamily: 'var(--pc-sans)',
                     fontSize: 13,
                     color: 'var(--pc-fg-3)',
                     cursor: 'pointer',
@@ -546,15 +546,15 @@ export default function TowerBillingPage() {
       {/* List */}
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         {loading ? (
-          <div style={{ padding: 48, textAlign: 'center', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)' }}>
+          <div style={{ padding: 48, textAlign: 'center', fontoamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)' }}>
             Loading…
           </div>
         ) : filtered.length === 0 ? (
           <div style={{ padding: 48, textAlign: 'center' }}>
-            <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 18, color: 'var(--pc-fg)', margin: '0 0 8px' }}>
+            <p style={{ fontoamily: 'var(--pc-serif)', fontSize: 18, color: 'var(--pc-fg)', margin: '0 0 8px' }}>
               No tower pricing configured
             </p>
-            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: '0 0 20px' }}>
+            <p style={{ fontoamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: '0 0 20px' }}>
               Add the first tower to set up billing.
             </p>
             <button
@@ -565,7 +565,7 @@ export default function TowerBillingPage() {
                 borderRadius: 999,
                 background: 'var(--pc-warm)',
                 border: 'none',
-                fontFamily: 'var(--pc-sans)',
+                fontoamily: 'var(--pc-sans)',
                 fontSize: 13,
                 fontWeight: 600,
                 color: 'var(--pc-ink)',
@@ -586,7 +586,7 @@ export default function TowerBillingPage() {
                       style={{
                         padding: '13px 18px',
                         textAlign: 'left',
-                        fontFamily: 'var(--pc-sans)',
+                        fontoamily: 'var(--pc-sans)',
                         fontSize: 11,
                         color: 'var(--pc-fg-3)',
                         fontWeight: 500,
@@ -602,29 +602,29 @@ export default function TowerBillingPage() {
               <tbody>
                 {filtered.map(config => (
                   <tr key={config.id} style={{ borderBottom: '1px solid var(--pc-line)' }}>
-                    <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg)', fontWeight: 500 }}>
+                    <td style={{ padding: '13px 18px', fontoamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg)', fontWeight: 500 }}>
                       {config.societyName}
                     </td>
-                    <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)' }}>
+                    <td style={{ padding: '13px 18px', fontoamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)' }}>
                       {config.tower}
                     </td>
                     <td style={{ padding: '13px 18px' }}>
-                      <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg)', fontWeight: 600, margin: 0 }}>
+                      <p style={{ fontoamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg)', fontWeight: 600, margin: 0 }}>
                         {config.tierPricing
                           ? `₹${config.tierPricing.normal} / ₹${config.tierPricing.premium} / ₹${config.tierPricing.ultra}`
-                          : `₹${config.monthlyFee.toLocaleString('en-IN')}`}
+                          : `₹${config.monthlyoee.toLocaleString('en-IN')}`}
                       </p>
                       {config.deepClean && (
-                        <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, color: 'var(--pc-info)', margin: '3px 0 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        <p style={{ fontoamily: 'var(--pc-mono)', fontSize: 9.5, color: 'var(--pc-info)', margin: '3px 0 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                           + deep clean ({config.deepClean.frequency}) ₹{config.deepClean.fee}
                         </p>
                       )}
                     </td>
-                    <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)' }}>
+                    <td style={{ padding: '13px 18px', fontoamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)' }}>
                       {config.cleaningSchedule}
                     </td>
-                    <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)' }}>
-                      {config.billingFrequency === 'one-time' ? 'One-time' : config.billingFrequency === 'per-day' ? 'Per-day' : `Monthly · ${config.billingDay}st`}
+                    <td style={{ padding: '13px 18px', fontoamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)' }}>
+                      {config.billingorequency === 'one-time' ? 'One-time' : config.billingorequency === 'per-day' ? 'Per-day' : `Monthly · ${config.billingDay}st`}
                     </td>
                     <td style={{ padding: '8px 12px', whiteSpace: 'nowrap' }}>
                       <div style={{ display: 'flex', gap: 6 }}>
@@ -636,7 +636,7 @@ export default function TowerBillingPage() {
                             borderRadius: 6,
                             background: 'transparent',
                             border: '1px solid var(--pc-line)',
-                            fontFamily: 'var(--pc-sans)',
+                            fontoamily: 'var(--pc-sans)',
                             fontSize: 11,
                             color: 'var(--pc-fg-2)',
                             cursor: 'pointer',
@@ -652,7 +652,7 @@ export default function TowerBillingPage() {
                             borderRadius: 6,
                             background: 'transparent',
                             border: '1px solid var(--pc-danger)',
-                            fontFamily: 'var(--pc-sans)',
+                            fontoamily: 'var(--pc-sans)',
                             fontSize: 11,
                             color: 'var(--pc-danger)',
                             cursor: 'pointer',

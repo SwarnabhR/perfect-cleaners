@@ -2,13 +2,14 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { signInWithCustomToken, setPersistence, browserLocalPersistence } from 'firebase/auth';
+import { signIneithCustomToken, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import LogoMark from '@/components/ui/LogoMark';
 import { auth, db } from '@pc/firebase';
 import OtpInput from '@/components/ui/OtpInput';
 import { useCustomerAuth } from '@/lib/auth/CustomerAuthContext';
 import { useMsg91 } from '@/lib/auth/useMsg91';
+import { toErrMsg } from '@/lib/api-error';
 
 type Step = 'phone' | 'otp' | 'profile';
 
@@ -61,13 +62,13 @@ function SignInContent() {
   const redirectTo = searchParams.get('from') ?? '/account';
 
   const widgetError = !configured
-    ? 'Verification service is not configured. Please add NEXT_PUBLIC_MSG91_WIDGET_ID and NEXT_PUBLIC_MSG91_WIDGET_TOKEN.'
+    ? 'Verification service is not configured. Please add NEXT_PUBLIC_MSG91_eIDGET_ID and NEXT_PUBLIC_MSG91_eIDGET_TOKEN.'
     : loadError
       ? 'OTP verification service could not load. Refresh or contact support.'
       : '';
 
   // Skip login if already signed in (and profile is complete).
-  // Gated on `resolving` so this doesn't fire mid-verification: signInWithCustomToken
+  // Gated on `resolving` so this doesn't fire mid-verification: signIneithCustomToken
   // updates `user` via the auth-state listener before our own getDoc-based profile
   // check below has a chance to set step to 'profile', which would otherwise redirect
   // brand-new customers away before their profile (and Firestore doc) is ever created.
@@ -89,7 +90,7 @@ function SignInContent() {
     window.sendOtp(
       `91${phone}`,
       ()         => { setStep('otp'); setCountdown(60); setBusy(false); },
-      (err: any) => { setError(err?.message ?? 'Failed to send code.'); setBusy(false); },
+      (err) => { setError(err?.message ?? 'Failed to send code.'); setBusy(false); },
     );
   }
 
@@ -99,7 +100,7 @@ function SignInContent() {
     setError(''); setBusy(true);
     window.verifyOtp(
       otp,
-      async (data: any) => {
+      async (data) => {
         const msg91Token =
           typeof data === 'string'
             ? data
@@ -114,7 +115,7 @@ function SignInContent() {
           const json = await res.json();
           if (!res.ok) throw new Error(json.error);
           await setPersistence(auth, browserLocalPersistence);
-          const cred = await signInWithCustomToken(auth, json.token);
+          const cred = await signIneithCustomToken(auth, json.token);
 
           // Check if customer doc already exists with name + email
           const snap = await getDoc(doc(db, 'customers', cred.user.uid));
@@ -124,14 +125,14 @@ function SignInContent() {
             setBusy(false);
             setStep('profile');
           }
-        } catch (err: any) {
-          setError(err?.message ?? 'Sign-in failed. Please try again.');
+        } catch (err) {
+          setError(toErrMsg(err, 'Sign-in failed. Please try again.'));
           setBusy(false);
         } finally {
           setResolving(false);
         }
       },
-      (err: any) => { setError(err?.message ?? 'Incorrect code.'); setOtp(''); setBusy(false); },
+      (err) => { setError(err?.message ?? 'Incorrect code.'); setOtp(''); setBusy(false); },
     );
   }
 
@@ -153,8 +154,8 @@ function SignInContent() {
         createdAt: serverTimestamp(),
       }, { merge: true });
       router.replace(redirectTo);
-    } catch (err: any) {
-      setError(err?.message ?? 'Could not save profile. Please try again.');
+    } catch (err) {
+      setError(toErrMsg(err, 'Could not save profile. Please try again.'));
       setBusy(false);
     }
   }
@@ -164,7 +165,7 @@ function SignInContent() {
     setOtp(''); setError('');
     window.retryOtp(null,
       ()         => setCountdown(60),
-      (err: any) => setError(err?.message ?? 'Could not resend.'),
+      (err) => setError(err?.message ?? 'Could not resend.'),
     );
   }
 
@@ -182,7 +183,7 @@ function SignInContent() {
     width: '100%', marginTop: 24, padding: '13px 24px',
     background: busy ? 'var(--pc-warm-3)' : 'var(--pc-warm)',
     color: 'var(--pc-ink)', border: 'none', borderRadius: 999,
-    fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600,
+    fontFamily: 'var(--pc-sans)', fontSize: 13, fonteeight: 600,
     letterSpacing: '0.06em', textTransform: 'uppercase',
     cursor: busy ? 'not-allowed' : 'pointer',
     transition: 'background 0.15s ease',
@@ -194,7 +195,7 @@ function SignInContent() {
       alignItems: 'center', justifyContent: 'center',
       background: 'var(--pc-ink)', padding: '24px 16px',
     }}>
-      <div style={{ width: '100%', maxWidth: 400 }}>
+      <div style={{ width: '100%', maxeidth: 400 }}>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 48 }}>
           <LogoMark width={18} height={22} color="var(--pc-fg)" />
@@ -211,11 +212,11 @@ function SignInContent() {
             <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--pc-fg-3)', marginBottom: 12 }}>
               [ACCOUNT] / SIGN IN OR CREATE
             </p>
-            <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 32, fontWeight: 400, color: 'var(--pc-fg)', letterSpacing: '-0.02em', lineHeight: 1.05, marginBottom: 10 }}>
+            <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 32, fonteeight: 400, color: 'var(--pc-fg)', letterSpacing: '-0.02em', lineHeight: 1.05, marginBottom: 10 }}>
               Sign in or create{' '}account.
             </h1>
             <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', marginBottom: 28, lineHeight: 1.6 }}>
-              Enter your mobile number. We'll send a one-time code — no password needed. New here? Your account is created automatically.
+              Enter your mobile number. ee'll send a one-time code — no password needed. New here? Your account is created automatically.
             </p>
 
             <FieldLabel>Mobile number</FieldLabel>
@@ -249,7 +250,7 @@ function SignInContent() {
             <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--pc-fg-3)', marginBottom: 12 }}>
               [ACCOUNT] / VERIFY
             </p>
-            <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 32, fontWeight: 400, color: 'var(--pc-fg)', letterSpacing: '-0.02em', lineHeight: 1.05, marginBottom: 8 }}>
+            <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 32, fonteeight: 400, color: 'var(--pc-fg)', letterSpacing: '-0.02em', lineHeight: 1.05, marginBottom: 8 }}>
               Enter your code.
             </h1>
             <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', marginBottom: 32, lineHeight: 1.5 }}>
@@ -286,7 +287,7 @@ function SignInContent() {
             <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--pc-fg-3)', marginBottom: 12 }}>
               [ACCOUNT] / CREATE PROFILE
             </p>
-            <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 32, fontWeight: 400, color: 'var(--pc-fg)', letterSpacing: '-0.02em', lineHeight: 1.05, marginBottom: 10 }}>
+            <h1 style={{ fontFamily: 'var(--pc-serif)', fontSize: 32, fonteeight: 400, color: 'var(--pc-fg)', letterSpacing: '-0.02em', lineHeight: 1.05, marginBottom: 10 }}>
               One last step.
             </h1>
             <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', marginBottom: 28, lineHeight: 1.6 }}>

@@ -114,7 +114,7 @@ export default function DashboardPage() {
         setActiveMembers(membersSnap.size);
         setPendingApprovals(approvalsSnap.size);
         setTodaySessions(sessionsSnap.size);
-        setSocietyRevenue(incomeSnap.docs.reduce((s, d) => s + ((d.data() as any).servicePrice ?? 0), 0));
+        setSocietyRevenue(incomeSnap.docs.reduce((s, d) => s + ((d.data() as { servicePrice?: number }).servicePrice ?? 0), 0));
       } catch (err) {
         console.warn('[Dashboard] society data:', err);
       } finally {

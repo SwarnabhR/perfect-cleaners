@@ -12,6 +12,7 @@ import Nav from '@/components/marketing/Nav';
 import CustomSelect from '@/components/ui/CustomSelect';
 import Footer from '@/components/marketing/Footer';
 import { useCustomerAuth } from '@/lib/auth/CustomerAuthContext';
+import { toErrMsg } from '@/lib/api-error';
 import AccountTabBar from '../AccountTabBar';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -239,8 +240,8 @@ export default function ProfilePage() {
       setSaved(true);
       if (savedTimer.current) clearTimeout(savedTimer.current);
       savedTimer.current = setTimeout(() => setSaved(false), 3000);
-    } catch (err: any) {
-      setError(err?.message ?? 'Could not save. Please try again.');
+    } catch (err) {
+      setError(toErrMsg(err, 'Could not save. Please try again.'));
     } finally {
       setSaving(false);
     }

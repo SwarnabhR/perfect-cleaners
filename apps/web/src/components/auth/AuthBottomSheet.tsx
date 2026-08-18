@@ -6,6 +6,7 @@ import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@pc/firebase';
 import OtpInput from '@/components/ui/OtpInput';
 import { useMsg91 } from '@/lib/auth/useMsg91';
+import { toErrMsg } from '@/lib/api-error';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -106,7 +107,7 @@ export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: A
     window.sendOtp(
       `91${phone}`,
       ()         => { setBusy(false); setStep('otp'); setCountdown(60); },
-      (err: any) => { setBusy(false); setError(err?.message ?? 'Failed to send code. Please try again.'); },
+      (err) => { setBusy(false); setError(err?.message ?? 'Failed to send code. Please try again.'); },
     );
   }
 
@@ -116,7 +117,7 @@ export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: A
     setError(''); setBusy(true);
     window.verifyOtp(
       otp,
-      async (data: any) => {
+      async (data) => {
         // Msg91 SDK puts the access token in different fields across versions:
         // v1: data['access-token'], v2: data.token, v3: data.message (confusingly)
         const msg91Token =
@@ -147,12 +148,12 @@ export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: A
             setBusy(false);
             setStep('profile');
           }
-        } catch (err: any) {
-          setError(err?.message ?? 'Sign-in failed. Please try again.');
+        } catch (err) {
+          setError(toErrMsg(err, 'Sign-in failed. Please try again.'));
           setBusy(false);
         }
       },
-      (err: any) => { setError(err?.message ?? 'Incorrect code.'); setOtp(''); setBusy(false); },
+      (err) => { setError(err?.message ?? 'Incorrect code.'); setOtp(''); setBusy(false); },
     );
   }
 
@@ -161,7 +162,7 @@ export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: A
     setOtp(''); setError('');
     window.retryOtp(null,
       ()         => setCountdown(60),
-      (err: any) => setError(err?.message ?? 'Could not resend.'),
+      (err) => setError(err?.message ?? 'Could not resend.'),
     );
   }
 
@@ -184,8 +185,8 @@ export default function AuthBottomSheet({ open, onClose, onSuccess, heading }: A
       }, { merge: true });
       onSuccess?.(uid);
       onClose();
-    } catch (err: any) {
-      setError(err?.message ?? 'Could not save profile. Please try again.');
+    } catch (err) {
+      setError(toErrMsg(err, 'Could not save profile. Please try again.'));
       setBusy(false);
     }
   }

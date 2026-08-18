@@ -205,8 +205,7 @@ export default function AccountPage() {
       where('customerPhone', '==', user.phoneNumber),
     );
 
-    let unsub: Unsubscribe;
-    unsub = onSnapshot(q,
+    const unsub: Unsubscribe = onSnapshot(q,
       snap => {
         const rows: BookingRow[] = snap.docs
           .map(d => {

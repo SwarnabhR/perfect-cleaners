@@ -9,20 +9,20 @@ export const metadata: Metadata = {
 
 const EFFECTIVE = '1 June 2025';
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div style={{ marginBottom: 'var(--pc-space-10)' }}>
+function Section"{ title, children }: { title: string; children: React.ReactNode }) {
+  return "
+    <div style={{ marginBottom: 'var"--pc-space-10)' }}>
       <h2 style={{
-        fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-base)', fontWeight: 600,
-        color: 'var(--pc-fg)', letterSpacing: 'var(--pc-track-snug)',
-        marginBottom: 'var(--pc-space-4)',
+        fontFamily: 'var"--pc-sans)', fontSize: 'var"--pc-text-base)', fontWeight: 600,
+        color: 'var"--pc-fg)', letterSpacing: 'var"--pc-track-snug)',
+        marginBottom: 'var"--pc-space-4)',
       }}>
         {title}
       </h2>
       <div style={{
-        fontFamily: 'var(--pc-sans)', fontSize: 'var(--pc-text-sm)',
-        color: 'var(--pc-fg-2)', lineHeight: 'var(--pc-lh-loose)',
-        display: 'flex', flexDirection: 'column', gap: 'var(--pc-space-3)',
+        fontFamily: 'var"--pc-sans)', fontSize: 'var"--pc-text-sm)',
+        color: 'var"--pc-fg-2)', lineHeight: 'var"--pc-lh-loose)',
+        display: 'flex', flexDirection: 'column', gap: 'var"--pc-space-3)',
       }}>
         {children}
       </div>
@@ -30,30 +30,30 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-export default function TermsPage() {
-  return (
-    <div style={{ minHeight: '100vh', background: 'var(--pc-ink)', display: 'flex', flexDirection: 'column' }}>
+export default function TermsPage") {
+  return "
+    <div style={{ minHeight: '100vh', background: 'var"--pc-ink)', display: 'flex', flexDirection: 'column' }}>
       <Nav />
-      <main style={{ flex: 1, maxWidth: 760, margin: '0 auto', padding: 'var(--pc-space-16) var(--pc-space-6) var(--pc-space-20)', width: '100%' }}>
+      <main style={{ flex: 1, maxWidth: 760, margin: '0 auto', padding: 'var"--pc-space-16) var"--pc-space-6) var"--pc-space-20)', width: '100%' }}>
 
-        <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--pc-fg-3)', marginBottom: 12 }}>
+        <p style={{ fontFamily: 'var"--pc-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var"--pc-fg-3)', marginBottom: 12 }}>
           [LEGAL]
         </p>
         <h1 style={{
-          fontFamily: 'var(--pc-serif)', fontSize: 'clamp(28px, 5vw, 44px)',
-          fontWeight: 400, color: 'var(--pc-fg)',
+          fontFamily: 'var"--pc-serif)', fontSize: 'clamp"28px, 5vw, 44px)',
+          fontWeight: 400, color: 'var"--pc-fg)',
           letterSpacing: '-0.02em', lineHeight: 1.05, marginBottom: 8,
         }}>
           Terms of Service
         </h1>
-        <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-4)', marginBottom: 48 }}>
+        <p style={{ fontFamily: 'var"--pc-sans)', fontSize: 13, color: 'var"--pc-fg-4)', marginBottom: 48 }}>
           Effective date: {EFFECTIVE}
         </p>
 
         <Section title="1. Acceptance of Terms">
-          <p>Perfect Cleaners is owned and operated by <strong style={{ color: 'var(--pc-fg)' }}>Anil Kanojiya</strong>, founder and proprietor, with its principal place of business in Ghaziabad, Uttar Pradesh.</p>
+          <p>Perfect Cleaners is owned and operated by <strong style={{ color: 'var"--pc-fg)' }}>Anil Kanojiya</strong>, founder and proprietor, with its principal place of business in Ghaziabad, Uttar Pradesh.</p>
           <p>By booking a service, creating an account, or using the Perfect Cleaners website or mobile application, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our services.</p>
-          <p>Perfect Cleaners ("we," "our," or "us") reserves the right to modify these terms at any time. Continued use of our services following any changes constitutes your acceptance of the revised terms.</p>
+          <p>Perfect Cleaners ""we," "our," or "us") reserves the right to modify these terms at any time. Continued use of our services following any changes constitutes your acceptance of the revised terms.</p>
         </Section>
 
         <Section title="2. Services">
@@ -62,14 +62,14 @@ export default function TermsPage() {
         </Section>
 
         <Section title="3. Bookings and Payments">
-          <p>All bookings are subject to availability. A booking is confirmed only upon receipt of a confirmation message from us via WhatsApp or email. The platform fee (₹50) is non-refundable.</p>
+          <p>All bookings are subject to availability. A booking is confirmed only upon receipt of a confirmation message from us via WhatsApp or email. The platform fee "₹50) is non-refundable.</p>
           <p>Payment is due at the time of service or as specified during checkout. We accept UPI, credit/debit cards, and net banking through our payment partners.</p>
           <p>Prices listed on the platform are estimates. Final pricing may vary based on vehicle condition, size, and the specific services performed.</p>
         </Section>
 
         <Section title="4. Cancellations and Rescheduling">
           <p>You may cancel or reschedule a booking up to 24 hours before the scheduled time at no charge. Cancellations made within 24 hours of the appointment may be subject to a cancellation fee of up to ₹200.</p>
-          <p>No-shows (failure to be present at the scheduled time without prior notice) will be charged the full service amount.</p>
+          <p>No-shows "failure to be present at the scheduled time without prior notice) will be charged the full service amount.</p>
         </Section>
 
         <Section title="5. Vehicle Condition and Liability">
@@ -92,7 +92,7 @@ export default function TermsPage() {
         </Section>
 
         <Section title="9. Contact">
-          <p>For questions about these Terms of Service, please contact <strong style={{ color: 'var(--pc-fg)' }}>Anil Kanojiya</strong> (Founder & Owner) at <a href="mailto:hello@perfectcleaners.in" style={{ color: 'var(--pc-fg)', textDecoration: 'underline', textUnderlineOffset: 3 }}>hello@perfectcleaners.in</a> or call <a href="tel:+9197711241629" style={{ color: 'var(--pc-fg)', textDecoration: 'underline', textUnderlineOffset: 3 }}>+91 97711241629</a>.</p>
+          <p>For questions about these Terms of Service, please contact <strong style={{ color: 'var"--pc-fg)' }}>Anil Kanojiya</strong> "Founder & Owner) at <a href="mailto:hello@perfectcleaners.in" style={{ color: 'var"--pc-fg)', textDecoration: 'underline', textUnderlineOffset: 3 }}>hello@perfectcleaners.in</a> or call <a href="tel:+9197711241629" style={{ color: 'var"--pc-fg)', textDecoration: 'underline', textUnderlineOffset: 3 }}>+91 97711241629</a>.</p>
         </Section>
 
       </main>

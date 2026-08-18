@@ -121,7 +121,6 @@ const NAV_SECTIONS: { heading: string | null; items: NavItem[] }[] = [
   ]},
   { heading: 'Today', items: [
     { label: 'Live Cleaning', href: '/live-cleaning', icon: 'activity', capability: 'operations' },
-    { label: 'Schedule',    href: '/cleaning-schedule', icon: 'calendar', capability: 'operations' },
     { label: 'Cleaning Logs', href: '/cleaning-logs', icon: 'list-checks', capability: 'operations' },
   ]},
   { heading: 'Customers', items: [
@@ -140,6 +139,9 @@ const NAV_SECTIONS: { heading: string | null; items: NavItem[] }[] = [
   ]},
   { heading: 'System', items: [
     { label: 'Operations', href: '/operations', icon: 'inbox', capability: 'operations' },
+    // Exception tool, not daily workflow — sessions generate, start, and
+    // close automatically; this page is for reassignment and corrections.
+    { label: 'Session Monitor', href: '/cleaning-schedule', icon: 'calendar', capability: 'operations' },
     { label: 'Notifications', href: '/notifications', icon: 'bell', capability: 'support' },
     { label: 'System Health', href: '/system-health', icon: 'heart-pulse', capability: 'operations' },
   ]},

@@ -142,19 +142,20 @@ function SessionRow({
           <button
             type="button"
             onClick={() => onStart(session.id)}
+            title="Sessions start automatically at the configured time — use only to start early in an emergency"
             style={{
               padding: '8px 14px',
               borderRadius: 6,
-              background: 'var(--pc-sage)',
-              border: 'none',
+              background: 'transparent',
+              border: '1px solid var(--pc-warning)',
               fontFamily: 'var(--pc-sans)',
               fontSize: 12,
               fontWeight: 600,
-              color: 'var(--pc-sage-ink)',
+              color: 'var(--pc-warning)',
               cursor: 'pointer',
             }}
           >
-            Start
+            Emergency start
           </button>
         )}
         {(session.status === 'scheduled' || session.status === 'inprogress') && (
@@ -348,6 +349,9 @@ export default function CleaningSchedulePage() {
   }
 
   async function handleStartSession(id: string) {
+    // Manual start is an emergency override only — the start-sessions cron
+    // promotes every session at its tower's configured time without help.
+    if (!window.confirm('Sessions start automatically at the configured time. Start this one early anyway?')) return;
     try {
       await setDoc(
         doc(db, 'cleaningSessions', id),
@@ -491,7 +495,7 @@ export default function CleaningSchedulePage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <Eyebrow style={{ display: 'block', marginBottom: 4 }}>OPERATIONS</Eyebrow>
-          <h1 className="admin-page-title">Cleaning Schedule</h1>
+          <h1 className="admin-page-title">Session Monitor</h1>
           <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: '4px 0 0' }}>
             Sessions start automatically at each tower’s configured time. Use this page for exceptions, reassignment, and corrections.
           </p>

@@ -248,7 +248,7 @@ function WorkerDetailPanel({
             { label: 'Jobs Done',       value: worker.totalJobs ?? 0 },
             { label: 'Cars Done Today', value: worker.carsCompletedToday ?? 0 },
             { label: 'Rating',          value: worker.rating != null ? `${worker.rating.toFixed(1)} / 5.0` : '—' },
-            { label: 'Joined',          value: fmt((worker as any).createdAt) },
+            { label: 'Joined',          value: fmt(worker.createdAt) },
           ].map(({ label, value }) => (
             <div key={label} style={{ background: 'var(--pc-card-hi)', borderRadius: 8, padding: '10px 12px' }}>
               <p style={{ ...monoLabel, margin: '0 0 4px' }}>{label}</p>
@@ -601,7 +601,7 @@ export default function WorkersPage() {
                       <StarRating value={w.rating ?? 0} />
                     </td>
                     <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)' }}>
-                      {fmt((w as any).createdAt)}
+                      {fmt(w.createdAt)}
                     </td>
                   </tr>
                 ))}

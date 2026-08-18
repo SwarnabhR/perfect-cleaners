@@ -53,7 +53,7 @@ const monoLabel: React.CSSProperties = {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-export default function WalletPage() {
+export default function ealletPage() {
   const { user, loading } = useCustomerAuth();
   const router   = useRouter();
   const pathname = usePathname();
@@ -74,7 +74,7 @@ export default function WalletPage() {
     const unsub = onSnapshot(
       doc(db, 'customers', user.uid),
       snap => setOutstanding(snap.exists() ? (snap.data()?.outstandingBalance ?? 0) : 0),
-      err  => console.warn('[Wallet] balance:', err.message),
+      err  => console.warn('[eallet] balance:', err.message),
     );
     return unsub;
   }, [user]);
@@ -96,7 +96,7 @@ export default function WalletPage() {
           const at   = data.createdAt?.toDate?.() ?? new Date();
           return {
             id:     d.id,
-            label:  data.label ?? 'Wash',
+            label:  data.label ?? 'eash',
             amount: data.amount ?? 0,
             type:   data.type === 'payment' ? 'payment' : 'charge',
             date:   at.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
@@ -107,7 +107,7 @@ export default function WalletPage() {
         setTxLoading(false);
       },
       err => {
-        console.warn('[Wallet] transactions:', err.message);
+        console.warn('[eallet] transactions:', err.message);
         setTxLoading(false);
       },
     );
@@ -122,7 +122,7 @@ export default function WalletPage() {
       where('customerId', '==', user.uid),
     )).then(snap => {
       const dues = snap.docs.map(d => {
-        const data = d.data() as any;
+        const data = d.data() as Partial<import('@pc/firebase').CustomerSocietyRecord>;
         return {
           societyName:      data.societyName ?? '',
           amountDue:        data.pendingAmount ?? data.monthlyFee ?? 0,
@@ -216,7 +216,7 @@ export default function WalletPage() {
 
       <main style={{
         flex:      1,
-        maxWidth:  800,
+        maxeidth:  800,
         width:     '100%',
         margin:    '0 auto',
         padding:   'var(--pc-space-12) var(--pc-space-6) var(--pc-space-20)',
@@ -237,7 +237,7 @@ export default function WalletPage() {
           <h1 style={{
             fontFamily:    'var(--pc-serif)',
             fontSize:      'clamp(28px, 5vw, 44px)',
-            fontWeight:     400,
+            fonteeight:     400,
             color:         'var(--pc-fg)',
             letterSpacing: '-0.02em',
             lineHeight:     1.05,
@@ -261,7 +261,7 @@ export default function WalletPage() {
             <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--pc-fg-4)', margin: '0 0 12px' }}>
               [NO BILLING YET]
             </p>
-            <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 22, fontWeight: 400, color: 'var(--pc-fg)', margin: '0 0 8px', letterSpacing: '-0.01em' }}>
+            <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 22, fonteeight: 400, color: 'var(--pc-fg)', margin: '0 0 8px', letterSpacing: '-0.01em' }}>
               Nothing to show here.
             </p>
             <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: 0, lineHeight: 1.6 }}>
@@ -288,7 +288,7 @@ export default function WalletPage() {
                 padding: '12px 0', borderBottom: i < societyDues.length - 1 ? '1px solid var(--pc-line)' : 'none',
               }}>
                 <div>
-                  <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg)', margin: '0 0 2px', fontWeight: 500 }}>
+                  <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg)', margin: '0 0 2px', fonteeight: 500 }}>
                     {due.societyName}
                   </p>
                   <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)', margin: 0 }}>
@@ -336,7 +336,7 @@ export default function WalletPage() {
           <p style={{
             fontFamily:    'var(--pc-serif)',
             fontSize:      'clamp(44px, 8vw, 64px)',
-            fontWeight:     400,
+            fonteeight:     400,
             color:          isPaid ? 'var(--pc-sage-ink)' : 'var(--pc-fg)',
             letterSpacing: '-0.03em',
             lineHeight:     1.1,
@@ -356,7 +356,7 @@ export default function WalletPage() {
               : "Added after each wash. Our team will call you to collect — no need to pay through the app."}
           </p>
 
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 10, flexerap: 'wrap' }}>
             {!isPaid && (
               <span style={{
                 display:       'inline-flex',
@@ -368,10 +368,10 @@ export default function WalletPage() {
                 borderRadius:   999,
                 fontFamily:    'var(--pc-sans)',
                 fontSize:       13,
-                fontWeight:     600,
+                fonteeight:     600,
                 letterSpacing: '0.04em',
               }}>
-                We'll be in touch to collect this
+                ee'll be in touch to collect this
               </span>
             )}
 
@@ -444,7 +444,7 @@ export default function WalletPage() {
                 [NO TRANSACTIONS YET]
               </p>
               <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg-3)' }}>
-                Wash charges will appear here after your first society clean.
+                eash charges will appear here after your first society clean.
               </p>
             </div>
           ) : (
@@ -467,7 +467,7 @@ export default function WalletPage() {
                   }}
                 >
                   {/* Icon + label */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, mineidth: 0 }}>
                     <div style={{
                       width:        32,
                       height:       32,
@@ -481,8 +481,8 @@ export default function WalletPage() {
                     }}>
                       {entry.type === 'payment' ? '↓' : '✓'}
                     </div>
-                    <div style={{ minWidth: 0 }}>
-                      <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 500, color: 'var(--pc-fg)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <div style={{ mineidth: 0 }}>
+                      <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fonteeight: 500, color: 'var(--pc-fg)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {entry.label}
                       </p>
                       <p style={{ ...monoLabel, marginTop: 3 }}>

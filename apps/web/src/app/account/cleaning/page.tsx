@@ -66,9 +66,10 @@ function formatTime(hour: number) {
   return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
 }
 
-function toDate(v: any): Date {
+function toDate(v: unknown): Date {
   if (!v) return new Date();
-  return typeof v.toDate === 'function' ? v.toDate() : new Date(v);
+  const maybe = v as { toDate?: () => Date };
+  return typeof maybe.toDate === 'function' ? maybe.toDate() : new Date(v as string | number | Date);
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -453,7 +454,7 @@ function TodayStatusCard({
               </p>
               {done && (
                 <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-4)', margin: '2px 0 0' }}>
-                  Locked — today's slot can no longer be changed.
+                  Locked — today’s slot can no longer be changed.
                 </p>
               )}
             </div>
@@ -503,7 +504,7 @@ function TodayStatusCard({
             borderRadius: 'var(--pc-radius-sm)',
           }}>
             <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, color: 'var(--pc-fg-4)', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              Change today's time
+              Change today’s time
             </p>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {TIME_OPTIONS.filter(opt => opt.value !== effectiveTime).map(opt => (
@@ -789,10 +790,10 @@ export default function CleaningPage() {
         const d    = snap.docs[0];
         const data = d.data();
         const rec: CustomerSocietyRecord & { id: string } = {
-          ...(data as any),
+          ...(data as unknown as CustomerSocietyRecord),
           id: d.id,
           skipDates:        (data.skipDates ?? []).map(toDate),
-          rescheduledSlots: (data.rescheduledSlots ?? []).map((s: any) => ({
+          rescheduledSlots: ((data.rescheduledSlots ?? []) as { date: unknown; fromTime: number; toTime: number }[]).map(s => ({
             ...s, date: toDate(s.date),
           })),
           createdAt:       toDate(data.createdAt),
@@ -832,7 +833,7 @@ export default function CleaningPage() {
     );
     return onSnapshot(q, snap => {
       setLogs(snap.docs.map(d => ({
-        ...(d.data() as any),
+        ...(d.data() as unknown as CleaningLog),
         id:        d.id,
         cleanedAt: toDate(d.data().cleanedAt),
       })));
@@ -885,7 +886,7 @@ export default function CleaningPage() {
 
   function getRescheduledForDate(date: Date) {
     if (!record || record === 'loading') return undefined;
-    return (record.rescheduledSlots ?? []).find((s: any) => isSameDay(s.date, date));
+    return (record.rescheduledSlots ?? []).find(s => isSameDay(s.date, date));
   }
 
   function dateKey(date: Date) {
@@ -956,7 +957,7 @@ export default function CleaningPage() {
                 Join the society programme.
               </p>
               <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg-3)', lineHeight: 1.6, margin: 0 }}>
-                Your car gets cleaned every week — no booking, no chasing. Fill in your details and we'll call to confirm.
+                Your car gets cleaned every week — no booking, no chasing. Fill in your details and we’ll call to confirm.
               </p>
             </div>
             {user && (
@@ -980,7 +981,7 @@ export default function CleaningPage() {
                 Your registration is under review.
               </p>
               <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', lineHeight: 1.6, margin: 0 }}>
-                We'll call you to verify your details and confirm your slot. You'll receive an SMS once approved — usually within 24 hours.
+                We’ll call you to verify your details and confirm your slot. You’ll receive an SMS once approved — usually within 24 hours.
               </p>
             </div>
 

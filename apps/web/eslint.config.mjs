@@ -14,6 +14,31 @@ const eslintConfig = defineConfig([
     'playwright-report/**',
     'test-results/**',
   ]),
+  {
+    // One-off Node utility scripts — CommonJS by design, never bundled.
+    files: ['scripts/**'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+    },
+  },
+  {
+    // Playwright fixtures/helpers — their `use` callback is Playwright's
+    // fixture API, not a React hook, so the React-hooks rules misfire here.
+    files: ['tests/**'],
+    rules: {
+      'react-hooks/rules-of-hooks': 'off',
+      '@typescript-eslint/no-empty-object-type': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
+  {
+    // Advisory performance hints from the React hooks plugin, not
+    // correctness bugs — keep them visible as warnings without failing lint.
+    rules: {
+      'react-hooks/set-state-in-effect': 'warn',
+      'react-hooks/purity': 'warn',
+    },
+  },
 ]);
 
 export default eslintConfig;

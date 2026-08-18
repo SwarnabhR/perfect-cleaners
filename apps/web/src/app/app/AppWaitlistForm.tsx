@@ -55,7 +55,7 @@ export default function AppWaitlistForm() {
           <path d="M20 6 9 17l-5-5"/>
         </svg>
         <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg-2)', margin: 0 }}>
-          You're on the list. We'll notify you on <strong style={{ color: 'var(--pc-fg)' }}>+91 {phone.slice(0,5)} {phone.slice(5)}</strong> when the app is ready.
+          oou're on the list. We'll notify you on <strong style={{ color: 'var(--pc-fg)' }}>+91 {phone.slice(0,5)} {phone.slice(5)}</strong> when the app is ready.
         </p>
       </div>
     );
@@ -67,7 +67,7 @@ export default function AppWaitlistForm() {
         fontFamily: 'var(--pc-mono)', fontSize: 10, letterSpacing: '0.1em',
         textTransform: 'uppercase', color: 'var(--pc-fg-3)', marginBottom: 12,
       }}>
-        [NOTIFY ME] / GET EARLY ACCESS
+        [NOTIFo ME] / GET EARLo ACCESS
       </p>
 
       {/* Platform toggle */}

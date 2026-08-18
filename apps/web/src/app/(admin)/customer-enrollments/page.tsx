@@ -279,7 +279,7 @@ function AddCustomerModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
           Add customer
         </h2>
         <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: '0 0 20px', lineHeight: 1.5 }}>
-          For a resident who won't self-sign-up — added straight to Active, no app account needed.
+          For a resident who won’t self-sign-up — added straight to Active, no app account needed.
         </p>
 
         <form style={{ display: 'flex', flexDirection: 'column', gap: 16 }} onSubmit={e => e.preventDefault()}>
@@ -499,9 +499,10 @@ function getUpcomingDates(dayIndices: number[], n: number): Date[] {
   return dates;
 }
 
-function toDate(v: any): Date {
+function toDate(v: unknown): Date {
   if (!v) return new Date();
-  return typeof v.toDate === 'function' ? v.toDate() : new Date(v);
+  const maybe = v as { toDate?: () => Date };
+  return typeof maybe.toDate === 'function' ? maybe.toDate() : new Date(v as string | number | Date);
 }
 
 // ─── Schedule modal — manage skip dates & permanent time ──────────────────────
@@ -524,7 +525,7 @@ function ScheduleModal({
     (record.skipDates ?? []).map(toDate)
   );
   const [rescheduledSlots, setRescheduledSlots] = useState<RescheduledSlot[]>(
-    ((record.rescheduledSlots ?? []) as any[]).map(s => ({
+    ((record.rescheduledSlots ?? []) as (Omit<RescheduledSlot, 'date'> & { date: unknown })[]).map(s => ({
       ...s,
       date: toDate(s.date),
     }))
@@ -1186,7 +1187,7 @@ export default function CustomerEnrollmentsPage() {
               No enrollments found
             </p>
             <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: 0 }}>
-              Customers will appear here once they're approved.
+              Customers will appear here once they’re approved.
             </p>
           </div>
         ) : (
@@ -1360,7 +1361,7 @@ export default function CustomerEnrollmentsPage() {
               Mark Payment Received
             </h2>
             <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg-2)', margin: '0 0 20px', lineHeight: 1.5 }}>
-              Record payment for this customer's monthly enrollment?
+              Record payment for this customer’s monthly enrollment?
             </p>
             <div style={{ display: 'flex', gap: 10 }}>
               <button

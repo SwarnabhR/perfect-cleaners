@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify the MSG91 access token server-side
-    let verifyData: any;
+    let verifyData: { type?: string; mobile?: unknown } & Record<string, unknown>;
     try {
       const verifyRes = await fetch(
         'https://control.msg91.com/api/v5/widget/verifyAccessToken',

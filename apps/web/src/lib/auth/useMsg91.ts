@@ -2,12 +2,16 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+// The MSG91 widget passes loosely-shaped payloads into these callbacks; only
+// `message` is documented, so everything else stays behind an index signature.
+export type Msg91Response = { message?: string } & Record<string, unknown>;
+
 declare global {
   interface Window {
     initSendOTP?: (config: object) => void;
-    sendOtp?:     (id: string, onSuccess?: (d: any) => void, onError?: (e: any) => void) => void;
-    retryOtp?:    (channel: string | null, onSuccess?: (d: any) => void, onError?: (e: any) => void) => void;
-    verifyOtp?:   (otp: string, onSuccess?: (d: any) => void, onError?: (e: any) => void) => void;
+    sendOtp?:     (id: string, onSuccess?: (d: Msg91Response | string) => void, onError?: (e: Msg91Response) => void) => void;
+    retryOtp?:    (channel: string | null, onSuccess?: (d: Msg91Response | string) => void, onError?: (e: Msg91Response) => void) => void;
+    verifyOtp?:   (otp: string, onSuccess?: (d: Msg91Response | string) => void, onError?: (e: Msg91Response) => void) => void;
   }
 }
 

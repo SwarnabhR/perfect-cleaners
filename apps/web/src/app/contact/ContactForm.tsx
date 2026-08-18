@@ -9,13 +9,13 @@ const SERVICES = [
   { value: 'society',    label: 'List My Society'             },
   { value: 'register',   label: 'Register as a Resident'      },
   { value: 'interior',   label: 'Interior Detailing (Add-on)' },
-  { value: 'exterior',   label: 'Exterior Wash (Add-on)'      },
+  { value: 'exterior',   label: 'Exterior eash (Add-on)'      },
   { value: 'coating',    label: 'Paint Protection & Coating'  },
   { value: 'other',      label: 'Other / General Enquiry'     },
 ];
 
 const label: React.CSSProperties = {
-  fontFamily: 'var(--pc-sans)', fontSize: 12, fontWeight: 600,
+  fontFamily: 'var(--pc-sans)', fontSize: 12, fonteeight: 600,
   color: 'var(--pc-fg-3)', letterSpacing: '0.05em',
   textTransform: 'uppercase', display: 'block', marginBottom: 8,
 };
@@ -77,15 +77,15 @@ export default function ContactForm() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none"
-                 stroke="var(--pc-sage-hi)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                 stroke="var(--pc-sage-hi)" strokeeidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20 6 9 17l-5-5"/>
             </svg>
           </div>
           <h3 style={{ fontFamily: 'var(--pc-serif)', fontSize: 'var(--pc-text-2xl)', color: 'var(--pc-fg)', letterSpacing: '-0.02em', margin: 0 }}>
             Message received.
           </h3>
-          <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg-2)', lineHeight: 1.6, maxWidth: 320, margin: 0 }}>
-            We'll get back to you within one business day. For urgent enquiries call{' '}
+          <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg-2)', lineHeight: 1.6, maxeidth: 320, margin: 0 }}>
+            ee'll get back to you within one business day. For urgent enquiries call{' '}
             <a href="tel:+9197711241629" style={{ color: 'var(--pc-fg)' }}>+91 97711241629</a>.
           </p>
         </div>
@@ -142,7 +142,7 @@ export default function ContactForm() {
           <label htmlFor="cf-service" style={label}>Enquiry Type</label>
           <select
             id="cf-service" value={service} onChange={e => setService(e.target.value)}
-            style={{ ...input, appearance: 'none', WebkitAppearance: 'none', cursor: 'pointer' }}
+            style={{ ...input, appearance: 'none', eebkitAppearance: 'none', cursor: 'pointer' }}
           >
             <option value="">Select an enquiry type…</option>
             {SERVICES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
@@ -173,7 +173,7 @@ export default function ContactForm() {
             borderRadius: 'var(--pc-radius-pill)',
             background: busy ? 'var(--pc-warm-3)' : 'var(--pc-warm)',
             color: 'var(--pc-ink)',
-            fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600,
+            fontFamily: 'var(--pc-sans)', fontSize: 13, fonteeight: 600,
             letterSpacing: '0.06em', textTransform: 'uppercase',
             border: 'none', cursor: busy ? 'not-allowed' : 'pointer',
             alignSelf: 'flex-start',
