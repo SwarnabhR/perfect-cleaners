@@ -97,6 +97,8 @@ const TIME_OPTIONS = Array.from({ length: 10 }, (_, i) => {
   return { label, value: h };
 });
 
+const WEB_API_URL = process.env.EXPO_PUBLIC_WEB_API_URL ?? 'https://perfectcleaners.co.in';
+
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function CleaningScheduleScreen() {
@@ -227,6 +229,34 @@ export default function CleaningScheduleScreen() {
     return unsubscribe;
   }, []);
 
+  // Routed through /api/customer/unavailability (same endpoint the web account
+  // page uses) rather than a direct updateDoc, so the change also resyncs any
+  // cleaningSessions doc already generated for the affected date — otherwise a
+  // skip/reschedule/permanentTime change made after that week's session exists
+  // would update this record but never reach the worker's actual car list.
+  async function postUnavailability(body: Record<string, unknown>): Promise<boolean> {
+    if (!record || record === 'loading') return false;
+    const user = auth().currentUser;
+    if (!user) return false;
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch(`${WEB_API_URL}/api/customer/unavailability`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body:    JSON.stringify({ recordId: record.id, ...body }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        Alert.alert('Error', data.error ?? 'Failed to update your schedule.');
+        return false;
+      }
+      return true;
+    } catch (err: any) {
+      Alert.alert('Error', err?.message ?? 'Failed to update your schedule.');
+      return false;
+    }
+  }
+
   async function toggleSkip(date: Date) {
     if (!record || record === 'loading') return;
     setSaving(true);
@@ -234,22 +264,16 @@ export default function CleaningScheduleScreen() {
     const updated = alreadySkipped
       ? record.skipDates.filter(d => !isSameDay(d, date))
       : [...record.skipDates, date];
-    await firestore().collection('customerSocietyRecords').doc(record.id).update({
-      skipDates: updated,
-      updatedAt: firestore.FieldValue.serverTimestamp(),
-    });
-    setRecord({ ...record, skipDates: updated });
+    const ok = await postUnavailability({ action: 'toggleSkip', date: date.toISOString() });
+    if (ok) setRecord({ ...record, skipDates: updated });
     setSaving(false);
   }
 
   async function savePermanentTime(hour: number) {
     if (!record || record === 'loading') return;
     setSaving(true);
-    await firestore().collection('customerSocietyRecords').doc(record.id).update({
-      permanentTime: hour,
-      updatedAt: firestore.FieldValue.serverTimestamp(),
-    });
-    setRecord({ ...record, permanentTime: hour });
+    const ok = await postUnavailability({ action: 'permanentTime', hour });
+    if (ok) setRecord({ ...record, permanentTime: hour });
     setSaving(false);
   }
 
@@ -277,11 +301,8 @@ export default function CleaningScheduleScreen() {
           isSameDay(s.date, date) ? { ...s, toTime } : s
         )
       : [...(record.rescheduledSlots ?? []), { date, fromTime: activeTime, toTime }];
-    await firestore().collection('customerSocietyRecords').doc(record.id).update({
-      rescheduledSlots: updated,
-      updatedAt: firestore.FieldValue.serverTimestamp(),
-    });
-    setRecord({ ...record, rescheduledSlots: updated as any });
+    const ok = await postUnavailability({ action: 'reschedule', date: date.toISOString(), toTime });
+    if (ok) setRecord({ ...record, rescheduledSlots: updated as any });
     setSaving(false);
   }
 
@@ -290,11 +311,8 @@ export default function CleaningScheduleScreen() {
     setRescheduleDate(null);
     setSaving(true);
     const updated = (record.rescheduledSlots ?? []).filter(s => !isSameDay(s.date, date));
-    await firestore().collection('customerSocietyRecords').doc(record.id).update({
-      rescheduledSlots: updated,
-      updatedAt: firestore.FieldValue.serverTimestamp(),
-    });
-    setRecord({ ...record, rescheduledSlots: updated as any });
+    const ok = await postUnavailability({ action: 'clearReschedule', date: date.toISOString() });
+    if (ok) setRecord({ ...record, rescheduledSlots: updated as any });
     setSaving(false);
   }
 
