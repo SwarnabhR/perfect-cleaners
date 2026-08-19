@@ -87,10 +87,10 @@ test.describe('Sign-in page ?from param', () => {
 
 test.describe('Worker post-login redirect', () => {
 
-  test('landing on /worker/jobs redirects to /worker/login?from=...', async ({ page }) => {
-    await page.goto('/worker/jobs');
+  test('landing on /worker/calendar redirects to /worker/login?from=...', async ({ page }) => {
+    await page.goto('/worker/calendar');
     await page.waitForURL(/\/worker\/login/, { timeout: 10_000 });
-    expect(decodeURIComponent(page.url())).toContain('/worker/jobs');
+    expect(decodeURIComponent(page.url())).toContain('/worker/calendar');
   });
 
   test('landing on /worker/cleaning-logs preserves ?from in redirect', async ({ page }) => {
@@ -103,13 +103,13 @@ test.describe('Worker post-login redirect', () => {
     const uid = process.env.TEST_WORKER_UID;
     if (!uid) { test.skip(true, 'TEST_WORKER_UID not set'); return; }
 
-    await page.goto('/worker/jobs');
+    await page.goto('/worker/calendar');
     await page.waitForURL(/\/worker\/login/, { timeout: 10_000 });
 
     await signInWithBypassToken(page, uid);
 
-    await page.waitForURL('**/worker/jobs', { timeout: 15_000 });
-    expect(page.url()).toContain('/worker/jobs');
+    await page.waitForURL('**/worker/calendar', { timeout: 15_000 });
+    expect(page.url()).toContain('/worker/calendar');
   });
 
 });

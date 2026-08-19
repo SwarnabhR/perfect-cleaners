@@ -129,7 +129,7 @@ base.describe('Customer Wallet — manual payment collection', () => {
     await page.click('a:has-text("Bill")');
     await page.waitForURL('**/account/wallet');
 
-    await baseExpect(page.locator("text=We'll be in touch to collect this")).toBeVisible({ timeout: 10_000 });
+    await baseExpect(page.locator('text=We’ll be in touch to collect this')).toBeVisible({ timeout: 10_000 });
     await baseExpect(page.locator('button:has-text("Pay now")')).not.toBeVisible();
     await baseExpect(page.locator('text=Our team will call you to collect')).toBeVisible();
   });

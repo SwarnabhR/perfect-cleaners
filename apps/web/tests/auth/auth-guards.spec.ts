@@ -42,7 +42,7 @@ for (const route of CUSTOMER_PROTECTED) {
 
 const WORKER_PROTECTED = [
   '/worker/dashboard',
-  '/worker/jobs',
+  '/worker/calendar',
   '/worker/cleaning-logs',
   '/worker/profile',
 ];
@@ -69,13 +69,16 @@ for (const route of WORKER_PROTECTED) {
 
 const ADMIN_PROTECTED = [
   '/dashboard',
-  '/bookings',
   '/workers',
   '/customers',
   '/societies-mgmt',
-  '/services-mgmt',
-  '/promotions',
-  '/analytics',
+  '/tower-billing',
+  '/pending-approvals',
+  '/cleaning-schedule',
+  '/live-cleaning',
+  '/customer-enrollments',
+  '/operations',
+  '/system-health',
   '/settings',
   '/billing',
 ];

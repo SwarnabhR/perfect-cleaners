@@ -33,9 +33,10 @@ test.describe('Admin Tower Billing', () => {
     const towerInput = page.locator('input[placeholder="e.g., Tower A, Tower B, North Wing"]');
     await towerInput.scrollIntoViewIfNeeded();
     await expect(towerInput).toHaveCount(1);
-    const feeInput = page.locator('input[placeholder="450"]');
-    await feeInput.scrollIntoViewIfNeeded();
-    await expect(feeInput).toHaveCount(1);
+    // Three tier-pricing inputs (normal/premium/ultra) share this placeholder now.
+    const feeInputs = page.locator('input[placeholder="450"]');
+    await feeInputs.first().scrollIntoViewIfNeeded();
+    await expect(feeInputs).toHaveCount(3);
     for (const day of ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']) {
       await expect(page.locator(`button:has-text("${day}")`)).toHaveCount(1);
     }
