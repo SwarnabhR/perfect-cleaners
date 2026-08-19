@@ -1,7 +1,7 @@
 import 'server-only';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminFirestore } from './firebase/admin';
-import { buildSessionCarForCustomer, type SocietyCarSourceCustomer } from '@pc/firebase';
+import { buildSessionCarsForCustomer, type SocietyCarSourceCustomer } from '@pc/firebase';
 
 function tsToDate(v: unknown): Date {
   const val = v as { toDate?: () => Date } | Date | string | number | undefined;
@@ -28,7 +28,7 @@ function tsToDate(v: unknown): Date {
  *     window naturally rolls forward to a not-yet-generated date.
  *
  * Both call sites pass the SAME recordId — the customer's own
- * customerSocietyRecords doc — so buildSessionCarForCustomer always resolves
+ * customerSocietyRecords doc — so buildSessionCarsForCustomer always resolves
  * against its current (post-write) fields.
  */
 export async function resyncUpcomingSessions(
@@ -61,32 +61,29 @@ export async function resyncUpcomingSessions(
         if (data.status !== 'scheduled') return; // may have started since the initial query
 
         const cars = (data.cars as Record<string, unknown>[] | undefined) ?? [];
-        const idx  = cars.findIndex(c => c.customerId === recordSnap.data()!.customerId);
+        // A customer can have more than one vehicle (car + two-wheeler) —
+        // each gets its own session entry, matched by plate since customerId
+        // alone no longer uniquely identifies a row.
+        const freshCars = buildSessionCarsForCustomer(recordSnap.data() as SocietyCarSourceCustomer, scheduledDate);
 
-        const freshCar = buildSessionCarForCustomer(recordSnap.data() as SocietyCarSourceCustomer, scheduledDate);
-
-        if (idx === -1) {
-          // Not on this session at all yet (the admin-approval call site: the
-          // session was generated before this customer went active). Add them
-          // if the date is one they should actually be cleaned on.
-          if (!freshCar) return;
-          const updatedCars = [...cars, freshCar];
-          const skippedCars = updatedCars.filter(c => c.status === 'skipped').length;
-          t.update(sessionDoc.ref, {
-            cars:       updatedCars,
-            totalCars:  updatedCars.length - skippedCars,
-            skippedCars,
-            updatedAt:  FieldValue.serverTimestamp(),
-          });
-          return;
+        let updatedCars = cars;
+        let changed = false;
+        for (const fresh of freshCars) {
+          const idx = updatedCars.findIndex(c => c.customerId === fresh.customerId && c.carPlate === fresh.carPlate);
+          if (idx === -1) {
+            // Not on this session at all yet — either the admin-approval call
+            // site (session generated before this customer went active), or a
+            // vehicle added to the record after the session already existed.
+            updatedCars = [...updatedCars, fresh as unknown as Record<string, unknown>];
+            changed = true;
+          } else if (updatedCars[idx].status !== fresh.status || updatedCars[idx].preferredTime !== fresh.preferredTime) {
+            updatedCars = updatedCars.map((c, i) => (i === idx ? { ...c, status: fresh.status, preferredTime: fresh.preferredTime } : c));
+            changed = true;
+          }
         }
+        if (!changed) return; // preferredCleaningDays now excludes this date entirely, or nothing moved — leave the existing entries alone
 
-        if (!freshCar) return; // preferredCleaningDays now excludes this date entirely — leave the existing entry alone
-
-        const updatedCars = cars.slice();
-        updatedCars[idx] = { ...cars[idx], status: freshCar.status, preferredTime: freshCar.preferredTime };
         const skippedCars = updatedCars.filter(c => c.status === 'skipped').length;
-
         t.update(sessionDoc.ref, {
           cars:       updatedCars,
           totalCars:  updatedCars.length - skippedCars,

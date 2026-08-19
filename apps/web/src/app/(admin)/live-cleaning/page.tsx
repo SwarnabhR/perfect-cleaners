@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { collection, query, where, getDocs, onSnapshot, doc, runTransaction, serverTimestamp, addDoc } from 'firebase/firestore';
 import { db, resolveTowerGroups, getCarUrgency, getSessionDayBucket } from '@pc/firebase';
-import type { CleaningSession, CleaningSessionCar, TowerGroupSummary, CarUrgency, CarDueBucket } from '@pc/firebase';
+import type { CleaningSession, CleaningSessionCar, TowerGroupSummary, CarUrgency, CarDueBucket, VehicleCategory } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
@@ -20,6 +20,7 @@ interface CarListItem {
   carPlate: string;
   carMake: string;
   carModel: string;
+  vehicleCategory: VehicleCategory;
   preferredTime: number;
   status: string;
   unavailable?: boolean;
@@ -223,8 +224,9 @@ function TowerGroupCard({ group, cars, workers, bucket, marking, toggling, isUna
                       </span>
                     )}
                   </p>
-                  <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10.5, color: 'var(--pc-fg-3)', margin: '2px 0 0', letterSpacing: '0.02em' }}>
-                    CAR {car.carPlate}{car.parkingNumber ? ` · PARKING ${car.parkingNumber}` : ''}
+                  <p style={{ display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'var(--pc-mono)', fontSize: 10.5, color: 'var(--pc-fg-3)', margin: '2px 0 0', letterSpacing: '0.02em' }}>
+                    {car.vehicleCategory === 'two-wheeler' && <Icon name="bike" size={10} color="var(--pc-fg-3)" />}
+                    {car.vehicleCategory === 'two-wheeler' ? 'BIKE' : 'CAR'} {car.carPlate}{car.parkingNumber ? ` · PARKING ${car.parkingNumber}` : ''}
                     {(car.carMake || car.carModel) ? ` · ${[car.carMake, car.carModel].filter(Boolean).join(' ')}` : ''}
                   </p>
                   {car.customerPhone && (
@@ -303,6 +305,7 @@ function CarDetailsModal({ car, busy, onClose, onMarkDone }: {
     ['Phone',     car.customerPhone || 'No phone on file'],
     ['Flat',      car.unitNumber || '—'],
     ['Parking',   car.parkingNumber || '—'],
+    ['Type',      car.vehicleCategory === 'two-wheeler' ? 'Two-wheeler' : 'Car'],
     ['Vehicle',   `${car.carPlate || '—'}${(car.carMake || car.carModel) ? ` · ${[car.carMake, car.carModel].filter(Boolean).join(' ')}` : ''}`],
     ['Tower',     `${car.tower} · ${car.societyName}`],
     ['Scheduled', car.scheduledDate.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })],
@@ -495,6 +498,7 @@ export default function LiveCleaningPage() {
           carPlate: car.carPlate,
           carMake: car.carMake,
           carModel: car.carModel,
+          vehicleCategory: car.vehicleCategory ?? 'car',
           preferredTime: car.preferredTime,
           status: car.status,
           unavailable: Boolean(car.unavailable),
@@ -619,6 +623,7 @@ export default function LiveCleaningPage() {
         vehicleRegistration: car.carPlate,
         vehicleMake:         car.carMake,
         vehicleModel:        car.carModel,
+        vehicleCategory:     car.vehicleCategory,
         customerId:          car.customerId,
         customerName:        '',
         unitNumber:          car.unitNumber,

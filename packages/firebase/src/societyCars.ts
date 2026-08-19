@@ -21,13 +21,15 @@ function isSameCalendarDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
+import type { VehicleCategory } from './types';
+
 export interface SocietyCarSourceCustomer {
   customerId: string;
   customerName?: string;
   customerPhone?: string;
   unitNumber?: string;
   parkingNumber?: string;
-  cars?: Array<{ plate?: string; make?: string; model?: string }>;
+  cars?: Array<{ plate?: string; make?: string; model?: string; category?: VehicleCategory }>;
   preferredCleaningDays?: number[];
   preferredCleaningTime?: number;
   skipDates?: unknown[];
@@ -44,53 +46,53 @@ export interface SessionCarDraft {
   carPlate: string;
   carMake: string;
   carModel: string;
+  vehicleCategory: VehicleCategory;
   preferredTime: number;
   status: 'pending' | 'skipped';
 }
 
 /**
  * Turns one active customerSocietyRecords doc into its cleaningSessions car
- * entry for a given date, or null if the customer's preferred days exclude
+ * entries for a given date — one per vehicle in cars[] (a resident with both
+ * a car and a two-wheeler gets two separate checklist rows, since they're two
+ * separate physical tasks) — or [] if the customer's preferred days exclude
  * that date entirely.
  */
-export function buildSessionCarForCustomer(
+export function buildSessionCarsForCustomer(
   customer: SocietyCarSourceCustomer,
   scheduledDate: Date,
-): SessionCarDraft | null {
+): SessionCarDraft[] {
   const preferredDays = customer.preferredCleaningDays;
-  if (preferredDays?.length && !preferredDays.includes(scheduledDate.getDay())) return null;
-
-  const base = {
-    customerId:    customer.customerId,
-    customerName:  customer.customerName || '',
-    customerPhone: customer.customerPhone || '',
-    unitNumber:    customer.unitNumber || '',
-    parkingNumber: customer.parkingNumber || '',
-    carPlate:      customer.cars?.[0]?.plate || '',
-    carMake:       customer.cars?.[0]?.make  || '',
-    carModel:      customer.cars?.[0]?.model || '',
-  };
+  if (preferredDays?.length && !preferredDays.includes(scheduledDate.getDay())) return [];
+  const vehicles = customer.cars?.length ? customer.cars : [{}];
 
   const isSkipped = (customer.skipDates ?? []).some(d => isSameCalendarDay(toDateSafe(d), scheduledDate));
-  if (isSkipped) {
-    return { ...base, preferredTime: customer.preferredCleaningTime || 9, status: 'skipped' };
-  }
-
   const rescheduled = (customer.rescheduledSlots ?? []).find(s => isSameCalendarDay(toDateSafe(s.date), scheduledDate));
   const preferredTime = rescheduled
     ? rescheduled.toTime
     : (customer.permanentTime || customer.preferredCleaningTime || 9);
 
-  return { ...base, preferredTime, status: 'pending' };
+  return vehicles.map(v => ({
+    customerId:      customer.customerId,
+    customerName:    customer.customerName || '',
+    customerPhone:   customer.customerPhone || '',
+    unitNumber:      customer.unitNumber || '',
+    parkingNumber:   customer.parkingNumber || '',
+    carPlate:        v.plate || '',
+    carMake:         v.make  || '',
+    carModel:        v.model || '',
+    vehicleCategory: v.category ?? 'car',
+    ...(isSkipped
+      ? { preferredTime: customer.preferredCleaningTime || 9, status: 'skipped' as const }
+      : { preferredTime, status: 'pending' as const }),
+  }));
 }
 
 export function buildSessionCars(
   customers: SocietyCarSourceCustomer[],
   scheduledDate: Date,
 ): SessionCarDraft[] {
-  return customers
-    .map(c => buildSessionCarForCustomer(c, scheduledDate))
-    .filter((c): c is SessionCarDraft => c !== null);
+  return customers.flatMap(c => buildSessionCarsForCustomer(c, scheduledDate));
 }
 
 /**

@@ -64,6 +64,7 @@ interface FormData {
   tierNormal: number;
   tierPremium: number;
   tierUltra: number;
+  twoWheelerFee: number;
   billingFrequency: BillingFrequency;
   deepCleanEnabled: boolean;
   deepCleanFrequency: DeepCleanFrequency;
@@ -79,6 +80,7 @@ const BLANK_FORM: FormData = {
   tierNormal: 0,
   tierPremium: 0,
   tierUltra: 0,
+  twoWheelerFee: 0,
   billingFrequency: 'monthly',
   deepCleanEnabled: false,
   deepCleanFrequency: 'weekly',
@@ -148,6 +150,7 @@ export default function TowerBillingPage() {
       tierNormal:  config.tierPricing?.normal  ?? config.monthlyFee,
       tierPremium: config.tierPricing?.premium ?? config.monthlyFee,
       tierUltra:   config.tierPricing?.ultra   ?? config.monthlyFee,
+      twoWheelerFee: config.twoWheelerFee ?? 0,
       billingFrequency:   config.billingFrequency ?? 'monthly',
       deepCleanEnabled:   !!config.deepClean,
       deepCleanFrequency: config.deepClean?.frequency ?? 'weekly',
@@ -178,6 +181,7 @@ export default function TowerBillingPage() {
         // tiers yet (billing page, wallet page, notification copy) keep working.
         monthlyFee: form.tierNormal,
         tierPricing: { normal: form.tierNormal, premium: form.tierPremium, ultra: form.tierUltra },
+        ...(form.twoWheelerFee > 0 ? { twoWheelerFee: form.twoWheelerFee } : {}),
         billingFrequency: form.billingFrequency,
         ...(form.deepCleanEnabled
           ? { deepClean: { frequency: form.deepCleanFrequency, fee: form.deepCleanFee } }
@@ -381,6 +385,22 @@ export default function TowerBillingPage() {
                 </div>
                 <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-4)', margin: '6px 0 0' }}>
                   Each resident picks a tier at signup. For “Per-day” billing below, these are per-clean rates, not monthly totals.
+                </p>
+              </div>
+
+              <div>
+                <p style={monoLabel}>Two-wheeler Fee (₹)</p>
+                <input
+                  type="number"
+                  value={form.twoWheelerFee}
+                  onChange={e => setForm({ ...form, twoWheelerFee: parseInt(e.target.value) || 0 })}
+                  placeholder="199"
+                  min="0"
+                  step="10"
+                  style={inputStyle}
+                />
+                <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-4)', margin: '6px 0 0' }}>
+                  Flat monthly fee for a bike/scooter/scooty — untiered. Leave at 0 to hide the two-wheeler option at signup for this tower.
                 </p>
               </div>
 
@@ -634,6 +654,12 @@ export default function TowerBillingPage() {
                       {config.deepClean && (
                         <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, color: 'var(--pc-info)', margin: '3px 0 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                           + deep clean ({config.deepClean.frequency}) ₹{config.deepClean.fee}
+                        </p>
+                      )}
+                      {!!config.twoWheelerFee && (
+                        <p style={{ display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'var(--pc-mono)', fontSize: 9.5, color: 'var(--pc-fg-3)', margin: '3px 0 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          <Icon name="bike" size={10} color="var(--pc-fg-3)" />
+                          2-wheeler ₹{config.twoWheelerFee}
                         </p>
                       )}
                     </td>

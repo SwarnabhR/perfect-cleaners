@@ -2,6 +2,11 @@
 
 export type VehicleType = 'sedan' | 'suv' | 'hatchback' | 'luxury' | 'pickup' | 'van';
 
+// Society Programme vehicles only — cars vs. two-wheelers (bike/scooter/scooty),
+// since the two are priced and washed differently. Absent on a cars[] entry
+// means 'car' (every entry written before this field existed).
+export type VehicleCategory = 'car' | 'two-wheeler';
+
 export type BookingStatus =
   | 'pending'
   | 'assigned'
@@ -199,6 +204,7 @@ export interface CleaningLog {
   vehicleRegistration: string;  // e.g. "DL 01 AB 1234"
   vehicleMake: string;
   vehicleModel: string;
+  vehicleCategory?: VehicleCategory; // absent = 'car'
   customerId: string;
   customerName: string;         // denormalized
   unitNumber: string;           // e.g. "B-1204"
@@ -259,6 +265,10 @@ export interface SocietyBillingConfig {
     premium: number;
     ultra: number;
   };
+  // Flat monthly fee for a two-wheeler (bike/scooter/scooty) at this tower —
+  // deliberately untiered, unlike cars: absent means the tower hasn't priced
+  // two-wheelers yet, so the enrollment forms won't offer one.
+  twoWheelerFee?: number;
   // Optional add-on service on top of the regular exterior-wash cadence above —
   // its own schedule, its own flat fee charged alongside the regular cycle.
   deepClean?: {
@@ -288,6 +298,7 @@ export interface CustomerSocietyRecord {
     plate: string;           // e.g. "DL 01 AB 1234"
     make: string;
     model: string;
+    category?: VehicleCategory; // absent = 'car' (every vehicle before two-wheelers existed)
   }>;
 
   // Preferred cleaning time (overrides tower default)
@@ -349,6 +360,13 @@ export interface PendingApproval {
   carPlate: string;
   carMake: string;
   carModel: string;
+  carCategory?: VehicleCategory; // absent = 'car'
+  // A resident can register one extra two-wheeler alongside their primary
+  // vehicle above at self-signup — kept as flat optional fields (not an
+  // array) to match this doc's existing single-vehicle shape.
+  twoWheelerPlate?: string;
+  twoWheelerMake?: string;
+  twoWheelerModel?: string;
 
   // Preferences
   preferredCleaningTime: number; // 7, 7.5, 9, 14 (.5 = half-hour slot)
@@ -374,6 +392,7 @@ export interface CleaningSessionCar {
   carPlate: string;
   carMake: string;
   carModel: string;
+  vehicleCategory?: VehicleCategory; // absent = 'car' — which of the customer's cars[] entries this is
   preferredTime: number;       // What customer prefers (7, 7.5, 9, 14 — .5 = half-hour slot)
   // 'skipped' — customer opted out for this date (see CustomerSocietyRecord.skipDates);
   // still included in cars[] (not dropped) so the worker sees "Not available" rather

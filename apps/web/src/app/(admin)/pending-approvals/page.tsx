@@ -131,6 +131,18 @@ export default function PendingApprovalsPage() {
         )
       );
 
+      // Mirrors what the self-signup form itself wrote to cars[] — rebuilt
+      // from the PendingApproval's own fields (rather than trusted as-is)
+      // since this also has to cover the fallback branch below, where no
+      // prior customerSocietyRecords doc exists at all.
+      const cars = [
+        { plate: approval.carPlate, make: approval.carMake, model: approval.carModel, category: 'car' as const },
+        ...(approval.twoWheelerPlate
+          ? [{ plate: approval.twoWheelerPlate, make: approval.twoWheelerMake ?? '', model: approval.twoWheelerModel ?? '', category: 'two-wheeler' as const }]
+          : []),
+      ];
+      const twoWheelerFee = (billingConfig?.twoWheelerFee as number | undefined) ?? 0;
+
       const activeFields = {
         customerId,
         customerName:          approval.customerName,
@@ -138,7 +150,7 @@ export default function PendingApprovalsPage() {
         societyId:             approval.societyId,
         societyName:           approval.societyName,
         tower:                 approval.tower,
-        cars: [{ plate: approval.carPlate, make: approval.carMake, model: approval.carModel }],
+        cars,
         preferredCleaningTime: approval.preferredCleaningTime,
         preferredCleaningDays: approval.preferredCleaningDays ?? [],
         signupSource:          'self_signup',
@@ -146,7 +158,7 @@ export default function PendingApprovalsPage() {
         ...(approval.tier ? { tier: approval.tier } : {}),
         billingFrequency:      (billingConfig?.billingFrequency as SocietyBillingConfig['billingFrequency']) ?? 'monthly',
         deepCleanEnabled:      !!billingConfig?.deepClean,
-        monthlyFee,
+        monthlyFee:            monthlyFee + (approval.twoWheelerPlate ? twoWheelerFee : 0),
         nextBillingDate:       firstOfNextMonth(),
         paymentStatus:         'verified',
         paymentMethod:         form.paymentMethod,
@@ -188,7 +200,7 @@ export default function PendingApprovalsPage() {
       if (!existingSnap.docs[0] || existingSnap.docs[0].data().status !== 'active') {
         updateDoc(doc(db, 'societies', approval.societyId), {
           activeResidents: increment(1),
-          vehicleCount:    increment(1),
+          vehicleCount:    increment(cars.length),
         }).catch(err => console.warn('[PendingApprovals] society counter update failed:', err));
       }
 
@@ -379,6 +391,15 @@ export default function PendingApprovalsPage() {
                       {approval.carMake} {approval.carModel}
                     </p>
                   </div>
+                  {approval.twoWheelerPlate && (
+                    <div>
+                      <p style={monoLabel}>Two-wheeler</p>
+                      <p style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)', margin: 0 }}>
+                        <Icon name="bike" size={12} color="var(--pc-fg-3)" />
+                        {approval.twoWheelerPlate} · {approval.twoWheelerMake} {approval.twoWheelerModel}
+                      </p>
+                    </div>
+                  )}
                   <div>
                     <p style={monoLabel}>Preferred Time</p>
                     <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)', margin: 0 }}>

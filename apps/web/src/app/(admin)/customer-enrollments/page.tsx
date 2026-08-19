@@ -131,6 +131,7 @@ interface AddCustomerForm {
   name: string; phone: string;
   societyId: string; societyName: string; tower: string; unitNumber: string; parkingNumber: string;
   carPlate: string; carMake: string; carModel: string;
+  hasTwoWheeler: boolean; twoWheelerPlate: string; twoWheelerMake: string; twoWheelerModel: string;
   preferredTime: number; preferredDays: DayOfWeek[];
   tier: 'normal' | 'premium' | 'ultra';
   paymentMethod: string; paymentNotes: string;
@@ -140,6 +141,7 @@ const BLANK_ADD_FORM: AddCustomerForm = {
   name: '', phone: '',
   societyId: '', societyName: '', tower: '', unitNumber: '', parkingNumber: '',
   carPlate: '', carMake: '', carModel: '',
+  hasTwoWheeler: false, twoWheelerPlate: '', twoWheelerMake: '', twoWheelerModel: '',
   preferredTime: 9, preferredDays: [],
   tier: 'normal',
   paymentMethod: '', paymentNotes: '',
@@ -150,6 +152,7 @@ function AddCustomerModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
   const [form, setForm] = useState<AddCustomerForm>(BLANK_ADD_FORM);
   const [towerDays, setTowerDays] = useState<DayOfWeek[]>([]);
   const [tierPricing, setTierPricing] = useState<{ normal: number; premium: number; ultra: number } | null>(null);
+  const [twoWheelerFee, setTwoWheelerFee] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -164,7 +167,7 @@ function AddCustomerModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
   // Tower's admin-configured cleaning days, so the day-picker below only
   // ever offers valid choices — same constraint the self-signup form applies.
   useEffect(() => {
-    if (!form.societyId || !form.tower) { setTowerDays([]); setTierPricing(null); return; }
+    if (!form.societyId || !form.tower) { setTowerDays([]); setTierPricing(null); setTwoWheelerFee(0); return; }
     getDocs(query(
       collection(db, 'societyBillingConfig'),
       where('societyId', '==', form.societyId),
@@ -177,7 +180,8 @@ function AddCustomerModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
       setTowerDays(days);
       setForm(f => ({ ...f, preferredDays: days, tier: 'normal' }));
       setTierPricing((config?.tierPricing as { normal: number; premium: number; ultra: number } | undefined) ?? null);
-    }).catch(() => { setTowerDays([]); setTierPricing(null); });
+      setTwoWheelerFee((config?.twoWheelerFee as number | undefined) ?? 0);
+    }).catch(() => { setTowerDays([]); setTierPricing(null); setTwoWheelerFee(0); });
   }, [form.societyId, form.tower]);
 
   const selectedSociety = societies.find(s => s.id === form.societyId) ?? null;
@@ -186,8 +190,9 @@ function AddCustomerModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
 
   async function handleSubmit() {
     if (!form.name.trim() || (hasPhone && digits.length !== 10) || !form.societyId || !form.tower
-        || !form.unitNumber.trim() || !form.carPlate.trim() || saving) {
-      setError('Name, society, tower, unit number, and car plate are required. Phone, if given, must be 10 digits.');
+        || !form.unitNumber.trim() || !form.carPlate.trim() || saving
+        || (form.hasTwoWheeler && !form.twoWheelerPlate.trim())) {
+      setError('Name, society, tower, unit number, and car plate are required. Phone, if given, must be 10 digits. Two-wheeler plate is required if added.');
       return;
     }
     setError(''); setSaving(true);
@@ -213,8 +218,17 @@ function AddCustomerModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
       ));
       const billingConfig    = configSnap.docs[0]?.data();
       const tierPricingCfg   = billingConfig?.tierPricing as { normal: number; premium: number; ultra: number } | undefined;
-      const monthlyFee       = (tierPricingCfg ? tierPricingCfg[form.tier] : undefined) ?? (billingConfig?.monthlyFee as number | undefined) ?? 500;
+      const carFee            = (tierPricingCfg ? tierPricingCfg[form.tier] : undefined) ?? (billingConfig?.monthlyFee as number | undefined) ?? 500;
+      const twoWheelerFeeCfg  = (billingConfig?.twoWheelerFee as number | undefined) ?? 0;
+      const monthlyFee        = carFee + (form.hasTwoWheeler ? twoWheelerFeeCfg : 0);
       const cleaningSchedule = (billingConfig?.cleaningSchedule as string | undefined) ?? 'Mon, Wed, Fri · 9:00 AM';
+
+      const cars = [
+        { plate: form.carPlate.trim().toUpperCase(), make: form.carMake.trim(), model: form.carModel.trim(), category: 'car' as const },
+        ...(form.hasTwoWheeler
+          ? [{ plate: form.twoWheelerPlate.trim().toUpperCase(), make: form.twoWheelerMake.trim(), model: form.twoWheelerModel.trim(), category: 'two-wheeler' as const }]
+          : []),
+      ];
 
       await setDoc(doc(db, 'customerSocietyRecords', recordId), {
         customerId,
@@ -225,7 +239,7 @@ function AddCustomerModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
         tower:                 form.tower,
         unitNumber:            form.unitNumber.trim(),
         ...(form.parkingNumber.trim() ? { parkingNumber: form.parkingNumber.trim() } : {}),
-        cars: [{ plate: form.carPlate.trim().toUpperCase(), make: form.carMake.trim(), model: form.carModel.trim() }],
+        cars,
         preferredCleaningTime: form.preferredTime,
         preferredCleaningDays: form.preferredDays,
         signupSource:          'bulk_import',
@@ -246,7 +260,7 @@ function AddCustomerModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
 
       updateDoc(doc(db, 'societies', form.societyId), {
         activeResidents: increment(1),
-        vehicleCount:    increment(1),
+        vehicleCount:    increment(cars.length),
       }).catch(err => console.warn('[AddCustomer] society counter update failed:', err));
 
       // Best-effort, and only possible when we actually have a number —
@@ -365,6 +379,38 @@ function AddCustomerModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
               <p style={monoLabel}>Model</p>
               <input value={form.carModel} onChange={e => setForm(f => ({ ...f, carModel: e.target.value }))} placeholder="Swift, City…" style={inputStyle} />
             </div>
+          </div>
+
+          <div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: twoWheelerFee > 0 ? 'pointer' : 'not-allowed', opacity: twoWheelerFee > 0 ? 1 : 0.5 }}>
+              <input
+                type="checkbox"
+                checked={form.hasTwoWheeler}
+                disabled={twoWheelerFee === 0}
+                onChange={e => setForm(f => ({ ...f, hasTwoWheeler: e.target.checked }))}
+                style={{ accentColor: 'var(--pc-sage)', width: 15, height: 15 }}
+              />
+              <Icon name="bike" size={14} color="var(--pc-fg-3)" />
+              <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)' }}>
+                Also register a two-wheeler {twoWheelerFee > 0 ? `(+₹${twoWheelerFee}/mo)` : '(this tower has no two-wheeler pricing set)'}
+              </span>
+            </label>
+            {form.hasTwoWheeler && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 12, marginTop: 10, padding: 12, background: 'var(--pc-card-hi)', borderRadius: 8 }}>
+                <div>
+                  <p style={monoLabel}>Plate *</p>
+                  <input value={form.twoWheelerPlate} onChange={e => setForm(f => ({ ...f, twoWheelerPlate: e.target.value }))} placeholder="DL 01 AB 5678" style={inputStyle} />
+                </div>
+                <div>
+                  <p style={monoLabel}>Make</p>
+                  <input value={form.twoWheelerMake} onChange={e => setForm(f => ({ ...f, twoWheelerMake: e.target.value }))} placeholder="Honda, TVS…" style={inputStyle} />
+                </div>
+                <div>
+                  <p style={monoLabel}>Model</p>
+                  <input value={form.twoWheelerModel} onChange={e => setForm(f => ({ ...f, twoWheelerModel: e.target.value }))} placeholder="Activa, Jupiter…" style={inputStyle} />
+                </div>
+              </div>
+            )}
           </div>
 
           {tierPricing && (
@@ -1235,7 +1281,12 @@ export default function CustomerEnrollmentsPage() {
                       )}
                     </td>
                     <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-mono)', fontSize: 12, color: 'var(--pc-fg-2)' }}>
-                      {record.cars[0]?.plate || '—'}
+                      {(record.cars.find(c => (c.category ?? 'car') === 'car') ?? record.cars[0])?.plate || '—'}
+                      {record.cars.some(c => c.category === 'two-wheeler') && (
+                        <span title="Also has a two-wheeler registered" style={{ display: 'inline-flex', marginLeft: 6, verticalAlign: 'middle' }}>
+                          <Icon name="bike" size={12} color="var(--pc-fg-3)" />
+                        </span>
+                      )}
                     </td>
                     <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600, color: cleanedThisMonth[record.customerId] ? 'var(--pc-sage-hi)' : 'var(--pc-fg-4)' }}>
                       {cleanedThisMonth[record.customerId] ?? 0}

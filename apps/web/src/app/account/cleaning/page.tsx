@@ -126,6 +126,11 @@ function SelfSignupForm({
   const [plate, setPlate] = useState('');
   const [make, setMake] = useState('');
   const [model, setModel] = useState('');
+  const [hasTwoWheeler, setHasTwoWheeler] = useState(false);
+  const [twPlate, setTwPlate] = useState('');
+  const [twMake, setTwMake] = useState('');
+  const [twModel, setTwModel] = useState('');
+  const [twoWheelerFee, setTwoWheelerFee] = useState(0);
   const [preferredTime, setPreferredTime] = useState(9);
   const [towerDays, setTowerDays] = useState<DayOfWeek[]>([]);
   const [preferredDays, setPreferredDays] = useState<DayOfWeek[]>([]);
@@ -143,7 +148,7 @@ function SelfSignupForm({
   // Fetch the tower's admin-configured allowed cleaning days (+ tier pricing,
   // if this tower has been set up with tiers) once both are picked.
   useEffect(() => {
-    if (!societyId || !tower) { setTowerDays([]); setPreferredDays([]); setTierPricing(null); return; }
+    if (!societyId || !tower) { setTowerDays([]); setPreferredDays([]); setTierPricing(null); setTwoWheelerFee(0); return; }
     getDocs(query(
       collection(db, 'societyBillingConfig'),
       where('societyId', '==', societyId),
@@ -156,15 +161,16 @@ function SelfSignupForm({
       setTowerDays(days);
       setPreferredDays(days);
       setTierPricing((config?.tierPricing as { normal: number; premium: number; ultra: number } | undefined) ?? null);
+      setTwoWheelerFee((config?.twoWheelerFee as number | undefined) ?? 0);
       setTier('normal');
-    }).catch(() => { setTowerDays([]); setPreferredDays([]); setTierPricing(null); });
+    }).catch(() => { setTowerDays([]); setPreferredDays([]); setTierPricing(null); setTwoWheelerFee(0); });
   }, [societyId, tower]);
 
   const selectedSociety = societies.find(s => s.id === societyId) ?? null;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim() || !societyId || !tower || !plate.trim()) {
+    if (!name.trim() || !societyId || !tower || !plate.trim() || (hasTwoWheeler && !twPlate.trim())) {
       setError('Please fill in all required fields.');
       return;
     }
@@ -177,13 +183,17 @@ function SelfSignupForm({
       // rest of billing config) — here it's just carried along on both docs
       // so the approval step knows which tier the resident picked.
       const chosenTier = tierPricing ? tier : undefined;
+      const twoWheelerVehicle = hasTwoWheeler
+        ? { plate: twPlate.trim().toUpperCase(), make: twMake.trim(), model: twModel.trim(), category: 'two-wheeler' as const }
+        : null;
 
       await addDoc(collection(db, 'pendingApprovals'), {
         societyId, societyName, tower,
         customerId:            userId,
         customerName:          name.trim(),
         customerPhone:         userPhone ?? '',
-        carPlate, carMake: make.trim(), carModel: model.trim(),
+        carPlate, carMake: make.trim(), carModel: model.trim(), carCategory: 'car',
+        ...(twoWheelerVehicle ? { twoWheelerPlate: twoWheelerVehicle.plate, twoWheelerMake: twoWheelerVehicle.make, twoWheelerModel: twoWheelerVehicle.model } : {}),
         preferredCleaningTime: preferredTime,
         preferredCleaningDays: preferredDays,
         ...(chosenTier ? { tier: chosenTier } : {}),
@@ -195,13 +205,16 @@ function SelfSignupForm({
         customerId:            userId,
         customerPhone:         userPhone ?? '',
         societyId, societyName, tower,
-        cars: [{ plate: carPlate, make: make.trim(), model: model.trim() }],
+        cars: [
+          { plate: carPlate, make: make.trim(), model: model.trim(), category: 'car' as const },
+          ...(twoWheelerVehicle ? [twoWheelerVehicle] : []),
+        ],
         preferredCleaningTime: preferredTime,
         preferredCleaningDays: preferredDays,
         signupSource:          'self_signup',
         status:                'pending',
         ...(chosenTier ? { tier: chosenTier } : {}),
-        monthlyFee:            tierPricing ? tierPricing[tier] : 0,
+        monthlyFee:            (tierPricing ? tierPricing[tier] : 0) + (hasTwoWheeler ? twoWheelerFee : 0),
         nextBillingDate:       new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         paymentStatus:         'not_verified',
         skipDates:             [],
@@ -286,6 +299,39 @@ function SelfSignupForm({
             />
           </div>
         </div>
+
+        {/* Two-wheeler — optional, only offered once the tower has priced one */}
+        {twoWheelerFee > 0 && (
+          <div style={{ borderTop: '1px solid var(--pc-line)', paddingTop: 'var(--pc-space-4)' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+              <input
+                type="checkbox" checked={hasTwoWheeler}
+                onChange={e => setHasTwoWheeler(e.target.checked)}
+                style={{ accentColor: 'var(--pc-sage)', width: 15, height: 15 }}
+              />
+              <Icon name="bike" size={14} color="var(--pc-fg-3)" />
+              <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)' }}>
+                I also have a bike/scooter (+₹{twoWheelerFee.toLocaleString('en-IN')}/mo)
+              </span>
+            </label>
+            {hasTwoWheeler && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 12, marginTop: 12 }}>
+                <div>
+                  <label style={fieldLabel}>Plate *</label>
+                  <input type="text" required value={twPlate} onChange={e => setTwPlate(e.target.value)} placeholder="DL 01 AB 5678" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={fieldLabel}>Make</label>
+                  <input type="text" value={twMake} onChange={e => setTwMake(e.target.value)} placeholder="Honda, TVS…" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={fieldLabel}>Model</label>
+                  <input type="text" value={twModel} onChange={e => setTwModel(e.target.value)} placeholder="Activa, Jupiter…" style={inputStyle} />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Tier — only shown once the tower has tier pricing configured */}
@@ -1019,6 +1065,7 @@ export default function CleaningPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
                     {record.cars.map((car, i) => (
                       <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                        {car.category === 'two-wheeler' && <Icon name="bike" size={13} color="var(--pc-fg-4)" />}
                         <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 12, color: 'var(--pc-fg)', background: 'var(--pc-ink-raised)', border: '1px solid var(--pc-line-strong)', padding: '3px 10px', borderRadius: 6, letterSpacing: '0.06em' }}>
                           {car.plate}
                         </span>
@@ -1073,6 +1120,7 @@ export default function CleaningPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {record.cars.map((car, i) => (
                       <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                        {car.category === 'two-wheeler' && <Icon name="bike" size={13} color="var(--pc-fg-4)" />}
                         <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 12, color: 'var(--pc-fg)', background: 'var(--pc-ink-raised)', border: '1px solid var(--pc-line-strong)', padding: '4px 10px', borderRadius: 6, letterSpacing: '0.06em' }}>
                           {car.plate}
                         </span>
