@@ -99,11 +99,11 @@ test.describe('Worker sign-out', () => {
 
 test.describe('Admin sign-out', () => {
   test.beforeEach(async ({ page }) => {
-    const email    = process.env.TEST_ADMIN_EMAIL;
+    const username = process.env.TEST_ADMIN_USERNAME;
     const password = process.env.TEST_ADMIN_PASSWORD;
-    test.skip(!email || !password, 'TEST_ADMIN_EMAIL / TEST_ADMIN_PASSWORD not set');
+    test.skip(!username || !password, 'TEST_ADMIN_USERNAME / TEST_ADMIN_PASSWORD not set');
     await page.goto('/login');
-    await page.fill('input[type="email"]',    email!);
+    await page.fill('#admin-username',        username!);
     await page.fill('input[type="password"]', password!);
     await page.click('button[type="submit"]');
     await page.waitForURL('**/dashboard', { timeout: 20_000 });

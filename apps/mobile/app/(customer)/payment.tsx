@@ -118,9 +118,13 @@ export default function PaymentSheet() {
 
   async function handlePay() {
     if (!RAZORPAY_KEY) {
+      // Online payment is currently disabled account-wide (no live Razorpay
+      // keys — see apps/web/src/app/api/payment/create-order/route.ts) and
+      // payment is instead collected by phone. Match that customer-facing
+      // message here instead of surfacing a raw env-var name to a real user.
       Alert.alert(
-        'Configuration error',
-        'Razorpay key not set. Add EXPO_PUBLIC_RAZORPAY_KEY_ID to your .env file.',
+        'Payment unavailable',
+        'Online payment is temporarily unavailable. Our team will call you to collect payment.',
       );
       return;
     }

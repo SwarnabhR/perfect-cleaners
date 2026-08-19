@@ -12,7 +12,7 @@ test.describe('Admin Login', () => {
     // containing the login subtitle to avoid a strict-mode violation.
     await expect(page.locator('h1')).toContainText('Sign in');
     await expect(page.locator('p', { hasText: 'Operator access only' })).toBeVisible();
-    await expect(page.locator('input[type="email"]')).toBeVisible();
+    await expect(page.locator('#admin-username')).toBeVisible();
     await expect(page.locator('input[type="password"]')).toBeVisible();
     await expect(page.locator('button[type="submit"]')).toContainText('Sign in');
   });
@@ -33,7 +33,7 @@ test.describe('Admin Login', () => {
     await expect(btn).not.toBeDisabled();
   });
 
-  test('browser validates required email field', async ({ page }) => {
+  test('browser validates required username field', async ({ page }) => {
     // Attempt submit with empty fields — browser blocks it via required attr
     await page.click('button[type="submit"]');
     // Still on login page
@@ -41,18 +41,18 @@ test.describe('Admin Login', () => {
   });
 
   test('shows error on wrong credentials', async ({ page }) => {
-    await page.fill('input[type="email"]',    'wrong@example.com');
+    await page.fill('#admin-username',        'wrong-username');
     await page.fill('input[type="password"]', 'wrongpassword');
     await page.click('button[type="submit"]');
 
-    const error = page.locator('p', { hasText: /invalid email or password|sign-in failed/i });
+    const error = page.locator('p', { hasText: /invalid username or password|sign-in failed/i });
     await expect(error).toBeVisible({ timeout: 15_000 });
     // Should stay on login page
     await expect(page).toHaveURL(/\/login/);
   });
 
   test('shows loading state while signing in', async ({ page }) => {
-    await page.fill('input[type="email"]',    'test@example.com');
+    await page.fill('#admin-username',        'test-username');
     await page.fill('input[type="password"]', 'testpassword');
 
     const btn = page.locator('button[type="submit"]');
@@ -64,15 +64,15 @@ test.describe('Admin Login', () => {
   });
 
   test('valid credentials redirect to dashboard', async ({ page }) => {
-    const email    = process.env.TEST_ADMIN_EMAIL;
+    const username = process.env.TEST_ADMIN_USERNAME;
     const password = process.env.TEST_ADMIN_PASSWORD;
 
-    if (!email || !password) {
-      test.skip(true, 'TEST_ADMIN_EMAIL / TEST_ADMIN_PASSWORD not set');
+    if (!username || !password) {
+      test.skip(true, 'TEST_ADMIN_USERNAME / TEST_ADMIN_PASSWORD not set');
       return;
     }
 
-    await page.fill('input[type="email"]',    email);
+    await page.fill('#admin-username',        username);
     await page.fill('input[type="password"]', password);
     await page.click('button[type="submit"]');
 

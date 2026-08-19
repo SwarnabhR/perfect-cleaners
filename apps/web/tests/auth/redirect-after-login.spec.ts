@@ -119,12 +119,12 @@ test.describe('Worker post-login redirect', () => {
 test.describe('Admin post-login redirect', () => {
 
   test('admin /login redirects to /dashboard after sign in', async ({ page }) => {
-    const email    = process.env.TEST_ADMIN_EMAIL;
+    const username = process.env.TEST_ADMIN_USERNAME;
     const password = process.env.TEST_ADMIN_PASSWORD;
-    if (!email || !password) { test.skip(true, 'TEST_ADMIN_EMAIL / TEST_ADMIN_PASSWORD not set'); return; }
+    if (!username || !password) { test.skip(true, 'TEST_ADMIN_USERNAME / TEST_ADMIN_PASSWORD not set'); return; }
 
     await page.goto('/login');
-    await page.fill('input[type="email"]',    email);
+    await page.fill('#admin-username',        username);
     await page.fill('input[type="password"]', password);
     await page.click('button[type="submit"]');
     await page.waitForURL('**/dashboard', { timeout: 20_000 });
@@ -132,13 +132,13 @@ test.describe('Admin post-login redirect', () => {
   });
 
   test('/login while already authenticated redirects to /dashboard', async ({ page }) => {
-    const email    = process.env.TEST_ADMIN_EMAIL;
+    const username = process.env.TEST_ADMIN_USERNAME;
     const password = process.env.TEST_ADMIN_PASSWORD;
-    if (!email || !password) { test.skip(true, 'TEST_ADMIN_EMAIL / TEST_ADMIN_PASSWORD not set'); return; }
+    if (!username || !password) { test.skip(true, 'TEST_ADMIN_USERNAME / TEST_ADMIN_PASSWORD not set'); return; }
 
     // Sign in first
     await page.goto('/login');
-    await page.fill('input[type="email"]',    email);
+    await page.fill('#admin-username',        username);
     await page.fill('input[type="password"]', password);
     await page.click('button[type="submit"]');
     await page.waitForURL('**/dashboard', { timeout: 20_000 });
