@@ -95,10 +95,10 @@ function DueLine({ car }: { car: CarListItem }) {
 // One tower's card — list header (name + open count) plus its checklist.
 // Extracted so it can be rendered once per bucket without duplicating this
 // markup four times.
-function TowerGroupCard({ group, cars, workerNames, bucket, marking, toggling, isUnavailable, onMarkDone, onToggleUnavailable, onViewDetails }: {
+function TowerGroupCard({ group, cars, workers, bucket, marking, toggling, isUnavailable, onMarkDone, onToggleUnavailable, onViewDetails }: {
   group: TowerGroupSummary;
   cars: CarListItem[];
-  workerNames: string[];
+  workers: { id: string; name: string; phone?: string }[];
   bucket: CarDueBucket;
   marking: string | null;
   toggling: string | null;
@@ -118,7 +118,7 @@ function TowerGroupCard({ group, cars, workerNames, bucket, marking, toggling, i
               {group.tower}
             </p>
             <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', margin: '1px 0 0' }}>
-              {group.societyName}{workerNames.length > 0 ? ` · ${workerNames.join(', ')}` : ''}
+              {group.societyName}
             </p>
           </div>
         </div>
@@ -127,8 +127,42 @@ function TowerGroupCard({ group, cars, workerNames, bucket, marking, toggling, i
         </span>
       </div>
 
-      <div style={{ borderTop: '1px solid var(--pc-line)', padding: '6px 4px 6px 16px' }}>
-        <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, color: 'var(--pc-fg-3)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+      {/* Assigned worker(s) — name + tap-to-call, or an explicit Unassigned flag */}
+      <div style={{ borderTop: '1px solid var(--pc-line)', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, color: 'var(--pc-fg-4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginRight: 2 }}>
+            Assigned
+          </span>
+          {workers.length === 0 ? (
+            <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-danger)' }}>
+              Unassigned
+            </span>
+          ) : (
+            workers.map(w => (
+              <span
+                key={w.id}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  background: 'var(--pc-card-hi)', border: '1px solid var(--pc-line)',
+                  borderRadius: 999, padding: '3px 8px 3px 10px',
+                }}
+              >
+                <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg)' }}>{w.name || 'Worker'}</span>
+                {w.phone ? (
+                  <a
+                    href={`tel:${w.phone}`}
+                    title={`Call ${w.name || 'worker'}`}
+                    onClick={e => e.stopPropagation()}
+                    style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--pc-info)' }}
+                  >
+                    <Icon name="phone" size={11} color="var(--pc-info)" />
+                  </a>
+                ) : null}
+              </span>
+            ))
+          )}
+        </div>
+        <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, color: 'var(--pc-fg-3)', letterSpacing: '0.06em', textTransform: 'uppercase', flexShrink: 0 }}>
           {bucket === 'today' ? 'Sorted by urgency' : 'Sorted by time'}
         </span>
       </div>
@@ -360,6 +394,20 @@ export default function LiveCleaningPage() {
   const [toggling, setToggling] = useState<string | null>(null);
   const [marking, setMarking] = useState<string | null>(null);
   const [detailsCar, setDetailsCar] = useState<CarListItem | null>(null);
+  const [workersById, setWorkersById] = useState<Map<string, { name: string; phone?: string }>>(new Map());
+
+  // Worker directory — looked up by id so each tower card can show a
+  // tap-to-call number next to whoever's assigned, not just their name.
+  useEffect(() => {
+    return onSnapshot(collection(db, 'workers'), snap => {
+      const map = new Map<string, { name: string; phone?: string }>();
+      snap.docs.forEach(d => {
+        const data = d.data() as { name?: string; phone?: string };
+        map.set(d.id, { name: data.name ?? '', phone: data.phone });
+      });
+      setWorkersById(map);
+    });
+  }, []);
 
   useEffect(() => {
     return onSnapshot(
@@ -427,7 +475,7 @@ export default function LiveCleaningPage() {
 
     const towerGroups: TowerGroupSummary[] = resolveTowerGroups(bucketSessions);
     const carsByTowerKey = new Map<string, CarListItem[]>();
-    const workersByTowerKey = new Map<string, Set<string>>();
+    const workersByTowerKey = new Map<string, Map<string, string>>(); // workerId -> name
 
     bucketSessions.forEach(session => {
       if (!session.societyId || !session.tower) return;
@@ -460,9 +508,11 @@ export default function LiveCleaningPage() {
       });
       carsByTowerKey.set(key, list);
 
-      const workerSet = workersByTowerKey.get(key) ?? new Set<string>();
-      (session.workerNames ?? []).forEach(name => workerSet.add(name));
-      workersByTowerKey.set(key, workerSet);
+      const workerMap = workersByTowerKey.get(key) ?? new Map<string, string>();
+      (session.workerIds ?? []).forEach((id, i) => {
+        if (id) workerMap.set(id, session.workerNames?.[i] ?? '');
+      });
+      workersByTowerKey.set(key, workerMap);
     });
 
     // Sort: available cars first — by same-day urgency for Today, by
@@ -701,7 +751,10 @@ export default function LiveCleaningPage() {
                       key={group.key}
                       group={group}
                       cars={carsByTowerKey.get(group.key) ?? []}
-                      workerNames={Array.from(workersByTowerKey.get(group.key) ?? [])}
+                      workers={Array.from(workersByTowerKey.get(group.key) ?? []).map(([id, name]) => ({
+                        id, name: name || workersById.get(id)?.name || '',
+                        phone: workersById.get(id)?.phone,
+                      }))}
                       bucket={key}
                       marking={marking}
                       toggling={toggling}
