@@ -405,6 +405,10 @@ export interface CleaningSession {
   // Status
   status: CleaningSessionStatus;
   startedAt?: Date;
+  // Set only by the start-sessions cron when it promotes a session at the
+  // tower's configured time. Absent (or false) on a session that reached
+  // 'inprogress' via the admin's manual "Emergency start" button instead.
+  startedBySystem?: boolean;
   completedAt?: Date;
   // 'session_expired' is written only by the cleanup-sessions cron when a
   // 'scheduled' session's date passes without it ever starting; the other

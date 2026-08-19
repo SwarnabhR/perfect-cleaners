@@ -69,6 +69,53 @@ function formatDate(date: unknown): string {
   return toDate(date).toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
+function formatTime(date: unknown): string {
+  return toDate(date).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
+function formatSlot(hour: number): string {
+  const h = Math.floor(hour);
+  const m = Math.round((hour % 1) * 60);
+  const h12 = h % 12 || 12;
+  const ampm = h < 12 ? 'AM' : 'PM';
+  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+}
+
+// The tower's cleaning slot isn't a field on the session itself — approximate
+// it as the most common preferredTime across the session's own cars (usually
+// every car in a tower shares one slot; the mode covers the rare mix from a
+// resident's permanent-time override).
+function sessionSlotLabel(session: LiveSession): string | null {
+  const counts = new Map<number, number>();
+  for (const car of session.cars ?? []) {
+    if (car.status === 'skipped' || typeof car.preferredTime !== 'number') continue;
+    counts.set(car.preferredTime, (counts.get(car.preferredTime) ?? 0) + 1);
+  }
+  if (counts.size === 0) return null;
+  const [mode] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
+  return formatSlot(mode);
+}
+
+// Whether/how a session actually started — the cron promotes sessions
+// automatically at the tower's configured time; startedBySystem is only ever
+// set by that cron, so its absence on an inprogress/done session means a
+// human clicked "Emergency start" instead.
+function startLog(session: LiveSession, slotLabel: string | null): { label: string; color: string } {
+  if (session.status === 'scheduled') {
+    return { label: slotLabel ? `Starts automatically · ~${slotLabel}` : 'Starts automatically', color: 'var(--pc-fg-3)' };
+  }
+  if (session.status === 'missed') {
+    const reason = MISSED_REASONS.find(r => r.value === session.missedReason)?.label ?? 'Not started';
+    return { label: `Missed · ${reason}`, color: 'var(--pc-danger)' };
+  }
+  if (!session.startedAt) {
+    return { label: 'Started · time unknown', color: 'var(--pc-fg-3)' };
+  }
+  return session.startedBySystem
+    ? { label: `Auto-started · ${formatTime(session.startedAt)}`, color: 'var(--pc-sage)' }
+    : { label: `Manually started · ${formatTime(session.startedAt)}`, color: 'var(--pc-warning)' };
+}
+
 type LiveWorker  = Worker  & { id: string };
 type LiveSociety = Society & { id: string };
 
@@ -85,6 +132,9 @@ function SessionRow({
   onMarkMissed: (session: LiveSession) => void;
   onDelete: (id: string) => void;
 }) {
+  const slotLabel = sessionSlotLabel(session);
+  const log = startLog(session, slotLabel);
+
   return (
     <div
       style={{
@@ -117,7 +167,7 @@ function SessionRow({
       </div>
 
       {/* Progress */}
-      <div style={{ textAlign: 'center', minWidth: 120 }}>
+      <div style={{ textAlign: 'center', minWidth: 100 }}>
         <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 18, color: 'var(--pc-fg)', margin: '0 0 4px', fontWeight: 600 }}>
           {session.completedCars}/{session.totalCars}
         </p>
@@ -126,13 +176,24 @@ function SessionRow({
         </p>
       </div>
 
-      {/* Workers */}
-      <div style={{ textAlign: 'center', minWidth: 100 }}>
-        <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 18, color: 'var(--pc-fg)', margin: '0 0 4px', fontWeight: 600 }}>
-          {session.workerIds?.length ?? 0}
+      {/* Who's assigned, and at what time */}
+      <div style={{ flex: '1 1 180px', minWidth: 160 }}>
+        <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, color: 'var(--pc-fg-4)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 4px' }}>
+          Assigned
         </p>
-        <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', margin: 0 }}>
-          WORKERS
+        <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: session.workerNames?.length ? 'var(--pc-fg)' : 'var(--pc-danger)', margin: 0, fontWeight: session.workerNames?.length ? 400 : 600 }}>
+          {session.workerNames?.length ? session.workerNames.join(', ') : 'Unassigned'}
+          {slotLabel && <span style={{ color: 'var(--pc-fg-3)' }}> · {slotLabel}</span>}
+        </p>
+      </div>
+
+      {/* Start log — automatic vs. manual, and when */}
+      <div style={{ flex: '1 1 180px', minWidth: 180 }}>
+        <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, color: 'var(--pc-fg-4)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 4px' }}>
+          Start log
+        </p>
+        <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: log.color, margin: 0, fontWeight: 600 }}>
+          {log.label}
         </p>
       </div>
 
