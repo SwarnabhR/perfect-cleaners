@@ -239,9 +239,14 @@ service cloud.firestore {
       allow read, update, delete: if isAdmin();
     }
 
-    // Tower billing configuration — admin-managed only.
+    // Tower billing configuration — admin-managed, but readable by any
+    // signed-in user: account/cleaning's self-signup form queries this
+    // directly (client-side, as the customer) to show a tower's cleaning
+    // days and tier pricing before the customer has any enrollment record to
+    // scope the read to. Contains only pricing/schedule, nothing sensitive —
+    // same reasoning as `societies` below, which is also isSignedIn()-readable.
     match /societyBillingConfig/{docId} {
-      allow read: if isAdmin();
+      allow read: if isAdmin() || isSignedIn();
       allow write: if canBill();
     }
 

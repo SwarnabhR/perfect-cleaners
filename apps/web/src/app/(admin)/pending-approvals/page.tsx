@@ -154,12 +154,14 @@ export default function PendingApprovalsPage() {
         updatedAt:             serverTimestamp(),
       };
 
+      let recordId: string;
       if (existingSnap.docs[0]) {
-        await updateDoc(doc(db, 'customerSocietyRecords', existingSnap.docs[0].id), activeFields);
+        recordId = existingSnap.docs[0].id;
+        await updateDoc(doc(db, 'customerSocietyRecords', recordId), activeFields);
       } else {
         // No pre-existing record (e.g. approval flow reached without a prior
         // self-signup doc) — fall back to creating one directly.
-        const recordId = `${customerId}_${approval.societyId}_${approval.tower}`;
+        recordId = `${customerId}_${approval.societyId}_${approval.tower}`;
         await setDoc(doc(db, 'customerSocietyRecords', recordId), {
           ...activeFields,
           skipDates:        [],
@@ -190,7 +192,30 @@ export default function PendingApprovalsPage() {
         }).catch(err => console.warn('[PendingApprovals] society counter update failed:', err));
       }
 
-      // 3. Send SMS notification to customer
+      // 3. Backfill this customer into any cleaningSessions doc already
+      // generated for this tower before they went active — generate-sessions
+      // only builds cars[] at creation time and the rolling 2-week window is
+      // normally always full, so without this the resident would be invisible
+      // to every worker's live list for up to ~2 weeks. Best-effort: the
+      // record is already active regardless of whether this succeeds.
+      try {
+        const token = await auth.currentUser?.getIdToken();
+        if (token) {
+          const resyncRes = await fetch('/api/admin/resync-sessions', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body:    JSON.stringify({ recordId, societyId: approval.societyId, tower: approval.tower }),
+          });
+          if (!resyncRes.ok) {
+            const data = await resyncRes.json().catch(() => ({}));
+            console.warn('[PendingApprovals] session resync failed:', data.error);
+          }
+        }
+      } catch (err: unknown) {
+        console.warn('[PendingApprovals] session resync failed:', err instanceof Error ? err.message : err);
+      }
+
+      // 4. Send SMS notification to customer
       const nextWeekDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
         .toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
       await notifyApproval(

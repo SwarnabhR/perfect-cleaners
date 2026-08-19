@@ -153,6 +153,15 @@ export default function TowerDetail() {
       });
   }, [uid, societyId, tower]);
 
+  // cars is an ARRAY field — Firestore's dot-path update ('cars.0.status')
+  // does NOT address array elements the way it addresses nested map fields.
+  // It silently replaces the entire `cars` field with a map keyed by that
+  // path segment (e.g. {"0": {"status": "done"}}), destroying every other
+  // car and every other field on the touched car. The only safe way to
+  // change one array element is a transactional read-modify-write of the
+  // whole array, same pattern as the admin Live Cleaning board's markDone
+  // (apps/web/.../live-cleaning/page.tsx) and the customer-unavailability
+  // resync route.
   const markCleaning = useCallback(async (sessionId: string, carIndex: number) => {
     setCars(prev => prev.map(cr =>
       cr.sessionId === sessionId && cr.carIndex === carIndex
@@ -160,13 +169,18 @@ export default function TowerDetail() {
         : cr,
     ));
     try {
-      await firestore()
-        .collection('cleaningSessions')
-        .doc(sessionId)
-        .update({
-          [`cars.${carIndex}.status`]: 'in_progress',
+      const sessionRef = firestore().collection('cleaningSessions').doc(sessionId);
+      await firestore().runTransaction(async transaction => {
+        const snap = await transaction.get(sessionRef);
+        const cars = (snap.data()?.cars ?? []) as CleaningSessionCar[];
+        if (!cars[carIndex]) return;
+        const updatedCars = cars.slice();
+        updatedCars[carIndex] = { ...updatedCars[carIndex], status: 'in_progress' };
+        transaction.update(sessionRef, {
+          cars: updatedCars,
           updatedAt: firestore.FieldValue.serverTimestamp(),
         });
+      });
     } catch {} // optimistic update already applied
   }, []);
 
@@ -177,40 +191,46 @@ export default function TowerDetail() {
 
     try {
       const sessionRef = firestore().collection('cleaningSessions').doc(car.sessionId);
-      const batch = firestore().batch();
-
-      batch.update(sessionRef, {
-        [`cars.${car.carIndex}.status`]: 'done',
-        [`cars.${car.carIndex}.cleanedBy`]: uid,
-        [`cars.${car.carIndex}.cleanedAt`]: firestore.FieldValue.serverTimestamp(),
-        completedCars: firestore.FieldValue.increment(1),
-        updatedAt: firestore.FieldValue.serverTimestamp(),
-      });
-
       const logRef = firestore().collection('cleaningLogs').doc();
-      batch.set(logRef, {
-        id:                  logRef.id,
-        sessionId:           car.sessionId,
-        societyId,
-        societyName:         '',
-        tower,
-        vehicleRegistration: car.carPlate,
-        vehicleMake:         car.carMake,
-        vehicleModel:        car.carModel,
-        customerId:          car.customerId,
-        customerName:        car.customerName,
-        unitNumber:          car.unitNumber,
-        workerId:            uid,
-        workerName:          worker.name,
-        cleanedAt:           firestore.FieldValue.serverTimestamp(),
-        serviceType:         'exterior',
-        servicePrice:        0,
-        photoUrls:           [],
-        notificationSent:    false,
-        billed:              false,
-      });
 
-      await batch.commit();
+      await firestore().runTransaction(async transaction => {
+        const snap = await transaction.get(sessionRef);
+        const cars = (snap.data()?.cars ?? []) as CleaningSessionCar[];
+        if (!cars[car.carIndex]) throw new Error('This car is no longer on the session.');
+        const updatedCars = cars.slice();
+        updatedCars[car.carIndex] = {
+          ...updatedCars[car.carIndex],
+          status:    'done',
+          cleanedBy: uid,
+          cleanedAt: new Date(),
+        };
+        transaction.update(sessionRef, {
+          cars:          updatedCars,
+          completedCars: firestore.FieldValue.increment(1),
+          updatedAt:     firestore.FieldValue.serverTimestamp(),
+        });
+        transaction.set(logRef, {
+          id:                  logRef.id,
+          sessionId:           car.sessionId,
+          societyId,
+          societyName:         '',
+          tower,
+          vehicleRegistration: car.carPlate,
+          vehicleMake:         car.carMake,
+          vehicleModel:        car.carModel,
+          customerId:          car.customerId,
+          customerName:        car.customerName,
+          unitNumber:          car.unitNumber,
+          workerId:            uid,
+          workerName:          worker.name,
+          cleanedAt:           firestore.FieldValue.serverTimestamp(),
+          serviceType:         'exterior',
+          servicePrice:        0,
+          photoUrls:           [],
+          notificationSent:    false,
+          billed:              false,
+        });
+      });
     } catch (err: any) {
       Alert.alert('Error', err?.message ?? 'Failed to mark car as done.');
     } finally {
