@@ -1,4 +1,5 @@
 export { firebaseApp, db, auth } from './config';
+export { COMMON_PARKING_LEVELS } from './types';
 export { getAssignedSocieties, resolveTodaysSocieties, resolveTowerGroups, getCarUrgency, getSessionDayBucket, resolveWorkerTodoCars } from './worker';
 export type { WorkerSocietyAssignment, SessionSocietyRef, TowerGroupSummary, CarUrgency, CarDueBucket, WorkerTodoCar } from './worker';
 export { buildSessionCarsForCustomer, buildSessionCars, sessionIdFor } from './societyCars';
@@ -16,6 +17,7 @@ export type {
   CustomerSocietyRecord,
   DayOfWeek,
   GeoPoint,
+  ParkingLevel,
   PendingApproval,
   PriceBreakdown,
   Promotion,

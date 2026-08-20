@@ -104,6 +104,7 @@ export default function TowerDetail() {
               customerName:  car.customerName ?? '',
               unitNumber:    car.unitNumber ?? '',
               parkingNumber: car.parkingNumber ?? '',
+              parkingLevel:  car.parkingLevel ?? '',
               carPlate:      car.carPlate ?? '',
               carMake:       car.carMake ?? '',
               carModel:      car.carModel ?? '',
@@ -322,7 +323,7 @@ function CarRow({
           {(car.carMake || car.carModel)
             ? ` · ${[car.carMake, car.carModel].filter(Boolean).join(' ')}`
             : ''}
-          {car.parkingNumber ? ` · PARKING ${car.parkingNumber}` : ''}
+          {(car.parkingLevel || car.parkingNumber) ? ` · PARKING ${[car.parkingLevel, car.parkingNumber].filter(Boolean).join(' · ')}` : ''}
         </Text>
         {!isDone && (
           urgency === 'overdue' ? (

@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { collection, query, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@pc/firebase';
+import { db, COMMON_PARKING_LEVELS } from '@pc/firebase';
 import type { SocietyBillingConfig, DayOfWeek } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
@@ -71,6 +71,7 @@ interface FormData {
   deepCleanFee: number;
   cleaningDays: DayOfWeek[];
   cleaningTime: string;
+  parkingLevels: string[];
 }
 
 const BLANK_FORM: FormData = {
@@ -87,6 +88,7 @@ const BLANK_FORM: FormData = {
   deepCleanFee: 0,
   cleaningDays: [1, 3, 5],
   cleaningTime: '9:00 AM',
+  parkingLevels: [],
 };
 
 const inputStyle: React.CSSProperties = {
@@ -119,6 +121,7 @@ export default function TowerBillingPage() {
   const [form,      setForm]      = useState<FormData>(BLANK_FORM);
   const [saving,    setSaving]    = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [newLevelInput, setNewLevelInput] = useState('');
 
   useEffect(() => {
     return onSnapshot(
@@ -157,6 +160,7 @@ export default function TowerBillingPage() {
       deepCleanFee:       config.deepClean?.fee ?? 0,
       cleaningDays: config.cleaningDays?.length ? config.cleaningDays : parseDaysFromSchedule(config.cleaningSchedule),
       cleaningTime: parseTimeFromSchedule(config.cleaningSchedule),
+      parkingLevels: config.availableParkingLevels ?? [],
     });
     setEditing(config);
     setModalOpen(true);
@@ -166,6 +170,14 @@ export default function TowerBillingPage() {
     setEditing(null);
     setModalOpen(false);
     setForm(BLANK_FORM);
+    setNewLevelInput('');
+  }
+
+  function addParkingLevel(level: string) {
+    const trimmed = level.trim();
+    if (!trimmed || form.parkingLevels.includes(trimmed)) return;
+    setForm(f => ({ ...f, parkingLevels: [...f.parkingLevels, trimmed] }));
+    setNewLevelInput('');
   }
 
   async function handleSave() {
@@ -188,6 +200,7 @@ export default function TowerBillingPage() {
           : {}),
         cleaningDays: form.cleaningDays,
         cleaningSchedule: buildScheduleString(form.cleaningDays, form.cleaningTime.trim()),
+        ...(form.parkingLevels.length ? { availableParkingLevels: form.parkingLevels } : {}),
         // null (not absent) when the time doesn't parse, so a bad edit can't
         // silently leave a stale structured time from a previous save behind.
         cleaningTimeMinutes: parseTimeToMinutes(form.cleaningTime.trim()),
@@ -537,6 +550,78 @@ export default function TowerBillingPage() {
                 />
               </div>
 
+              <div>
+                <p style={monoLabel}>Parking Levels</p>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                  {form.parkingLevels.map(level => (
+                    <span
+                      key={level}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        padding: '6px 10px', borderRadius: 8,
+                        border: '1px solid var(--pc-sage-hi)', background: 'var(--pc-sage)',
+                        color: 'var(--pc-sage-ink)', fontFamily: 'var(--pc-sans)', fontSize: 12.5,
+                      }}
+                    >
+                      {level}
+                      <button
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, parkingLevels: f.parkingLevels.filter(l => l !== level) }))}
+                        aria-label={`Remove ${level}`}
+                        style={{ display: 'flex', background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit' }}
+                      >
+                        <Icon name="x" size={12} color="currentColor" />
+                      </button>
+                    </span>
+                  ))}
+                  {form.parkingLevels.length === 0 && (
+                    <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-4)' }}>
+                      None configured — enrollment forms will use a free-text spot number only.
+                    </span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                  {COMMON_PARKING_LEVELS.filter(l => !form.parkingLevels.includes(l)).map(level => (
+                    <button
+                      key={level}
+                      type="button"
+                      onClick={() => addParkingLevel(level)}
+                      style={{
+                        padding: '6px 10px', borderRadius: 8, border: '1px dashed var(--pc-line)',
+                        background: 'transparent', color: 'var(--pc-fg-3)',
+                        fontFamily: 'var(--pc-sans)', fontSize: 12, cursor: 'pointer',
+                      }}
+                    >
+                      + {level}
+                    </button>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    type="text"
+                    value={newLevelInput}
+                    onChange={e => setNewLevelInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addParkingLevel(newLevelInput); } }}
+                    placeholder="Custom level, e.g. Basement 3"
+                    style={{ ...inputStyle, flex: 1 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => addParkingLevel(newLevelInput)}
+                    style={{
+                      padding: '0 16px', borderRadius: 8, border: '1px solid var(--pc-line)',
+                      background: 'var(--pc-card-hi)', color: 'var(--pc-fg-2)',
+                      fontFamily: 'var(--pc-sans)', fontSize: 13, cursor: 'pointer',
+                    }}
+                  >
+                    Add
+                  </button>
+                </div>
+                <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-4)', margin: '6px 0 0' }}>
+                  Some towers have Ground only, some go up to B3/B4, some don't track this at all — leave empty if this tower doesn't.
+                </p>
+              </div>
+
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                 <button
                   type="button"
@@ -665,6 +750,11 @@ export default function TowerBillingPage() {
                     </td>
                     <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)' }}>
                       {config.cleaningSchedule}
+                      {!!config.availableParkingLevels?.length && (
+                        <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, color: 'var(--pc-fg-4)', margin: '3px 0 0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          Parking: {config.availableParkingLevels.join(', ')}
+                        </p>
+                      )}
                     </td>
                     <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)' }}>
                       {config.billingFrequency === 'one-time' ? 'One-time' : config.billingFrequency === 'per-day' ? 'Per-day' : `Monthly · ${config.billingDay}st`}

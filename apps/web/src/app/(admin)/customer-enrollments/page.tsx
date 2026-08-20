@@ -129,7 +129,7 @@ function monthStart() {
 
 interface AddCustomerForm {
   name: string; phone: string;
-  societyId: string; societyName: string; tower: string; unitNumber: string; parkingNumber: string;
+  societyId: string; societyName: string; tower: string; unitNumber: string; parkingNumber: string; parkingLevel: string;
   carPlate: string; carMake: string; carModel: string;
   hasTwoWheeler: boolean; twoWheelerPlate: string; twoWheelerMake: string; twoWheelerModel: string;
   preferredTime: number; preferredDays: DayOfWeek[];
@@ -139,7 +139,7 @@ interface AddCustomerForm {
 
 const BLANK_ADD_FORM: AddCustomerForm = {
   name: '', phone: '',
-  societyId: '', societyName: '', tower: '', unitNumber: '', parkingNumber: '',
+  societyId: '', societyName: '', tower: '', unitNumber: '', parkingNumber: '', parkingLevel: '',
   carPlate: '', carMake: '', carModel: '',
   hasTwoWheeler: false, twoWheelerPlate: '', twoWheelerMake: '', twoWheelerModel: '',
   preferredTime: 9, preferredDays: [],
@@ -151,6 +151,7 @@ function AddCustomerModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
   const [societies, setSocieties] = useState<LiveSociety[]>([]);
   const [form, setForm] = useState<AddCustomerForm>(BLANK_ADD_FORM);
   const [towerDays, setTowerDays] = useState<DayOfWeek[]>([]);
+  const [towerParkingLevels, setTowerParkingLevels] = useState<string[]>([]);
   const [tierPricing, setTierPricing] = useState<{ normal: number; premium: number; ultra: number } | null>(null);
   const [twoWheelerFee, setTwoWheelerFee] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -167,7 +168,7 @@ function AddCustomerModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
   // Tower's admin-configured cleaning days, so the day-picker below only
   // ever offers valid choices — same constraint the self-signup form applies.
   useEffect(() => {
-    if (!form.societyId || !form.tower) { setTowerDays([]); setTierPricing(null); setTwoWheelerFee(0); return; }
+    if (!form.societyId || !form.tower) { setTowerDays([]); setTowerParkingLevels([]); setTierPricing(null); setTwoWheelerFee(0); return; }
     getDocs(query(
       collection(db, 'societyBillingConfig'),
       where('societyId', '==', form.societyId),
@@ -178,10 +179,11 @@ function AddCustomerModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
         ? (config!.cleaningDays as DayOfWeek[])
         : parseDaysFromSchedule((config?.cleaningSchedule as string | undefined) ?? '');
       setTowerDays(days);
-      setForm(f => ({ ...f, preferredDays: days, tier: 'normal' }));
+      setForm(f => ({ ...f, preferredDays: days, tier: 'normal', parkingLevel: '' }));
       setTierPricing((config?.tierPricing as { normal: number; premium: number; ultra: number } | undefined) ?? null);
       setTwoWheelerFee((config?.twoWheelerFee as number | undefined) ?? 0);
-    }).catch(() => { setTowerDays([]); setTierPricing(null); setTwoWheelerFee(0); });
+      setTowerParkingLevels((config?.availableParkingLevels as string[] | undefined) ?? []);
+    }).catch(() => { setTowerDays([]); setTowerParkingLevels([]); setTierPricing(null); setTwoWheelerFee(0); });
   }, [form.societyId, form.tower]);
 
   const selectedSociety = societies.find(s => s.id === form.societyId) ?? null;
@@ -239,6 +241,7 @@ function AddCustomerModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
         tower:                 form.tower,
         unitNumber:            form.unitNumber.trim(),
         ...(form.parkingNumber.trim() ? { parkingNumber: form.parkingNumber.trim() } : {}),
+        ...(form.parkingLevel ? { parkingLevel: form.parkingLevel } : {}),
         cars,
         preferredCleaningTime: form.preferredTime,
         preferredCleaningDays: form.preferredDays,
@@ -362,6 +365,18 @@ function AddCustomerModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
               />
             </div>
           </div>
+          {towerParkingLevels.length > 0 && (
+            <div>
+              <p style={monoLabel}>Parking level</p>
+              <select
+                value={form.parkingLevel} style={{ ...inputStyle, cursor: 'pointer' }}
+                onChange={e => setForm(f => ({ ...f, parkingLevel: e.target.value }))}
+              >
+                <option value="">Not specified…</option>
+                {towerParkingLevels.map(level => <option key={level} value={level}>{level}</option>)}
+              </select>
+            </div>
+          )}
           <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11.5, color: 'var(--pc-fg-4)', margin: '-8px 0 0' }}>
             Where the car actually lives — this is what the worker uses to find it.
           </p>
@@ -1278,6 +1293,11 @@ export default function CustomerEnrollmentsPage() {
                       <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)', margin: 0 }}>{record.tower}</p>
                       {record.unitNumber && (
                         <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10.5, color: 'var(--pc-fg-4)', margin: '2px 0 0', letterSpacing: '0.03em' }}>{record.unitNumber}</p>
+                      )}
+                      {(record.parkingLevel || record.parkingNumber) && (
+                        <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10.5, color: 'var(--pc-fg-4)', margin: '2px 0 0', letterSpacing: '0.03em' }}>
+                          {[record.parkingLevel, record.parkingNumber].filter(Boolean).join(' · ')}
+                        </p>
                       )}
                     </td>
                     <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-mono)', fontSize: 12, color: 'var(--pc-fg-2)' }}>

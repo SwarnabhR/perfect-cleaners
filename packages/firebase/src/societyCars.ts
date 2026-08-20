@@ -21,7 +21,7 @@ function isSameCalendarDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
-import type { VehicleCategory } from './types';
+import type { ParkingLevel, VehicleCategory } from './types';
 
 export interface SocietyCarSourceCustomer {
   customerId: string;
@@ -29,6 +29,7 @@ export interface SocietyCarSourceCustomer {
   customerPhone?: string;
   unitNumber?: string;
   parkingNumber?: string;
+  parkingLevel?: ParkingLevel;
   cars?: Array<{ plate?: string; make?: string; model?: string; category?: VehicleCategory }>;
   preferredCleaningDays?: number[];
   preferredCleaningTime?: number;
@@ -43,6 +44,7 @@ export interface SessionCarDraft {
   customerPhone: string;
   unitNumber: string;
   parkingNumber: string;
+  parkingLevel: string;
   carPlate: string;
   carMake: string;
   carModel: string;
@@ -78,6 +80,7 @@ export function buildSessionCarsForCustomer(
     customerPhone:   customer.customerPhone || '',
     unitNumber:      customer.unitNumber || '',
     parkingNumber:   customer.parkingNumber || '',
+    parkingLevel:    customer.parkingLevel || '',
     carPlate:        v.plate || '',
     carMake:         v.make  || '',
     carModel:        v.model || '',

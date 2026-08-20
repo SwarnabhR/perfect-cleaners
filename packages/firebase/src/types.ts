@@ -7,6 +7,19 @@ export type VehicleType = 'sedan' | 'suv' | 'hatchback' | 'luxury' | 'pickup' | 
 // means 'car' (every entry written before this field existed).
 export type VehicleCategory = 'car' | 'two-wheeler';
 
+// Which level a tower's parking is on — e.g. "Ground", "Basement 1",
+// "Basement 2", up through however many basements that specific tower
+// actually has (some go to B3/B4, some have none at all). Free-form rather
+// than a fixed enum because the level count varies per tower/society; see
+// SocietyBillingConfig.availableParkingLevels for the per-tower configured set.
+export type ParkingLevel = string;
+
+// Suggested presets for the tower-config picker — a starting point admins
+// can pick from before typing a custom label, not an exhaustive list.
+export const COMMON_PARKING_LEVELS: ParkingLevel[] = [
+  'Ground', 'Basement 1', 'Basement 2', 'Basement 3', 'Basement 4',
+];
+
 export type BookingStatus =
   | 'pending'
   | 'assigned'
@@ -269,6 +282,12 @@ export interface SocietyBillingConfig {
   // deliberately untiered, unlike cars: absent means the tower hasn't priced
   // two-wheelers yet, so the enrollment forms won't offer one.
   twoWheelerFee?: number;
+  // Which parking levels exist at this tower, admin-defined and in display
+  // order — anywhere from none (surface-only, or not tracked) to several
+  // basements (some towers go to B3/B4). Absent/empty means the tower
+  // hasn't configured levels, so enrollment forms fall back to a free-text
+  // spot number with no level picker.
+  availableParkingLevels?: ParkingLevel[];
   // Optional add-on service on top of the regular exterior-wash cadence above —
   // its own schedule, its own flat fee charged alongside the regular cycle.
   deepClean?: {
@@ -294,6 +313,7 @@ export interface CustomerSocietyRecord {
   tower: string;
   unitNumber?: string;          // e.g. "1204" or "B-1204" — where the car actually lives, for the worker on the ground
   parkingNumber?: string;       // e.g. "P-42" — parking slot, for the worker on the ground
+  parkingLevel?: ParkingLevel;  // which level that slot is on — absent means not recorded (tower may not track levels)
   cars: Array<{
     plate: string;           // e.g. "DL 01 AB 1234"
     make: string;
@@ -389,6 +409,7 @@ export interface CleaningSessionCar {
   customerPhone?: string;      // denormalized — so a worker can call the resident without another lookup
   unitNumber?: string;         // denormalized — e.g. "1204" or "B-1204"
   parkingNumber?: string;      // denormalized — e.g. "P-42"
+  parkingLevel?: ParkingLevel; // denormalized — which level that slot is on
   carPlate: string;
   carMake: string;
   carModel: string;

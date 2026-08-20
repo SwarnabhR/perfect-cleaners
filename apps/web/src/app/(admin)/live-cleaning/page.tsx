@@ -17,6 +17,7 @@ interface CarListItem {
   customerPhone: string;
   unitNumber: string;
   parkingNumber: string;
+  parkingLevel: string;
   carPlate: string;
   carMake: string;
   carModel: string;
@@ -226,7 +227,7 @@ function TowerGroupCard({ group, cars, workers, bucket, marking, toggling, isUna
                   </p>
                   <p style={{ display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'var(--pc-mono)', fontSize: 10.5, color: 'var(--pc-fg-3)', margin: '2px 0 0', letterSpacing: '0.02em' }}>
                     {car.vehicleCategory === 'two-wheeler' && <Icon name="bike" size={10} color="var(--pc-fg-3)" />}
-                    {car.vehicleCategory === 'two-wheeler' ? 'BIKE' : 'CAR'} {car.carPlate}{car.parkingNumber ? ` · PARKING ${car.parkingNumber}` : ''}
+                    {car.vehicleCategory === 'two-wheeler' ? 'BIKE' : 'CAR'} {car.carPlate}{(car.parkingLevel || car.parkingNumber) ? ` · PARKING ${[car.parkingLevel, car.parkingNumber].filter(Boolean).join(' · ')}` : ''}
                     {(car.carMake || car.carModel) ? ` · ${[car.carMake, car.carModel].filter(Boolean).join(' ')}` : ''}
                   </p>
                   {car.customerPhone && (
@@ -304,7 +305,7 @@ function CarDetailsModal({ car, busy, onClose, onMarkDone }: {
     ['Customer',  car.customerName || '—'],
     ['Phone',     car.customerPhone || 'No phone on file'],
     ['Flat',      car.unitNumber || '—'],
-    ['Parking',   car.parkingNumber || '—'],
+    ['Parking',   [car.parkingLevel, car.parkingNumber].filter(Boolean).join(' · ') || '—'],
     ['Type',      car.vehicleCategory === 'two-wheeler' ? 'Two-wheeler' : 'Car'],
     ['Vehicle',   `${car.carPlate || '—'}${(car.carMake || car.carModel) ? ` · ${[car.carMake, car.carModel].filter(Boolean).join(' ')}` : ''}`],
     ['Tower',     `${car.tower} · ${car.societyName}`],
@@ -457,7 +458,7 @@ export default function LiveCleaningPage() {
     if (filterTower !== 'all' && s.tower !== filterTower) return false;
     if (searchTerm) {
       const sessionMatch = [s.societyName, s.tower, s.id].some(value => String(value ?? '').toLowerCase().includes(searchTerm));
-      const carMatch = (s.cars ?? []).some(car => [car.customerName, car.customerPhone, car.carPlate, car.unitNumber, car.parkingNumber, car.carMake, car.carModel]
+      const carMatch = (s.cars ?? []).some(car => [car.customerName, car.customerPhone, car.carPlate, car.unitNumber, car.parkingNumber, car.parkingLevel, car.carMake, car.carModel]
         .some(value => String(value ?? '').toLowerCase().includes(searchTerm)));
       if (!sessionMatch && !carMatch) return false;
     }
@@ -495,6 +496,7 @@ export default function LiveCleaningPage() {
           customerPhone: car.customerPhone ?? '',
           unitNumber: car.unitNumber ?? '',
           parkingNumber: car.parkingNumber ?? '',
+          parkingLevel: car.parkingLevel ?? '',
           carPlate: car.carPlate,
           carMake: car.carMake,
           carModel: car.carModel,

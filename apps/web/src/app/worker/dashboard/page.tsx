@@ -122,7 +122,7 @@ function CarRow({ row, isFirst, busy, showTowerTag, onToggle, onViewDetails }: {
         <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 12, color: 'var(--pc-fg-3)', margin: '2px 0 0', letterSpacing: '0.02em' }}>
           {row.carPlate || '—'}
           {(row.carMake || row.carModel) && ` · ${[row.carMake, row.carModel].filter(Boolean).join(' ')}`}
-          {row.parkingNumber && ` · PARKING ${row.parkingNumber}`}
+          {(row.parkingLevel || row.parkingNumber) && ` · PARKING ${[row.parkingLevel, row.parkingNumber].filter(Boolean).join(' · ')}`}
         </p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 3 }}>
           {row.customerPhone ? (
@@ -178,7 +178,7 @@ function CarDetailsModal({ car, busy, onClose, onToggle }: {
       ? <a href={`tel:${car.customerPhone}`} style={{ color: 'var(--pc-info)', textDecoration: 'none' }}>{car.customerPhone}</a>
       : 'No phone on file'],
     ['Flat',         car.unitNumber || '—'],
-    ['Parking',      car.parkingNumber || '—'],
+    ['Parking',      [car.parkingLevel, car.parkingNumber].filter(Boolean).join(' · ') || '—'],
     ['Vehicle',      `${car.carPlate || '—'}${(car.carMake || car.carModel) ? ` · ${[car.carMake, car.carModel].filter(Boolean).join(' ')}` : ''}`],
     ['Tower',        `${car.tower} · ${car.societyName}`],
     ['Scheduled',    car.scheduledDate.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })],

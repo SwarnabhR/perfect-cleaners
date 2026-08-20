@@ -162,6 +162,7 @@ export interface WorkerTodoCar {
   customerPhone: string;
   unitNumber: string;
   parkingNumber: string;
+  parkingLevel: string;
   carPlate: string;
   carMake: string;
   carModel: string;
@@ -210,6 +211,7 @@ export function resolveWorkerTodoCars(sessions: TodoSession[], now: Date = new D
         customerPhone: c.customerPhone ?? '',
         unitNumber:    c.unitNumber ?? '',
         parkingNumber: c.parkingNumber ?? '',
+        parkingLevel:  c.parkingLevel ?? '',
         carPlate:      c.carPlate,
         carMake:       c.carMake,
         carModel:      c.carModel,
