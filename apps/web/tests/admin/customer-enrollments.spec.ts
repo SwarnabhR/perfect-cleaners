@@ -29,9 +29,11 @@ test.describe('Admin Customer Enrollments', () => {
 
   test('status filter buttons are visible', async ({ page }) => {
     await expect(page.locator('button:has-text("All")').first()).toBeVisible();
-    await expect(page.locator('button:has-text("verified")')).toBeVisible();
-    await expect(page.locator('button:has-text("pending payment")')).toBeVisible();
-    await expect(page.locator('button:has-text("paid")')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'verified', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'pending payment', exact: true })).toBeVisible();
+    // exact:true — `has-text` is a substring match, so a plain "paid" also
+    // matched the per-row "Mark Paid" action buttons.
+    await expect(page.getByRole('button', { name: 'paid', exact: true })).toBeVisible();
   });
 
   test('table has correct columns when data is present', async ({ page }) => {

@@ -12,9 +12,11 @@ test.describe('Admin Dashboard', () => {
   });
 
   test('renders KPI cards', async ({ page }) => {
-    // Wait for at least one KPI card to appear
+    // The dashboard now renders more than one .kpi-grid-4 row (the original
+    // revenue/jobs/workers row plus the society-programme row), so this has to
+    // scope to the first rather than assert a bare locator resolves uniquely.
     const cards = page.locator('.admin-page-root .kpi-grid-4');
-    await expect(cards).toBeVisible();
+    await expect(cards.first()).toBeVisible();
   });
 
   test('sidebar navigation is visible on desktop', async ({ page }) => {
@@ -22,7 +24,9 @@ test.describe('Admin Dashboard', () => {
     await expect(page.locator('.sidebar-static')).toBeVisible();
     await expect(page.locator('.sidebar-static').getByText('Workers')).toBeVisible();
     await expect(page.locator('.sidebar-static').getByText('Societies')).toBeVisible();
-    await expect(page.locator('.sidebar-static').getByText('Schedule')).toBeVisible();
+    // The schedule entry is labelled "Session Monitor" (it still points at
+    // /cleaning-schedule) — see NAV in (admin)/layout.tsx.
+    await expect(page.locator('.sidebar-static').getByText('Session Monitor')).toBeVisible();
   });
 
   test('top bar search is present', async ({ page }) => {
@@ -43,7 +47,13 @@ test.describe('Admin Dashboard', () => {
 
   test('alerts button opens popover', async ({ page }) => {
     await page.click('button:has-text("Alerts")');
-    await expect(page.locator('text=No new alerts.')).toBeVisible();
+    // Scoped to the popover itself: its contents are either the empty-state
+    // copy or a list of real cron/delivery alert links, so asserting on the
+    // container (plus its ALERTS heading) works either way — and doesn't
+    // accidentally match the sidebar's own hidden /notifications link.
+    const popover = page.locator('.admin-dropdown-pop').first();
+    await expect(popover).toBeVisible();
+    await expect(popover.locator('text=ALERTS')).toBeVisible();
   });
 
   test('sidebar links navigate to correct pages', async ({ page }) => {

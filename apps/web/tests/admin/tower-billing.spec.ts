@@ -28,19 +28,24 @@ test.describe('Admin Tower Billing', () => {
     await expect(page.locator('button:has-text("Add Pricing")').first()).toBeVisible({ timeout: 15_000 });
     await page.locator('button:has-text("Add Pricing")').first().click();
     await expect(page.locator('text=Add Tower Pricing')).toBeVisible({ timeout: 8_000 });
-    await expect(page.locator('input[placeholder="e.g., Uniworld City, Lodha Group"]')).toBeVisible();
-    await expect(page.locator('input[placeholder="Firebase ID"]')).toBeVisible();
-    const towerInput = page.locator('input[placeholder="e.g., Tower A, Tower B, North Wing"]');
+    // Scope to the modal card (the div that directly wraps the h2). The day
+    // toggles are three-letter labels, so an unscoped `button:has-text("Sat")`
+    // also picks up buttons in the table behind the modal — which is why this
+    // assertion only failed on runs where pricing rows happened to exist.
+    const modal = page.locator('div:has(> h2)').filter({ hasText: 'Add Tower Pricing' }).first();
+    await expect(modal.locator('input[placeholder="e.g., Uniworld City, Lodha Group"]')).toBeVisible();
+    await expect(modal.locator('input[placeholder="Firebase ID"]')).toBeVisible();
+    const towerInput = modal.locator('input[placeholder="e.g., Tower A, Tower B, North Wing"]');
     await towerInput.scrollIntoViewIfNeeded();
     await expect(towerInput).toHaveCount(1);
     // Three tier-pricing inputs (normal/premium/ultra) share this placeholder now.
-    const feeInputs = page.locator('input[placeholder="450"]');
+    const feeInputs = modal.locator('input[placeholder="450"]');
     await feeInputs.first().scrollIntoViewIfNeeded();
     await expect(feeInputs).toHaveCount(3);
     for (const day of ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']) {
-      await expect(page.locator(`button:has-text("${day}")`)).toHaveCount(1);
+      await expect(modal.locator(`button:has-text("${day}")`)).toHaveCount(1);
     }
-    const timeInput = page.locator('input[placeholder="9:00 AM"]');
+    const timeInput = modal.locator('input[placeholder="9:00 AM"]');
     await timeInput.scrollIntoViewIfNeeded();
     await expect(timeInput).toHaveCount(1);
   });

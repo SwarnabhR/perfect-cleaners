@@ -38,9 +38,10 @@ test.describe('Worker Profile', () => {
     await expect(page.locator('button:has-text("Save")')).toBeVisible({ timeout: 8_000 });
   });
 
-  test('Add Address section or saved addresses shown', async ({ page }) => {
-    // Page renders a "SAVED ADDRESSES" eyebrow + an "Add" button (icon + text), not "Add address" / "SERVICE ADDRESSES".
-    // exact:true avoids matching the unrelated empty-state text "No saved addresses yet."
+  // Saved addresses are switched off for workers — the whole block in
+  // src/app/worker/profile/page.tsx sits behind `{false && ...}`. Kept (not
+  // deleted) so re-enabling the feature is a one-line un-skip here.
+  test.skip('Add Address section or saved addresses shown', async ({ page }) => {
     await expect(page.getByText('SAVED ADDRESSES', { exact: true })).toBeVisible({ timeout: 8_000 });
   });
 
@@ -70,7 +71,9 @@ test.describe('Worker Profile', () => {
 
 base.describe('Worker Profile — address CRUD and save-state', () => {
 
-  base('add, set primary, and delete a saved address', async ({ page }) => {
+  // Same reason as the skipped "Add Address section" test above: the saved
+  // addresses UI is behind `{false && ...}` in the worker profile page.
+  base.skip('add, set primary, and delete a saved address', async ({ page }) => {
     const ts    = Date.now();
     const uid   = `pw_test_worker_${ts}`;
     const phone = `+919${String(ts).slice(-9)}`;

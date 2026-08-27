@@ -25,13 +25,17 @@ test.describe('Admin Billing', () => {
   });
 
   test('customer dues table has correct columns or shows empty state', async ({ page }) => {
-    const hasRows = await page.locator('tbody tr').first().isVisible({ timeout: 20_000 }).catch(() => false);
+    // The page now renders three tables (CUSTOMER DUES, SOCIETY BILLING DUES,
+    // PAYMENT HISTORY) and all three have a "Customer" column, so every
+    // locator here has to be scoped to the first one or it resolves to 3.
+    const duesTable = page.locator('table').first();
+    const hasRows = await duesTable.locator('tbody tr').first().isVisible({ timeout: 20_000 }).catch(() => false);
     if (!hasRows) {
       await expect(page.locator('text=No outstanding dues.')).toBeVisible();
       return;
     }
     for (const h of ['Customer', 'Society / Unit', 'Outstanding', 'Action']) {
-      await expect(page.locator(`th:has-text("${h}")`)).toBeVisible();
+      await expect(duesTable.locator(`th:has-text("${h}")`).first()).toBeVisible();
     }
   });
 

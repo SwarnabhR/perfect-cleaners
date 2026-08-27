@@ -9,21 +9,26 @@ test.describe('Admin Cleaning Schedule', () => {
   });
 
   test('renders page heading and eyebrow', async ({ page }) => {
-    await expect(page.locator('h1')).toContainText('Weekly Cleaning Schedule');
+    // The page is titled "Session Monitor" — sessions now start automatically
+    // at each tower's configured time, so this screen is for exceptions.
+    await expect(page.locator('h1')).toContainText('Session Monitor');
     await expect(page.locator('text="OPERATIONS"')).toBeVisible();
   });
 
   test('renders three KPI cards', async ({ page }) => {
     const kpis = page.locator('.kpi-grid-3');
-    for (const label of ['AWAITING WORKERS', 'CLEANING IN PROGRESS', 'ALL CARS CLEANED']) {
+    for (const label of ['SCHEDULED / UPCOMING', 'CLEANING IN PROGRESS', 'ALL CARS CLEANED']) {
       await expect(kpis.locator(`text=${label}`)).toBeVisible({ timeout: 15_000 });
     }
   });
 
   test('status filter buttons are visible', async ({ page }) => {
+    // Filters render through sessionStatusLabel (src/lib/session-status.ts) —
+    // the Firestore values scheduled/inprogress/done are internal and never
+    // shown to a person.
     await expect(page.locator('button:has-text("All")').first()).toBeVisible();
-    for (const status of ['scheduled', 'inprogress', 'done']) {
-      await expect(page.locator(`button:has-text("${status}")`)).toBeVisible();
+    for (const label of ['Upcoming', 'Active', 'Completed']) {
+      await expect(page.locator(`button:has-text("${label}")`).first()).toBeVisible();
     }
   });
 
@@ -35,7 +40,10 @@ test.describe('Admin Cleaning Schedule', () => {
   });
 
   test('Create Session modal opens with all fields', async ({ page }) => {
-    await page.locator('button:has-text("Create Session")').first().click();
+    // The header action is "Create Exception Session". The bare "Create
+    // Session" label now exists only inside the empty state and as the
+    // modal's own submit button, so it can't be used to OPEN the modal.
+    await page.locator('button:has-text("Create Exception Session")').first().click();
     await expect(page.locator('text=Create Cleaning Session')).toBeVisible({ timeout: 8_000 });
     await expect(page.locator('text="Society"')).toBeVisible();
     await expect(page.locator('text="Tower"')).toBeVisible();
@@ -130,7 +138,7 @@ test.describe('Admin Cleaning Schedule — Create Session populates cars', () =>
 
     await page.goto('/cleaning-schedule');
     await expect(page.locator('.admin-page-root')).toBeVisible();
-    await page.locator('button:has-text("Create Session")').first().click();
+    await page.locator('button:has-text("Create Exception Session")').first().click();
     await expect(page.locator('text=Create Cleaning Session')).toBeVisible({ timeout: 8_000 });
     await page.selectOption('select >> nth=0', { label: societyName });
     await page.selectOption('select >> nth=1', { label: tower });
@@ -141,7 +149,10 @@ test.describe('Admin Cleaning Schedule — Create Session populates cars', () =>
     await expect(page.locator('text=Create Cleaning Session')).not.toBeVisible({ timeout: 8_000 });
 
     const dateStr = new Date().toISOString().split('T')[0];
-    const sessionId = `${societyId}_${tower}_${dateStr}`;
+    // Session doc IDs slug whitespace in the tower name ("Tower Sched" →
+    // "Tower-Sched") so the ID stays URL-safe — same scheme the
+    // generate-sessions cron uses. See the towerSlug line in the page.
+    const sessionId = `${societyId}_${tower.trim().replace(/\s+/g, '-')}_${dateStr}`;
     await expect.poll(async () => {
       const snap = await adminDb().collection('cleaningSessions').doc(sessionId).get();
       return snap.data()?.totalCars;

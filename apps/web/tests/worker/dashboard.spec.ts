@@ -43,9 +43,14 @@ test.describe('Worker Dashboard', () => {
   // old always-on stat cards — the one thing guaranteed to render is exactly
   // one of these three states.
   test('renders one of: checklist, all-caught-up, or no-society state', async ({ page }) => {
+    // .first() — a worker assigned only via a live session (no static
+    // assignedSocietyId) legitimately renders BOTH the checklist footer and
+    // the "No society assigned." card, which made the bare .or() fail strict
+    // mode rather than the state itself being wrong.
     await expect(
       page.locator('text=/\\d+ cars? cleaned today/')
         .or(page.locator('text=No society assigned.'))
+        .first()
     ).toBeVisible({ timeout: 10_000 });
   });
 
@@ -195,9 +200,13 @@ base.describe('Worker Dashboard — live session assignments', () => {
     await signInWithBypassToken(page, uid);
     await page.waitForURL('**/worker/dashboard', { timeout: 15_000 });
 
-    await baseExpect(page.locator('text=Flat 101 · DL01AB0001')).toBeVisible({ timeout: 10_000 });
-    await baseExpect(page.locator('text=Flat 102 · DL01AB0002')).toBeVisible();
-    await baseExpect(page.locator('text=Flat 103 · DL01AB0003')).toBeVisible();
+    // CarRow renders the flat and the car number as two separate <p>s — the
+    // plate deliberately gets its own untruncated line — so they can't be
+    // matched as one "Flat 101 · DL01AB0001" text node.
+    for (const [flat, plate] of [['101', 'DL01AB0001'], ['102', 'DL01AB0002'], ['103', 'DL01AB0003']]) {
+      await baseExpect(page.locator(`text=Flat ${flat}`).first()).toBeVisible({ timeout: 10_000 });
+      await baseExpect(page.locator(`text=${plate}`).first()).toBeVisible();
+    }
     // Single tower — the "YOUR TOWERS" picker is skipped, per-row tower tags too
     await baseExpect(page.locator('text=YOUR TOWERS')).not.toBeVisible();
     await baseExpect(page.locator('text=0 cars cleaned today')).toBeVisible();

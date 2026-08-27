@@ -20,10 +20,13 @@ test.describe('Admin Live Cleaning Task Board', () => {
     await expect(page.locator('select', { hasText: 'All Towers' })).toBeVisible();
   });
 
-  test('shows time-slot cards with cars or the no-sessions empty state', async ({ page }) => {
+  test('shows tower group cards with cars or the no-sessions empty state', async ({ page }) => {
+    // The board groups by society+tower now (not "N / N CARS" time-slot
+    // headers): each card carries an "Assigned" worker strip and a bare
+    // open-car count, and an empty group reads "No cars scheduled".
     await expect(
-      page.locator('text=No cars scheduled for today.')
-        .or(page.locator('text=/\\d+ \\/ \\d+ CARS/'))
+      page.locator('text=No cars scheduled').first()
+        .or(page.locator('text=Assigned').first())
     ).toBeVisible({ timeout: 20_000 });
   });
 
