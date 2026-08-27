@@ -5,6 +5,12 @@ import { adminFirestore } from '@/lib/firebase/admin';
 import { buildSessionCars, type SocietyCarSourceCustomer } from '@pc/firebase';
 import { runMonitoredCron } from '@/lib/cron-monitor';
 
+// This job fans out over every tower and two weeks of dates. It now issues a
+// handful of batched round trips instead of hundreds of sequential ones, but
+// the ceiling is stated explicitly so a future society count can't quietly
+// walk it back into cron-jobs.org's 30s cutoff.
+export const maxDuration = 60;
+
 export async function GET(req: NextRequest) {
   return runMonitoredCron(req, 'generate-sessions', async () => {
   const auth = req.headers.get('authorization');
@@ -26,6 +32,18 @@ export async function GET(req: NextRequest) {
     const workersSnap = await db.collection('workers').get();
     workersSnap.docs.forEach(d => workerNamesById.set(d.id, (d.data().name as string | undefined) ?? 'Worker'));
 
+    // societyBillingConfig holds one doc per TOWER, so a society with four
+    // towers used to re-read its societies/{id} doc four times. Cache by
+    // societyId — the towerWorkerAssignments map it carries is per-society.
+    const societyCache = new Map<string, FirebaseFirestore.DocumentSnapshot>();
+    async function getSociety(societyId: string) {
+      const hit = societyCache.get(societyId);
+      if (hit) return hit;
+      const snap = await db.collection('societies').doc(societyId).get();
+      societyCache.set(societyId, snap);
+      return snap;
+    }
+
     for (const societyDoc of societiesSnap.docs) {
       try {
         const config = societyDoc.data();
@@ -36,7 +54,7 @@ export async function GET(req: NextRequest) {
         // now born already assigned instead of always needing a manual
         // "Reassign" on the schedule page. Absent for un-configured
         // towers/societies, which fall back to [] exactly as before.
-        const societySnap = await db.collection('societies').doc(societyId).get();
+        const societySnap = await getSociety(societyId);
         const towerWorkerAssignments = societySnap.data()?.towerWorkerAssignments as Record<string, string[]> | undefined;
         const assignedWorkerIds = towerWorkerAssignments?.[tower] ?? [];
         const assignedWorkerNames = assignedWorkerIds.map(id => workerNamesById.get(id) ?? 'Worker');
@@ -69,75 +87,91 @@ export async function GET(req: NextRequest) {
         // dynamic route params instead of being decoded back, which 404s. Slug it.
         const towerSlug = String(tower).trim().replace(/\s+/g, '-');
 
-        async function createSessionIfMissing(sessionId: string, cleaningDate: Date, sessionType: 'wash' | 'deep-clean') {
-          const existing = await db.collection('cleaningSessions').doc(sessionId).get();
-          if (existing.exists) return false;
-
-          const cars = buildSessionCars(customersSnap.docs.map(d => d.data() as SocietyCarSourceCustomer), cleaningDate);
-          const skippedCars = cars.filter(c => c.status === 'skipped').length;
-
-          await db.collection('cleaningSessions').doc(sessionId).set({
-            societyId,
-            societyName:   config.societyName,
-            tower,
-            sessionType,
-            scheduledDate: cleaningDate,
-            status:        'scheduled',
-            cars,
-            // Denominator for the "done/total" progress ring is the actual work —
-            // skipped cars are shown to the worker but can never be marked done.
-            totalCars:     cars.length - skippedCars,
-            completedCars: 0,
-            skippedCars,
-            workerIds:     assignedWorkerIds,
-            workerNames:   assignedWorkerNames,
-            createdAt:     FieldValue.serverTimestamp(),
-            updatedAt:     FieldValue.serverTimestamp(),
-          });
-          return true;
-        }
-
-        for (const cleaningDate of cleaningDates) {
-          try {
-            const sessionId = `${societyId}_${towerSlug}_${cleaningDate.toISOString().split('T')[0]}`;
-            if (await createSessionIfMissing(sessionId, cleaningDate, 'wash')) sessionsCreated++;
-          } catch (err: unknown) {
-            console.error('[CRON] Session creation error:', err instanceof Error ? err.message : String(err));
-            errors++;
-          }
-        }
-
         // Deep-clean add-on — an extra, separately-scheduled session type layered
-        // on top of the regular wash above. The tower config only stores a
+        // on top of the regular wash below. The tower config only stores a
         // frequency label, not a specific weekday, so:
         //   'daily'    -> every day the crew is already there (same as wash days)
         //   'weekly'   -> the earliest wash weekday (e.g. Mon/Wed/Fri tower -> Monday)
         //   'one-time' -> the next wash-day occurrence, generated exactly once ever
         const deepClean = config.deepClean as { frequency?: 'weekly' | 'daily' | 'one-time'; fee?: number; oneTimeGeneratedAt?: unknown } | undefined;
-        if (deepClean?.frequency) {
-          try {
-            let deepCleaningDates: Date[] = [];
-            if (deepClean.frequency === 'daily') {
-              deepCleaningDates = cleaningDates;
-            } else if (deepClean.frequency === 'weekly') {
-              const earliestWeekday = [...weekdays].sort((a, b) => a - b)[0];
-              deepCleaningDates = cleaningDates.filter(d => d.getDay() === earliestWeekday);
-            } else if (deepClean.frequency === 'one-time' && !deepClean.oneTimeGeneratedAt && cleaningDates.length > 0) {
-              deepCleaningDates = [cleaningDates[0]];
-            }
+        let deepCleaningDates: Date[] = [];
+        if (deepClean?.frequency === 'daily') {
+          deepCleaningDates = cleaningDates;
+        } else if (deepClean?.frequency === 'weekly') {
+          const earliestWeekday = [...weekdays].sort((a, b) => a - b)[0];
+          deepCleaningDates = cleaningDates.filter(d => d.getDay() === earliestWeekday);
+        } else if (deepClean?.frequency === 'one-time' && !deepClean.oneTimeGeneratedAt && cleaningDates.length > 0) {
+          deepCleaningDates = [cleaningDates[0]];
+        }
 
-            for (const cleaningDate of deepCleaningDates) {
-              const sessionId = `${societyId}_${towerSlug}_${cleaningDate.toISOString().split('T')[0]}_deep`;
-              if (await createSessionIfMissing(sessionId, cleaningDate, 'deep-clean')) {
-                sessionsCreated++;
-                if (deepClean.frequency === 'one-time') {
-                  await societyDoc.ref.update({ 'deepClean.oneTimeGeneratedAt': FieldValue.serverTimestamp() });
-                }
-              }
-            }
-          } catch (err: unknown) {
-            console.error('[CRON] Deep-clean session creation error:', err instanceof Error ? err.message : String(err));
-            errors++;
+        // Every candidate for this tower, wash and deep-clean together, so the
+        // existence check and the writes each cost ONE round trip instead of
+        // one per date. Previously this was a sequential get()+set() per date
+        // per tower — roughly 270 serial round trips across all towers, which
+        // is what pushed the job past cron-jobs.org's 30s limit.
+        const candidates: { sessionId: string; cleaningDate: Date; sessionType: 'wash' | 'deep-clean' }[] = [
+          ...cleaningDates.map(cleaningDate => ({
+            sessionId: `${societyId}_${towerSlug}_${cleaningDate.toISOString().split('T')[0]}`,
+            cleaningDate,
+            sessionType: 'wash' as const,
+          })),
+          ...deepCleaningDates.map(cleaningDate => ({
+            sessionId: `${societyId}_${towerSlug}_${cleaningDate.toISOString().split('T')[0]}_deep`,
+            cleaningDate,
+            sessionType: 'deep-clean' as const,
+          })),
+        ];
+
+        if (candidates.length > 0) {
+          const refs = candidates.map(c => db.collection('cleaningSessions').doc(c.sessionId));
+          // select() with no fields fetches document *existence* without any
+          // field data — the cars array on an existing session can be large
+          // and is never looked at here.
+          const existingSnaps = await db.getAll(...refs, { fieldMask: [] });
+          const sourceCustomers = customersSnap.docs.map(d => d.data() as SocietyCarSourceCustomer);
+
+          const batch = db.batch();
+          let queued = 0;
+          let createdDeepClean = false;
+
+          candidates.forEach((candidate, i) => {
+            if (existingSnaps[i].exists) return;
+
+            const cars = buildSessionCars(sourceCustomers, candidate.cleaningDate);
+            const skippedCars = cars.filter(c => c.status === 'skipped').length;
+
+            batch.set(refs[i], {
+              societyId,
+              societyName:   config.societyName,
+              tower,
+              sessionType:   candidate.sessionType,
+              scheduledDate: candidate.cleaningDate,
+              status:        'scheduled',
+              cars,
+              // Denominator for the "done/total" progress ring is the actual work —
+              // skipped cars are shown to the worker but can never be marked done.
+              totalCars:     cars.length - skippedCars,
+              completedCars: 0,
+              skippedCars,
+              workerIds:     assignedWorkerIds,
+              workerNames:   assignedWorkerNames,
+              createdAt:     FieldValue.serverTimestamp(),
+              updatedAt:     FieldValue.serverTimestamp(),
+            });
+            queued++;
+            if (candidate.sessionType === 'deep-clean') createdDeepClean = true;
+          });
+
+          // Stamped in the same batch as the session it refers to, so the
+          // "generated exactly once ever" guarantee can't be broken by the
+          // write landing while a later failure leaves the flag unset.
+          if (createdDeepClean && deepClean?.frequency === 'one-time') {
+            batch.update(societyDoc.ref, { 'deepClean.oneTimeGeneratedAt': FieldValue.serverTimestamp() });
+          }
+
+          if (queued > 0) {
+            await batch.commit();
+            sessionsCreated += queued;
           }
         }
       } catch (err: unknown) {

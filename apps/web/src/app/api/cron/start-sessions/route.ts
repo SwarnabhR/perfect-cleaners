@@ -3,13 +3,35 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { adminFirestore } from '@/lib/firebase/admin';
 import { runMonitoredCron } from '@/lib/cron-monitor';
 
+// Vercel's default function limit is well under what this used to need, and
+// cron-jobs.org gives up at 30s. Both are now far more headroom than the job
+// requires, but the limit is stated rather than inherited.
+export const maxDuration = 60;
+
 /** Promote today's scheduled sessions once their tower's configured cleaning
  * time arrives. Run this endpoint every five minutes. */
 export async function GET(req: NextRequest) {
   return runMonitoredCron(req, 'start-sessions', async () => {
     const db = adminFirestore();
-    const snap = await db.collection('cleaningSessions').where('status', '==', 'scheduled').get();
     const now = new Date();
+
+    // Only sessions that could plausibly be due today. This previously read
+    // EVERY scheduled session on every run and filtered in memory — at ~77
+    // open scheduled docs and a run every 5 minutes that is ~22k Firestore
+    // reads a day from this job alone, i.e. most of the 50k/day free-tier
+    // allowance, and it grew with every society added.
+    //
+    // The window is deliberately ±36h rather than an exact IST midnight
+    // boundary: generate-sessions writes scheduledDate as `new Date()` plus N
+    // days, so it carries whatever time of day that run happened at, not
+    // midnight. isDueToday below still does the exact IST comparison — this
+    // range only has to be wide enough never to exclude a genuine match.
+    const WINDOW_MS = 36 * 60 * 60 * 1000;
+    const snap = await db.collection('cleaningSessions')
+      .where('status', '==', 'scheduled')
+      .where('scheduledDate', '>=', new Date(now.getTime() - WINDOW_MS))
+      .where('scheduledDate', '<=', new Date(now.getTime() + WINDOW_MS))
+      .get();
     let started = 0;
 
     // One billing-config read per society+tower per run, not per session.

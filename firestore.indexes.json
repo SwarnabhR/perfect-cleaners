@@ -75,6 +75,15 @@
         { "fieldPath": "societyId",  "order": "ASCENDING" },
         { "fieldPath": "cleanedAt",  "order": "ASCENDING" }
       ]
+    },
+
+    {
+      "collectionGroup": "cleaningSessions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status",        "order": "ASCENDING" },
+        { "fieldPath": "scheduledDate", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
