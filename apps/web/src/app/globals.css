@@ -360,7 +360,13 @@ body {
   line-height: var(--pc-lh-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
+  /* NO overflow-x here. html's overflow-x:hidden above already propagates to
+     the viewport and clips horizontal overflow for the whole page. Repeating
+     it on body makes body itself a scroll container (a non-visible overflow-x
+     forces overflow-y to compute to auto), and body never actually scrolls —
+     the viewport does. Every `position: sticky` descendant then sticks to
+     body's motionless scrollport, i.e. silently does nothing. That is why the
+     worker portal's top bar scrolled away with the page. */
 }
 
 a, button, [role="button"] {
