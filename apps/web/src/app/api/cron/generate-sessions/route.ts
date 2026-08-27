@@ -2,7 +2,7 @@ import { toErrMsg } from '@/lib/api-error';
 import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminFirestore } from '@/lib/firebase/admin';
-import { buildSessionCars, type SocietyCarSourceCustomer } from '@pc/firebase';
+import { buildSessionCars, computeSessionStartAt, resolveTowerStartMinutes, type SocietyCarSourceCustomer } from '@pc/firebase';
 import { runMonitoredCron } from '@/lib/cron-monitor';
 
 // This job fans out over every tower and two weeks of dates. It now issues a
@@ -130,6 +130,10 @@ export async function GET(req: NextRequest) {
           const existingSnaps = await db.getAll(...refs, { fieldMask: [] });
           const sourceCustomers = customersSnap.docs.map(d => d.data() as SocietyCarSourceCustomer);
 
+          // Resolved once per tower from the config already in hand. start-sessions
+          // reads the stored startAt instead of re-deriving this on every run.
+          const startMinutes = resolveTowerStartMinutes(config as { cleaningTimeMinutes?: number | null; cleaningSchedule?: string });
+
           const batch = db.batch();
           let queued = 0;
           let createdDeepClean = false;
@@ -146,6 +150,11 @@ export async function GET(req: NextRequest) {
               tower,
               sessionType:   candidate.sessionType,
               scheduledDate: candidate.cleaningDate,
+              // The instant this session becomes due. start-sessions queries on
+              // this directly — a session written without it would never be
+              // picked up, since Firestore excludes docs missing an inequality
+              // field from the result set entirely.
+              startAt:       computeSessionStartAt(candidate.cleaningDate, startMinutes),
               status:        'scheduled',
               cars,
               // Denominator for the "done/total" progress ring is the actual work —

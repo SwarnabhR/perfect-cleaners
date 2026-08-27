@@ -5,6 +5,7 @@ export type { WorkerSocietyAssignment, SessionSocietyRef, TowerGroupSummary, Car
 export { buildCarSearchMatcher } from './search';
 export type { SearchableCar, CarSearchMatcher } from './search';
 export { buildSessionCarsForCustomer, buildSessionCars, sessionIdFor } from './societyCars';
+export { IST_OFFSET_MS, DEFAULT_START_MINUTES, parseStartMinutes, resolveTowerStartMinutes, computeSessionStartAt, startOfIstDay } from './sessionTime';
 export type { SocietyCarSourceCustomer, SessionCarDraft } from './societyCars';
 export type {
   Booking,

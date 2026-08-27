@@ -440,6 +440,13 @@ export interface CleaningSession {
   societyName: string;
   tower: string;
   scheduledDate: Date;
+  // The instant this session becomes due, resolved from the tower's cleaning
+  // time when the session is created (see computeSessionStartAt). start-sessions
+  // queries on this field directly, and Firestore excludes documents that lack
+  // an inequality field — so a session without startAt is invisible to that job
+  // and will never auto-start. Optional only because sessions created before
+  // this field existed need backfilling.
+  startAt?: Date;
   sessionType?: 'wash' | 'deep-clean'; // undefined = 'wash' (every session before this field existed)
 
   // Status

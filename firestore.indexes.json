@@ -81,8 +81,8 @@
       "collectionGroup": "cleaningSessions",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "status",        "order": "ASCENDING" },
-        { "fieldPath": "scheduledDate", "order": "ASCENDING" }
+        { "fieldPath": "status",  "order": "ASCENDING" },
+        { "fieldPath": "startAt", "order": "ASCENDING" }
       ]
     }
   ],

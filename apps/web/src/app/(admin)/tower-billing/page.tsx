@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { collection, query, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
-import { db, COMMON_PARKING_LEVELS } from '@pc/firebase';
+import { collection, query, where, getDocs, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp, writeBatch, Timestamp } from 'firebase/firestore';
+import { db, COMMON_PARKING_LEVELS, computeSessionStartAt } from '@pc/firebase';
 import type { SocietyBillingConfig, DayOfWeek } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
@@ -180,6 +180,40 @@ export default function TowerBillingPage() {
     setNewLevelInput('');
   }
 
+  // A session's startAt is resolved from the tower's cleaning time when the
+  // session is created, so sessions already generated for the next two weeks
+  // would otherwise keep firing at the OLD time after an edit here. Re-stamp
+  // the ones that haven't started yet.
+  //
+  // Only 'scheduled' sessions are touched: one already inprogress or done has
+  // had its moment, and rewriting its startAt would misrepresent history.
+  async function restampFutureSessions(societyId: string, tower: string, startMinutes: number | null) {
+    if (startMinutes === null) return; // unparseable time — leave existing stamps alone
+    try {
+      const snap = await getDocs(query(
+        collection(db, 'cleaningSessions'),
+        where('societyId', '==', societyId),
+        where('tower', '==', tower),
+        where('status', '==', 'scheduled'),
+      ));
+      if (snap.empty) return;
+
+      const batch = writeBatch(db);
+      let queued = 0;
+      snap.docs.forEach(d => {
+        const scheduled = (d.data().scheduledDate as Timestamp | undefined)?.toDate?.();
+        if (!scheduled) return;
+        batch.update(d.ref, { startAt: computeSessionStartAt(scheduled, startMinutes), updatedAt: serverTimestamp() });
+        queued++;
+      });
+      if (queued > 0) await batch.commit();
+    } catch (err: unknown) {
+      // Non-fatal: the config itself saved, and the next generate-sessions run
+      // stamps anything it creates from here on with the new time.
+      console.error('[TowerBilling] re-stamping future sessions failed:', err instanceof Error ? err.message : err);
+    }
+  }
+
   async function handleSave() {
     if (!form.societyId.trim() || !form.tower.trim() || form.tierNormal <= 0 || form.cleaningDays.length === 0 || saving) return;
     setSaving(true);
@@ -208,6 +242,7 @@ export default function TowerBillingPage() {
         billingDay: 1,
         updatedAt: serverTimestamp(),
       });
+      await restampFutureSessions(form.societyId.trim(), form.tower.trim(), parseTimeToMinutes(form.cleaningTime.trim()));
       closeForm();
     } catch (err: unknown) {
       console.error('[TowerBilling] save failed:', err instanceof Error ? err.message : err);
@@ -618,7 +653,7 @@ export default function TowerBillingPage() {
                   </button>
                 </div>
                 <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-4)', margin: '6px 0 0' }}>
-                  Some towers have Ground only, some go up to B3/B4, some don't track this at all — leave empty if this tower doesn't.
+                  Some towers have Ground only, some go up to B3/B4, some don’t track this at all — leave empty if this tower doesn’t.
                 </p>
               </div>
 
