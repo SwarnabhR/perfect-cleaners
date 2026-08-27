@@ -2,6 +2,8 @@ export { firebaseApp, db, auth } from './config';
 export { COMMON_PARKING_LEVELS } from './types';
 export { getAssignedSocieties, resolveTodaysSocieties, resolveTowerGroups, getCarUrgency, getSessionDayBucket, resolveWorkerTodoCars } from './worker';
 export type { WorkerSocietyAssignment, SessionSocietyRef, TowerGroupSummary, CarUrgency, CarDueBucket, WorkerTodoCar } from './worker';
+export { buildCarSearchMatcher } from './search';
+export type { SearchableCar, CarSearchMatcher } from './search';
 export { buildSessionCarsForCustomer, buildSessionCars, sessionIdFor } from './societyCars';
 export type { SocietyCarSourceCustomer, SessionCarDraft } from './societyCars';
 export type {

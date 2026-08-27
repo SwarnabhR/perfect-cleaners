@@ -6,10 +6,11 @@ import {
   collection, query, where, onSnapshot,
   doc, updateDoc, orderBy, limit, Timestamp,
 } from 'firebase/firestore';
-import { db, resolveTodaysSocieties, resolveWorkerTodoCars, getCarUrgency } from '@pc/firebase';
+import { db, resolveTodaysSocieties, resolveWorkerTodoCars, getCarUrgency, buildCarSearchMatcher } from '@pc/firebase';
 import type { CleaningLog, CleaningSession, WorkerTodoCar, CarUrgency, CarDueBucket } from '@pc/firebase';
 import { useWorkerAuth } from '@/components/WorkerAuthProvider';
 import Card from '@/components/ui/Card';
+import CarSearchInput from '@/components/ui/CarSearchInput';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
 
@@ -291,6 +292,7 @@ export default function WorkerDashboard() {
   const [loading,  setLoading]  = useState(true);
   const [toggling, setToggling] = useState(false);
   const [selectedTower, setSelectedTower] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
   const [detailsCar, setDetailsCar] = useState<WorkerTodoCar | null>(null);
   const [actingId, setActingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState('');
@@ -430,9 +432,22 @@ export default function WorkerDashboard() {
   })();
   const showTowerPicker = towerCounts.length > 1;
 
-  const visibleCars = selectedTower
+  // Free-text search over the checklist — "b2" / "basement 2" narrows to the
+  // level the worker is standing on, and flat / tower / car number all work
+  // the same way (see buildCarSearchMatcher). Null when the box is empty.
+  const searchMatcher = buildCarSearchMatcher(search);
+  const towerFiltered = selectedTower
     ? todoCars.filter(c => `${c.societyId}::${c.tower}` === selectedTower)
     : todoCars;
+  const visibleCars = searchMatcher ? towerFiltered.filter(searchMatcher) : towerFiltered;
+  // Would dropping the tower filter turn an empty search into a non-empty
+  // one? Drives the "Search all towers" escape hatch below.
+  const hiddenByTower = Boolean(
+    searchMatcher && selectedTower && visibleCars.length === 0 && todoCars.some(searchMatcher),
+  );
+  // A search can pull rows in from any tower, so the tower tag stays on even
+  // when the worker only has one.
+  const showTowerTag = showTowerPicker || Boolean(searchMatcher);
   const overdueRows  = visibleCars.filter(c => c.dueBucket === 'overdue');
   const todayRows    = visibleCars.filter(c => c.dueBucket === 'today');
   const tomorrowRows = visibleCars.filter(c => c.dueBucket === 'tomorrow');
@@ -472,6 +487,18 @@ export default function WorkerDashboard() {
 
       {actionError && (
         <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-danger)', margin: 0 }}>{actionError}</p>
+      )}
+
+      {/* Search — sits above the lists so a worker who has walked down to a
+          level can type "b2" and see only that level's cars. */}
+      {todoCars.length > 0 && (
+        <CarSearchInput
+          value={search}
+          onChange={setSearch}
+          hint={searchMatcher
+            ? `${visibleCars.length} car${visibleCars.length === 1 ? '' : 's'} match`
+            : 'Type B1, B2 or G for a parking level — or a flat, tower or car number.'}
+        />
       )}
 
       {/* Tower picker — mirrors a to-do app's list sidebar (name + open count);
@@ -527,13 +554,13 @@ export default function WorkerDashboard() {
       {/* Per-car to-do checklist, grouped Overdue / Today / Tomorrow */}
       {visibleCars.length > 0 && (
         <div>
-          <TodoGroup title="OVERDUE"  color="var(--pc-danger)" rows={overdueRows}  actingId={actingId} showTowerTag={showTowerPicker} onToggle={markClean} onViewDetails={setDetailsCar} />
-          <TodoGroup title="TODAY"    color="var(--pc-fg-3)"   rows={todayRows}    actingId={actingId} showTowerTag={showTowerPicker} onToggle={markClean} onViewDetails={setDetailsCar} />
-          <TodoGroup title="TOMORROW" color="var(--pc-fg-4)"   rows={tomorrowRows} actingId={actingId} showTowerTag={showTowerPicker} onToggle={markClean} onViewDetails={setDetailsCar} />
+          <TodoGroup title="OVERDUE"  color="var(--pc-danger)" rows={overdueRows}  actingId={actingId} showTowerTag={showTowerTag} onToggle={markClean} onViewDetails={setDetailsCar} />
+          <TodoGroup title="TODAY"    color="var(--pc-fg-3)"   rows={todayRows}    actingId={actingId} showTowerTag={showTowerTag} onToggle={markClean} onViewDetails={setDetailsCar} />
+          <TodoGroup title="TOMORROW" color="var(--pc-fg-4)"   rows={tomorrowRows} actingId={actingId} showTowerTag={showTowerTag} onToggle={markClean} onViewDetails={setDetailsCar} />
           {/* Everything further out — a worker can still tap one early for an
               emergency clean, so these stay actionable rather than hidden
               behind the calendar page. */}
-          <TodoGroup title="UPCOMING" color="var(--pc-fg-4)"   rows={laterRows}    actingId={actingId} showTowerTag={showTowerPicker} onToggle={markClean} onViewDetails={setDetailsCar} />
+          <TodoGroup title="UPCOMING" color="var(--pc-fg-4)"   rows={laterRows}    actingId={actingId} showTowerTag={showTowerTag} onToggle={markClean} onViewDetails={setDetailsCar} />
 
           <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', textAlign: 'center', margin: '4px 0 0', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
             {doneToday} car{doneToday !== 1 ? 's' : ''} cleaned today
@@ -541,7 +568,34 @@ export default function WorkerDashboard() {
         </div>
       )}
 
-      {!loading && assignedSocieties.length > 0 && visibleCars.length === 0 && (
+      {/* Nothing matched the search — kept distinct from "all caught up", which
+          would otherwise read as "no work left" when work simply isn't on
+          screen. */}
+      {!loading && searchMatcher && visibleCars.length === 0 && (
+        <Card style={{ padding: 'var(--pc-space-8)', textAlign: 'center' }}>
+          <Icon name="search" size={28} color="var(--pc-fg-4)" style={{ margin: '0 auto 12px' }} />
+          <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 20, color: 'var(--pc-fg)', margin: '0 0 8px' }}>No match.</p>
+          <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', margin: '0 0 12px', lineHeight: 1.6 }}>
+            {hiddenByTower
+              ? 'No cars match in this tower — but other towers have matches.'
+              : 'Try a parking level (B1, B2, G), a flat number, or part of the car number.'}
+          </p>
+          <button
+            type="button"
+            onClick={() => (hiddenByTower ? setSelectedTower(null) : setSearch(''))}
+            style={{
+              padding: '10px 18px', borderRadius: 999, minHeight: 44,
+              background: 'var(--pc-card-hi)', border: '1px solid var(--pc-line-strong)',
+              fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 500,
+              color: 'var(--pc-fg)', cursor: 'pointer',
+            }}
+          >
+            {hiddenByTower ? 'Search all towers' : 'Clear search'}
+          </button>
+        </Card>
+      )}
+
+      {!loading && !searchMatcher && assignedSocieties.length > 0 && visibleCars.length === 0 && (
         <Card style={{ padding: 'var(--pc-space-8)', textAlign: 'center' }}>
           <Icon name="check-circle" size={32} color="var(--pc-success)" style={{ margin: '0 auto 12px' }} />
           <p style={{ fontFamily: 'var(--pc-serif)', fontSize: 20, color: 'var(--pc-fg)', margin: '0 0 8px' }}>All caught up.</p>

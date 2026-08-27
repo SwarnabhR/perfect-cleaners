@@ -2,9 +2,10 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { collection, query, where, getDocs, onSnapshot, doc, runTransaction, serverTimestamp, addDoc } from 'firebase/firestore';
-import { db, resolveTowerGroups, getCarUrgency, getSessionDayBucket } from '@pc/firebase';
+import { db, resolveTowerGroups, getCarUrgency, getSessionDayBucket, buildCarSearchMatcher } from '@pc/firebase';
 import type { CleaningSession, CleaningSessionCar, TowerGroupSummary, CarUrgency, CarDueBucket, VehicleCategory } from '@pc/firebase';
 import Card from '@/components/ui/Card';
+import CarSearchInput from '@/components/ui/CarSearchInput';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
 import { notifyCarCleaned } from '@/lib/notification';
@@ -388,7 +389,18 @@ function CarDetailsModal({ car, busy, onClose, onMarkDone }: {
 
 export default function LiveCleaningPage() {
   const searchParams = useSearchParams();
-  const searchTerm = (searchParams.get('q') ?? '').trim().toLowerCase();
+  // The sidebar's global search lands here as ?q=…; from then on the box on
+  // this page owns the term, so it can be edited and cleared in place.
+  const queryParam = searchParams.get('q') ?? '';
+  const [search, setSearch] = useState(queryParam);
+  // Adjust-state-during-render rather than an effect: a fresh ?q= (the admin
+  // searched again from the sidebar while already on this page) replaces
+  // whatever is in the box, without a wasted render pass.
+  const [lastQueryParam, setLastQueryParam] = useState(queryParam);
+  if (queryParam !== lastQueryParam) {
+    setLastQueryParam(queryParam);
+    setSearch(queryParam);
+  }
   const [sessions, setSessions] = useState<(CleaningSession & { id: string })[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterSociety, setFilterSociety] = useState('all');
@@ -453,15 +465,14 @@ export default function LiveCleaningPage() {
       : new Date(r as string | number | Date);
   }
 
+  // Search is applied per *car* below, not per session — a search for
+  // "basement 2" has to leave a tower card showing only its basement-2 cars,
+  // rather than keeping every car of any session that happened to contain one.
+  const searchMatcher = buildCarSearchMatcher(search);
+
   const filteredSessions = sessions.filter(s => {
     if (filterSociety !== 'all' && s.societyName !== filterSociety) return false;
     if (filterTower !== 'all' && s.tower !== filterTower) return false;
-    if (searchTerm) {
-      const sessionMatch = [s.societyName, s.tower, s.id].some(value => String(value ?? '').toLowerCase().includes(searchTerm));
-      const carMatch = (s.cars ?? []).some(car => [car.customerName, car.customerPhone, car.carPlate, car.unitNumber, car.parkingNumber, car.parkingLevel, car.carMake, car.carModel]
-        .some(value => String(value ?? '').toLowerCase().includes(searchTerm)));
-      if (!sessionMatch && !carMatch) return false;
-    }
     return true;
   });
 
@@ -477,7 +488,7 @@ export default function LiveCleaningPage() {
   function buildBucket(bucket: CarDueBucket) {
     const bucketSessions = filteredSessions.filter(s => getSessionDayBucket(toDate(s.scheduledDate), now) === bucket);
 
-    const towerGroups: TowerGroupSummary[] = resolveTowerGroups(bucketSessions);
+    let towerGroups: TowerGroupSummary[] = resolveTowerGroups(bucketSessions);
     const carsByTowerKey = new Map<string, CarListItem[]>();
     const workersByTowerKey = new Map<string, Map<string, string>>(); // workerId -> name
 
@@ -488,7 +499,7 @@ export default function LiveCleaningPage() {
 
       const list = carsByTowerKey.get(key) ?? [];
       (session.cars ?? []).forEach((car, idx) => {
-        list.push({
+        const item: CarListItem = {
           sessionId: session.id,
           carIndex: idx,
           customerId: car.customerId,
@@ -510,7 +521,9 @@ export default function LiveCleaningPage() {
           sessionType: session.sessionType ?? 'wash',
           dueBucket: bucket,
           scheduledDate,
-        });
+        };
+        if (searchMatcher && !searchMatcher(item)) return;
+        list.push(item);
       });
       carsByTowerKey.set(key, list);
 
@@ -539,6 +552,23 @@ export default function LiveCleaningPage() {
       carsByTowerKey.set(key, [...available, ...unavailable]);
     });
 
+    // With a search on, a tower card's header count has to describe what's
+    // actually listed under it — the session's own totals still count the
+    // cars the search filtered out. Towers with no match drop out entirely.
+    if (searchMatcher) {
+      towerGroups = towerGroups
+        .filter(g => (carsByTowerKey.get(g.key)?.length ?? 0) > 0)
+        .map(g => {
+          const cars = carsByTowerKey.get(g.key) ?? [];
+          return {
+            ...g,
+            totalCars:     cars.length,
+            completedCars: cars.filter(c => c.status === 'done').length,
+            openCars:      cars.filter(c => c.status !== 'done' && !isUnavailable(c)).length,
+          };
+        });
+    }
+
     return { towerGroups, carsByTowerKey, workersByTowerKey };
   }
 
@@ -549,6 +579,12 @@ export default function LiveCleaningPage() {
     later:    buildBucket('later'),
   };
   const totalTowerGroups = BUCKETS.reduce((sum, b) => sum + bucketData[b.key].towerGroups.length, 0);
+  const totalMatchedCars = BUCKETS.reduce(
+    (sum, b) => sum + bucketData[b.key].towerGroups.reduce(
+      (n, g) => n + (bucketData[b.key].carsByTowerKey.get(g.key)?.length ?? 0), 0,
+    ),
+    0,
+  );
 
   async function toggleUnavailable(car: CarListItem) {
     if (toggling) return;
@@ -675,6 +711,17 @@ export default function LiveCleaningPage() {
         </p>
       </div>
 
+      {/* Search — matches per car, so a level/flat/plate query leaves each
+          tower card showing only the cars that matched. */}
+      <CarSearchInput
+        value={search}
+        onChange={setSearch}
+        label="SEARCH"
+        hint={searchMatcher
+          ? `${totalMatchedCars} car${totalMatchedCars === 1 ? '' : 's'} across ${totalTowerGroups} tower${totalTowerGroups === 1 ? '' : 's'}`
+          : 'Parking level (B1, B2, G), flat, tower, car number, resident name or phone. Commas widen the search: "b1, b2".'}
+      />
+
       {/* Filters */}
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 200 }}>
@@ -739,7 +786,26 @@ export default function LiveCleaningPage() {
         </Card>
       ) : totalTowerGroups === 0 ? (
         <Card style={{ padding: 48, textAlign: 'center', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)' }}>
-          No cars need cleaning right now. Sessions start automatically at each tower’s configured time.
+          {searchMatcher ? (
+            <>
+              <p style={{ margin: '0 0 12px' }}>
+                No car matches “{search.trim()}”. Try a parking level (B1, B2, G), a flat number, or part of the car number.
+              </p>
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                style={{
+                  padding: '9px 16px', borderRadius: 8,
+                  background: 'var(--pc-card-hi)', border: '1px solid var(--pc-line-strong)',
+                  fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)', cursor: 'pointer',
+                }}
+              >
+                Clear search
+              </button>
+            </>
+          ) : (
+            'No cars need cleaning right now. Sessions start automatically at each tower’s configured time.'
+          )}
         </Card>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
