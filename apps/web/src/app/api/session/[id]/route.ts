@@ -120,7 +120,24 @@ export async function POST(
         const data = snap.data()!;
 
         const cars = (data.cars as Record<string, unknown>[] | undefined) ?? [];
-        const idx  = cars.findIndex(c => c.customerId === customerId);
+        // A flat can own more than one vehicle (a car and a two-wheeler),
+        // and every one of its rows carries the SAME customerId — the id is
+        // per enrolled customer, not per vehicle. Matching on customerId
+        // alone always returned the first row, so once the car was done the
+        // scooter's row resolved to that already-done car and failed with
+        // CAR_NOT_FOUND: the second vehicle could never be completed, and sat
+        // overdue forever. Real cases: Angel Jupiter C-604, D-1102, D-1603.
+        //
+        // carPlate is the per-vehicle discriminator. It stays optional so an
+        // older client (or one whose row has no plate on file) still works,
+        // falling back to the first row that isn't already done rather than
+        // simply the first row.
+        const carPlate = typeof body.carPlate === 'string' ? body.carPlate.trim() : '';
+        const samePlate = (c: Record<string, unknown>) =>
+          typeof c.carPlate === 'string' && c.carPlate.trim() === carPlate;
+        const idx = carPlate
+          ? cars.findIndex(c => c.customerId === customerId && samePlate(c))
+          : cars.findIndex(c => c.customerId === customerId && c.status !== 'done');
         if (idx === -1 || cars[idx].status === 'done') throw new Error('CAR_NOT_FOUND');
         // Admin marked this car "not available today" on the Live Cleaning
         // board — same as a customer's own skipDate, it can't be completed.
@@ -258,7 +275,17 @@ export async function POST(
         const data = snap.data()!;
 
         const cars = (data.cars as Record<string, unknown>[] | undefined) ?? [];
-        const idx  = cars.findIndex(c => c.customerId === customerId && c.status === 'done');
+        // Same multi-vehicle-per-flat problem as clean_car above: customerId
+        // alone would revert whichever of the flat's vehicles happens to come
+        // first. The log already records which one was cleaned, so use its
+        // registration as the discriminator — no client change needed.
+        const loggedPlate = typeof log.vehicleRegistration === 'string' ? log.vehicleRegistration.trim() : '';
+        const isDoneForCustomer = (c: Record<string, unknown>) =>
+          c.customerId === customerId && c.status === 'done';
+        let idx = loggedPlate
+          ? cars.findIndex(c => isDoneForCustomer(c) && typeof c.carPlate === 'string' && c.carPlate.trim() === loggedPlate)
+          : -1;
+        if (idx === -1) idx = cars.findIndex(isDoneForCustomer);
         if (idx === -1) throw new Error('CAR_NOT_FOUND');
 
         // Firestore can't hold FieldValue.delete() inside an array element

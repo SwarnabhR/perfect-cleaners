@@ -23,10 +23,59 @@ function todayStart() {
   return Timestamp.fromDate(d);
 }
 
+/**
+ * A `now` that actually moves. Every dated thing on this page — which bucket
+ * a car falls into, whether it reads "Due soon", which day the recent-cleans
+ * log covers — is derived from one Date, and a worker leaves this tab open
+ * all day and overnight. Read once at mount, a dashboard opened Monday still
+ * shows Monday's buckets on Tuesday morning: today's round never arrives and
+ * yesterday's leftovers never drop into MISSED.
+ *
+ * Deliberately client-side rather than leaning on the nightly
+ * cleanup-sessions cron — the rollover a worker sees must not depend on an
+ * external scheduler having fired.
+ *
+ * Ticks every 5 minutes, and immediately when the tab returns to the
+ * foreground, which is the case that matters: a phone unlocked the next
+ * morning, where background timers have been throttled to nothing.
+ */
+function useNowTick(intervalMs = 5 * 60_000): Date {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const sync = () => setNow(new Date());
+    const id = setInterval(sync, intervalMs);
+    const onVisible = () => { if (document.visibilityState === 'visible') sync(); };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', sync);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', sync);
+    };
+  }, [intervalMs]);
+  return now;
+}
+
 function formatTime(ts: Timestamp | Date | null | undefined): string {
   if (!ts) return '—';
   const d = ts instanceof Timestamp ? ts.toDate() : new Date(ts);
   return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+}
+
+// Chip-sized rendering of a stored parking-level label — "Basement 2" → "B2",
+// "Ground" → "G". This is the shorthand workers use on the ground ("B1 b2
+// ground"), and it has to stay short enough for a row of chips to fit on a
+// phone. Unrecognised labels are shown as stored rather than mangled.
+function shortLevelLabel(label: string): string {
+  const s = label.trim().toLowerCase().replace(/\s+/g, ' ');
+  let m = s.match(/^basement ?(\d*)$/);
+  if (m) return `B${m[1] || '1'}`;
+  if (/^ground( floor)?$/.test(s)) return 'G';
+  m = s.match(/^podium ?(\d*)$/);
+  if (m) return `P${m[1] || '1'}`;
+  m = s.match(/^level ?(\d+)$/);
+  if (m) return `L${m[1]}`;
+  return label.trim();
 }
 
 function formatSlot(hour: number): string {
@@ -66,8 +115,28 @@ function dueLabel(row: WorkerTodoCar, now: Date): { text: string; color: string 
   return { text: time, color: 'var(--pc-fg-3)' };
 }
 
-const BUCKET_ORDER: Record<CarDueBucket, number> = { overdue: 0, today: 1, tomorrow: 2, later: 3 };
+// Today first, missed-earlier last. A worker opens this app to do *today's*
+// round, and a pile of days-old rows at the top buried it — a real tower had
+// 23 overdue rows from three days back sitting above 47 cars due now. Missed
+// cars are still listed and still tappable (see the MISSED group at the
+// bottom of the checklist); they just no longer outrank the work due today.
+const BUCKET_ORDER: Record<CarDueBucket, number> = { today: 0, tomorrow: 1, later: 2, overdue: 3 };
 const URGENCY_ORDER: Record<CarUrgency, number> = { overdue: 0, 'due-soon': 1, later: 2, done: 3 };
+
+// Row identity. A flat that owns two vehicles (a car and a two-wheeler)
+// produces two rows sharing ONE customerId — the id is per enrolled customer,
+// not per vehicle. Keying on customerId alone gave React duplicate keys and
+// made "busy" spin both rows at once; the plate is what tells them apart.
+function rowKey(r: { sessionId: string; customerId: string; carPlate?: string }): string {
+  return `${r.sessionId}::${r.customerId}::${r.carPlate ?? ''}`;
+}
+
+/** The same identity as rowKey, for a cleaningLog (its plate field is named
+ *  vehicleRegistration), so a to-do row and its resulting log share one
+ *  "which vehicle is busy" key. */
+function logKey(log: { sessionId?: string; customerId: string; vehicleRegistration?: string }): string {
+  return `${log.sessionId ?? ''}::${log.customerId}::${log.vehicleRegistration ?? ''}`;
+}
 
 function sortTodoCars(rows: WorkerTodoCar[], now: Date): WorkerTodoCar[] {
   return [...rows].sort((a, b) => {
@@ -258,23 +327,29 @@ function CarDetailsModal({ car, busy, onClose, onToggle }: {
   );
 }
 
-function TodoGroup({ title, color, rows, actingId, showTowerTag, onToggle, onViewDetails }: {
-  title: string; color: string; rows: WorkerTodoCar[]; actingId: string | null; showTowerTag: boolean;
+function TodoGroup({ title, color, rows, subtitle, actingId, showTowerTag, onToggle, onViewDetails }: {
+  title: string; color: string; rows: WorkerTodoCar[]; subtitle?: string;
+  actingId: string | null; showTowerTag: boolean;
   onToggle: (row: WorkerTodoCar) => void; onViewDetails: (row: WorkerTodoCar) => void;
 }) {
   if (rows.length === 0) return null;
   return (
     <div>
-      <Eyebrow color={color} style={{ display: 'block', marginBottom: 8 }}>
+      <Eyebrow color={color} style={{ display: 'block', marginBottom: subtitle ? 4 : 8 }}>
         {title} · {rows.length}
       </Eyebrow>
+      {subtitle && (
+        <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11.5, color: 'var(--pc-fg-4)', margin: '0 0 8px', lineHeight: 1.5 }}>
+          {subtitle}
+        </p>
+      )}
       <div style={{ background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 14, overflow: 'hidden', marginBottom: 16 }}>
         {rows.map((row, i) => (
           <CarRow
-            key={`${row.sessionId}-${row.customerId}`}
+            key={rowKey(row)}
             row={row}
             isFirst={i === 0}
-            busy={actingId === row.customerId}
+            busy={actingId === rowKey(row)}
             showTowerTag={showTowerTag}
             onToggle={() => onToggle(row)}
             onViewDetails={() => onViewDetails(row)}
@@ -296,6 +371,13 @@ export default function WorkerDashboard() {
   const [detailsCar, setDetailsCar] = useState<WorkerTodoCar | null>(null);
   const [actingId, setActingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState('');
+
+  // Single source of "when is it" for the whole page — see useNowTick.
+  const now = useNowTick();
+  // Changes exactly once per calendar day, so the logs listener below
+  // re-subscribes at midnight instead of staying pinned to the day the tab
+  // was opened. Using `now` itself here would re-subscribe every 5 minutes.
+  const dayKey = now.toDateString();
 
   // Live cleaning sessions this worker is assigned to (any tower/society) —
   // this is the actual source of truth for assignment, independent of the
@@ -328,7 +410,9 @@ export default function WorkerDashboard() {
       setLogs(snap.docs.map(d => ({ id: d.id, ...d.data() } as LogRow)));
       setLoading(false);
     }, err => { console.warn('[WorkerDashboard] logs listener:', err); setLoading(false); });
-  }, [user]);
+    // dayKey: re-subscribe when the calendar day rolls over, so "cleaned
+    // today" resets overnight instead of carrying yesterday's count.
+  }, [user, dayKey]);
 
   // See resolveTodaysSocieties (@pc/firebase) — used here only to tell "no
   // assignment at all" apart from "assigned, just nothing due right now".
@@ -347,26 +431,29 @@ export default function WorkerDashboard() {
   // notifications) stay in one place.
   async function markClean(row: WorkerTodoCar) {
     if (!user) return;
-    setActingId(row.customerId);
+    setActingId(rowKey(row));
     setActionError('');
     try {
       const token = await user.getIdToken();
       const res = await fetch(`/api/session/${row.sessionId}`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body:    JSON.stringify({ action: 'clean_car', customerId: row.customerId }),
+        // carPlate picks out WHICH of a flat's vehicles this is — see rowKey.
+        body:    JSON.stringify({ action: 'clean_car', customerId: row.customerId, carPlate: row.carPlate }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Failed.');
       // Optimistic local update — the sessions listener above will confirm
-      // the same values shortly after via Firestore.
+      // the same values shortly after via Firestore. Matched on plate as well
+      // as customerId so cleaning a flat's car doesn't also tick off its
+      // two-wheeler.
       setSessions(prev => prev.map(s => s.id === row.sessionId
         ? {
             ...s,
             completedCars: data.completedCars,
             totalCars:     data.totalCars,
             status:        data.status,
-            cars: s.cars.map(c => c.customerId === row.customerId ? { ...c, status: 'done' } : c),
+            cars: s.cars.map(c => c.customerId === row.customerId && c.carPlate === row.carPlate ? { ...c, status: 'done' } : c),
           }
         : s));
     } catch (err) {
@@ -382,7 +469,7 @@ export default function WorkerDashboard() {
   // just the UI trigger.
   async function undoClean(log: LogRow) {
     if (!user || !log.sessionId) return;
-    setActingId(log.customerId);
+    setActingId(logKey(log));
     setActionError('');
     try {
       const token = await user.getIdToken();
@@ -400,7 +487,9 @@ export default function WorkerDashboard() {
             completedCars: data.completedCars,
             totalCars:     data.totalCars,
             status:        data.status,
-            cars: s.cars.map(c => c.customerId === log.customerId ? { ...c, status: 'pending' } : c),
+            // Plate-matched for the same reason markClean is — a flat's two
+            // vehicles share a customerId.
+            cars: s.cars.map(c => c.customerId === log.customerId && c.carPlate === log.vehicleRegistration ? { ...c, status: 'pending' } : c),
           }
         : s));
       setLogs(prev => prev.filter(l => l.id !== log.id));
@@ -411,24 +500,27 @@ export default function WorkerDashboard() {
     }
   }
 
-  const now      = new Date();
   const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 17 ? 'Good afternoon' : 'Good evening';
 
   const todoCars = sortTodoCars(resolveWorkerTodoCars(sessions, now), now);
 
-  // Tower picker counts — Overdue + Today only, per the earlier "A tower · 77"
-  // reference: tomorrow's cars aren't due yet, so they don't inflate a count
-  // that's meant to answer "how much is left for this tower right now".
+  // Tower picker counts. The headline number is *today's* open cars only —
+  // it has to agree with the TODAY group directly below it. Rolling missed
+  // cars into it made a tower read "47" while today's list held 12, which is
+  // how a two-day backlog silently became the worker's headline workload.
+  // Missed is still surfaced, as its own smaller red count. Tomorrow and
+  // later are excluded from both: they aren't due yet.
   const towerCounts = (() => {
-    const map = new Map<string, { key: string; tower: string; societyName: string; count: number }>();
+    const map = new Map<string, { key: string; tower: string; societyName: string; count: number; missed: number }>();
     for (const c of todoCars) {
       if (c.dueBucket !== 'overdue' && c.dueBucket !== 'today') continue;
       const key = `${c.societyId}::${c.tower}`;
-      const entry = map.get(key) ?? { key, tower: c.tower, societyName: c.societyName, count: 0 };
-      entry.count += 1;
+      const entry = map.get(key) ?? { key, tower: c.tower, societyName: c.societyName, count: 0, missed: 0 };
+      if (c.dueBucket === 'today') entry.count += 1;
+      else entry.missed += 1;
       map.set(key, entry);
     }
-    return [...map.values()].sort((a, b) => b.count - a.count);
+    return [...map.values()].sort((a, b) => (b.count - a.count) || (b.missed - a.missed));
   })();
   const showTowerPicker = towerCounts.length > 1;
 
@@ -445,6 +537,28 @@ export default function WorkerDashboard() {
   const hiddenByTower = Boolean(
     searchMatcher && selectedTower && visibleCars.length === 0 && todoCars.some(searchMatcher),
   );
+
+  // Parking-level quick filters. A worker walks down to one level and wants
+  // only that level's cars — the single most-repeated request from the
+  // ground ("basement 2 me gaya to sirf basement 2 ki car dikhe"). Typing
+  // "b2" already does exactly this, so a chip just writes the level's own
+  // label into the search box rather than introducing a second filter that
+  // could disagree with what the box says. Levels come from the cars the
+  // worker can actually see, so a tower with no basement never shows a B2
+  // chip. Counts ignore the search so the chips don't shuffle as you type.
+  const levelChips = (() => {
+    const map = new Map<string, { label: string; short: string; count: number }>();
+    for (const c of towerFiltered) {
+      const label = (c.parkingLevel ?? '').trim();
+      if (!label) continue;
+      const key = label.toLowerCase();
+      const entry = map.get(key) ?? { label, short: shortLevelLabel(label), count: 0 };
+      entry.count += 1;
+      map.set(key, entry);
+    }
+    return [...map.values()].sort((a, b) => a.short.localeCompare(b.short, 'en', { numeric: true }));
+  })();
+  const activeLevel = search.trim().toLowerCase();
   // A search can pull rows in from any tower, so the tower tag stays on even
   // when the worker only has one.
   const showTowerTag = showTowerPicker || Boolean(searchMatcher);
@@ -489,16 +603,64 @@ export default function WorkerDashboard() {
         <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-danger)', margin: 0 }}>{actionError}</p>
       )}
 
-      {/* Search — sits above the lists so a worker who has walked down to a
-          level can type "b2" and see only that level's cars. */}
+      {/* Search — pinned below the app bar rather than scrolling away with the
+          page. A tower runs to 300 rows, so by the time a worker has walked
+          down to a level and wants to filter, an in-flow search box is
+          hundreds of pixels above them. `top` matches the 56px sticky header
+          in worker/layout.tsx. */}
       {todoCars.length > 0 && (
-        <CarSearchInput
-          value={search}
-          onChange={setSearch}
-          hint={searchMatcher
-            ? `${visibleCars.length} car${visibleCars.length === 1 ? '' : 's'} match`
-            : 'Type B1, B2 or G for a parking level — or a flat, tower or car number.'}
-        />
+        <div
+          style={{
+            position: 'sticky', top: 56, zIndex: 30,
+            margin: '0 calc(-1 * var(--pc-screen-pad-lg))',
+            padding: '10px var(--pc-screen-pad-lg)',
+            background: 'var(--pc-ink)',
+            borderBottom: '1px solid var(--pc-line-faint)',
+          }}
+        >
+          <CarSearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder="Flat, parking level, car number…"
+            hint={searchMatcher
+              ? `${visibleCars.length} car${visibleCars.length === 1 ? '' : 's'} match`
+              : undefined}
+          />
+
+          {levelChips.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, overflowX: 'auto', paddingBottom: 2 }}>
+              <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, color: 'var(--pc-fg-4)', textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>
+                Level
+              </span>
+              {levelChips.map(chip => {
+                const active = activeLevel === chip.label.toLowerCase();
+                return (
+                  <button
+                    key={chip.label}
+                    type="button"
+                    onClick={() => setSearch(active ? '' : chip.label)}
+                    aria-pressed={active}
+                    title={chip.label}
+                    style={{
+                      flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6,
+                      minHeight: 32, padding: '0 12px', borderRadius: 999,
+                      background: active ? 'var(--pc-sage)' : 'var(--pc-card)',
+                      border: `1px solid ${active ? 'var(--pc-sage)' : 'var(--pc-line-strong)'}`,
+                      cursor: 'pointer',
+                      fontFamily: 'var(--pc-sans)', fontSize: 12.5, fontWeight: 600,
+                      color: active ? 'var(--pc-sage-ink)' : 'var(--pc-fg)',
+                    }}
+                  >
+                    {chip.short}
+                    <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 10.5, fontWeight: 400, opacity: 0.7 }}>
+                      {chip.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
       )}
 
       {/* Tower picker — mirrors a to-do app's list sidebar (name + open count);
@@ -541,9 +703,16 @@ export default function WorkerDashboard() {
                       {t.societyName}
                     </p>
                   </div>
-                  <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 15, color: 'var(--pc-fg-3)', flexShrink: 0 }}>
-                    {t.count}
-                  </span>
+                  <div style={{ flexShrink: 0, textAlign: 'right' }}>
+                    <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 15, color: 'var(--pc-fg-3)' }}>
+                      {t.count}
+                    </span>
+                    {t.missed > 0 && (
+                      <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 10.5, fontWeight: 600, color: 'var(--pc-danger)', margin: '1px 0 0' }}>
+                        {t.missed} missed
+                      </p>
+                    )}
+                  </div>
                 </button>
               );
             })}
@@ -551,16 +720,29 @@ export default function WorkerDashboard() {
         </div>
       )}
 
-      {/* Per-car to-do checklist, grouped Overdue / Today / Tomorrow */}
+      {/* Per-car to-do checklist: Today / Tomorrow / Upcoming, then Missed
+          last — see BUCKET_ORDER for why the missed pile sits at the bottom. */}
       {visibleCars.length > 0 && (
         <div>
-          <TodoGroup title="OVERDUE"  color="var(--pc-danger)" rows={overdueRows}  actingId={actingId} showTowerTag={showTowerTag} onToggle={markClean} onViewDetails={setDetailsCar} />
           <TodoGroup title="TODAY"    color="var(--pc-fg-3)"   rows={todayRows}    actingId={actingId} showTowerTag={showTowerTag} onToggle={markClean} onViewDetails={setDetailsCar} />
           <TodoGroup title="TOMORROW" color="var(--pc-fg-4)"   rows={tomorrowRows} actingId={actingId} showTowerTag={showTowerTag} onToggle={markClean} onViewDetails={setDetailsCar} />
           {/* Everything further out — a worker can still tap one early for an
               emergency clean, so these stay actionable rather than hidden
               behind the calendar page. */}
           <TodoGroup title="UPCOMING" color="var(--pc-fg-4)"   rows={laterRows}    actingId={actingId} showTowerTag={showTowerTag} onToggle={markClean} onViewDetails={setDetailsCar} />
+          {/* Missed on an earlier day. Kept on the checklist (and tappable)
+              rather than archived, so nothing an admin needs to chase can
+              silently disappear — but parked below today's round. */}
+          <TodoGroup
+            title="MISSED"
+            color="var(--pc-danger)"
+            rows={overdueRows}
+            subtitle="Missed on an earlier day. Each car comes back on its next scheduled day — tap one here only if you are cleaning it now."
+            actingId={actingId}
+            showTowerTag={showTowerTag}
+            onToggle={markClean}
+            onViewDetails={setDetailsCar}
+          />
 
           <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-fg-3)', textAlign: 'center', margin: '4px 0 0', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
             {doneToday} car{doneToday !== 1 ? 's' : ''} cleaned today
@@ -643,7 +825,7 @@ export default function WorkerDashboard() {
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {logs.slice(0, 10).map(log => {
-              const undoBusy = actingId === log.customerId;
+              const undoBusy = actingId === logKey(log);
               const canUndo  = Boolean(log.sessionId);
               return (
                 <Card key={log.id} style={{ padding: '12px 16px' }}>
@@ -693,7 +875,7 @@ export default function WorkerDashboard() {
       {detailsCar && (
         <CarDetailsModal
           car={detailsCar}
-          busy={actingId === detailsCar.customerId}
+          busy={actingId === rowKey(detailsCar)}
           onClose={() => setDetailsCar(null)}
           onToggle={() => { markClean(detailsCar); setDetailsCar(null); }}
         />
