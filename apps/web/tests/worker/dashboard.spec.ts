@@ -288,3 +288,109 @@ base.describe('Worker Dashboard — live session assignments', () => {
   });
 
 });
+
+// ── Reported from the ground by a working cleaner ────────────────────────────
+//
+// 1. "aane wale kal ka aaj tic nahi hona chahiye, nahi to gadbad karega" —
+//    ticking a future day's car recorded a clean against a day that hadn't
+//    happened, so the car read done when its real day came and nobody washed
+//    it. Future rows are visible for planning but not completable.
+// 2. "jiska car hai nahi uska 'not available' ka option nahi hai" — a car
+//    missing from its slot had no control at all, so it sat open and later
+//    surfaced as work the cleaner had skipped.
+
+function dayOffset(days: number): Date {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  d.setHours(9, 0, 0, 0);
+  return d;
+}
+
+async function seedWorkerWithSession(
+  uid: string,
+  tower: string,
+  scheduledDate: Date,
+  cars: Record<string, unknown>[],
+) {
+  await adminDb().collection('workers').doc(uid).set({
+    name: `${PW_TEST_PREFIX}Bucket Worker`,
+    phone: `+919${uid.slice(-9)}`, isOnline: true, rating: 5, totalJobs: 0,
+    createdAt: Timestamp.now(),
+  });
+  await adminDb().collection('cleaningSessions').add({
+    societyId: 'pw_test_society_bucket', societyName: `${PW_TEST_PREFIX}Bucket Society`, tower,
+    scheduledDate: Timestamp.fromDate(scheduledDate), status: 'scheduled',
+    cars,
+    totalCars: cars.length, completedCars: 0, skippedCars: 0,
+    workerIds: [uid], workerNames: [`${PW_TEST_PREFIX}Bucket Worker`],
+    createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+  });
+}
+
+base.describe('Worker Dashboard — only work that is due can be ticked', () => {
+
+  base("a future day's car is listed but has no Mark clean control", async ({ page }) => {
+    const uid = `pw_test_worker_${Date.now()}`;
+    await seedWorkerWithSession(uid, 'Tower Future', dayOffset(3), [
+      { customerId: 'pw_f1', customerName: 'Future One', customerPhone: '+919000000041', unitNumber: '501', parkingNumber: 'P-1', carPlate: 'DL05AB0001', carMake: 'Honda', carModel: 'City', preferredTime: 9, status: 'pending' },
+    ]);
+
+    await page.goto('/worker/login');
+    await signInWithBypassToken(page, uid);
+    await page.waitForURL('**/worker/dashboard', { timeout: 15_000 });
+
+    // Visible for planning…
+    await baseExpect(page.locator('text=Flat 501').first()).toBeVisible({ timeout: 10_000 });
+    await baseExpect(page.locator('text=UPCOMING').first()).toBeVisible();
+    // …but there is no tick button on the row at all, and no "car not
+    // available" one either — nothing to press by accident.
+    await baseExpect(page.getByRole('button', { name: 'Mark clean' })).toHaveCount(0);
+    await baseExpect(page.getByRole('button', { name: 'Car not available' })).toHaveCount(0);
+
+    // The detail sheet explains why instead of offering a dead button.
+    await page.getByRole('button', { name: 'View details' }).first().click();
+    await baseExpect(page.locator('text=You can tick it on that day')).toBeVisible({ timeout: 5_000 });
+    await baseExpect(page.getByRole('button', { name: 'MARK CLEAN' })).toHaveCount(0);
+  });
+
+  base("today's car keeps its Mark clean and gains a not-available control", async ({ page }) => {
+    const uid = `pw_test_worker_${Date.now()}`;
+    await seedWorkerWithSession(uid, 'Tower Today', dayOffset(0), [
+      { customerId: 'pw_t1', customerName: 'Today One', customerPhone: '+919000000051', unitNumber: '601', parkingNumber: 'P-1', carPlate: 'DL06AB0001', carMake: 'Maruti', carModel: 'Baleno', preferredTime: 9, status: 'pending' },
+    ]);
+
+    await page.goto('/worker/login');
+    await signInWithBypassToken(page, uid);
+    await page.waitForURL('**/worker/dashboard', { timeout: 15_000 });
+
+    await baseExpect(page.locator('text=Flat 601').first()).toBeVisible({ timeout: 10_000 });
+    await baseExpect(page.getByRole('button', { name: 'Mark clean' })).toHaveCount(1);
+    await baseExpect(page.getByRole('button', { name: 'Car not available' })).toHaveCount(1);
+  });
+
+  base('marking a car not available moves it out of the round, and can be undone', async ({ page }) => {
+    const uid = `pw_test_worker_${Date.now()}`;
+    await seedWorkerWithSession(uid, 'Tower Absent', dayOffset(0), [
+      { customerId: 'pw_n1', customerName: 'Absent One', customerPhone: '+919000000061', unitNumber: '701', parkingNumber: 'P-1', carPlate: 'DL07AB0001', carMake: 'Kia',   carModel: 'Sonet', preferredTime: 9,  status: 'pending' },
+      { customerId: 'pw_n2', customerName: 'Present Two', customerPhone: '+919000000062', unitNumber: '702', parkingNumber: 'P-2', carPlate: 'DL07AB0002', carMake: 'Tata', carModel: 'Punch', preferredTime: 10, status: 'pending' },
+    ]);
+
+    await page.goto('/worker/login');
+    await signInWithBypassToken(page, uid);
+    await page.waitForURL('**/worker/dashboard', { timeout: 15_000 });
+
+    await baseExpect(page.locator('text=Flat 701').first()).toBeVisible({ timeout: 10_000 });
+    await page.getByRole('button', { name: 'Car not available' }).first().click();
+
+    // It drops out of TODAY into its own group rather than vanishing, so a
+    // mis-tap is recoverable.
+    await baseExpect(page.locator('text=NOT AVAILABLE').first()).toBeVisible({ timeout: 10_000 });
+    await baseExpect(page.locator('text=Flat 701').first()).toBeVisible();
+    // The other car is untouched and still tickable.
+    await baseExpect(page.getByRole('button', { name: 'Mark clean' })).toHaveCount(1);
+
+    await page.getByRole('button', { name: 'Car is here after all' }).first().click();
+    await baseExpect(page.getByRole('button', { name: 'Mark clean' })).toHaveCount(2, { timeout: 10_000 });
+  });
+
+});

@@ -94,7 +94,11 @@ export default function Footer() {
               onClick={() => setLang(l)}
               aria-pressed={lang === l}
               style={{
-                padding: '5px 14px',
+                // 44px min tap target (design system layout rule) — the
+                // 26px-tall pill this used to render was the smallest
+                // touchable control on the marketing site.
+                minHeight: 44, padding: '0 18px',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 background: lang === l ? 'var(--pc-card-hi)' : 'transparent',
                 color: lang === l ? 'var(--pc-fg)' : 'var(--pc-fg-4)',
                 fontFamily: 'var(--pc-sans)',

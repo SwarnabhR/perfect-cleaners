@@ -79,7 +79,10 @@ export default function AppWaitlistForm() {
             aria-pressed={platform === p.id}
             onClick={() => setPlatform(p.id)}
             style={{
-              padding: '7px 16px',
+              // 44px min tap target — these sat at 29px, the smallest
+              // controls on a page whose whole job is a phone sign-up.
+              minHeight: 44, padding: '0 18px',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               borderRadius: 'var(--pc-radius-pill)',
               border: `1px solid ${platform === p.id ? 'var(--pc-sage-hi)' : 'var(--pc-line-strong)'}`,
               background: platform === p.id ? 'color-mix(in srgb, var(--pc-sage) 15%, transparent)' : 'transparent',

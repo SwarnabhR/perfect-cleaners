@@ -248,7 +248,12 @@ function AdminShell({ children }: { children: React.ReactNode }) {
             {/* Search */}
             <form
               onSubmit={e => { e.preventDefault(); const term = searchQuery.trim(); if (term) { router.push(`/live-cleaning?q=${encodeURIComponent(term)}`); setSearchQuery(''); } }}
-              style={{ flex: 1, maxWidth: 400 }}
+              // minWidth: 0 — a flex item defaults to min-width: auto, and a
+              // text input's intrinsic min-content width (~20 characters) then
+              // refuses to shrink, pushing the whole top bar 19px past a
+              // 390px phone and scrolling every admin page sideways. The
+              // input inside already sets minWidth: 0; the form has to as well.
+              style={{ flex: 1, minWidth: 0, maxWidth: 400 }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pc-space-2)', background: 'var(--pc-card)', border: '1px solid var(--pc-line)', borderRadius: 'var(--pc-radius-pill)', padding: 'var(--pc-space-2) var(--pc-space-4)' }}>
                 <Icon name="search" size={14} color="var(--pc-fg-4)" />

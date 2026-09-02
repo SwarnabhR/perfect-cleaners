@@ -208,8 +208,14 @@ function CarRow({ row, isFirst, busy, showTowerTag, onToggle, onSetUnavailable, 
       )}
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
-          <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 600, color: 'var(--pc-fg)', margin: 0 }}>
+        {/* flexWrap: the flat number and the due chip stop competing on a
+            narrow phone — the chip drops to its own line instead of
+            squeezing "Flat D-1102" down to three broken lines ("Flat" /
+            "D-" / "1102"), which is what a 320px screen did. */}
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+          {/* The flat number is the identifier a worker matches against the
+              door, so it never breaks mid-token. */}
+          <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 600, color: 'var(--pc-fg)', margin: 0, whiteSpace: 'nowrap' }}>
             Flat {row.unitNumber || '—'}
           </p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
