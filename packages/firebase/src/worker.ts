@@ -168,6 +168,27 @@ export interface WorkerTodoCar {
   carModel: string;
   preferredTime: number;
   status: CleaningSessionCar['status'];
+  // True when the car was marked "not available" — either by a worker on the
+  // ground (the car wasn't in its slot) or by an admin on the Live Cleaning
+  // board. Rows like this are only present when the caller asks for them via
+  // `includeUnavailable`; they are never actionable work.
+  unavailable: boolean;
+}
+
+/**
+ * Whether a to-do row may be ticked off right now.
+ *
+ * Only work that is actually due can be completed: today's round, and earlier
+ * days that were missed (a worker who cleans a missed car today records it
+ * today). A car scheduled for tomorrow or later is NOT completable — ticking
+ * a future day's row wrote a clean against a date that hadn't happened yet,
+ * which is exactly the "gadbad" the workers reported: the car then looked
+ * done on its real day and nobody cleaned it.
+ *
+ * Enforced again server-side in /api/session/[id] — this is the UI half.
+ */
+export function isCarActionableNow(dueBucket: CarDueBucket): boolean {
+  return dueBucket === 'overdue' || dueBucket === 'today';
 }
 
 type TodoSession = Pick<
@@ -183,8 +204,16 @@ type TodoSession = Pick<
  * view getCarUrgency below deliberately doesn't attempt (see its docstring).
  * Without this, a session that missed its date just silently dropped off
  * anything scoped to "today", which is the dashboard bug this exists to fix.
+ *
+ * `includeUnavailable` keeps "not available" cars in the result (flagged, not
+ * actionable) so a surface can show them and offer a way back — without it a
+ * worker who mis-tapped "not available" had no row left to undo it from.
  */
-export function resolveWorkerTodoCars(sessions: TodoSession[], now: Date = new Date()): WorkerTodoCar[] {
+export function resolveWorkerTodoCars(
+  sessions: TodoSession[],
+  now: Date = new Date(),
+  opts: { includeUnavailable?: boolean } = {},
+): WorkerTodoCar[] {
   const rows: WorkerTodoCar[] = [];
   for (const s of sessions) {
     if (s.status === 'done' || s.status === 'missed') continue;
@@ -195,10 +224,11 @@ export function resolveWorkerTodoCars(sessions: TodoSession[], now: Date = new D
 
     for (const c of s.cars ?? []) {
       if (c.status !== 'pending' && c.status !== 'in_progress') continue;
-      // Admin-toggled "not available today" (Live Cleaning board) — excluded
-      // the same as a 'skipped' status would be, so it doesn't sit on a
-      // worker's to-do list as actionable when it isn't.
-      if (c.unavailable) continue;
+      // "Not available today" — set by a worker on the ground or an admin on
+      // the Live Cleaning board. Excluded the same as a 'skipped' status
+      // would be, so it doesn't sit on a worker's to-do list as actionable
+      // when it isn't; callers that want to *display* it opt in explicitly.
+      if (c.unavailable && !opts.includeUnavailable) continue;
       rows.push({
         sessionId:     s.id,
         societyId:     s.societyId,
@@ -217,6 +247,7 @@ export function resolveWorkerTodoCars(sessions: TodoSession[], now: Date = new D
         carModel:      c.carModel,
         preferredTime: c.preferredTime,
         status:        c.status,
+        unavailable:   Boolean(c.unavailable),
       });
     }
   }

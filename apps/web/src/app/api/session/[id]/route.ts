@@ -3,6 +3,26 @@ import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminFirestore, adminAuth } from '@/lib/firebase/admin';
 import { sendAndStoreSMS } from '@/lib/notify-sms';
+import { startOfIstDay } from '@pc/firebase';
+
+/**
+ * Is this session scheduled for a calendar day that hasn't arrived yet?
+ *
+ * Workers report — correctly — that a future day's car must not be tickable:
+ * a clean recorded against tomorrow makes the car read "done" when tomorrow
+ * actually comes, so nobody cleans it. Today and any earlier missed day stay
+ * completable (cleaning a missed car today is normal and expected).
+ *
+ * Compared in IST, not the server's UTC: this runs on Vercel, and a plain
+ * local-day comparison would roll a day over at 5:30 AM India time — an hour
+ * when workers are already on their round.
+ */
+function isFutureDay(scheduledDate: unknown): boolean {
+  const d = (scheduledDate as { toDate?: () => Date } | undefined)?.toDate?.()
+    ?? (scheduledDate instanceof Date ? scheduledDate : null);
+  if (!d || Number.isNaN(d.getTime())) return false; // unreadable date: don't block work
+  return startOfIstDay(d).getTime() > startOfIstDay(new Date()).getTime();
+}
 
 export async function GET(
   req: NextRequest,
@@ -139,9 +159,12 @@ export async function POST(
           ? cars.findIndex(c => c.customerId === customerId && samePlate(c))
           : cars.findIndex(c => c.customerId === customerId && c.status !== 'done');
         if (idx === -1 || cars[idx].status === 'done') throw new Error('CAR_NOT_FOUND');
-        // Admin marked this car "not available today" on the Live Cleaning
-        // board — same as a customer's own skipDate, it can't be completed.
+        // Marked "not available today" — by a worker on the ground or an
+        // admin on the Live Cleaning board. Same as a customer's own
+        // skipDate, it can't be completed.
         if (cars[idx].unavailable) throw new Error('CAR_UNAVAILABLE');
+        // Tomorrow's round is not today's work — see isFutureDay.
+        if (isFutureDay(data.scheduledDate)) throw new Error('CAR_NOT_DUE_YET');
 
         const now         = new Date();
         const updatedCars = cars.slice();
@@ -324,6 +347,105 @@ export async function POST(
 
       return NextResponse.json(response);
 
+    } else if (action === 'set_car_unavailable') {
+      // "The car isn't here." Previously only an admin could record this from
+      // the Live Cleaning board, so a worker standing in front of an empty
+      // parking slot had nothing to tap — the row just stayed open and later
+      // showed up as missed, as if the worker had skipped it. This is the
+      // same `unavailable` flag the admin board writes, so every surface that
+      // already honours it (worker to-do, clean_car's guard above, the
+      // session's completable denominator) needs no change.
+      const customerId  = body.customerId as string | undefined;
+      const unavailable = Boolean(body.unavailable);
+      if (!customerId) {
+        return NextResponse.json({ error: 'customerId is required.' }, { status: 400 });
+      }
+
+      let response: Record<string, unknown> | null = null;
+
+      await db.runTransaction(async (t) => {
+        const snap = await t.get(ref);
+        if (!snap.exists) throw new Error('NOT_FOUND');
+        const data = snap.data()!;
+
+        // A worker reports on the round they are walking right now. Letting
+        // them flag a future day's car would hide it from the day it is
+        // actually due — the same failure mode the clean_car guard prevents.
+        if (isFutureDay(data.scheduledDate)) throw new Error('CAR_NOT_DUE_YET');
+
+        // Same per-vehicle matching as clean_car: a flat's car and its
+        // two-wheeler share one customerId, so the plate is the discriminator.
+        const cars = (data.cars as Record<string, unknown>[] | undefined) ?? [];
+        const carPlate = typeof body.carPlate === 'string' ? body.carPlate.trim() : '';
+        const samePlate = (c: Record<string, unknown>) =>
+          typeof c.carPlate === 'string' && c.carPlate.trim() === carPlate;
+        const idx = carPlate
+          ? cars.findIndex(c => c.customerId === customerId && samePlate(c))
+          : cars.findIndex(c => c.customerId === customerId && c.status !== 'done');
+        if (idx === -1) throw new Error('CAR_NOT_FOUND');
+
+        const target = cars[idx];
+        // A cleaned car can't retroactively become "not there", and a car the
+        // customer themselves opted out of ('skipped' via their skipDates)
+        // isn't the worker's to override — matching the admin board's rule.
+        if (target.status === 'done')    throw new Error('CAR_ALREADY_DONE');
+        if (target.status === 'skipped') throw new Error('CAR_SKIPPED');
+
+        const totalCars     = (data.totalCars as number | undefined) ?? cars.length;
+        const completedCars = (data.completedCars as number | undefined) ?? 0;
+
+        // Already in the requested state (double-tap, or another worker got
+        // there first): report the current numbers rather than moving
+        // totalCars a second time.
+        if (Boolean(target.unavailable) === unavailable) {
+          response = { completedCars, totalCars, status: data.status as string, unavailable };
+          return;
+        }
+
+        const updatedCars = cars.slice();
+        updatedCars[idx]  = { ...target, unavailable };
+
+        // Keeps totalCars an accurate denominator for "is this session fully
+        // done" — an unavailable car can never be completed, the same
+        // reasoning as skippedCars being excluded at creation time.
+        const newTotal = unavailable ? Math.max(0, totalCars - 1) : totalCars + 1;
+
+        const sessionUpdate: Record<string, unknown> = {
+          cars:      updatedCars,
+          totalCars: newTotal,
+          updatedAt: FieldValue.serverTimestamp(),
+        };
+
+        // Removing the last open car finishes the round. The admin board's
+        // toggle doesn't do this, which is how a tower whose final car was
+        // unavailable could sit 'inprogress' forever.
+        //
+        // Decided from the car array rather than completedCars >= totalCars:
+        // those are stored counters, and a session whose totalCars had drifted
+        // low would otherwise flip to 'done' with real pending cars still on
+        // it. The array is the thing a worker actually reads.
+        const stillOpen = updatedCars.some(c =>
+          (c.status === 'pending' || c.status === 'in_progress') && !c.unavailable
+        );
+
+        let newStatus = data.status as string;
+        if (unavailable && newStatus !== 'done' && !stillOpen) {
+          newStatus = 'done';
+          sessionUpdate.status      = 'done';
+          sessionUpdate.completedAt = FieldValue.serverTimestamp();
+        } else if (!unavailable && newStatus === 'done') {
+          // Putting a car back gives the session open work again.
+          newStatus = 'inprogress';
+          sessionUpdate.status      = 'inprogress';
+          sessionUpdate.completedAt = FieldValue.delete();
+        }
+
+        t.update(ref, sessionUpdate);
+        response = { completedCars, totalCars: newTotal, status: newStatus, unavailable };
+      });
+
+      return NextResponse.json(response);
+
     } else if (action === 'complete') {
       // Transactional for the same reason 'clean_car' above is: a worker can
       // hit "complete" while another assigned worker's clean_car for a
@@ -392,6 +514,15 @@ export async function POST(
     }
     if (err instanceof Error && err.message === 'CAR_UNAVAILABLE') {
       return NextResponse.json({ error: 'This car was marked not available today.' }, { status: 400 });
+    }
+    if (err instanceof Error && err.message === 'CAR_NOT_DUE_YET') {
+      return NextResponse.json({ error: 'This car is scheduled for a later day — you can tick it on that day.' }, { status: 400 });
+    }
+    if (err instanceof Error && err.message === 'CAR_ALREADY_DONE') {
+      return NextResponse.json({ error: 'This car has already been cleaned.' }, { status: 400 });
+    }
+    if (err instanceof Error && err.message === 'CAR_SKIPPED') {
+      return NextResponse.json({ error: 'The customer has skipped this car today.' }, { status: 400 });
     }
     if (err instanceof Error && err.message === 'NOT_INPROGRESS') {
       return NextResponse.json({ error: 'Session is not in progress.' }, { status: 400 });

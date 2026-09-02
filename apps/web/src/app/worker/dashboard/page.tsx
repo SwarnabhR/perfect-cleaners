@@ -6,7 +6,7 @@ import {
   collection, query, where, onSnapshot,
   doc, updateDoc, orderBy, limit, Timestamp,
 } from 'firebase/firestore';
-import { db, resolveTodaysSocieties, resolveWorkerTodoCars, getCarUrgency, buildCarSearchMatcher } from '@pc/firebase';
+import { db, resolveTodaysSocieties, resolveWorkerTodoCars, getCarUrgency, buildCarSearchMatcher, isCarActionableNow } from '@pc/firebase';
 import type { CleaningLog, CleaningSession, WorkerTodoCar, CarUrgency, CarDueBucket } from '@pc/firebase';
 import { useWorkerAuth } from '@/components/WorkerAuthProvider';
 import Card from '@/components/ui/Card';
@@ -103,9 +103,8 @@ function dueLabel(row: WorkerTodoCar, now: Date): { text: string; color: string 
     return { text: `Tomorrow · ${time}`, color: 'var(--pc-fg-4)' };
   }
   if (row.dueBucket === 'later') {
-    // Not due yet, but a worker can still tap it early for an emergency
-    // clean — getCarUrgency's same-day hour math doesn't apply here since
-    // this row's scheduledDate is a future day, not today.
+    // Not due yet — getCarUrgency's same-day hour math doesn't apply here
+    // since this row's scheduledDate is a future day, not today.
     const dateStr = row.scheduledDate.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
     return { text: `${dateStr} · ${time}`, color: 'var(--pc-fg-4)' };
   }
@@ -154,26 +153,59 @@ function sortTodoCars(rows: WorkerTodoCar[], now: Date): WorkerTodoCar[] {
   });
 }
 
-function CarRow({ row, isFirst, busy, showTowerTag, onToggle, onViewDetails }: {
-  row: WorkerTodoCar; isFirst: boolean; busy: boolean; showTowerTag: boolean; onToggle: () => void; onViewDetails: () => void;
+function CarRow({ row, isFirst, busy, showTowerTag, onToggle, onSetUnavailable, onViewDetails }: {
+  row: WorkerTodoCar; isFirst: boolean; busy: boolean; showTowerTag: boolean;
+  onToggle: () => void; onSetUnavailable: (unavailable: boolean) => void; onViewDetails: () => void;
 }) {
   const due = dueLabel(row, new Date());
+  // A future day's car is shown but not completable — see isCarActionableNow.
+  const locked = !isCarActionableNow(row.dueBucket);
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px',
       borderTop: isFirst ? 'none' : '1px solid var(--pc-line-faint)',
+      opacity: row.unavailable ? 0.55 : 1,
     }}>
-      <button
-        type="button"
-        onClick={onToggle}
-        disabled={busy}
-        aria-label="Mark clean"
-        style={{
-          width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
-          border: '1.5px solid var(--pc-line-strong)', background: 'transparent',
-          cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.5 : 1,
-        }}
-      />
+      {row.unavailable ? (
+        // Reported not available. Nothing to tick — the only action left is
+        // putting it back, which is what the row's trailing button does.
+        <div
+          aria-hidden="true"
+          style={{
+            width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+            border: '1.5px solid var(--pc-line)', display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <Icon name="x" size={11} color="var(--pc-fg-4)" />
+        </div>
+      ) : locked ? (
+        // Deliberately not a button: a future round must not be tickable at
+        // all, so there is nothing here to press by accident.
+        <div
+          title="Scheduled for a later day"
+          aria-label="Scheduled for a later day — not yet"
+          style={{
+            width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+            border: '1.5px dotted var(--pc-line)', display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <Icon name="calendar" size={10} color="var(--pc-fg-4)" />
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={onToggle}
+          disabled={busy}
+          aria-label="Mark clean"
+          style={{
+            width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+            border: '1.5px solid var(--pc-line-strong)', background: 'transparent',
+            cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.5 : 1,
+          }}
+        />
+      )}
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
@@ -217,6 +249,30 @@ function CarRow({ row, isFirst, busy, showTowerTag, onToggle, onViewDetails }: {
         </div>
       </div>
 
+      {/* "Car isn't here." Only offered on work that's actually due — there is
+          nothing to report about a slot you'll be standing at tomorrow. */}
+      {!locked && (
+        <button
+          type="button"
+          onClick={() => onSetUnavailable(!row.unavailable)}
+          disabled={busy}
+          aria-label={row.unavailable ? 'Car is here after all' : 'Car not available'}
+          title={row.unavailable ? 'Car is here after all' : 'Car not available'}
+          style={{
+            flexShrink: 0, width: 28, height: 28, borderRadius: 6,
+            border: 'none', background: 'transparent',
+            cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.5 : 1,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <Icon
+            name={row.unavailable ? 'repeat' : 'x-circle'}
+            size={15}
+            color={row.unavailable ? 'var(--pc-fg-3)' : 'var(--pc-danger)'}
+          />
+        </button>
+      )}
+
       <button
         type="button"
         onClick={onViewDetails}
@@ -237,11 +293,13 @@ function CarRow({ row, isFirst, busy, showTowerTag, onToggle, onViewDetails }: {
 // Full-detail popup for one car — everything CarRow doesn't already show
 // inline (customer name, status) plus a duplicate of the visible fields, so
 // a worker can read everything without hunting across a dense row.
-function CarDetailsModal({ car, busy, onClose, onToggle }: {
-  car: WorkerTodoCar; busy: boolean; onClose: () => void; onToggle: () => void;
+function CarDetailsModal({ car, busy, onClose, onToggle, onSetUnavailable }: {
+  car: WorkerTodoCar; busy: boolean; onClose: () => void;
+  onToggle: () => void; onSetUnavailable: (unavailable: boolean) => void;
 }) {
   const due = dueLabel(car, new Date());
   const done = car.status === 'done';
+  const locked = !isCarActionableNow(car.dueBucket);
   const rows: [string, ReactNode][] = [
     ['Customer',     car.customerName || '—'],
     ['Phone',        car.customerPhone
@@ -276,8 +334,8 @@ function CarDetailsModal({ car, busy, onClose, onToggle }: {
       >
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
           <div>
-            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: due.color, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 4px' }}>
-              {done ? 'Cleaned' : due.text}
+            <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: car.unavailable ? 'var(--pc-danger)' : due.color, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 4px' }}>
+              {done ? 'Cleaned' : car.unavailable ? 'Not available' : due.text}
             </p>
             <h2 style={{ fontFamily: 'var(--pc-serif)', fontSize: 20, fontWeight: 400, color: 'var(--pc-fg)', margin: 0 }}>
               Flat {car.unitNumber || '—'}
@@ -306,31 +364,62 @@ function CarDetailsModal({ car, busy, onClose, onToggle }: {
           ))}
         </div>
 
-        {!done && (
-          <button
-            type="button"
-            onClick={onToggle}
-            disabled={busy}
-            style={{
-              width: '100%', padding: '14px 0', borderRadius: 14,
-              border: 'none', background: 'var(--pc-sage-hi)',
-              fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600,
-              color: 'var(--pc-ink)', letterSpacing: '0.04em',
-              cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1,
-            }}
-          >
-            {busy ? '…' : 'MARK CLEAN'}
-          </button>
+        {/* A future day's car is readable but not completable — see
+            isCarActionableNow. Saying why beats a dead, greyed-out button. */}
+        {!done && locked && (
+          <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12.5, color: 'var(--pc-fg-3)', margin: 0, lineHeight: 1.6, textAlign: 'center' }}>
+            This car is scheduled for{' '}
+            {car.scheduledDate.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })}.
+            You can tick it on that day.
+          </p>
+        )}
+
+        {!done && !locked && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {!car.unavailable && (
+              <button
+                type="button"
+                onClick={onToggle}
+                disabled={busy}
+                style={{
+                  width: '100%', padding: '14px 0', borderRadius: 14,
+                  border: 'none', background: 'var(--pc-sage-hi)',
+                  fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600,
+                  color: 'var(--pc-ink)', letterSpacing: '0.04em',
+                  cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1,
+                }}
+              >
+                {busy ? '…' : 'MARK CLEAN'}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => onSetUnavailable(!car.unavailable)}
+              disabled={busy}
+              style={{
+                width: '100%', padding: '14px 0', borderRadius: 14,
+                background: 'transparent',
+                border: `1px solid ${car.unavailable ? 'var(--pc-line-strong)' : 'var(--pc-danger)'}`,
+                fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600,
+                color: car.unavailable ? 'var(--pc-fg)' : 'var(--pc-danger)', letterSpacing: '0.04em',
+                cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1,
+              }}
+            >
+              {busy ? '…' : car.unavailable ? 'CAR IS HERE AFTER ALL' : 'CAR NOT AVAILABLE'}
+            </button>
+          </div>
         )}
       </div>
     </div>
   );
 }
 
-function TodoGroup({ title, color, rows, subtitle, actingId, showTowerTag, onToggle, onViewDetails }: {
+function TodoGroup({ title, color, rows, subtitle, actingId, showTowerTag, onToggle, onSetUnavailable, onViewDetails }: {
   title: string; color: string; rows: WorkerTodoCar[]; subtitle?: string;
   actingId: string | null; showTowerTag: boolean;
-  onToggle: (row: WorkerTodoCar) => void; onViewDetails: (row: WorkerTodoCar) => void;
+  onToggle: (row: WorkerTodoCar) => void;
+  onSetUnavailable: (row: WorkerTodoCar, unavailable: boolean) => void;
+  onViewDetails: (row: WorkerTodoCar) => void;
 }) {
   if (rows.length === 0) return null;
   return (
@@ -352,6 +441,7 @@ function TodoGroup({ title, color, rows, subtitle, actingId, showTowerTag, onTog
             busy={actingId === rowKey(row)}
             showTowerTag={showTowerTag}
             onToggle={() => onToggle(row)}
+            onSetUnavailable={u => onSetUnavailable(row, u)}
             onViewDetails={() => onViewDetails(row)}
           />
         ))}
@@ -463,6 +553,40 @@ export default function WorkerDashboard() {
     }
   }
 
+  // "The car isn't in its slot." Records the same `unavailable` flag the
+  // admin's Live Cleaning board writes, so the car drops off the actionable
+  // list instead of sitting there and later reading as a car the worker
+  // skipped. Reversible — pass unavailable: false to put it back.
+  async function setUnavailable(row: WorkerTodoCar, unavailable: boolean) {
+    if (!user) return;
+    setActingId(rowKey(row));
+    setActionError('');
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch(`/api/session/${row.sessionId}`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body:    JSON.stringify({ action: 'set_car_unavailable', customerId: row.customerId, carPlate: row.carPlate, unavailable }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Failed.');
+      // Optimistic local update, plate-matched for the same multi-vehicle
+      // reason markClean is — the sessions listener confirms shortly after.
+      setSessions(prev => prev.map(s => s.id === row.sessionId
+        ? {
+            ...s,
+            totalCars: data.totalCars,
+            status:    data.status,
+            cars: s.cars.map(c => c.customerId === row.customerId && c.carPlate === row.carPlate ? { ...c, unavailable } : c),
+          }
+        : s));
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setActingId(null);
+    }
+  }
+
   // Reverses an accidental tap — puts the car back to pending in its
   // session and removes the cleaningLog entry the mark-clean created.
   // Server-side re-checks the same-worker + time-window guardrails; this is
@@ -502,7 +626,11 @@ export default function WorkerDashboard() {
 
   const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 17 ? 'Good afternoon' : 'Good evening';
 
-  const todoCars = sortTodoCars(resolveWorkerTodoCars(sessions, now), now);
+  // includeUnavailable: cars reported "not available" stay on screen in their
+  // own group at the bottom, so a mis-tap can be undone and so the worker can
+  // see what they've already accounted for. They are filtered out of every
+  // count and of the actionable groups below.
+  const todoCars = sortTodoCars(resolveWorkerTodoCars(sessions, now, { includeUnavailable: true }), now);
 
   // Tower picker counts. The headline number is *today's* open cars only —
   // it has to agree with the TODAY group directly below it. Rolling missed
@@ -513,6 +641,7 @@ export default function WorkerDashboard() {
   const towerCounts = (() => {
     const map = new Map<string, { key: string; tower: string; societyName: string; count: number; missed: number }>();
     for (const c of todoCars) {
+      if (c.unavailable) continue;
       if (c.dueBucket !== 'overdue' && c.dueBucket !== 'today') continue;
       const key = `${c.societyId}::${c.tower}`;
       const entry = map.get(key) ?? { key, tower: c.tower, societyName: c.societyName, count: 0, missed: 0 };
@@ -549,6 +678,7 @@ export default function WorkerDashboard() {
   const levelChips = (() => {
     const map = new Map<string, { label: string; short: string; count: number }>();
     for (const c of towerFiltered) {
+      if (c.unavailable) continue;
       const label = (c.parkingLevel ?? '').trim();
       if (!label) continue;
       const key = label.toLowerCase();
@@ -562,10 +692,14 @@ export default function WorkerDashboard() {
   // A search can pull rows in from any tower, so the tower tag stays on even
   // when the worker only has one.
   const showTowerTag = showTowerPicker || Boolean(searchMatcher);
-  const overdueRows  = visibleCars.filter(c => c.dueBucket === 'overdue');
-  const todayRows    = visibleCars.filter(c => c.dueBucket === 'today');
-  const tomorrowRows = visibleCars.filter(c => c.dueBucket === 'tomorrow');
-  const laterRows    = visibleCars.filter(c => c.dueBucket === 'later');
+  const openCars     = visibleCars.filter(c => !c.unavailable);
+  const overdueRows  = openCars.filter(c => c.dueBucket === 'overdue');
+  const todayRows    = openCars.filter(c => c.dueBucket === 'today');
+  const tomorrowRows = openCars.filter(c => c.dueBucket === 'tomorrow');
+  const laterRows    = openCars.filter(c => c.dueBucket === 'later');
+  // Reported not available — today's and earlier only. A future session's car
+  // can't be flagged in the first place, so nothing lands here from ahead.
+  const unavailableRows = visibleCars.filter(c => c.unavailable);
 
   const doneToday = logs.length;
 
@@ -724,12 +858,33 @@ export default function WorkerDashboard() {
           last — see BUCKET_ORDER for why the missed pile sits at the bottom. */}
       {visibleCars.length > 0 && (
         <div>
-          <TodoGroup title="TODAY"    color="var(--pc-fg-3)"   rows={todayRows}    actingId={actingId} showTowerTag={showTowerTag} onToggle={markClean} onViewDetails={setDetailsCar} />
-          <TodoGroup title="TOMORROW" color="var(--pc-fg-4)"   rows={tomorrowRows} actingId={actingId} showTowerTag={showTowerTag} onToggle={markClean} onViewDetails={setDetailsCar} />
-          {/* Everything further out — a worker can still tap one early for an
-              emergency clean, so these stay actionable rather than hidden
-              behind the calendar page. */}
-          <TodoGroup title="UPCOMING" color="var(--pc-fg-4)"   rows={laterRows}    actingId={actingId} showTowerTag={showTowerTag} onToggle={markClean} onViewDetails={setDetailsCar} />
+          <TodoGroup title="TODAY"    color="var(--pc-fg-3)"   rows={todayRows}    actingId={actingId} showTowerTag={showTowerTag} onToggle={markClean} onSetUnavailable={setUnavailable} onViewDetails={setDetailsCar} />
+          {/* Tomorrow and later are shown so a worker can plan the round, but
+              they are NOT tickable — see isCarActionableNow. A clean recorded
+              against a day that hasn't happened makes the car read done when
+              that day arrives, and it never gets washed. */}
+          <TodoGroup
+            title="TOMORROW"
+            color="var(--pc-fg-4)"
+            rows={tomorrowRows}
+            subtitle="Coming up — tick these tomorrow, not today."
+            actingId={actingId}
+            showTowerTag={showTowerTag}
+            onToggle={markClean}
+            onSetUnavailable={setUnavailable}
+            onViewDetails={setDetailsCar}
+          />
+          <TodoGroup
+            title="UPCOMING"
+            color="var(--pc-fg-4)"
+            rows={laterRows}
+            subtitle="Scheduled for a later day. Each one becomes tickable on its own day."
+            actingId={actingId}
+            showTowerTag={showTowerTag}
+            onToggle={markClean}
+            onSetUnavailable={setUnavailable}
+            onViewDetails={setDetailsCar}
+          />
           {/* Missed on an earlier day. Kept on the checklist (and tappable)
               rather than archived, so nothing an admin needs to chase can
               silently disappear — but parked below today's round. */}
@@ -741,6 +896,21 @@ export default function WorkerDashboard() {
             actingId={actingId}
             showTowerTag={showTowerTag}
             onToggle={markClean}
+            onSetUnavailable={setUnavailable}
+            onViewDetails={setDetailsCar}
+          />
+          {/* Cars the worker (or an admin) reported as not in their slot.
+              Kept visible so a mis-tap can be undone, and so the round reads
+              as accounted-for rather than half-finished. */}
+          <TodoGroup
+            title="NOT AVAILABLE"
+            color="var(--pc-fg-4)"
+            rows={unavailableRows}
+            subtitle="Car was not in its parking slot. Tap the arrow to put one back if it turns up."
+            actingId={actingId}
+            showTowerTag={showTowerTag}
+            onToggle={markClean}
+            onSetUnavailable={setUnavailable}
             onViewDetails={setDetailsCar}
           />
 
@@ -878,6 +1048,7 @@ export default function WorkerDashboard() {
           busy={actingId === rowKey(detailsCar)}
           onClose={() => setDetailsCar(null)}
           onToggle={() => { markClean(detailsCar); setDetailsCar(null); }}
+          onSetUnavailable={u => { setUnavailable(detailsCar, u); setDetailsCar(null); }}
         />
       )}
     </div>
