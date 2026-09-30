@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { collection, query, where, getDocs, getDoc, onSnapshot, doc, setDoc, updateDoc, serverTimestamp, Timestamp, increment } from 'firebase/firestore';
+import { collection, query, where, getDocs, getDoc, onSnapshot, doc, setDoc, updateDoc, deleteDoc, serverTimestamp, Timestamp, increment } from 'firebase/firestore';
 import { db } from '@pc/firebase';
 import type { CustomerSocietyRecord, Society, DayOfWeek } from '@pc/firebase';
 import Card from '@/components/ui/Card';
@@ -956,6 +956,11 @@ export default function CustomerEnrollmentsPage() {
   const [cleanedThisMonth, setCleanedThisMonth] = useState<Record<string, number>>({});
   const [addOpen, setAddOpen] = useState(false);
   const [scheduleRecord, setScheduleRecord] = useState<LiveRecord | null>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const [removeError, setRemoveError] = useState('');
 
   useEffect(() => {
     return onSnapshot(
@@ -1030,6 +1035,60 @@ export default function CustomerEnrollmentsPage() {
     }
   }
 
+  function exitSelectMode() {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+    setConfirmRemoveOpen(false);
+    setRemoveError('');
+  }
+
+  function toggleSelected(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  async function handleRemoveSelected() {
+    const toRemove = records.filter(r => selectedIds.has(r.id));
+    if (toRemove.length === 0) return;
+    setRemoving(true);
+    setRemoveError('');
+    try {
+      const results = await Promise.allSettled(
+        toRemove.map(r => deleteDoc(doc(db, 'customerSocietyRecords', r.id))),
+      );
+      const deleted = toRemove.filter((_, i) => results[i].status === 'fulfilled');
+
+      // Only active records count towards the society roster — paused ones
+      // were already subtracted when they were paused.
+      const perSociety: Record<string, { residents: number; vehicles: number }> = {};
+      deleted.forEach(r => {
+        if (r.status !== 'active') return;
+        const s = (perSociety[r.societyId] ??= { residents: 0, vehicles: 0 });
+        s.residents += 1;
+        s.vehicles += r.cars?.length ?? 1;
+      });
+      Object.entries(perSociety).forEach(([societyId, s]) => {
+        updateDoc(doc(db, 'societies', societyId), {
+          activeResidents: increment(-s.residents),
+          vehicleCount:    increment(-s.vehicles),
+        }).catch(err => console.warn('[CustomerEnrollments] society counter update failed:', err));
+      });
+
+      const failed = toRemove.length - deleted.length;
+      if (failed > 0) {
+        setSelectedIds(new Set(toRemove.filter((_, i) => results[i].status === 'rejected').map(r => r.id)));
+        setRemoveError(`${failed} customer${failed !== 1 ? 's' : ''} could not be removed. Try again.`);
+      } else {
+        exitSelectMode();
+      }
+    } finally {
+      setRemoving(false);
+    }
+  }
+
   const filtered = records.filter(r => {
     if (filterStatus !== 'all' && r.paymentStatus !== filterStatus) return false;
     if (!searchTerm) return true;
@@ -1060,21 +1119,71 @@ export default function CustomerEnrollmentsPage() {
             View all enrolled customers, track payment status, and manage monthly billing
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setAddOpen(true)}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8,
-            padding: '10px 20px', borderRadius: 999,
-            background: 'var(--pc-warm)', border: 'none',
-            fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600,
-            color: 'var(--pc-ink)', cursor: 'pointer',
-          }}
-        >
-          <Icon name="plus" size={14} color="var(--pc-ink)" />
-          Add customer
-        </button>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+          {selectMode ? (
+            <>
+              <button
+                type="button"
+                onClick={exitSelectMode}
+                style={{
+                  padding: '10px 20px', borderRadius: 999,
+                  background: 'transparent', border: '1px solid var(--pc-line)',
+                  fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)', cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={selectedIds.size === 0}
+                onClick={() => setConfirmRemoveOpen(true)}
+                style={{
+                  padding: '10px 20px', borderRadius: 999,
+                  background: 'transparent', border: '1px solid var(--pc-danger)',
+                  fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600,
+                  color: 'var(--pc-danger)',
+                  cursor: selectedIds.size === 0 ? 'not-allowed' : 'pointer',
+                  opacity: selectedIds.size === 0 ? 0.5 : 1,
+                }}
+              >
+                Remove selected ({selectedIds.size})
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => setSelectMode(true)}
+                disabled={loading || records.length === 0}
+                style={{
+                  padding: '10px 20px', borderRadius: 999,
+                  background: 'transparent', border: '1px solid var(--pc-line)',
+                  fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)', cursor: 'pointer',
+                }}
+              >
+                Remove customers
+              </button>
+              <button
+                type="button"
+                onClick={() => setAddOpen(true)}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 8,
+                  padding: '10px 20px', borderRadius: 999,
+                  background: 'var(--pc-warm)', border: 'none',
+                  fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600,
+                  color: 'var(--pc-ink)', cursor: 'pointer',
+                }}
+              >
+                <Icon name="plus" size={14} color="var(--pc-ink)" />
+                Add customer
+              </button>
+            </>
+          )}
+        </div>
       </div>
+      {removeError && (
+        <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-danger)', margin: 0 }}>{removeError}</p>
+      )}
 
       {/* Stats */}
       <div className="kpi-grid-4">
@@ -1256,6 +1365,17 @@ export default function CustomerEnrollmentsPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--pc-line)' }}>
+                  {selectMode && (
+                    <th style={{ padding: '13px 0 13px 18px', width: 24 }}>
+                      <input
+                        type="checkbox"
+                        aria-label="Select all shown customers"
+                        checked={filtered.length > 0 && filtered.every(r => selectedIds.has(r.id))}
+                        onChange={e => setSelectedIds(e.target.checked ? new Set(filtered.map(r => r.id)) : new Set())}
+                        style={{ cursor: 'pointer', accentColor: 'var(--pc-sage)' }}
+                      />
+                    </th>
+                  )}
                   {['Customer', 'Society', 'Tower', 'Car', 'Cleaned (mo.)', 'Status', 'Payment', 'Next Billing', 'Action'].map(h => (
                     <th
                       key={h}
@@ -1278,6 +1398,17 @@ export default function CustomerEnrollmentsPage() {
               <tbody>
                 {filtered.map((record, idx) => (
                   <tr key={record.id} style={{ borderBottom: idx < filtered.length - 1 ? '1px solid var(--pc-line)' : 'none' }}>
+                    {selectMode && (
+                      <td style={{ padding: '13px 0 13px 18px', width: 24 }}>
+                        <input
+                          type="checkbox"
+                          aria-label={`Select ${record.customerName ?? record.customerId}`}
+                          checked={selectedIds.has(record.id)}
+                          onChange={() => toggleSelected(record.id)}
+                          style={{ cursor: 'pointer', accentColor: 'var(--pc-sage)' }}
+                        />
+                      </td>
+                    )}
                     <td style={{ padding: '13px 18px' }}>
                       <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 500, color: 'var(--pc-fg)', margin: 0 }}>
                         {record.customerName ?? '—'}
@@ -1466,6 +1597,59 @@ export default function CustomerEnrollmentsPage() {
                   fontSize: 13,
                   color: 'var(--pc-fg-3)',
                   cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Remove confirmation modal */}
+      {confirmRemoveOpen && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 200, background: 'var(--pc-ink-scrim)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+          }}
+          onClick={() => !removing && setConfirmRemoveOpen(false)}
+        >
+          <div
+            style={{
+              background: 'var(--pc-card)', borderRadius: 16, border: '1px solid var(--pc-line)',
+              padding: 'clamp(16px,5vw,28px)', width: '100%', maxWidth: 380,
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <h2 style={{ fontFamily: 'var(--pc-serif)', fontSize: 20, fontWeight: 400, color: 'var(--pc-fg)', margin: '0 0 12px' }}>
+              Remove {selectedIds.size} customer{selectedIds.size !== 1 ? 's' : ''}
+            </h2>
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, color: 'var(--pc-fg-2)', margin: '0 0 20px', lineHeight: 1.5 }}>
+              This permanently deletes their enrollment and stops all future cleanings and billing. This cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                type="button"
+                disabled={removing}
+                onClick={handleRemoveSelected}
+                style={{
+                  flex: 1, padding: '11px 0', borderRadius: 999,
+                  background: 'var(--pc-danger)', border: 'none',
+                  fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600,
+                  color: '#fff', cursor: removing ? 'wait' : 'pointer', opacity: removing ? 0.7 : 1,
+                }}
+              >
+                {removing ? 'Removing…' : 'Remove'}
+              </button>
+              <button
+                type="button"
+                disabled={removing}
+                onClick={() => setConfirmRemoveOpen(false)}
+                style={{
+                  flex: 1, padding: '11px 0', borderRadius: 999,
+                  background: 'transparent', border: '1px solid currentColor',
+                  fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)', cursor: 'pointer',
                 }}
               >
                 Cancel
