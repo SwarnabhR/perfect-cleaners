@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, FlatList, ActivityIndicator, StyleSheet, Linking, RefreshControl,
+  View, Text, TextInput, TouchableOpacity, FlatList, ActivityIndicator, StyleSheet, Linking, RefreshControl, Alert,
 } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import { Phone } from 'lucide-react-native';
@@ -8,6 +8,7 @@ import { typography, spacing, radii } from '@pc/tokens';
 import AdminScreen from '../../../components/AdminScreen';
 import { useThemeColors } from '../../../theme';
 import { formatClock } from '../../../lib/sessions';
+import { adminPost } from '../../../lib/webApi';
 
 type Segment = 'customers' | 'workers';
 type StatusFilter = 'active' | 'pending' | 'paused' | 'inactive';
@@ -38,6 +39,9 @@ export default function PeopleScreen() {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [openId, setOpenId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState({ name: '', phone: '', unit: '', parkingNumber: '', parkingLevel: '' });
+  const [saving, setSaving] = useState(false);
 
   // Residents can run to thousands of docs, so they are fetched once per status
   // (pull to refresh) rather than held open as a live listener.
@@ -63,6 +67,61 @@ export default function PeopleScreen() {
       err => setError(err.message),
     );
   }, []);
+
+  function startEdit(r: Resident) {
+    setEditingId(r.id);
+    setForm({
+      name: r.customerName ?? '',
+      phone: (r.customerPhone ?? '').replace(/\D/g, '').slice(-10),
+      unit: r.unitNumber ?? '',
+      parkingNumber: r.parkingNumber ?? '',
+      parkingLevel: r.parkingLevel ?? '',
+    });
+  }
+
+  async function saveEdit(r: Resident) {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await adminPost('/api/admin/update-society-record', {
+        recordId: r.id,
+        changes: {
+          customerName: form.name, customerPhone: form.phone, unitNumber: form.unit,
+          parkingNumber: form.parkingNumber, parkingLevel: form.parkingLevel,
+        },
+      });
+      setEditingId(null);
+      await loadResidents(status);
+    } catch (err) {
+      Alert.alert('Could not save', err instanceof Error ? err.message : 'Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function togglePause(r: Resident) {
+    const next = r.status === 'active' ? 'paused' : 'active';
+    Alert.alert(
+      next === 'paused' ? 'Pause customer' : 'Reactivate customer',
+      next === 'paused'
+        ? `Pause ${r.customerName ?? 'this customer'}? Cleanings already scheduled are not removed.`
+        : `Reactivate ${r.customerName ?? 'this customer'}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: next === 'paused' ? 'Pause' : 'Reactivate',
+          onPress: async () => {
+            try {
+              await adminPost('/api/admin/update-society-record', { recordId: r.id, changes: { status: next } });
+              await loadResidents(status);
+            } catch (err) {
+              Alert.alert('Could not update', err instanceof Error ? err.message : 'Please try again.');
+            }
+          },
+        },
+      ],
+    );
+  }
 
   const q = search.trim().toLowerCase();
   const match = (...vals: (string | undefined)[]) => !q || vals.some(v => (v ?? '').toLowerCase().includes(q));
@@ -173,6 +232,51 @@ export default function PeopleScreen() {
                     <Text style={[s.meta, { color: c.fg2 }]}>
                       {typeof r.monthlyFee === 'number' ? `₹${r.monthlyFee.toLocaleString('en-IN')} / ${r.tier ?? 'standard'}` : ''}
                     </Text>
+
+                    {editingId === r.id ? (
+                      <View style={{ gap: spacing[2], marginTop: spacing[2] }}>
+                        {([
+                          ['name', 'Name', 'default'], ['phone', 'Phone (10 digits)', 'number-pad'], ['unit', 'Flat / unit', 'default'],
+                          ['parkingNumber', 'Parking slot (optional)', 'default'], ['parkingLevel', 'Parking level (optional)', 'default'],
+                        ] as const).map(([key, label, kb]) => (
+                          <TextInput
+                            key={key}
+                            style={[s.input, { backgroundColor: c.inkRaised, borderColor: c.lineStrong, color: c.fg }]}
+                            value={form[key]}
+                            onChangeText={t => setForm(f => ({ ...f, [key]: key === 'phone' ? t.replace(/\D/g, '').slice(0, 10) : t }))}
+                            placeholder={label}
+                            placeholderTextColor={c.fg4}
+                            keyboardType={kb}
+                            maxLength={key === 'phone' ? 10 : 80}
+                          />
+                        ))}
+                        <View style={s.actions}>
+                          <TouchableOpacity style={[s.btnGhost, { borderColor: c.lineStrong }]} onPress={() => setEditingId(null)} disabled={saving}>
+                            <Text style={[s.btnText, { color: c.fg2 }]}>CANCEL</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[s.btnPrimary, { backgroundColor: c.warm, opacity: saving || !form.name.trim() || !form.unit.trim() || form.phone.length !== 10 ? 0.4 : 1 }]}
+                            onPress={() => saveEdit(r)}
+                            disabled={saving || !form.name.trim() || !form.unit.trim() || form.phone.length !== 10}
+                          >
+                            <Text style={[s.btnText, { color: c.ink }]}>{saving ? 'SAVING...' : 'SAVE'}</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ) : (
+                      <View style={s.actions}>
+                        {r.status === 'active' || r.status === 'paused' ? (
+                          <TouchableOpacity style={[s.btnGhost, { borderColor: c.lineStrong }]} onPress={() => togglePause(r)}>
+                            <Text style={[s.btnText, { color: r.status === 'active' ? c.warning : c.success }]}>
+                              {r.status === 'active' ? 'PAUSE' : 'REACTIVATE'}
+                            </Text>
+                          </TouchableOpacity>
+                        ) : null}
+                        <TouchableOpacity style={[s.btnPrimary, { backgroundColor: c.warm }]} onPress={() => startEdit(r)}>
+                          <Text style={[s.btnText, { color: c.ink }]}>EDIT DETAILS</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
                   </View>
                 ) : null}
               </TouchableOpacity>
@@ -230,4 +334,8 @@ const s = StyleSheet.create({
   input:      { borderWidth: 1, borderRadius: radii.sm, paddingHorizontal: spacing[3], height: 48, fontFamily: typography.sans, fontSize: 14 },
   call:       { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   detail:     { borderTopWidth: 1, marginTop: spacing[2], paddingTop: spacing[2], gap: 4 },
+  actions:    { flexDirection: 'row', gap: 10, marginTop: spacing[2] },
+  btnGhost:   { flex: 1, borderWidth: 1, borderRadius: radii.pill, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  btnPrimary: { flex: 1.4, borderRadius: radii.pill, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  btnText:    { fontFamily: typography.sansSemiBold, fontSize: 12, letterSpacing: 0.6 },
 });
