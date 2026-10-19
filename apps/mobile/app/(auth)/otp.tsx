@@ -2,7 +2,6 @@ import { useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 import { getPendingConfirmation, setPendingConfirmation } from '../../auth-state';
 import { spacing, radii } from '@pc/tokens';
@@ -10,6 +9,7 @@ import { useThemeColors } from '../../theme';
 import { useSharedStyles } from '../../theme/sharedStyles';
 import AuthScreenShell from '../../components/AuthScreenShell';
 import BackButton from '../../components/BackButton';
+import { cacheRole, resolveRole } from '../../lib/role';
 
 const OTP_LEN = 6;
 
@@ -68,11 +68,10 @@ export default function OTPScreen() {
       // Use uid from the now-confirmed auth session
       const uid = auth().currentUser?.uid;
       if (uid) {
-        const workerSnap = await firestore().collection('workers').doc(uid).get();
-        if (Boolean(workerSnap.exists)) {
-          await AsyncStorage.setItem('@pc/role', 'worker');
-          await AsyncStorage.setItem('@pc/onboarding', 'done');
-          router.replace('/(worker)/(tabs)');
+        const staffRole = await resolveRole(uid);
+        if (staffRole !== 'customer') {
+          await cacheRole(staffRole);
+          router.replace(staffRole === 'admin' ? '/(admin)/(tabs)' : '/(worker)/(tabs)');
           return;
         }
       }

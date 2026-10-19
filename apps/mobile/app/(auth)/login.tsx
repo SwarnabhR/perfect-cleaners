@@ -88,6 +88,10 @@ export default function LoginScreen() {
         <Text style={[s.disclaimer, { color: c.fg4 }]}>
           By continuing you agree to our Terms of Service and Privacy Policy.
         </Text>
+
+        <TouchableOpacity onPress={() => router.push('/(auth)/admin-login')} activeOpacity={0.7} style={s.adminLink}>
+          <Text style={[s.adminLinkText, { color: c.fg3 }]}>ADMIN SIGN IN</Text>
+        </TouchableOpacity>
       </View>
 
       {__DEV__ && (
@@ -116,6 +120,8 @@ const s = StyleSheet.create({
   prefixText:  { fontFamily: 'Inter Tight', fontSize: 16 },
   phoneInput:  { flex: 1, height: 48 },
   disclaimer:  { fontFamily: 'Inter Tight', fontSize: 11, textAlign: 'center', marginTop: 4 },
+  adminLink:     { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  adminLinkText: { fontFamily: 'JetBrains Mono', fontSize: 11, letterSpacing: 1 },
   // DEV panel — hardcoded orange tones intentional (debug UI, not themed)
   devPanel:    { borderWidth: 1, borderColor: 'rgba(255,100,0,0.3)', borderRadius: radii.md, padding: spacing[4], gap: spacing[2], backgroundColor: 'rgba(255,80,0,0.05)' },
   devLabel:    { fontFamily: 'JetBrains Mono', fontSize: 9, color: 'rgba(255,120,0,0.6)', letterSpacing: 1.2, textTransform: 'uppercase' },

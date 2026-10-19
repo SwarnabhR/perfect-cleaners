@@ -4,12 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## ⚠️ Current Focus
 
-**`apps/mobile/` is frozen except for:** Society cleaning program features (self-signup, unavailability management, real-time car list). All other mobile work must stop until society system is complete.
+**Active Development: the Android staff app (workers + admin) in `apps/mobile/`.** The customer screens (`(customer)`, `(onboarding)`) stay in place but are dormant — do not extend them.
 
-**Active Development:**
-- `apps/web/` — Admin dashboard for society management + billing
-- `packages/firebase/src/types.ts` — New society data models
-- `apps/mobile/` (society features only) — Customer self-signup, worker real-time UI
+- `apps/mobile/app/(worker)/` — worker dashboard, tower detail with live car list, job flow
+- `apps/mobile/app/(admin)/` — NEW admin area (role-gated, tabs: Schedule, Approvals, Billing, People). Admin sign-in is username + password via `/(auth)/admin-login` (resolves the username through the web `/api/admin/resolve-username`, base URL `EXPO_PUBLIC_WEB_API_URL`); admin status is the existence of `admins/{uid}`.
+- Role routing lives in `apps/mobile/lib/role.ts` (`resolveRole`: `admins/{uid}` → admin, `workers/{uid}` → worker, else customer).
+- `apps/web/` and `packages/firebase/src/types.ts` — maintained as needed to support the staff app.
+
+Note: the mobile app is currently light-only (see `apps/mobile/theme/index.tsx`), not dark-only as the design-system section below says.
 
 ## What This Project Is
 

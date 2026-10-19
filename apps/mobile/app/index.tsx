@@ -7,6 +7,7 @@ import firestore from '@react-native-firebase/firestore';
 import { typography } from '@pc/tokens';
 import { useThemeColors } from '../theme';
 import BrandLogo from '../components/BrandLogo';
+import { cacheRole, resolveRole } from '../lib/role';
 
 const KEY_ONBOARDING = '@pc/onboarding';
 const KEY_ROLE       = '@pc/role';
@@ -37,6 +38,14 @@ export default function Index() {
           return;
         }
 
+        // Fresh install or cleared storage: staff are identified by admins/{uid} or workers/{uid}.
+        const staffRole = await resolveRole(user.uid);
+        if (staffRole !== 'customer') {
+          await cacheRole(staffRole);
+          routeByRole(staffRole);
+          return;
+        }
+
         const snap = await firestore().collection('customers').doc(user.uid).get();
         if (Boolean(snap.exists)) {
           const data = snap.data()!;
@@ -60,7 +69,8 @@ export default function Index() {
   }, []);
 
   function routeByRole(role: string) {
-    router.replace(role === 'worker' ? '/(worker)/(tabs)' : '/(customer)/(tabs)');
+    if (role === 'admin') router.replace('/(admin)/(tabs)');
+    else router.replace(role === 'worker' ? '/(worker)/(tabs)' : '/(customer)/(tabs)');
   }
 
   const s = StyleSheet.create({
