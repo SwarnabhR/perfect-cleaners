@@ -345,7 +345,13 @@ export default function CleaningScheduleScreen() {
   async function rateLog(logId: string, rating: number) {
     setRatingLogId(logId);
     try {
-      await firestore().collection('cleaningLogs').doc(logId).update({ rating });
+      const token = await auth().currentUser?.getIdToken();
+      const response = await fetch(`${process.env.EXPO_PUBLIC_WEB_API_URL ?? 'https://perfectcleaners.co.in'}/api/cleaning-log/rate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ logId, rating }),
+      });
+      if (!response.ok) throw new Error((await response.json().catch(() => ({}))).error ?? 'Failed to submit rating.');
       setLogs(prev => prev.map(l => l.id === logId ? { ...l, rating } : l));
     } catch (err: any) {
       Alert.alert('Error', err?.message ?? 'Failed to submit rating.');

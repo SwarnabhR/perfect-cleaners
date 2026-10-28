@@ -57,27 +57,17 @@ export default function SupportChatScreen() {
       .doc(uid)
       .collection('messages');
 
-    // Seed the greeting on first open if chat is empty
-    chatRef.limit(1).get().then(snap => {
-      if (snap.empty) {
-        chatRef.add({
-          from:      'agent',
-          text:      GREETING.text,
-          createdAt: firestore.FieldValue.serverTimestamp(),
-        });
-      }
-    });
-
     return chatRef
       .orderBy('createdAt', 'asc')
       .onSnapshot(
         snap => {
-          setMessages(snap.docs.map(d => ({
+          const loaded = snap.docs.map(d => ({
             id:   d.id,
             from: d.data().from,
             text: d.data().text,
             time: formatTime(d.data().createdAt),
-          })));
+          }));
+          setMessages(loaded.length ? loaded : [{ id: 'greeting', ...GREETING }]);
           setTimeout(() => listRef.current?.scrollToEnd({ animated: false }), 50);
         },
         err => console.warn('[SupportChat]', err.message),

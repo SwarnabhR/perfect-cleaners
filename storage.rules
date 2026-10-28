@@ -2,16 +2,28 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Before/after photos — authenticated users can read; only registered
-    // workers may write (verified via Firestore workers/{uid} existence).
+    // Booking photos are visible only to the customer, assigned worker, or
+    // admin. Only a worker assigned to the booking may upload them.
     match /bookings/{bookingId}/{allPaths=**} {
-      allow read:  if request.auth != null;
-      allow write: if request.auth != null
+      function bookingPath() {
+        return /databases/(default)/documents/bookings/$(bookingId);
+      }
+      function bookingExists() { return firestore.exists(bookingPath()); }
+      function bookingData() { return firestore.get(bookingPath()).data; }
+      function isAdmin() {
+        return request.auth != null
+          && firestore.exists(/databases/(default)/documents/admins/$(request.auth.uid))
+          && (!('role' in firestore.get(/databases/(default)/documents/admins/$(request.auth.uid)).data)
+            || firestore.get(/databases/(default)/documents/admins/$(request.auth.uid)).data.role in ['owner', 'operations', 'support']);
+      }
+      allow read: if request.auth != null && bookingExists()
+        && (bookingData().customerId == request.auth.uid
+          || bookingData().workerId == request.auth.uid || isAdmin());
+      allow write: if request.auth != null && bookingExists()
+                   && bookingData().workerId == request.auth.uid
                    && request.resource.size < 10 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*')
-                   && firestore.exists(
-                        /databases/(default)/documents/workers/$(request.auth.uid)
-                      );
+                   && firestore.exists(/databases/(default)/documents/workers/$(request.auth.uid));
     }
 
     // Worker/customer avatars — public read, own write only

@@ -35,16 +35,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'OTP verification failed. Please try again.' }, { status: 400 });
     }
 
-    // If MSG91 returns a mobile number, verify it matches the submitted phone.
-    // If absent (MSG91 doesn't always include it), trust the verified token and proceed.
+    // Bind the verified token to the requested account. A token without a
+    // returned phone cannot safely authenticate the submitted number.
     const returnedMobile = String(verifyData.mobile ?? '').replace(/\D/g, '');
     const expectedMobile = `91${phone}`;
-    if (returnedMobile && returnedMobile !== expectedMobile) {
-      console.error('[verify-otp] phone binding mismatch:', { returnedMobile, expectedMobile });
+    if (!returnedMobile || returnedMobile !== expectedMobile) {
+      console.error('[verify-otp] phone binding failed');
       return NextResponse.json({ error: 'Phone verification failed.' }, { status: 400 });
-    }
-    if (!returnedMobile) {
-      console.warn('[verify-otp] MSG91 did not return mobile field — proceeding without binding check');
     }
 
     // Find or create the Firebase Auth user for this phone number

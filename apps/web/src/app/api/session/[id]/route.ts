@@ -4,6 +4,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { adminFirestore, adminAuth } from '@/lib/firebase/admin';
 import { sendAndStoreSMS } from '@/lib/notify-sms';
 import { startOfIstDay } from '@pc/firebase';
+import { requireAdmin } from '@/lib/admin-server-auth';
 
 /**
  * Is this session scheduled for a calendar day that hasn't arrived yet?
@@ -48,8 +49,9 @@ export async function GET(
     const workerIds = (data.workerIds as string[] | undefined) ?? [];
     const isAssignedWorker = workerIds.includes(decoded.uid);
     if (!isAssignedWorker) {
-      const adminSnap = await db.collection('admins').doc(decoded.uid).get();
-      if (!adminSnap.exists) {
+      try {
+        await requireAdmin(bearer, ['operations']);
+      } catch {
         return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
       }
     }
@@ -103,8 +105,15 @@ export async function POST(
 
     const db = adminFirestore();
     const workerSnap = await db.collection('workers').doc(workerId).get();
-    const adminSnap = workerSnap.exists ? null : await db.collection('admins').doc(workerId).get();
-    const isAdmin = !!adminSnap?.exists;
+    let isAdmin = false;
+    if (!workerSnap.exists) {
+      try {
+        await requireAdmin(bearer, ['operations']);
+        isAdmin = true;
+      } catch {
+        isAdmin = false;
+      }
+    }
     if (!workerSnap.exists && !isAdmin) {
       return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
     }
@@ -127,6 +136,34 @@ export async function POST(
 
     const body   = await req.json();
     const action = body.action;
+
+    if (action === 'start_car') {
+      const customerId = typeof body.customerId === 'string' ? body.customerId : '';
+      const carPlate = typeof body.carPlate === 'string' ? body.carPlate.trim() : '';
+      const serviceKey = body.service === 'deep-clean' ? 'deepClean' : 'wash';
+      if (!customerId) return NextResponse.json({ error: 'customerId is required.' }, { status: 400 });
+      await db.runTransaction(async t => {
+        const snap = await t.get(ref);
+        if (!snap.exists) throw new Error('NOT_FOUND');
+        const data = snap.data()!;
+        if (isFutureDay(data.scheduledDate)) throw new Error('CAR_NOT_DUE_YET');
+        const cars = (data.cars as Record<string, unknown>[] | undefined) ?? [];
+        const index = cars.findIndex(car => car.customerId === customerId
+          && (carPlate ? String(car.carPlate ?? '').trim() === carPlate : true));
+        if (index < 0) throw new Error('CAR_NOT_FOUND');
+        const car = cars[index];
+        if (car.unavailable || car.status === 'skipped') throw new Error('CAR_UNAVAILABLE');
+        const legacyService = data.sessionType === 'deep-clean' ? 'deepClean' : 'wash';
+        const services = (car.services as Record<string, Record<string, unknown>> | undefined)
+          ?? { [legacyService]: { status: car.status } };
+        const task = services[serviceKey];
+        if (!task || task.status !== 'pending') return;
+        const updated = cars.slice();
+        updated[index] = { ...car, services: { ...services, [serviceKey]: { ...task, status: 'in_progress' } } };
+        t.update(ref, { cars: updated, updatedAt: FieldValue.serverTimestamp() });
+      });
+      return NextResponse.json({ ok: true });
+    }
 
     if (action === 'clean_car') {
       const customerId = body.customerId as string | undefined;
@@ -625,6 +662,12 @@ export async function POST(
     }
     if (err instanceof Error && err.message === 'CAR_NOT_FOUND') {
       return NextResponse.json({ error: 'Car not found or already cleaned.' }, { status: 400 });
+    }
+    if (err instanceof Error && err.message === 'CAR_NOT_DUE_YET') {
+      return NextResponse.json({ error: 'This car is scheduled for a later day — you can tick it on that day.' }, { status: 400 });
+    }
+    if (err instanceof Error && err.message === 'CAR_UNAVAILABLE') {
+      return NextResponse.json({ error: 'This car was marked not available today.' }, { status: 400 });
     }
     if (err instanceof Error && err.message === 'SERVICE_NOT_SCHEDULED') {
       return NextResponse.json({ error: 'This service is not scheduled for this car on this date.' }, { status: 400 });

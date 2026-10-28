@@ -159,33 +159,18 @@ export default function TowerDetail() {
       });
   }, [uid, societyId, tower]);
 
-  // A session's cars[] is an ARRAY field — Firestore's dot-path update
-  // ('cars.0.status') does NOT address array elements the way it addresses
-  // nested map fields. It silently replaces the entire `cars` field with a map
-  // keyed by that path segment, destroying every other car. The only safe way to
-  // change one element is to rewrite the whole array.
-  //
-  // Online: transactional read-modify-write, so a concurrent worker editing the
-  // same session can't be clobbered. Offline: Firestore can't run a transaction
-  // without a server round-trip, so we read the *cached* session and issue a
-  // plain (queueable) update instead — simultaneous offline edits are
-  // last-write-wins, reconciled when the write replays on reconnect.
   const markCleaning = useCallback(async (car: SessionCar) => {
-    const sessionRef = firestore().collection('cleaningSessions').doc(car.sessionId);
-    await firestore().runTransaction(async transaction => {
-      const snap = await transaction.get(sessionRef);
-      const sessionCars = (snap.data()?.cars ?? []) as CleaningSessionCar[];
-      const current = sessionCars[car.carIndex];
-      if (!current) throw new Error('This vehicle is no longer on the session.');
-      const legacyService = (snap.data()?.sessionType as string | undefined) === 'deep-clean' ? 'deepClean' : 'wash';
-      const serviceKey = car.service === 'deep-clean' ? 'deepClean' : 'wash';
-      const services = current.services ?? { [legacyService]: { status: current.status } };
-      const task = services[serviceKey];
-      if (!task || task.status !== 'pending') return;
-      const updatedCars = sessionCars.slice();
-      updatedCars[car.carIndex] = { ...current, services: { ...services, [serviceKey]: { ...task, status: 'in_progress' } } };
-      transaction.update(sessionRef, { cars: updatedCars, updatedAt: firestore.FieldValue.serverTimestamp() });
-    }).catch(err => Alert.alert('Unable to start', err instanceof Error ? err.message : 'Try again.'));
+    try {
+      const token = await auth().currentUser?.getIdToken();
+      const response = await fetch(`${process.env.EXPO_PUBLIC_WEB_API_URL ?? 'https://perfectcleaners.co.in'}/api/session/${car.sessionId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: 'start_car', customerId: car.customerId, carPlate: car.carPlate, service: car.service }),
+      });
+      if (!response.ok) throw new Error((await response.json().catch(() => ({}))).error ?? 'Try again.');
+    } catch (err) {
+      Alert.alert('Unable to start', err instanceof Error ? err.message : 'Try again.');
+    }
   }, []);
 
   const markDone = useCallback(async (car: SessionCar) => {

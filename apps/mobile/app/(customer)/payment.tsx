@@ -144,13 +144,6 @@ export default function PaymentSheet() {
     };
     try {
       const data = await RazorpayCheckout.open(options);
-      if (bookingId && promoApplied) {
-        await firestore().collection('bookings').doc(bookingId).update({
-          promoCode:    promoApplied.code,
-          promoDiscount: promoApplied.discount,
-          updatedAt:    firestore.FieldValue.serverTimestamp(),
-        });
-      }
       router.push({
         pathname: '/(customer)/payment-success',
         params: {

@@ -30,6 +30,7 @@ service cloud.firestore {
     function canOperate() { return hasAdminRole('operations'); }
     function canBill() { return hasAdminRole('billing'); }
     function canSupport() { return hasAdminRole('support'); }
+    function canViewCustomerData() { return canOperate() || canBill() || canSupport(); }
 
     function isOwner(uid) {
       return isSignedIn() && request.auth.uid == uid;
@@ -58,14 +59,14 @@ service cloud.firestore {
 
     // Immutable server-written accountability records.
     match /adminAuditLogs/{logId} {
-      allow read: if isAdmin();
+      allow read: if canOperate();
       allow write: if false;
     }
 
     // Runtime health is written by server cron wrappers. Admins may inspect it
     // but cannot alter the heartbeat or conceal a failed run.
     match /cronHealth/{task} {
-      allow read: if isAdmin();
+      allow read: if canOperate();
       allow write: if false;
     }
 
@@ -76,36 +77,45 @@ service cloud.firestore {
 
     // ── Customers ─────────────────────────────────────────────────────────────
     match /customers/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow create: if isAdmin() || (isOwner(userId)
+      allow read: if isOwner(userId) || canViewCustomerData();
+      allow create: if canOperate() || (isOwner(userId)
         && request.resource.data.phone == request.auth.token.phone_number);
       // Financial, referral and service-status fields are company-managed.
       // Customers may change only their contact/profile preferences.
-      allow update: if isAdmin() || (isOwner(userId)
+      allow update: if canOperate() || (isOwner(userId)
         && request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['name', 'email', 'phone', 'vehicles', 'fcmToken', 'updatedAt']));
-      allow delete: if isAdmin();
+      allow delete: if canOperate();
 
       match /addresses/{addressId} {
-        allow read, write: if isOwner(userId) || isAdmin();
+        allow read, write: if isOwner(userId) || canViewCustomerData();
       }
 
       match /paymentMethods/{methodId} {
-        allow read, write: if isOwner(userId) || isAdmin();
+        allow read: if isOwner(userId) || canViewCustomerData();
+        allow create: if isOwner(userId)
+          && request.resource.data.keys().hasOnly(['last4', 'brand', 'name', 'expiry', 'createdAt'])
+          && request.resource.data.last4 is string
+          && request.resource.data.last4.matches('^[0-9]{4}$')
+          && request.resource.data.brand in ['visa', 'mastercard', 'rupay', 'amex']
+          && request.resource.data.name is string && request.resource.data.name.size() <= 80
+          && request.resource.data.expiry is string && request.resource.data.expiry.size() <= 7;
+        allow update: if false;
+        allow delete: if isOwner(userId) || canOperate();
       }
 
       match /notifications/{notifId} {
-        allow read:   if isOwner(userId) || isAdmin();
-        allow update: if isOwner(userId) || isAdmin(); // mark read / clear
-        allow create: if isAdmin();                    // written by Cloud Functions only
-        allow delete: if isOwner(userId) || isAdmin();
+        allow read:   if isOwner(userId) || canViewCustomerData();
+        allow update: if isOwner(userId) || canViewCustomerData(); // mark read / clear
+        allow create: if canOperate();              // written by Cloud Functions only
+        allow delete: if isOwner(userId) || canViewCustomerData();
       }
 
       // Billing transactions — written by Cloud Functions (Admin SDK bypasses
       // rules); customers can read their own history but never write directly.
       match /transactions/{txId} {
-        allow read:  if isOwner(userId) || isAdmin();
-        allow write: if isAdmin();
+        allow read:  if isOwner(userId) || canViewCustomerData();
+        allow write: if canOperate();
       }
     }
 
@@ -117,29 +127,29 @@ service cloud.firestore {
       // isOwner: doc ID == UID (workers created via the API)
       // phone match: fallback for docs whose ID is not the UID (manually created)
       allow read:           if isOwner(workerId)
-        || isAdmin()
+        || canOperate()
         || (isSignedIn() && resource.data.phone == request.auth.token.phone_number);
-      allow create, delete: if isAdmin();
+      allow create, delete: if canOperate();
       // Workers may update only their own operational/preference fields.  Keep
       // assignments, ratings, earnings and all company-managed fields admin-only.
       // totalJobs (a stat) is written exclusively by the server-side API
       // (job-complete route) — never by the client SDK.
-      allow update:         if isAdmin()
+      allow update:         if canOperate()
         || (isOwner(workerId)
             && request.resource.data.diff(resource.data)
                   .affectedKeys()
                   .hasOnly(['isOnline', 'fcmToken', 'name', 'phone', 'email', 'updatedAt']));
 
       match /notifications/{notifId} {
-        allow read:   if isOwner(workerId) || isAdmin();
-        allow update: if isOwner(workerId) || isAdmin();
-        allow create: if isAdmin();
-        allow delete: if isOwner(workerId) || isAdmin();
+        allow read:   if isOwner(workerId) || canOperate();
+        allow update: if isOwner(workerId) || canOperate();
+        allow create: if canOperate();
+        allow delete: if isOwner(workerId) || canOperate();
       }
 
       // Worker-owned address book — used by the worker web profile page.
       match /addresses/{addressId} {
-        allow read, write: if isOwner(workerId) || isAdmin();
+        allow read, write: if isOwner(workerId) || canOperate();
       }
     }
 
@@ -148,26 +158,58 @@ service cloud.firestore {
       // Customers see their own bookings (matched by UID or phone number).
       // The phone-number path supports the web account page + mobile bookings
       // tab, which both query  where('customerPhone', '==', user.phoneNumber).
-      allow read: if isBookingCustomer() || isAssignedWorker() || isAdmin();
+      allow read: if isBookingCustomer() || isAssignedWorker() || canViewCustomerData();
 
       // A booking must belong to the verified caller; client-supplied identity
       // cannot be used to create work for another resident.
-      allow create: if isSignedIn() && (
-        request.resource.data.customerId == request.auth.uid ||
-        request.resource.data.customerPhone == request.auth.token.phone_number
-      );
+      allow create: if isSignedIn()
+        && request.resource.data.keys().hasOnly([
+          'id', 'customerId', 'customerName', 'customerPhone', 'status', 'paymentStatus',
+          'otpCode', 'serviceIds', 'vehicle', 'address', 'priceBreakdown', 'photos',
+          'scheduledAt', 'createdAt', 'updatedAt', 'promoCode', 'promoDiscount'
+        ])
+        && request.resource.data.status == 'pending'
+        && request.resource.data.paymentStatus == 'pending'
+        && request.resource.data.customerPhone == request.auth.token.phone_number
+        && request.resource.data.customerName is string
+        && request.resource.data.customerName.size() <= 100
+        && request.resource.data.serviceIds is list
+        && request.resource.data.serviceIds.size() > 0
+        && request.resource.data.serviceIds.size() <= 5
+        && request.resource.data.priceBreakdown is map
+        && request.resource.data.priceBreakdown.keys().hasOnly(['subtotal', 'tax', 'total'])
+        && request.resource.data.priceBreakdown.total is number
+        && request.resource.data.priceBreakdown.total >= 0
+        && request.resource.data.customerId == request.auth.uid;
 
       // Customers may cancel their own booking (status → cancelled only).
       // Workers may advance status and write checklist / photos / notes.
       // Admins may update anything.
-      allow update: if isAdmin()
-        || isAssignedWorker()
+      allow update: if canOperate()
+        || (isBookingCustomer()
+            && resource.data.status == 'done'
+            && !('review' in resource.data)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['review', 'updatedAt'])
+            && request.resource.data.review is map
+            && request.resource.data.review.keys().hasOnly(['stars', 'tags', 'note', 'label', 'submittedAt'])
+            && request.resource.data.review.stars is number
+            && request.resource.data.review.stars >= 1
+            && request.resource.data.review.stars <= 5
+            && request.resource.data.review.tags is list
+            && request.resource.data.review.tags.size() <= 5
+            && request.resource.data.review.tags.hasOnly([
+              'On-time', 'Spotless finish', 'Polite & professional', 'Careful with paint',
+              'Great communication', 'Smelled fresh', 'Worth every rupee'
+            ])
+            && request.resource.data.review.note is string
+            && request.resource.data.review.note.size() <= 1000)
         || (isBookingCustomer()
             && request.resource.data.diff(resource.data).affectedKeys()
                 .hasOnly(['status', 'updatedAt'])
+            && resource.data.status in ['pending', 'assigned']
             && request.resource.data.status == 'cancelled');
 
-      allow delete: if isAdmin();
+      allow delete: if canOperate();
     }
 
     // ── Services (catalogue) ──────────────────────────────────────────────────
@@ -211,12 +253,12 @@ service cloud.firestore {
     // customerId/updatedAt fields change, so nobody can claim someone else's
     // enrollment or smuggle other field changes in through this path.
     match /customerSocietyRecords/{recordId} {
-      allow read:   if isAdmin()
+      allow read:   if canOperate()
         || (isSignedIn() && resource.data.customerId == request.auth.uid)
         || (isSignedIn() && resource.data.customerPhone == request.auth.token.phone_number);
-      allow create: if isAdmin()
+      allow create: if canOperate()
         || (isSignedIn() && request.resource.data.customerId == request.auth.uid);
-      allow update: if isAdmin()
+      allow update: if canOperate()
         || (isSignedIn()
             && resource.data.customerId == request.auth.uid
             && request.resource.data.diff(resource.data).affectedKeys()
@@ -227,7 +269,7 @@ service cloud.firestore {
             && resource.data.customerPhone == request.auth.token.phone_number
             && request.resource.data.customerId == request.auth.uid
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['customerId', 'updatedAt']));
-      allow delete: if isAdmin();
+      allow delete: if canOperate();
     }
 
     // Self-signup requests awaiting admin review.
@@ -236,7 +278,7 @@ service cloud.firestore {
     match /pendingApprovals/{approvalId} {
       allow create: if isSignedIn()
         && request.resource.data.customerId == request.auth.uid;
-      allow read, update, delete: if isAdmin();
+      allow read, update, delete: if canOperate();
     }
 
     // Tower billing configuration — admin-managed, but readable by any
@@ -246,14 +288,14 @@ service cloud.firestore {
     // scope the read to. Contains only pricing/schedule, nothing sensitive —
     // same reasoning as `societies` below, which is also isSignedIn()-readable.
     match /societyBillingConfig/{docId} {
-      allow read: if isAdmin() || isSignedIn();
+      allow read: if canViewCustomerData() || isSignedIn();
       allow write: if canBill();
     }
 
     // Monthly billing records created by the billing cron (Admin SDK).
     // Admin-only on the client side.
     match /billingRecords/{docId} {
-      allow read: if isAdmin();
+      allow read: if canBill() || canOperate();
       allow write: if canBill();
     }
 
@@ -263,10 +305,11 @@ service cloud.firestore {
     // shape is retired — no session docs or writers use it any more.
     // Admins have full access.  No client-side creates — admin/backend only.
     match /cleaningSessions/{sessionId} {
-      allow read:   if isAdmin()
+      allow read:   if canOperate()
         || (isSignedIn() && ('workerIds' in resource.data) && resource.data.workerIds.hasAny([request.auth.uid]));
-      allow update: if canOperate()
-        || (isSignedIn() && ('workerIds' in resource.data) && resource.data.workerIds.hasAny([request.auth.uid]));
+      // Session arrays contain every resident's personal details. Worker
+      // actions go through the transactional session API, never direct writes.
+      allow update: if canOperate();
       allow create, delete: if canOperate();
     }
 
@@ -275,16 +318,18 @@ service cloud.firestore {
     // Customers may read logs that belong to them (by customerId field).
     // Admins have full access.
     match /cleaningLogs/{logId} {
-      allow read:   if isAdmin()
+      allow read:   if canViewCustomerData()
         || (isSignedIn() && resource.data.customerId == request.auth.uid)
         || (isSignedIn() && resource.data.workerId   == request.auth.uid);
-      allow create: if isAdmin()
+      allow create: if false; // Created by the authenticated server API only.
+      allow update: if canOperate()
         || (isSignedIn()
-          && request.resource.data.workerId   == request.auth.uid
-          && request.resource.data.societyId   is string
-          && request.resource.data.customerId  is string
-          && request.resource.data.cleanedAt   != null);
-      allow update: if canOperate();
+          && resource.data.customerId == request.auth.uid
+          && resource.data.rating == null
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating'])
+          && request.resource.data.rating is number
+          && request.resource.data.rating >= 1
+          && request.resource.data.rating <= 5);
       allow delete: if hasAdminRole('owner');
     }
 
@@ -292,27 +337,39 @@ service cloud.firestore {
     // Written by Cloud Functions and the admin billing page (Mark Paid action).
     // Customers never read this collection directly.
     match /paymentLogs/{logId} {
-      allow read: if isAdmin();
+      allow read: if canBill() || canOperate();
       allow write: if canBill();
     }
 
     // ── Aggregate stats ───────────────────────────────────────────────────────
     // Counters (income, job counts) maintained by Cloud Functions and admin.
     match /stats/{docId} {
-      allow read: if isAdmin();
+      allow read: if canBill() || canOperate();
       allow write: if canBill();
     }
 
     // ── Operator settings ─────────────────────────────────────────────────────
     match /settings/{docId} {
-      allow read: if isAdmin();
+      allow read: if hasAdminRole('owner');
       allow write: if hasAdminRole('owner');
     }
 
     // ── Support chat ──────────────────────────────────────────────────────────
     match /support/{userId}/messages/{msgId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow write: if isOwner(userId) || canSupport();
+      allow read: if isOwner(userId) || canSupport();
+      allow create: if (isOwner(userId)
+          && request.resource.data.keys().hasOnly(['from', 'text', 'createdAt'])
+          && request.resource.data.from == 'customer'
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 1000)
+        || (canSupport()
+          && request.resource.data.keys().hasOnly(['from', 'text', 'createdAt'])
+          && request.resource.data.from == 'agent'
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 1000);
+      allow update, delete: if false;
     }
 
     // ── Contact inquiries ─────────────────────────────────────────────────────
@@ -320,20 +377,20 @@ service cloud.firestore {
     match /contactInquiries/{docId} {
       allow create:      if request.resource.data.name    is string
                          && request.resource.data.message is string;
-      allow read, write: if isAdmin();
+      allow read, write: if canOperate();
     }
 
     // ── App waitlist ──────────────────────────────────────────────────────────
     match /appWaitlist/{docId} {
       allow create:      if request.resource.data.phone    is string
                          && request.resource.data.platform is string;
-      allow read, write: if isAdmin();
+      allow read, write: if canOperate();
     }
 
     // ── Notification history (sent by admin / approval flow) ─────────────────
     // Written by the Admin SDK via /api/notification/send; admin-only read.
     match /notifications/{docId} {
-      allow read: if isAdmin();
+      allow read: if canOperate();
       allow write: if hasAdminRole('owner');
     }
 
