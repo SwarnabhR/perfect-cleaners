@@ -72,14 +72,15 @@ export async function POST(req: NextRequest) {
         if (frequency === 'one-time' && (typeof body.date !== 'string' || !body.date)) {
           return NextResponse.json({ error: 'A date is required for a one-time deep clean.' }, { status: 400 });
         }
-        update.deepCleanFrequency = frequency;
         const configSnap = record.societyId && record.tower
           ? await db.collection('societyBillingConfig').where('societyId', '==', record.societyId).where('tower', '==', record.tower).limit(1).get()
           : null;
         const config = configSnap?.docs[0]?.data();
         const fee = typeof record.deepCleanFee === 'number' && record.deepCleanFee > 0
           ? record.deepCleanFee : (config?.deepClean?.fee as number | undefined) ?? 0;
-        if (fee <= 0) return NextResponse.json({ error: 'Deep cleaning is not currently offered for this customer. Contact the society manager.' }, { status: 400 });
+        if (fee <= 0 && record.deepCleanAvailable !== true) return NextResponse.json({ error: 'Deep cleaning is not currently available for this customer. Contact the society manager.' }, { status: 400 });
+        update.deepCleanFrequency = frequency;
+        if (fee > 0 && typeof record.deepCleanFee !== 'number') update.deepCleanFee = fee;
         if (frequency === 'weekly' && typeof body.day === 'number' && Number.isInteger(body.day) && body.day >= 0 && body.day <= 6) {
           update.deepCleanDay = body.day;
         }

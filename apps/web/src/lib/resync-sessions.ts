@@ -15,8 +15,25 @@ function isSameCalendarDay(a: Date, b: Date): boolean {
 }
 
 function countCars(cars: Record<string, unknown>[]) {
-  const skippedCars = cars.filter(c => c.status === 'skipped').length;
-  return { totalCars: cars.length - skippedCars, skippedCars };
+  const skippedCars = cars.reduce((count, car) => {
+    const services = car.services as Record<string, { status?: string }> | undefined;
+    return count + (services
+      ? Object.values(services).filter(task => task.status === 'skipped').length
+      : car.status === 'skipped' ? 1 : 0);
+  }, 0);
+  const totalCars = cars.reduce((count, car) => {
+    const services = car.services as Record<string, { status?: string }> | undefined;
+    return count + (services
+      ? Object.values(services).filter(task => task.status !== 'skipped').length
+      : car.status === 'skipped' ? 0 : 1);
+  }, 0);
+  const completedCars = cars.reduce((count, car) => {
+    const services = car.services as Record<string, { status?: string }> | undefined;
+    return count + (services
+      ? Object.values(services).filter(task => task.status === 'done').length
+      : car.status === 'done' ? 1 : 0);
+  }, 0);
+  return { totalCars, skippedCars, completedCars };
 }
 
 // Fields the worker sees on a session row — refreshed from the record on every
@@ -86,20 +103,25 @@ export async function resyncUpcomingSessions(
         const frequency = (record as SocietyCarSourceCustomer & { deepCleanFrequency?: string }).deepCleanFrequency ?? 'weekly';
         const oneTimeDate = (record as SocietyCarSourceCustomer & { deepCleanOneTimeScheduledDate?: unknown }).deepCleanOneTimeScheduledDate;
         const oneTimeMatches = oneTimeDate ? isSameCalendarDay(tsToDate(oneTimeDate), scheduledDate) : false;
-        const dateMatchesDeepPlan = frequency === 'one-time'
+        const dateMatchesDeepPlan = record.deepCleanEnabled === true && (frequency === 'one-time'
           ? oneTimeMatches
           : frequency === 'daily'
             ? !record.preferredCleaningDays?.length || record.preferredCleaningDays.includes(scheduledDate.getDay())
-            : typeof record.deepCleanDay !== 'number' || record.deepCleanDay === scheduledDate.getDay();
-        const freshWashCars = buildSessionCarsForCustomer(record, scheduledDate);
+            : typeof record.deepCleanDay !== 'number' || record.deepCleanDay === scheduledDate.getDay());
+        const legacyDeepOnly = data.sessionType === 'deep-clean' && !cars.some(car => car.services);
+        const freshWashCars: Array<Record<string, unknown> & { customerId: string; carPlate: string; services?: Record<string, { status: string }> }> = legacyDeepOnly ? [] : buildSessionCarsForCustomer(record, scheduledDate)
+          .map(car => ({ ...car, services: { wash: { status: car.status === 'skipped' ? 'skipped' as const : 'pending' as const } } }));
         const deepPlanActive = record.deepCleanEnabled === true && dateMatchesDeepPlan;
-        const freshDeepCars = deepPlanActive
-          ? buildSessionCarsForCustomer({ ...record, deepCleanEnabled: true }, scheduledDate, 'deep-clean')
+        const freshDeepCars: Array<Record<string, unknown> & { customerId: string; carPlate: string; services?: Record<string, { status: string }> }> = deepPlanActive
+          ? buildSessionCarsForCustomer({ ...record, preferredCleaningDays: undefined, deepCleanEnabled: true }, scheduledDate, 'deep-clean')
+            .map(car => ({ ...car, services: { deepClean: { status: car.status === 'skipped' ? 'skipped' as const : 'pending' as const } } }))
           : [];
-        const freshCars = data.sessionType === 'deep-clean' ? freshDeepCars : [
-          ...freshWashCars,
-          ...freshDeepCars.filter(deep => !freshWashCars.some(wash => wash.carPlate === deep.carPlate)),
-        ];
+        const freshCars: Array<Record<string, unknown> & { customerId: string; carPlate: string; services?: Record<string, { status: string }> }> = [...freshWashCars];
+        for (const deep of freshDeepCars) {
+          const existing = freshCars.findIndex(wash => wash.customerId === deep.customerId && wash.carPlate === deep.carPlate);
+          if (existing < 0) freshCars.push(deep);
+          else freshCars[existing] = { ...freshCars[existing], services: { ...freshCars[existing].services, ...(deep.services?.deepClean ? { deepClean: deep.services.deepClean } : {}) } };
+        }
         const freshPlates = new Set(freshCars.map(f => f.carPlate));
 
         let updatedCars = cars;
@@ -107,17 +129,29 @@ export async function resyncUpcomingSessions(
 
         // Drop this customer's rows whose vehicle is gone from the record —
         // never remove one a worker has already started or finished.
-        const hasStale = updatedCars.some(c =>
-          c.customerId === record.customerId
-          && !freshPlates.has(c.carPlate as string)
-          && (c.status === 'pending' || c.status === 'skipped'));
-        if (hasStale) {
-          updatedCars = updatedCars.filter(c =>
-            c.customerId !== record.customerId
-            || freshPlates.has(c.carPlate as string)
-            || (c.status !== 'pending' && c.status !== 'skipped'));
-          changed = true;
+        const reconciledCars: Record<string, unknown>[] = [];
+        for (const current of updatedCars) {
+          if (current.customerId !== record.customerId) {
+            reconciledCars.push(current);
+            continue;
+          }
+          const desired = freshCars.find(fresh => fresh.carPlate === current.carPlate);
+          if (!desired) {
+            const services = current.services as Record<string, { status?: string }> | undefined;
+            if (!services) {
+              if (current.status === 'pending' || current.status === 'skipped') { changed = true; continue; }
+              reconciledCars.push(current);
+              continue;
+            }
+            const preserved = Object.fromEntries(Object.entries(services).filter(([, task]) => task.status === 'done' || task.status === 'in_progress' || task.status === 'skipped'));
+            if (Object.keys(preserved).length === 0) { changed = true; continue; }
+            reconciledCars.push({ ...current, services: preserved });
+            if (JSON.stringify(preserved) !== JSON.stringify(services)) changed = true;
+            continue;
+          }
+          reconciledCars.push(current);
         }
+        updatedCars = reconciledCars;
 
         for (const fresh of freshCars) {
           const idx = updatedCars.findIndex(c => c.customerId === fresh.customerId && c.carPlate === fresh.carPlate);
@@ -132,7 +166,20 @@ export async function resyncUpcomingSessions(
           const cur = updatedCars[idx];
           const next: Record<string, unknown> = { ...cur };
           for (const f of MIRRORED_FIELDS) next[f] = fresh[f];
-          if (MIRRORED_FIELDS.some(f => cur[f] !== next[f])) {
+          const currentServices = (cur.services as Record<string, { status?: string; cleanedBy?: string; cleanedAt?: unknown }> | undefined) ?? {};
+          const desiredServices = (fresh.services as Record<string, { status?: string }> | undefined) ?? {};
+          const mergedServices: Record<string, { status?: string; cleanedBy?: string; cleanedAt?: unknown }> = {};
+          for (const key of ['wash', 'deepClean'] as const) {
+            const current = currentServices[key];
+            const desired = desiredServices[key];
+            if (desired) mergedServices[key] = current?.status === 'done'
+              ? current
+              : { ...desired, ...(current?.status === 'in_progress' ? current : {}) };
+            else if (current?.status === 'done' || current?.status === 'in_progress' || current?.status === 'skipped') mergedServices[key] = current;
+          }
+          if (Object.keys(mergedServices).length) next.services = mergedServices;
+          const rowChanged = MIRRORED_FIELDS.some(f => cur[f] !== next[f]) || JSON.stringify(cur.services ?? {}) !== JSON.stringify(next.services ?? {});
+          if (rowChanged) {
             updatedCars = updatedCars.map((c, i) => (i === idx ? next : c));
             changed = true;
           }

@@ -386,7 +386,8 @@ export default function CleaningSchedulePage() {
         setSaving(false);
         return;
       }
-      const skippedCars = cars.filter(c => c.status === 'skipped').length;
+      const skippedCars = cars.reduce((sum, car) => sum + Object.values(car.services ?? {}).filter(task => task.status === 'skipped').length, 0);
+      const totalTasks = cars.reduce((sum, car) => sum + Object.values(car.services ?? {}).filter(task => task.status !== 'skipped').length, 0);
 
       await setDoc(doc(db, 'cleaningSessions', sessionId), {
         societyId: form.societyId.trim(),
@@ -398,7 +399,7 @@ export default function CleaningSchedulePage() {
         cars,
         // Denominator for the "done/total" progress ring is the actual work —
         // skipped cars are shown to the worker but can never be marked done.
-        totalCars: cars.length - skippedCars,
+        totalCars: totalTasks,
         completedCars: 0,
         skippedCars,
         workerIds: form.workerIds,

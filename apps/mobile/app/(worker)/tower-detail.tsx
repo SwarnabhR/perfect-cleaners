@@ -13,7 +13,6 @@ import type { CarUrgency } from '@pc/firebase';
 import { typography, spacing, radii } from '@pc/tokens';
 import { useThemeColors } from '../../theme';
 import { ScreenHeader } from '../../components/RowGroup';
-import { useConnectivity } from '../../lib/connectivity';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -22,6 +21,7 @@ interface SessionCar extends CleaningSessionCar {
   carIndex: number;
   sessionType: 'wash' | 'deep-clean';
   logId?: string;
+  service: 'wash' | 'deep-clean';
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -93,14 +93,16 @@ export default function TowerDetail() {
           if (!isLocalDateMatch(sessionDate, today)) return;
           if (data.societyId !== societyId || data.tower !== tower) return;
 
-          const sessionType: 'wash' | 'deep-clean' = data.sessionType ?? 'wash';
-
           (data.cars ?? []).forEach((car: any, idx: number) => {
             // Skipped (customer opted out today) cars stay off the worker's
             // checklist entirely — nothing here is actionable for them.
-            if (car.status === 'skipped') return;
-
-            towerCars.push({
+            const services = car.services ?? (data.sessionType === 'deep-clean'
+              ? { deepClean: { status: car.status ?? 'pending' } }
+              : { wash: { status: car.status ?? 'pending' } });
+            (['wash', 'deep-clean'] as const).forEach(service => {
+              const serviceTask = service === 'wash' ? services.wash : services.deepClean;
+              if (!serviceTask || serviceTask.status === 'skipped') return;
+              towerCars.push({
               customerId:    car.customerId ?? '',
               customerName:  car.customerName ?? '',
               unitNumber:    car.unitNumber ?? '',
@@ -110,12 +112,14 @@ export default function TowerDetail() {
               carMake:       car.carMake ?? '',
               carModel:      car.carModel ?? '',
               preferredTime: car.preferredTime ?? 9,
-              status:        car.status ?? 'pending',
-              cleanedBy:     car.cleanedBy,
-              cleanedAt:     car.cleanedAt,
+              status:        serviceTask.status ?? 'pending',
+              cleanedBy:     serviceTask.cleanedBy ?? car.cleanedBy,
+              cleanedAt:     serviceTask.cleanedAt ?? car.cleanedAt,
               sessionId:     d.id,
               carIndex:      idx,
-              sessionType,
+              sessionType: service === 'deep-clean' ? 'deep-clean' : 'wash',
+              service,
+            });
             });
           });
         });
@@ -140,12 +144,12 @@ export default function TowerDetail() {
             const logMap = new Map<string, string>();
             logsSnap.docs.forEach(d => {
               const data = d.data();
-              const key = `${data.sessionId ?? ''}_${data.vehicleRegistration ?? ''}`;
+              const key = `${data.sessionId ?? ''}_${data.vehicleRegistration ?? ''}_${data.deepClean === true ? 'deep-clean' : 'wash'}`;
               logMap.set(key, d.id);
             });
             setCars(prev => prev.map(cr => ({
               ...cr,
-              logId: logMap.get(`${cr.sessionId}_${cr.carPlate}`),
+              logId: logMap.get(`${cr.sessionId}_${cr.carPlate}_${cr.service}`),
             })));
           })
           .catch(() => {});
@@ -166,96 +170,47 @@ export default function TowerDetail() {
   // without a server round-trip, so we read the *cached* session and issue a
   // plain (queueable) update instead — simultaneous offline edits are
   // last-write-wins, reconciled when the write replays on reconnect.
-  const { isOnline } = useConnectivity();
-
-  const writeSessionCar = useCallback(async (
-    sessionId: string,
-    carIndex: number,
-    patch: Partial<CleaningSessionCar>,
-    logFields?: Record<string, unknown>,
-  ) => {
-    const sessionRef = firestore().collection('cleaningSessions').doc(sessionId);
-    const countedDone = patch.status === 'done';
-    const logRef = logFields ? firestore().collection('cleaningLogs').doc() : null;
-
-    if (isOnline) {
-      await firestore().runTransaction(async transaction => {
-        const snap = await transaction.get(sessionRef);
-        const cars = (snap.data()?.cars ?? []) as CleaningSessionCar[];
-        if (!cars[carIndex]) throw new Error('This car is no longer on the session.');
-        const updatedCars = cars.slice();
-        updatedCars[carIndex] = { ...updatedCars[carIndex], ...patch };
-        transaction.update(sessionRef, {
-          cars: updatedCars,
-          ...(countedDone ? { completedCars: firestore.FieldValue.increment(1) } : {}),
-          updatedAt: firestore.FieldValue.serverTimestamp(),
-        });
-        if (logRef && logFields) transaction.set(logRef, { id: logRef.id, ...logFields });
-      });
-      return;
-    }
-
-    const snap = await sessionRef.get({ source: 'cache' }).catch(() => null);
-    const cars = (snap?.data()?.cars ?? []) as CleaningSessionCar[];
-    if (!cars[carIndex]) return;
-    const updatedCars = cars.slice();
-    updatedCars[carIndex] = { ...updatedCars[carIndex], ...patch };
-    await sessionRef.update({
-      cars: updatedCars,
-      ...(countedDone ? { completedCars: firestore.FieldValue.increment(1) } : {}),
-      updatedAt: firestore.FieldValue.serverTimestamp(),
-    });
-    if (logRef && logFields) await logRef.set({ id: logRef.id, ...logFields }).catch(() => {});
-  }, [isOnline]);
-
-  const markCleaning = useCallback(async (sessionId: string, carIndex: number) => {
-    setCars(prev => prev.map(cr =>
-      cr.sessionId === sessionId && cr.carIndex === carIndex
-        ? { ...cr, status: 'in_progress' as const }
-        : cr,
-    ));
-    try {
-      await writeSessionCar(sessionId, carIndex, { status: 'in_progress' });
-    } catch {} // optimistic update already applied
-  }, [writeSessionCar]);
+  const markCleaning = useCallback(async (car: SessionCar) => {
+    const sessionRef = firestore().collection('cleaningSessions').doc(car.sessionId);
+    await firestore().runTransaction(async transaction => {
+      const snap = await transaction.get(sessionRef);
+      const sessionCars = (snap.data()?.cars ?? []) as CleaningSessionCar[];
+      const current = sessionCars[car.carIndex];
+      if (!current) throw new Error('This vehicle is no longer on the session.');
+      const legacyService = (snap.data()?.sessionType as string | undefined) === 'deep-clean' ? 'deepClean' : 'wash';
+      const serviceKey = car.service === 'deep-clean' ? 'deepClean' : 'wash';
+      const services = current.services ?? { [legacyService]: { status: current.status } };
+      const task = services[serviceKey];
+      if (!task || task.status !== 'pending') return;
+      const updatedCars = sessionCars.slice();
+      updatedCars[car.carIndex] = { ...current, services: { ...services, [serviceKey]: { ...task, status: 'in_progress' } } };
+      transaction.update(sessionRef, { cars: updatedCars, updatedAt: firestore.FieldValue.serverTimestamp() });
+    }).catch(err => Alert.alert('Unable to start', err instanceof Error ? err.message : 'Try again.'));
+  }, []);
 
   const markDone = useCallback(async (car: SessionCar) => {
     if (marking || !uid || !worker) return;
-    const key = `${car.sessionId}-${car.carIndex}`;
+    const key = `${car.sessionId}-${car.carIndex}-${car.service}`;
     setMarking(key);
 
     try {
-      await writeSessionCar(
-        car.sessionId,
-        car.carIndex,
-        { status: 'done', cleanedBy: uid, cleanedAt: new Date() },
-        {
-          sessionId:           car.sessionId,
-          societyId,
-          societyName:         '',
-          tower,
-          vehicleRegistration: car.carPlate,
-          vehicleMake:         car.carMake,
-          vehicleModel:        car.carModel,
-          customerId:          car.customerId,
-          customerName:        car.customerName,
-          unitNumber:          car.unitNumber,
-          workerId:            uid,
-          workerName:          worker.name,
-          cleanedAt:           firestore.FieldValue.serverTimestamp(),
-          serviceType:         'exterior',
-          servicePrice:        0,
-          photoUrls:           [],
-          notificationSent:    false,
-          billed:              false,
-        },
-      );
+      const token = await auth().currentUser?.getIdToken();
+      const response = await fetch(`${process.env.EXPO_PUBLIC_WEB_API_URL ?? 'https://perfectcleaners.co.in'}/api/session/${car.sessionId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: 'clean_car', customerId: car.customerId, carPlate: car.carPlate, service: car.service }),
+      });
+      if (!response.ok) throw new Error((await response.json().catch(() => ({}))).error ?? 'Failed to complete service.');
     } catch (err: any) {
       Alert.alert('Error', err?.message ?? 'Failed to mark car as done.');
     } finally {
       setMarking(null);
     }
-  }, [marking, uid, worker, societyId, tower, writeSessionCar]);
+  }, [marking, uid, worker]);
+
+  const markTaskDone = useCallback(async (car: SessionCar) => {
+    await markDone(car);
+  }, [markDone]);
 
   const done  = cars.filter(cr => cr.status === 'done').length;
   const total = cars.length;
@@ -281,11 +236,11 @@ export default function TowerDetail() {
           <View style={s.carList}>
             {cars.map(car => (
               <CarRow
-                key={`${car.sessionId}-${car.carIndex}`}
+                key={`${car.sessionId}-${car.carIndex}-${car.service}`}
                 car={car}
-                isMarking={marking === `${car.sessionId}-${car.carIndex}`}
-                onStartCleaning={() => markCleaning(car.sessionId, car.carIndex)}
-                onMarkDone={() => markDone(car)}
+                isMarking={marking === `${car.sessionId}-${car.carIndex}-${car.service}`}
+                onStartCleaning={() => markCleaning(car)}
+                onMarkDone={() => markTaskDone(car)}
                 c={c}
                 s={s}
               />
@@ -330,7 +285,7 @@ function CarRow({
           <Text style={[s.carName, isDone && s.textMuted]} numberOfLines={1}>
             {car.customerName}
           </Text>
-          {car.sessionType === 'deep-clean' && (
+          {car.service === 'deep-clean' && (
             <View style={s.deepCleanTag}>
               <Text style={s.deepCleanTagText}>DEEP CLEAN</Text>
             </View>

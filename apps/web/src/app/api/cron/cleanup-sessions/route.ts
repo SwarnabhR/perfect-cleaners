@@ -53,16 +53,36 @@ export async function GET(req: NextRequest) {
         // having actually been cleaned or explicitly marked unavailable.
         const data = d.data();
         const cars = (data.cars as Record<string, unknown>[] | undefined) ?? [];
-        const updatedCars = cars.map(c =>
-          c.status === 'done' || c.status === 'skipped' ? c : { ...c, status: 'skipped' }
-        );
-        const skippedCars = updatedCars.filter(c => c.status === 'skipped').length;
+        const updatedCars = cars.map(car => {
+          const services = car.services as Record<string, { status?: string }> | undefined;
+          if (!services) return car.status === 'done' || car.status === 'skipped' ? car : { ...car, status: 'skipped' };
+          const closedServices = Object.fromEntries(Object.entries(services).map(([key, task]) => [
+            key,
+            task.status === 'pending' || task.status === 'in_progress' ? { ...task, status: 'skipped' } : task,
+          ]));
+          const everyDone = Object.values(closedServices).every(task => task.status === 'done' || task.status === 'skipped');
+          return { ...car, services: closedServices, ...(everyDone ? { status: 'done' } : {}) };
+        });
+        const skippedCars = updatedCars.reduce((sum, car) => {
+          const services = car.services as Record<string, { status?: string }> | undefined;
+          return sum + (services ? Object.values(services).filter(task => task.status === 'skipped').length : car.status === 'skipped' ? 1 : 0);
+        }, 0);
+        const totalCars = updatedCars.reduce((sum, car) => {
+          const services = car.services as Record<string, { status?: string }> | undefined;
+          return sum + (services ? Object.values(services).filter(task => task.status !== 'skipped').length : car.status === 'skipped' ? 0 : 1);
+        }, 0);
+        const completedCars = updatedCars.reduce((sum, car) => {
+          const services = car.services as Record<string, { status?: string }> | undefined;
+          return sum + (services ? Object.values(services).filter(task => task.status === 'done').length : car.status === 'done' ? 1 : 0);
+        }, 0);
 
         const wasScheduled = data.status === 'scheduled';
         batch.update(d.ref, {
           status:             wasScheduled ? 'missed' : 'done',
           cars:               updatedCars,
           skippedCars,
+          totalCars,
+          completedCars,
           ...(wasScheduled ? { missedAt: FieldValue.serverTimestamp(), missedReason: 'session_expired' } : { completedAt: FieldValue.serverTimestamp() }),
           autoClosedBySystem: true,
         });

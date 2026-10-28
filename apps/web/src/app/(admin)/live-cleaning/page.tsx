@@ -1,14 +1,13 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { collection, query, where, getDocs, onSnapshot, doc, runTransaction, serverTimestamp, addDoc } from 'firebase/firestore';
-import { db, resolveTowerGroups, getCarUrgency, getSessionDayBucket, buildCarSearchMatcher } from '@pc/firebase';
+import { collection, query, where, getDocs, onSnapshot, doc, runTransaction, serverTimestamp } from 'firebase/firestore';
+import { db, auth, resolveTowerGroups, getCarUrgency, getSessionDayBucket, buildCarSearchMatcher } from '@pc/firebase';
 import type { CleaningSession, CleaningSessionCar, TowerGroupSummary, CarUrgency, CarDueBucket, VehicleCategory } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import CarSearchInput from '@/components/ui/CarSearchInput';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
-import { notifyCarCleaned } from '@/lib/notification';
 
 interface CarListItem {
   sessionId: string;
@@ -30,6 +29,8 @@ interface CarListItem {
   societyName: string;
   tower: string;
   sessionType: 'wash' | 'deep-clean';
+  service: 'wash' | 'deep-clean';
+  taskStatus: string;
   dueBucket: CarDueBucket;
   scheduledDate: Date;
 }
@@ -178,13 +179,13 @@ function TowerGroupCard({ group, cars, workers, bucket, marking, toggling, isUna
       ) : (
         <div>
           {cars.map((car, idx) => {
-            const isDone = car.status === 'done';
+            const isDone = car.taskStatus === 'done';
             const unavailable = isUnavailable(car);
-            const busy = marking === `${car.sessionId}-${car.carIndex}`;
+            const busy = marking === `${car.sessionId}-${car.carIndex}-${car.service}`;
 
             return (
               <div
-                key={`${car.sessionId}-${car.carIndex}`}
+                key={`${car.sessionId}-${car.carIndex}-${car.service}`}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -220,7 +221,7 @@ function TowerGroupCard({ group, cars, workers, bucket, marking, toggling, isUna
                     textDecorationColor: 'var(--pc-fg-3)',
                   }}>
                     Flat {car.unitNumber || '—'}
-                    {car.sessionType === 'deep-clean' && (
+                    {car.service === 'deep-clean' && (
                       <span style={{ marginLeft: 8, fontFamily: 'var(--pc-mono)', fontSize: 8.5, letterSpacing: '0.05em', color: 'var(--pc-info)' }}>
                         DEEP CLEAN
                       </span>
@@ -244,7 +245,7 @@ function TowerGroupCard({ group, cars, workers, bucket, marking, toggling, isUna
                   {!isDone && !unavailable && <DueLine car={car} />}
                   {unavailable && (
                     <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11.5, color: 'var(--pc-fg-3)', margin: '3px 0 0' }}>
-                      {car.status === 'skipped' ? 'Not available' : 'Marked unavailable'}
+                  {car.taskStatus === 'skipped' ? 'Not available' : 'Marked unavailable'}
                     </p>
                   )}
                 </div>
@@ -300,8 +301,8 @@ function TowerGroupCard({ group, cars, workers, bucket, marking, toggling, isUna
 function CarDetailsModal({ car, busy, onClose, onMarkDone }: {
   car: CarListItem; busy: boolean; onClose: () => void; onMarkDone: () => void;
 }) {
-  const done = car.status === 'done';
-  const unavailable = car.unavailable || car.status === 'skipped';
+  const done = car.taskStatus === 'done';
+  const unavailable = car.unavailable || car.taskStatus === 'skipped';
   const rows: [string, string][] = [
     ['Customer',  car.customerName || '—'],
     ['Phone',     car.customerPhone || 'No phone on file'],
@@ -335,7 +336,7 @@ function CarDetailsModal({ car, busy, onClose, onMarkDone }: {
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
           <div>
             <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 4px' }}>
-              {done ? 'Cleaned' : unavailable ? 'Unavailable' : 'Pending'}
+              {done ? `${car.service === 'deep-clean' ? 'Deep clean' : 'Wash'} complete` : unavailable ? 'Unavailable' : 'Pending'}
             </p>
             <h2 style={{ fontFamily: 'var(--pc-sans)', fontSize: 18, fontWeight: 600, color: 'var(--pc-fg)', margin: 0 }}>
               Flat {car.unitNumber || '—'}
@@ -352,6 +353,10 @@ function CarDetailsModal({ car, busy, onClose, onMarkDone }: {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+            <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-4)', textTransform: 'uppercase' }}>Service</span>
+            <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)' }}>{car.service === 'deep-clean' ? 'Deep clean' : 'Wash'}</span>
+          </div>
           {rows.map(([label, value]) => (
             <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
               <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-4)', textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>
@@ -478,7 +483,7 @@ export default function LiveCleaningPage() {
 
   // A car counts as unavailable either via this board's own toggle, or because
   // it was auto-marked 'skipped' at session-build time (customer's skip date).
-  const isUnavailable = (c: CarListItem) => c.unavailable || c.status === 'skipped';
+  const isUnavailable = (c: CarListItem) => c.unavailable || c.taskStatus === 'skipped';
   const urgencyOrder: Record<CarUrgency, number> = { overdue: 0, 'due-soon': 1, later: 2, done: 3 };
 
   // Buckets sessions into Overdue / Today / Tomorrow / Upcoming, then builds
@@ -499,6 +504,11 @@ export default function LiveCleaningPage() {
 
       const list = carsByTowerKey.get(key) ?? [];
       (session.cars ?? []).forEach((car, idx) => {
+        const legacyService = session.sessionType === 'deep-clean' ? 'deep-clean' : 'wash';
+        const serviceTasks = car.services ?? { [legacyService === 'deep-clean' ? 'deepClean' : 'wash']: { status: car.status } };
+        (['wash', 'deep-clean'] as const).forEach(service => {
+        const task = service === 'wash' ? serviceTasks.wash : serviceTasks.deepClean;
+        if (!task || task.status === 'skipped') return;
         const item: CarListItem = {
           sessionId: session.id,
           carIndex: idx,
@@ -513,17 +523,20 @@ export default function LiveCleaningPage() {
           carModel: car.carModel,
           vehicleCategory: car.vehicleCategory ?? 'car',
           preferredTime: car.preferredTime,
-          status: car.status,
+          status: task.status,
+          taskStatus: task.status,
           unavailable: Boolean(car.unavailable),
           societyId: session.societyId,
           societyName: session.societyName,
           tower: session.tower,
-          sessionType: session.sessionType ?? 'wash',
+          sessionType: service,
+          service,
           dueBucket: bucket,
           scheduledDate,
         };
         if (searchMatcher && !searchMatcher(item)) return;
         list.push(item);
+        });
       });
       carsByTowerKey.set(key, list);
 
@@ -601,22 +614,41 @@ export default function LiveCleaningPage() {
         // Can't toggle a car that's already cleaned, or one that's already
         // 'skipped' via the customer's own skipDate — this toggle is
         // ops-only and shouldn't override that.
-        if (!target || target.status === 'done' || target.status === 'skipped') return;
+        if (!target || target.status === 'skipped') return;
 
         const makingUnavailable = !target.unavailable;
-        const newCars = currentCars.map((c, idx) =>
-          idx === car.carIndex ? { ...c, unavailable: makingUnavailable } : c
-        );
+        const newCars = currentCars.map((c, idx) => {
+          if (idx !== car.carIndex) return c;
+          const currentServices = (c.services as Record<string, { status?: string }> | undefined) ?? {};
+          const servicesNext = Object.fromEntries(Object.entries(currentServices).map(([service, task]) => [
+            service,
+            makingUnavailable && (task.status === 'pending' || task.status === 'in_progress')
+              ? { ...task, status: 'skipped' }
+              : !makingUnavailable && task.status === 'skipped' && c.status !== 'skipped'
+                ? { ...task, status: 'pending' }
+                : task,
+          ]));
+          return { ...c, ...(Object.keys(servicesNext).length ? { services: servicesNext } : {}), unavailable: makingUnavailable };
+        });
 
         // Keeps totalCars an accurate denominator for "is this session fully
         // done" — an unavailable car can never be completed, same reasoning
         // as skippedCars being excluded from totalCars at creation time.
         // Without this, a tower with an unavailable car could never satisfy
         // completedCars >= totalCars and would sit 'inprogress' forever.
+        const services = (target.services as Record<string, { status?: string }> | undefined) ?? {};
+        if (Object.values(services).some(task => task.status === 'done')) return;
+        const taskCount = Object.values(services).filter(task => task.status !== 'skipped').length || 1;
+        const toggleCount = makingUnavailable ? Object.values(services).filter(task => task.status === 'pending' || task.status === 'in_progress').length || (services.wash || services.deepClean ? 0 : 1) : taskCount;
         const totalCars = (data.totalCars as number | undefined) ?? currentCars.length;
+        const completedCars = newCars.reduce((sum, row) => {
+          const rowServices = row.services as Record<string, { status?: string }> | undefined;
+          return sum + (rowServices ? Object.values(rowServices).filter(task => task.status === 'done').length : row.status === 'done' ? 1 : 0);
+        }, 0);
         tx.update(sessionRef, {
           cars: newCars,
-          totalCars: makingUnavailable ? totalCars - 1 : totalCars + 1,
+          totalCars: makingUnavailable ? Math.max(0, totalCars - toggleCount) : totalCars + taskCount,
+          completedCars,
         });
       });
     } catch (err: unknown) {
@@ -628,71 +660,17 @@ export default function LiveCleaningPage() {
 
   async function markDone(car: CarListItem) {
     if (marking) return;
-    const key = `${car.sessionId}-${car.carIndex}`;
+    const key = `${car.sessionId}-${car.carIndex}-${car.service}`;
     setMarking(key);
 
     try {
-      const sessionRef = doc(db, 'cleaningSessions', car.sessionId);
-      await runTransaction(db, async tx => {
-        const snap = await tx.get(sessionRef);
-        if (!snap.exists()) return;
-        const data = snap.data();
-        const currentCars = (data.cars ?? []) as Record<string, unknown>[];
-        if (currentCars[car.carIndex]?.status === 'done') return;
-        const newCars = currentCars.map((c, idx) =>
-          idx === car.carIndex ? { ...c, status: 'done', cleanedAt: new Date() } : c
-        );
-        const completedCars = (data.completedCars ?? 0) + 1;
-        const totalCars = data.totalCars ?? newCars.length;
-        tx.update(sessionRef, {
-          cars: newCars,
-          completedCars,
-          updatedAt: serverTimestamp(),
-          ...(completedCars >= totalCars ? { status: 'done', completedAt: serverTimestamp() } : {}),
-        });
+      const token = await auth.currentUser?.getIdToken();
+      const response = await fetch(`/api/session/${encodeURIComponent(car.sessionId)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: 'clean_car', customerId: car.customerId, carPlate: car.carPlate, service: car.service }),
       });
-
-      // Write cleaningLog — rules now allow isAdmin() on cleaningLogs create
-      await addDoc(collection(db, 'cleaningLogs'), {
-        sessionId:           car.sessionId,
-        societyId:           car.societyId,
-        societyName:         car.societyName,
-        tower:               car.tower,
-        vehicleRegistration: car.carPlate,
-        vehicleMake:         car.carMake,
-        vehicleModel:        car.carModel,
-        vehicleCategory:     car.vehicleCategory,
-        customerId:          car.customerId,
-        customerName:        '',
-        unitNumber:          car.unitNumber,
-        workerId:            '',
-        workerName:          'Admin',
-        cleanedAt:           serverTimestamp(),
-        serviceType:         'exterior',
-        servicePrice:        0,
-        photoUrls:           [],
-        notificationSent:    false,
-        billed:              false,
-      });
-
-      // Look up the resident's phone for the SMS
-      const recordsSnap = await getDocs(query(
-        collection(db, 'customerSocietyRecords'),
-        where('customerId', '==', car.customerId),
-      ));
-      const record: Record<string, unknown> | undefined =
-        recordsSnap.docs.find(d => (d.data() as Record<string, unknown>).tower === car.tower)?.data() as Record<string, unknown> | undefined
-        ?? recordsSnap.docs[0]?.data() as Record<string, unknown> | undefined;
-
-      if (record?.customerPhone) {
-        await notifyCarCleaned(
-          record.customerPhone as string,
-          (record.customerName as string | undefined) ?? 'there',
-          car.carPlate,
-          car.societyName,
-          car.tower,
-        ).catch(err => console.warn('[LiveCleaning] SMS notify failed:', err));
-      }
+      if (!response.ok) throw new Error((await response.json().catch(() => ({}))).error ?? 'Could not mark the service complete.');
     } catch (err: unknown) {
       console.error('[LiveCleaning] mark done failed:', err instanceof Error ? err.message : err);
     } finally {
@@ -847,7 +825,7 @@ export default function LiveCleaningPage() {
       {detailsCar && (
         <CarDetailsModal
           car={detailsCar}
-          busy={marking === `${detailsCar.sessionId}-${detailsCar.carIndex}`}
+          busy={marking === `${detailsCar.sessionId}-${detailsCar.carIndex}-${detailsCar.service}`}
           onClose={() => setDetailsCar(null)}
           onMarkDone={() => { markDone(detailsCar); setDetailsCar(null); }}
         />

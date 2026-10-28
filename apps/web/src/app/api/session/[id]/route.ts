@@ -79,6 +79,7 @@ export async function GET(
         carModel:      c.carModel ?? '',
         preferredTime: c.preferredTime ?? null,
         status:        c.status ?? 'pending',
+        services:      c.services ?? null,
       })),
     });
   } catch (err: unknown) {
@@ -127,6 +128,7 @@ export async function POST(
 
     if (action === 'clean_car') {
       const customerId = body.customerId as string | undefined;
+      const service = body.service === 'deep-clean' ? 'deepClean' : 'wash';
       if (!customerId) {
         return NextResponse.json({ error: 'customerId is required.' }, { status: 400 });
       }
@@ -158,7 +160,7 @@ export async function POST(
         const idx = carPlate
           ? cars.findIndex(c => c.customerId === customerId && samePlate(c))
           : cars.findIndex(c => c.customerId === customerId && c.status !== 'done');
-        if (idx === -1 || cars[idx].status === 'done') throw new Error('CAR_NOT_FOUND');
+        if (idx === -1) throw new Error('CAR_NOT_FOUND');
         // Marked "not available today" — by a worker on the ground or an
         // admin on the Live Cleaning board. Same as a customer's own
         // skipDate, it can't be completed.
@@ -166,20 +168,39 @@ export async function POST(
         // Tomorrow's round is not today's work — see isFutureDay.
         if (isFutureDay(data.scheduledDate)) throw new Error('CAR_NOT_DUE_YET');
 
-        const now         = new Date();
+        const now = new Date();
         const updatedCars = cars.slice();
-        // Arrays can't hold FieldValue.serverTimestamp() (Firestore restriction) —
-        // a plain Date computed at execution time is the accepted workaround.
-        updatedCars[idx]  = { ...updatedCars[idx], status: 'done', cleanedBy: workerId, cleanedAt: now };
+        const legacyService = (data.sessionType as string | undefined) === 'deep-clean' ? 'deepClean' : 'wash';
+        const existingServices = (updatedCars[idx].services as Record<string, Record<string, unknown>> | undefined) ?? {
+          [legacyService]: { status: updatedCars[idx].status === 'skipped' ? 'skipped' : updatedCars[idx].status ?? 'pending' },
+        };
+        const currentTask = existingServices[service];
+        if (!currentTask || currentTask.status === 'skipped') throw new Error('SERVICE_NOT_SCHEDULED');
+        if (currentTask.status === 'done') throw new Error('SERVICE_ALREADY_DONE');
+        const nextServices = { ...existingServices, [service]: { ...currentTask, status: 'done', cleanedBy: workerId, cleanedAt: now } };
+        const requiredTasks = Object.values(nextServices).filter(task => task.status !== 'skipped');
+        const doneTasks = requiredTasks.filter(task => task.status === 'done');
+        const rowDone = requiredTasks.length > 0 && doneTasks.length === requiredTasks.length;
+        updatedCars[idx] = { ...updatedCars[idx], services: nextServices, ...(rowDone ? { status: 'done', cleanedBy: workerId, cleanedAt: now } : {}) };
 
-        const totalCars     = (data.totalCars as number | undefined) ?? cars.length;
-        const completedCars = ((data.completedCars as number | undefined) ?? 0) + 1;
-        const allDone        = completedCars >= totalCars;
+        const totalCars = (data.totalCars as number | undefined) ?? cars.length;
+        const oldServices = (cars[idx].services as Record<string, { status: string }> | undefined) ?? { [legacyService]: { status: cars[idx].status as string } };
+        const newServices = nextServices as Record<string, { status: string }>;
+        const beforeDone = Object.values(oldServices).filter(task => task.status === 'done').length || (cars[idx].status === 'done' ? 1 : 0);
+        const afterDone = Object.values(newServices).filter(task => task.status === 'done').length;
+        const addedDone = Math.max(0, afterDone - beforeDone);
+        const completedCars = ((data.completedCars as number | undefined) ?? 0) + addedDone;
+        const allDone        = totalCars > 0 && completedCars >= totalCars && updatedCars.every(car => {
+          if (car.unavailable) return true;
+          const services = car.services as Record<string, { status?: string }> | undefined;
+          if (services) return Object.values(services).every(task => task.status === 'done' || task.status === 'skipped');
+          return car.status === 'done' || car.status === 'skipped';
+        });
         const wasScheduled    = data.status === 'scheduled';
 
         const sessionUpdate: Record<string, unknown> = {
           cars:          updatedCars,
-          completedCars: FieldValue.increment(1),
+          ...(addedDone ? { completedCars: FieldValue.increment(addedDone) } : {}),
           updatedAt:     FieldValue.serverTimestamp(),
         };
         if (wasScheduled) {
@@ -213,7 +234,8 @@ export async function POST(
           workerId,
           workerName,
           cleanedAt:            FieldValue.serverTimestamp(),
-          serviceType:          'exterior',
+          serviceType:          service === 'deepClean' ? 'deep-clean' : 'exterior',
+          deepClean:            service === 'deepClean',
           // Society customers are billed a flat monthly fee via the monthly-billing
           // cron (customerSocietyRecords.monthlyFee) — charging servicePrice here too
           // would double-bill, so this log carries no per-clean price.
@@ -225,7 +247,7 @@ export async function POST(
 
         t.update(db.collection('workers').doc(workerId), {
           totalJobs:          FieldValue.increment(1),
-          carsCompletedToday: FieldValue.increment(1),
+          carsCompletedToday: FieldValue.increment(rowDone && cars[idx].status !== 'done' ? 1 : 0),
         });
 
         if (car.customerPhone) {
@@ -243,6 +265,7 @@ export async function POST(
           logId: logRef.id,
           completedCars,
           totalCars,
+          service,
           status: allDone ? 'done' : wasScheduled ? 'inprogress' : (data.status as string),
         };
       });
@@ -303,27 +326,41 @@ export async function POST(
         // first. The log already records which one was cleaned, so use its
         // registration as the discriminator — no client change needed.
         const loggedPlate = typeof log.vehicleRegistration === 'string' ? log.vehicleRegistration.trim() : '';
-        const isDoneForCustomer = (c: Record<string, unknown>) =>
-          c.customerId === customerId && c.status === 'done';
+        const loggedService = log.deepClean === true ? 'deepClean' : 'wash';
+        const isDoneForCustomer = (c: Record<string, unknown>) => {
+          const services = c.services as Record<string, { status?: string }> | undefined;
+          return c.customerId === customerId && (services?.[loggedService]?.status === 'done' || (!services && c.status === 'done'));
+        };
         let idx = loggedPlate
           ? cars.findIndex(c => isDoneForCustomer(c) && typeof c.carPlate === 'string' && c.carPlate.trim() === loggedPlate)
           : -1;
         if (idx === -1) idx = cars.findIndex(isDoneForCustomer);
         if (idx === -1) throw new Error('CAR_NOT_FOUND');
 
-        // Firestore can't hold FieldValue.delete() inside an array element
-        // (same restriction noted above for serverTimestamp) — rebuild the
-        // car object without cleanedBy/cleanedAt instead of trying to unset them.
         const restoredCar = { ...cars[idx] };
-        delete restoredCar['cleanedBy'];
-        delete restoredCar['cleanedAt'];
+        const legacyService = (data.sessionType as string | undefined) === 'deep-clean' ? 'deepClean' : 'wash';
+        const services = { ...((restoredCar.services as Record<string, Record<string, unknown>> | undefined) ?? { [legacyService]: { status: restoredCar.status } }) };
+        const task = { ...(services[loggedService] ?? {}) };
+        delete task.cleanedBy;
+        delete task.cleanedAt;
+        task.status = 'pending';
+        services[loggedService] = task;
+        const requiredTasks = Object.values(services).filter(item => item.status !== 'skipped');
+        const rowDone = requiredTasks.length > 0 && requiredTasks.every(item => item.status === 'done');
+        restoredCar.services = services;
+        if (!rowDone) {
+          delete restoredCar.cleanedBy;
+          delete restoredCar.cleanedAt;
+          restoredCar.status = 'pending';
+        }
         const updatedCars = cars.slice();
-        updatedCars[idx]  = { ...restoredCar, status: 'pending' };
+        updatedCars[idx]  = restoredCar;
 
         const wasDone = data.status === 'done';
+        const newCompletedCars = Math.max(0, ((data.completedCars as number | undefined) ?? 1) - 1);
         const sessionUpdate: Record<string, unknown> = {
           cars:          updatedCars,
-          completedCars: FieldValue.increment(-1),
+          completedCars: newCompletedCars,
           updatedAt:     FieldValue.serverTimestamp(),
         };
         if (wasDone) {
@@ -334,12 +371,12 @@ export async function POST(
         t.delete(logRef);
         t.update(db.collection('workers').doc(workerId), {
           totalJobs:          FieldValue.increment(-1),
-          carsCompletedToday: FieldValue.increment(-1),
+          carsCompletedToday: FieldValue.increment(rowDone ? -1 : 0),
         });
 
         response = {
           customerId,
-          completedCars: ((data.completedCars as number | undefined) ?? 1) - 1,
+          completedCars: newCompletedCars,
           totalCars:     data.totalCars,
           status:        wasDone ? 'inprogress' : (data.status as string),
         };
@@ -391,6 +428,10 @@ export async function POST(
         if (target.status === 'done')    throw new Error('CAR_ALREADY_DONE');
         if (target.status === 'skipped') throw new Error('CAR_SKIPPED');
 
+        const targetTasks = target.services as Record<string, { status?: string }> | undefined;
+        const unavailableCount = targetTasks
+          ? Object.values(targetTasks).filter(task => task.status !== 'skipped').length
+          : 1;
         const totalCars     = (data.totalCars as number | undefined) ?? cars.length;
         const completedCars = (data.completedCars as number | undefined) ?? 0;
 
@@ -408,7 +449,7 @@ export async function POST(
         // Keeps totalCars an accurate denominator for "is this session fully
         // done" — an unavailable car can never be completed, the same
         // reasoning as skippedCars being excluded at creation time.
-        const newTotal = unavailable ? Math.max(0, totalCars - 1) : totalCars + 1;
+        const newTotal = unavailable ? Math.max(0, totalCars - unavailableCount) : totalCars + unavailableCount;
 
         const sessionUpdate: Record<string, unknown> = {
           cars:      updatedCars,
@@ -424,9 +465,12 @@ export async function POST(
         // those are stored counters, and a session whose totalCars had drifted
         // low would otherwise flip to 'done' with real pending cars still on
         // it. The array is the thing a worker actually reads.
-        const stillOpen = updatedCars.some(c =>
-          (c.status === 'pending' || c.status === 'in_progress') && !c.unavailable
-        );
+        const stillOpen = updatedCars.some(c => {
+          if (c.unavailable) return false;
+          const services = c.services as Record<string, { status?: string }> | undefined;
+          if (services) return Object.values(services).some(task => task.status === 'pending' || task.status === 'in_progress');
+          return c.status === 'pending' || c.status === 'in_progress';
+        });
 
         let newStatus = data.status as string;
         if (unavailable && newStatus !== 'done' && !stillOpen) {
@@ -464,15 +508,33 @@ export async function POST(
         // while the session itself flipped to 'done', so the UI showed a closed,
         // "complete" session with a still-clickable "Mark Clean" button on it.
         const cars = (data.cars as Record<string, unknown>[] | undefined) ?? [];
-        const updatedCars = cars.map(c =>
-          c.status === 'done' || c.status === 'skipped' ? c : { ...c, status: 'skipped' }
-        );
-        const skippedCars = updatedCars.filter(c => c.status === 'skipped').length;
+        const updatedCars = cars.map(car => {
+          const services = car.services as Record<string, { status?: string }> | undefined;
+          if (!services) return car.status === 'done' || car.status === 'skipped' ? car : { ...car, status: 'skipped' };
+          const closedServices = Object.fromEntries(Object.entries(services).map(([key, task]) => [
+            key,
+            task.status === 'pending' || task.status === 'in_progress' ? { ...task, status: 'skipped' } : task,
+          ]));
+          const everyClosed = Object.values(closedServices).every(task => task.status === 'done' || task.status === 'skipped');
+          return { ...car, services: closedServices, ...(everyClosed ? { status: 'done' } : {}) };
+        });
+        const skippedCars = updatedCars.reduce((sum, car) => {
+          const services = car.services as Record<string, { status?: string }> | undefined;
+          return sum + (services ? Object.values(services).filter(task => task.status === 'skipped').length : car.status === 'skipped' ? 1 : 0);
+        }, 0);
 
         t.update(ref, {
           status: 'done',
           cars: updatedCars,
           skippedCars,
+          completedCars: updatedCars.reduce((sum, car) => {
+            const services = car.services as Record<string, { status?: string }> | undefined;
+            return sum + (services ? Object.values(services).filter(task => task.status === 'done').length : car.status === 'done' ? 1 : 0);
+          }, 0),
+          totalCars: updatedCars.reduce((sum, car) => {
+            const services = car.services as Record<string, { status?: string }> | undefined;
+            return sum + (services ? Object.values(services).filter(task => task.status !== 'skipped').length : car.status === 'skipped' ? 0 : 1);
+          }, 0),
           completedAt: FieldValue.serverTimestamp(),
         });
       });
@@ -511,6 +573,12 @@ export async function POST(
     }
     if (err instanceof Error && err.message === 'CAR_NOT_FOUND') {
       return NextResponse.json({ error: 'Car not found or already cleaned.' }, { status: 400 });
+    }
+    if (err instanceof Error && err.message === 'SERVICE_NOT_SCHEDULED') {
+      return NextResponse.json({ error: 'This service is not scheduled for this car on this date.' }, { status: 400 });
+    }
+    if (err instanceof Error && err.message === 'SERVICE_ALREADY_DONE') {
+      return NextResponse.json({ error: 'This service has already been completed.' }, { status: 400 });
     }
     if (err instanceof Error && err.message === 'CAR_UNAVAILABLE') {
       return NextResponse.json({ error: 'This car was marked not available today.' }, { status: 400 });

@@ -23,6 +23,14 @@ export async function GET(req: NextRequest) {
     console.log('[CRON] Generate sessions started at', new Date().toISOString());
 
     const societiesSnap = await db.collection('societyBillingConfig').get();
+    const configsByTower = new Map<string, Record<string, unknown>>();
+    const configuredTowers = new Set<string>();
+    societiesSnap.docs.forEach(doc => {
+      const config = doc.data() as Record<string, unknown>;
+      const key = towerKey(String(config.societyId ?? ''), String(config.tower ?? ''));
+      configsByTower.set(key, config);
+      configuredTowers.add(key);
+    });
     let sessionsCreated = 0;
     let errors = 0;
 
@@ -31,6 +39,29 @@ export async function GET(req: NextRequest) {
     const workerNamesById = new Map<string, string>();
     const workersSnap = await db.collection('workers').get();
     workersSnap.docs.forEach(d => workerNamesById.set(d.id, (d.data().name as string | undefined) ?? 'Worker'));
+
+    // Customer-specific deep-clean enrollment can be enabled for a society
+    // tower without society billing configuration. Include those active towers
+    // as schedule sources, using the customer's selected day (and Monday as
+    // the default wash day) until an operator configures a tower schedule.
+    const activeRecords = await db.collection('customerSocietyRecords').where('status', '==', 'active').get();
+    activeRecords.docs.forEach(doc => {
+      const record = doc.data();
+      const societyId = String(record.societyId ?? '');
+      const tower = String(record.tower ?? '');
+      if (!societyId || !tower) return;
+      const key = towerKey(societyId, tower);
+      if (!configsByTower.has(key)) {
+        configsByTower.set(key, {
+          societyId,
+          tower,
+          societyName: record.societyName ?? societyId,
+          cleaningDays: Array.isArray(record.preferredCleaningDays) && record.preferredCleaningDays.length > 0
+            ? record.preferredCleaningDays : [1],
+          cleaningTimeMinutes: typeof record.preferredCleaningTime === 'number' ? record.preferredCleaningTime * 60 : 9 * 60,
+        });
+      }
+    });
 
     // societyBillingConfig holds one doc per TOWER, so a society with four
     // towers used to re-read its societies/{id} doc four times. Cache by
@@ -44,10 +75,11 @@ export async function GET(req: NextRequest) {
       return snap;
     }
 
-    for (const societyDoc of societiesSnap.docs) {
+    for (const [towerKeyValue, config] of configsByTower) {
       try {
-        const config = societyDoc.data();
-        const { societyId, tower, cleaningSchedule, cleaningDays } = config;
+        const societyId = String(config.societyId ?? '');
+        const tower = String(config.tower ?? '');
+        const cleaningSchedule = config.cleaningSchedule as string | undefined;
 
         // Default worker(s) for this tower, set on the society doc via
         // societies-mgmt's "Tower worker assignments" panel — a session is
@@ -59,9 +91,22 @@ export async function GET(req: NextRequest) {
         const assignedWorkerIds = towerWorkerAssignments?.[tower] ?? [];
         const assignedWorkerNames = assignedWorkerIds.map(id => workerNamesById.get(id) ?? 'Worker');
 
-        const weekdays: number[] = Array.isArray(cleaningDays) && cleaningDays.length > 0
-          ? cleaningDays
-          : parseWeekdaysFromSchedule(cleaningSchedule as string);
+        if (!configuredTowers.has(towerKeyValue)) {
+          const weekdaySet = new Set<number>();
+          activeRecords.docs.forEach(doc => {
+            const record = doc.data();
+            if (record.societyId !== societyId || record.tower !== tower) return;
+            (Array.isArray(record.preferredCleaningDays) && record.preferredCleaningDays.length ? record.preferredCleaningDays : [1])
+              .forEach((day: number) => weekdaySet.add(day));
+          });
+          config.cleaningDays = [...weekdaySet];
+          config.cleaningTimeMinutes ??= 9 * 60;
+        }
+
+        const towerCleaningDays = config.cleaningDays;
+        const weekdays: number[] = Array.isArray(towerCleaningDays) && towerCleaningDays.length > 0
+          ? towerCleaningDays as number[]
+          : parseWeekdaysFromSchedule(cleaningSchedule as string | undefined);
 
         const customersSnap = await db
           .collection('customerSocietyRecords')
@@ -87,13 +132,14 @@ export async function GET(req: NextRequest) {
         // dynamic route params instead of being decoded back, which 404s. Slug it.
         const towerSlug = String(tower).trim().replace(/\s+/g, '-');
 
-        // One session per tower/date can contain both regular and deep-clean
-        // checklist rows; this avoids ID collisions when a customer selects daily.
-        const candidates = cleaningDates.map(cleaningDate => ({
+        const sourceCustomers = customersSnap.docs.map(d => ({ ...d.data(), id: d.id }) as SocietyCarSourceCustomer & { id: string });
+        const deepDates = sourceCustomers.flatMap(customer => deepCleanDatesForCustomer(customer, windowStart, 14, customer.preferredCleaningDays?.length ? customer.preferredCleaningDays : weekdays));
+        const allDatesByKey = new Map<string, Date>();
+        [...cleaningDates, ...deepDates].forEach(date => allDatesByKey.set(date.toISOString().slice(0, 10), date));
+        const candidates = [...allDatesByKey.values()].map(cleaningDate => ({
           sessionId: `${societyId}_${towerSlug}_${cleaningDate.toISOString().split('T')[0]}`,
           cleaningDate,
         }));
-        const sourceCustomers = customersSnap.docs.map(d => d.data() as SocietyCarSourceCustomer);
         const activeCandidates = candidates;
 
         if (activeCandidates.length > 0) {
@@ -113,20 +159,41 @@ export async function GET(req: NextRequest) {
           activeCandidates.forEach((candidate, i) => {
             if (existingSnaps[i].exists) return;
 
-            const washCars = buildSessionCars(sourceCustomers, candidate.cleaningDate, 'wash');
+            const washCars = cleaningDates.some(date => sameDate(date, candidate.cleaningDate))
+              ? buildSessionCars(sourceCustomers, candidate.cleaningDate, 'wash') : [];
             const deepCarsForDate = sourceCustomers
-              .filter(owner => owner.deepCleanEnabled === true && (owner.deepCleanFrequency === 'daily'
-                || owner.deepCleanFrequency === 'one-time' && owner.deepCleanOneTimeScheduledDate && sameDate(owner.deepCleanOneTimeScheduledDate, candidate.cleaningDate)
-                || (owner.deepCleanFrequency ?? 'weekly') === 'weekly' && (owner.deepCleanDay ?? weekdays.slice().sort((a, b) => a - b)[0]) === candidate.cleaningDate.getDay()))
+              .filter(owner => deepCleanDatesForCustomer(owner, candidate.cleaningDate, 1, owner.preferredCleaningDays?.length ? owner.preferredCleaningDays : weekdays).length > 0)
               .flatMap(owner => buildSessionCars([owner], candidate.cleaningDate, 'deep-clean'));
-            const cars = [...washCars, ...deepCarsForDate.filter(deep => !washCars.some(wash => wash.customerId === deep.customerId && wash.carPlate === deep.carPlate))];
-            const skippedCars = cars.filter(c => c.status === 'skipped').length;
+            const cars = [...washCars];
+            for (const deepCar of deepCarsForDate) {
+              const owner = sourceCustomers.find(customer => customer.customerId === deepCar.customerId);
+              const existing = cars.findIndex(wash => wash.customerId === deepCar.customerId && wash.carPlate === deepCar.carPlate);
+              if (existing >= 0) {
+                cars[existing] = {
+                  ...cars[existing],
+                  services: { ...(cars[existing].services ?? {}), deepClean: { status: deepCar.status === 'skipped' ? 'skipped' : 'pending' } },
+                };
+              } else {
+                cars.push({ ...deepCar, services: { deepClean: { status: deepCar.status === 'skipped' ? 'skipped' : 'pending' } } });
+              }
+              if (owner?.id) {
+                const skipped = deepCar.status === 'skipped';
+                batch.set(db.collection('customerSocietyRecords').doc(owner.id), {
+                  deepCleanDates: FieldValue.arrayUnion(candidate.cleaningDate),
+                  ...(skipped ? {} : { deepCleanGeneratedDates: FieldValue.arrayUnion(candidate.cleaningDate) }),
+                  updatedAt: FieldValue.serverTimestamp(),
+                }, { merge: true });
+              }
+            }
+            const skippedCars = cars.reduce((total, car) => total + Object.values(car.services ?? {}).filter(task => task.status === 'skipped').length, 0);
+            const totalTasks = cars.reduce((total, car) => total + Object.values(car.services ?? {}).filter(task => task.status !== 'skipped').length, 0);
+            if (cars.length === 0) return;
 
             batch.set(refs[i], {
               societyId,
               societyName:   config.societyName,
               tower,
-              sessionType:   deepCarsForDate.length ? 'deep-clean' : 'wash',
+              sessionType:   'wash',
               scheduledDate: candidate.cleaningDate,
               // The instant this session becomes due. start-sessions queries on
               // this directly — a session written without it would never be
@@ -137,7 +204,7 @@ export async function GET(req: NextRequest) {
               cars,
               // Denominator for the "done/total" progress ring is the actual work —
               // skipped cars are shown to the worker but can never be marked done.
-              totalCars:     cars.length - skippedCars,
+              totalCars:     totalTasks,
               completedCars: 0,
               skippedCars,
               workerIds:     assignedWorkerIds,
@@ -157,98 +224,8 @@ export async function GET(req: NextRequest) {
           }
         }
       } catch (err: unknown) {
-        console.error('[CRON] Society processing error:', err instanceof Error ? err.message : String(err));
+        console.error('[CRON] Tower processing error:', towerKeyValue, err instanceof Error ? err.message : String(err));
         errors++;
-      }
-    }
-
-    // Customer subscriptions can request a weekly deep clean even when their
-    // tower has no society-wide deep-clean configuration. Schedule each opted-in
-    // record on its chosen weekday, using the normal society crew and slot.
-    const optedInSnap = await db.collection('customerSocietyRecords')
-      .where('status', '==', 'active')
-      .get();
-    for (const customerDoc of optedInSnap.docs) {
-      const customer = customerDoc.data();
-      if (customer.deepCleanEnabled !== true) continue;
-      if (!customer.societyId || !customer.tower) continue;
-      const key = `${customer.societyId}__${customer.tower}`;
-      const towerConfigDoc = societiesSnap.docs.find(d => `${d.data().societyId}__${d.data().tower}` === key);
-      const towerConfig = towerConfigDoc?.data();
-      const frequency = customer.deepCleanFrequency ?? 'weekly';
-      const today = new Date(); today.setHours(0, 0, 0, 0);
-      const windowStart = new Date(today); windowStart.setDate(windowStart.getDate() + 1);
-      const defaultDay = Array.isArray(towerConfig?.cleaningDays) && towerConfig.cleaningDays.length
-        ? [...towerConfig.cleaningDays].sort((a: number, b: number) => a - b)[0] : 1;
-      const deepDay = typeof customer.deepCleanDay === 'number' ? customer.deepCleanDay : defaultDay;
-      let dates = frequency === 'daily'
-        ? Array.from({ length: 14 }, (_, i) => { const d = new Date(windowStart); d.setDate(d.getDate() + i); return d; })
-        : getCleaningDatesInWindow(windowStart, 14, [deepDay]);
-      if (frequency === 'daily' && Array.isArray(customer.preferredCleaningDays) && customer.preferredCleaningDays.length) {
-        dates = dates.filter(d => customer.preferredCleaningDays.includes(d.getDay()));
-      }
-      if (frequency === 'one-time' && customer.deepCleanOneTimeScheduledDate) {
-        const scheduled = customer.deepCleanOneTimeScheduledDate.toDate?.() ?? new Date(customer.deepCleanOneTimeScheduledDate);
-        dates = scheduled >= windowStart ? [scheduled] : [];
-      } else if (frequency === 'one-time') {
-        dates = dates.slice(0, 1);
-      }
-      const societySnap = await getSociety(customer.societyId);
-      const workerIds = (societySnap.data()?.towerWorkerAssignments as Record<string, string[]> | undefined)?.[customer.tower] ?? [];
-      const workerNames = workerIds.map(id => workerNamesById.get(id) ?? 'Worker');
-      const source = customer as SocietyCarSourceCustomer;
-      const towerSlug = String(customer.tower).trim().replace(/\s+/g, '-');
-      for (const date of dates) {
-        const dateKey = date.toISOString().split('T')[0];
-        const sessionId = `${customer.societyId}_${towerSlug}_${dateKey}`;
-        const ref = db.collection('cleaningSessions').doc(sessionId);
-        const startMinutes = towerConfig
-          ? resolveTowerStartMinutes(towerConfig as { cleaningTimeMinutes?: number | null; cleaningSchedule?: string })
-          : 540;
-        const cars = buildSessionCars([source], date, 'deep-clean');
-        if (cars.length === 0) continue;
-        const dailyWashDate = frequency === 'daily' && Array.isArray(customer.preferredCleaningDays)
-          && customer.preferredCleaningDays.includes(date.getDay());
-        const towerWashDate = Array.isArray(towerConfig?.cleaningDays)
-          ? towerConfig.cleaningDays.includes(date.getDay())
-          : parseWeekdaysFromSchedule((towerConfig?.cleaningSchedule as string | undefined) ?? '').includes(date.getDay());
-        if (dailyWashDate || towerWashDate) {
-          const regularCars = buildSessionCars([source], date, 'wash');
-          for (const regular of regularCars) {
-            if (!cars.some(car => car.carPlate === regular.carPlate && car.customerId === regular.customerId)) cars.push(regular);
-          }
-        }
-        try {
-          let created = false;
-          await db.runTransaction(async tx => {
-            const existing = await tx.get(ref);
-            if (existing.exists) {
-              const data = existing.data()!;
-              if (data.status !== 'scheduled') return;
-              const current = (data.cars as Record<string, unknown>[] | undefined) ?? [];
-              const otherCustomers = current.filter(car => car.customerId !== customer.customerId);
-              const keepDone = current.filter(car => car.customerId === customer.customerId && (car.status === 'done' || car.status === 'in_progress'));
-              const merged = [...otherCustomers, ...cars.filter(car => !keepDone.some(done => done.carPlate === car.carPlate)), ...keepDone];
-              const skippedCars = merged.filter(car => car.status === 'skipped').length;
-              tx.update(ref, { cars: merged, totalCars: merged.length - skippedCars, skippedCars, updatedAt: FieldValue.serverTimestamp() });
-              return;
-            }
-            const skippedCars = cars.filter(car => car.status === 'skipped').length;
-            tx.set(ref, {
-              societyId: customer.societyId, societyName: customer.societyName ?? '', tower: customer.tower,
-              sessionType: dailyWashDate || towerWashDate ? 'wash' : 'deep-clean', scheduledDate: date, startAt: computeSessionStartAt(date, startMinutes),
-              status: 'scheduled', cars, totalCars: cars.length - skippedCars, completedCars: 0, skippedCars,
-              workerIds, workerNames, createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
-            });
-            created = true;
-          });
-          if (created) {
-            sessionsCreated++;
-          }
-        } catch (err) {
-          console.error('[CRON] Customer deep-clean session error:', customerDoc.id, err instanceof Error ? err.message : String(err));
-          errors++;
-        }
       }
     }
 
@@ -267,7 +244,9 @@ export async function GET(req: NextRequest) {
   });
 }
 
-function parseWeekdaysFromSchedule(scheduleStr: string): number[] {
+function towerKey(societyId: string, tower: string): string { return `${societyId}::${tower}`; }
+
+function parseWeekdaysFromSchedule(scheduleStr: string | undefined): number[] {
   const dayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
   const daysMatch = scheduleStr?.match(/^(.*?)\s*·/);
   const daysStr = daysMatch ? daysMatch[1] : (scheduleStr || 'Mon, Wed, Fri');
@@ -282,9 +261,37 @@ function getCleaningDatesInWindow(startDate: Date, days: number, weekdays: numbe
   for (let i = 0; i < days; i++) {
     const date = new Date(startDate);
     date.setDate(date.getDate() + i);
-    if (weekdays.includes(date.getDay())) dates.push(new Date(date));
+    if (weekdays.includes(date.getDay())) dates.push(new Date(date.getFullYear(), date.getMonth(), date.getDate()));
   }
   return dates;
+}
+
+function deepCleanDatesForCustomer(
+  customer: SocietyCarSourceCustomer,
+  startDate: Date,
+  days: number,
+  towerDays: number[],
+): Date[] {
+  if (customer.deepCleanEnabled !== true) return [];
+  const frequency = customer.deepCleanFrequency ?? 'weekly';
+  if (frequency === 'one-time') {
+    const raw = customer.deepCleanOneTimeScheduledDate as { toDate?: () => Date } | Date | string | number | undefined;
+    if (!raw) return [];
+    const date = typeof (raw as { toDate?: () => Date }).toDate === 'function'
+      ? (raw as { toDate: () => Date }).toDate()
+      : new Date(raw as Date | string | number);
+    if (Number.isNaN(date.getTime())) return [];
+    const localMidnight = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const startMidnight = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+    return localMidnight >= startMidnight ? [localMidnight] : [];
+  }
+  if (frequency === 'daily') {
+    const everyDay = Array.from({ length: days }, (_, i) => { const d = new Date(startDate); d.setDate(d.getDate() + i); return new Date(d.getFullYear(), d.getMonth(), d.getDate()); });
+    const allowed = customer.preferredCleaningDays?.length ? customer.preferredCleaningDays : towerDays;
+    return everyDay.filter(d => allowed.includes(d.getDay()));
+  }
+  const defaultDay = towerDays.slice().sort((a, b) => a - b)[0] ?? 1;
+  return getCleaningDatesInWindow(startDate, days, [customer.deepCleanDay ?? defaultDay]);
 }
 
 function sameDate(value: unknown, date: Date): boolean {

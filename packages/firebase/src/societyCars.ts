@@ -55,6 +55,10 @@ export interface SessionCarDraft {
   vehicleCategory: VehicleCategory;
   preferredTime: number;
   status: 'pending' | 'skipped';
+  services?: {
+    wash?: { status: 'pending' | 'skipped' };
+    deepClean?: { status: 'pending' | 'skipped' };
+  };
 }
 
 /**
@@ -103,7 +107,16 @@ export function buildSessionCars(
 ): SessionCarDraft[] {
   return customers
     .filter(c => sessionType !== 'deep-clean' || c.deepCleanEnabled === true)
-    .flatMap(c => buildSessionCarsForCustomer(c, scheduledDate, sessionType));
+    .flatMap(c => buildSessionCarsForCustomer(
+      sessionType === 'deep-clean' ? { ...c, preferredCleaningDays: undefined } : c,
+      scheduledDate,
+      sessionType,
+    ).map(car => ({
+      ...car,
+      services: sessionType === 'deep-clean'
+        ? { deepClean: { status: car.status === 'skipped' ? 'skipped' as const : 'pending' as const } }
+        : { wash: { status: car.status === 'skipped' ? 'skipped' as const : 'pending' as const } },
+    })));
 }
 
 /**

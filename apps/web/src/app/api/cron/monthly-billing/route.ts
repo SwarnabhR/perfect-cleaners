@@ -43,17 +43,26 @@ export async function GET(req: NextRequest) {
       try {
         const record    = docSnap.data();
         const frequency = (record.billingFrequency as 'monthly' | 'one-time' | 'per-day' | undefined) ?? 'monthly';
-
-        // One-time customers are billed exactly once, ever — once billed, every
-        // later run is a complete no-op for them (no reads beyond this check).
-        if (frequency === 'one-time' && record.oneTimeBilled && !record.deepCleanEnabled) continue;
+        const baseDue = frequency !== 'one-time' || record.oneTimeBilled !== true;
+        const baseCycleKey = new Date().toISOString().slice(0, 7);
+        const baseCycleAlreadyBilled = frequency !== 'one-time' && record.lastBillingCycle === baseCycleKey;
+        if (baseCycleAlreadyBilled) {
+          // A due one-time deep-clean add-on is processed separately below.
+          if (!(record.deepCleanEnabled === true && record.deepCleanFrequency === 'one-time' && record.deepCleanOneTimeBilled !== true)) continue;
+        }
 
         // Deep-clean fee belongs to the individual customer plan. Older tower
         // subscriptions continue to fall back to their configured tower fee.
         let deepCleanFee = 0;
-        const oneTimeDeepCleanDue = record.deepCleanEnabled === true && record.deepCleanFrequency === 'one-time'
+        const rawDeepDate = record.deepCleanOneTimeScheduledDate as { toDate?: () => Date } | Date | string | number | undefined;
+        const deepDate = rawDeepDate && typeof (rawDeepDate as { toDate?: () => Date }).toDate === 'function'
+          ? (rawDeepDate as { toDate: () => Date }).toDate()
+          : rawDeepDate ? new Date(rawDeepDate as Date | string | number) : null;
+        const oneTimeDeepCleanDue = record.deepCleanEnabled === true
+          && record.deepCleanFrequency === 'one-time'
           && record.deepCleanOneTimeBilled !== true
-          && record.deepCleanOneTimeScheduledDate;
+          && !!deepDate && !Number.isNaN(deepDate.getTime()) && deepDate <= new Date();
+        if (!baseDue && !oneTimeDeepCleanDue && !(record.deepCleanEnabled && record.deepCleanFrequency !== 'one-time' && !baseCycleAlreadyBilled)) continue;
         if ((record.deepCleanEnabled && record.deepCleanFrequency !== 'one-time') || oneTimeDeepCleanDue) {
           if (typeof record.deepCleanFee === 'number') {
             deepCleanFee = record.deepCleanFee;
@@ -64,10 +73,8 @@ export async function GET(req: NextRequest) {
           }
         }
 
-        let amount: number;
-        if (oneTimeDeepCleanDue) {
-          amount = deepCleanFee;
-        } else if (frequency === 'per-day') {
+        let baseAmount = 0;
+        if (baseDue && !baseCycleAlreadyBilled && frequency === 'per-day') {
           // monthlyFee is the per-clean rate for per-day towers (see SocietyBillingConfig).
           const periodStart = (record.lastBilledDate?.toDate?.() as Date | undefined)
             ?? (record.createdAt?.toDate?.() as Date | undefined)
@@ -77,20 +84,25 @@ export async function GET(req: NextRequest) {
             .where('societyId',  '==', record.societyId)
             .where('cleanedAt',  '>=', periodStart)
             .get();
-          amount = (record.monthlyFee as number) * logsSnap.size + deepCleanFee;
-        } else {
-          amount = (record.monthlyFee as number) + deepCleanFee;
+          baseAmount = (record.monthlyFee as number) * logsSnap.size;
+        } else if (baseDue && !baseCycleAlreadyBilled) {
+          baseAmount = (record.monthlyFee as number) || 0;
         }
+        const recurringDeepFee = record.deepCleanEnabled === true && record.deepCleanFrequency !== 'one-time' && !baseCycleAlreadyBilled ? deepCleanFee : 0;
+        const amount = baseAmount + recurringDeepFee + (oneTimeDeepCleanDue ? deepCleanFee : 0);
 
 
         // Metered customer with nothing to charge this cycle — advance the
         // metering window but don't create a ₹0 bill or nag them for payment.
-        if ((frequency === 'per-day' && amount === 0) || (oneTimeDeepCleanDue && amount === 0)) {
+        if (amount === 0) {
           await db.collection('customerSocietyRecords').doc(docSnap.id).set(
             {
-              lastBilledDate:  FieldValue.serverTimestamp(),
-              nextBillingDate: firstOfNextMonth(),
-              updatedAt:       FieldValue.serverTimestamp(),
+              ...(baseDue && !baseCycleAlreadyBilled && frequency === 'per-day' ? { lastBilledDate: FieldValue.serverTimestamp() } : {}),
+              ...(baseDue && !baseCycleAlreadyBilled && frequency !== 'one-time' ? { nextBillingDate: firstOfNextMonth() } : {}),
+              ...(frequency === 'one-time' && baseDue ? { oneTimeBilled: true } : {}),
+              ...(oneTimeDeepCleanDue ? { deepCleanOneTimeBilled: true } : {}),
+              ...(frequency !== 'one-time' && baseDue && !baseCycleAlreadyBilled ? { lastBillingCycle: baseCycleKey } : {}),
+              updatedAt: FieldValue.serverTimestamp(),
             },
             { merge: true },
           );
@@ -99,7 +111,7 @@ export async function GET(req: NextRequest) {
         }
 
         const oneTimeRaw = record.deepCleanOneTimeScheduledDate as { toDate?: () => Date } | Date | string | number | undefined;
-        const billingDay = oneTimeDeepCleanDue
+        const billingDay = oneTimeDeepCleanDue && (!baseDue || baseCycleAlreadyBilled)
           ? (oneTimeRaw && typeof (oneTimeRaw as { toDate?: () => Date }).toDate === 'function'
             ? (oneTimeRaw as { toDate: () => Date }).toDate()
             : new Date(oneTimeRaw as Date | string | number))
@@ -112,7 +124,7 @@ export async function GET(req: NextRequest) {
           societyName:      record.societyName,
           tower:            record.tower,
           amount,
-          ...(oneTimeDeepCleanDue ? { serviceType: 'deep-clean', description: 'One-time deep cleaning' } : {}),
+          ...(oneTimeDeepCleanDue && (!baseDue || baseCycleAlreadyBilled) ? { serviceType: 'deep-clean', description: 'One-time deep cleaning' } : {}),
           status:           'pending',
           billedAt:         FieldValue.serverTimestamp(),
           dueDate:          new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
@@ -122,10 +134,11 @@ export async function GET(req: NextRequest) {
           {
             paymentStatus:   'pending_payment',
             pendingAmount:   amount,
-            lastBilledDate:  FieldValue.serverTimestamp(),
-            nextBillingDate: firstOfNextMonth(),
-            ...(frequency === 'one-time' && !oneTimeDeepCleanDue ? { oneTimeBilled: true } : {}),
+            ...(baseDue && !baseCycleAlreadyBilled ? { lastBilledDate: FieldValue.serverTimestamp() } : {}),
+            ...(baseDue && !baseCycleAlreadyBilled && frequency !== 'one-time' ? { nextBillingDate: firstOfNextMonth() } : {}),
+            ...(frequency === 'one-time' && baseDue && !record.oneTimeBilled ? { oneTimeBilled: true } : {}),
             ...(oneTimeDeepCleanDue ? { deepCleanOneTimeBilled: true } : {}),
+            ...(frequency !== 'one-time' && baseDue && !baseCycleAlreadyBilled ? { lastBillingCycle: baseCycleKey } : {}),
             updatedAt:       FieldValue.serverTimestamp(),
           },
           { merge: true },

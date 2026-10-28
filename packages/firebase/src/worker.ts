@@ -167,12 +167,13 @@ export interface WorkerTodoCar {
   carMake: string;
   carModel: string;
   preferredTime: number;
-  status: CleaningSessionCar['status'];
+  status: 'pending' | 'in_progress';
   // True when the car was marked "not available" — either by a worker on the
   // ground (the car wasn't in its slot) or by an admin on the Live Cleaning
   // board. Rows like this are only present when the caller asks for them via
   // `includeUnavailable`; they are never actionable work.
   unavailable: boolean;
+  serviceType: 'wash' | 'deep-clean';
 }
 
 /**
@@ -194,7 +195,7 @@ export function isCarActionableNow(dueBucket: CarDueBucket): boolean {
 type TodoSession = Pick<
   CleaningSession,
   'societyId' | 'societyName' | 'tower' | 'scheduledDate' | 'status' | 'cars'
-> & { id: string };
+> & { id: string; sessionType?: 'wash' | 'deep-clean' };
 
 /**
  * Flattens a worker's assigned sessions into per-car to-do rows spanning
@@ -223,13 +224,16 @@ export function resolveWorkerTodoCars(
     if (!s.societyId || !s.tower) continue;
 
     for (const c of s.cars ?? []) {
-      if (c.status !== 'pending' && c.status !== 'in_progress') continue;
       // "Not available today" — set by a worker on the ground or an admin on
       // the Live Cleaning board. Excluded the same as a 'skipped' status
       // would be, so it doesn't sit on a worker's to-do list as actionable
       // when it isn't; callers that want to *display* it opt in explicitly.
       if (c.unavailable && !opts.includeUnavailable) continue;
-      rows.push({
+      const legacyService = (s as TodoSession & { sessionType?: 'wash' | 'deep-clean' }).sessionType === 'deep-clean' ? 'deepClean' : 'wash';
+      const serviceTasks = c.services
+        ? (Object.entries(c.services) as ['wash' | 'deepClean', { status: string }][]).filter(([, task]) => task.status === 'pending' || task.status === 'in_progress')
+        : c.status === 'pending' || c.status === 'in_progress' ? [[legacyService, { status: c.status }]] as ['wash' | 'deepClean', { status: string }][] : [];
+      for (const [serviceType, task] of serviceTasks) rows.push({
         sessionId:     s.id,
         societyId:     s.societyId,
         societyName:   s.societyName ?? s.societyId,
@@ -246,8 +250,9 @@ export function resolveWorkerTodoCars(
         carMake:       c.carMake,
         carModel:      c.carModel,
         preferredTime: c.preferredTime,
-        status:        c.status,
         unavailable:   Boolean(c.unavailable),
+        serviceType: serviceType === 'deepClean' ? 'deep-clean' : 'wash',
+        status: task.status as 'pending' | 'in_progress',
       });
     }
   }

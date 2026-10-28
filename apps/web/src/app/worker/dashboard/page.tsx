@@ -304,7 +304,7 @@ function CarDetailsModal({ car, busy, onClose, onToggle, onSetUnavailable }: {
   onToggle: () => void; onSetUnavailable: (unavailable: boolean) => void;
 }) {
   const due = dueLabel(car, new Date());
-  const done = car.status === 'done';
+  const done = false;
   const locked = !isCarActionableNow(car.dueBucket);
   const rows: [string, ReactNode][] = [
     ['Customer',     car.customerName || '—'],
