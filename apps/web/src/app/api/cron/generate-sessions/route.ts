@@ -141,7 +141,7 @@ export async function GET(req: NextRequest) {
           candidates.forEach((candidate, i) => {
             if (existingSnaps[i].exists) return;
 
-            const cars = buildSessionCars(sourceCustomers, candidate.cleaningDate);
+            const cars = buildSessionCars(sourceCustomers, candidate.cleaningDate, candidate.sessionType);
             const skippedCars = cars.filter(c => c.status === 'skipped').length;
 
             batch.set(refs[i], {

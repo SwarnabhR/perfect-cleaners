@@ -79,7 +79,9 @@ export async function resyncUpcomingSessions(
         // A customer can have more than one vehicle (car + two-wheeler) —
         // each gets its own session entry, matched by plate since customerId
         // alone no longer uniquely identifies a row.
-        const freshCars = buildSessionCarsForCustomer(record, scheduledDate);
+        const freshCars = data.sessionType === 'deep-clean' && record.deepCleanEnabled !== true
+          ? []
+          : buildSessionCarsForCustomer(record, scheduledDate);
         const freshPlates = new Set(freshCars.map(f => f.carPlate));
 
         let updatedCars = cars;

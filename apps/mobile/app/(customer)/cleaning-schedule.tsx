@@ -38,6 +38,9 @@ interface SocietyRecord {
   rescheduledSlots: { date: Date; fromTime: number; toTime: number }[];
   monthlyFee: number;
   paymentStatus: string;
+  deepCleanEnabled: boolean;
+  deepCleanAvailable: boolean;
+  deepCleanFrequency: 'weekly' | 'daily' | 'one-time';
 }
 
 interface CleaningLog {
@@ -160,6 +163,9 @@ export default function CleaningScheduleScreen() {
               rescheduledSlots,
               monthlyFee: data.monthlyFee ?? 0,
               paymentStatus: data.paymentStatus ?? 'not_verified',
+              deepCleanEnabled: data.deepCleanEnabled === true,
+              deepCleanAvailable: data.deepCleanAvailable === true || data.deepCleanAvailable === undefined && data.deepCleanEnabled === true,
+              deepCleanFrequency: data.deepCleanFrequency ?? 'weekly',
             });
           } else {
             setRecord(null);
@@ -190,6 +196,9 @@ export default function CleaningScheduleScreen() {
           rescheduledSlots,
           monthlyFee: data.monthlyFee ?? 0,
           paymentStatus: data.paymentStatus ?? 'not_verified',
+          deepCleanEnabled: data.deepCleanEnabled === true,
+          deepCleanAvailable: data.deepCleanAvailable === true || data.deepCleanAvailable === undefined && data.deepCleanEnabled === true,
+          deepCleanFrequency: data.deepCleanFrequency ?? 'weekly',
         });
       }
 
@@ -274,6 +283,14 @@ export default function CleaningScheduleScreen() {
     setSaving(true);
     const ok = await postUnavailability({ action: 'permanentTime', hour });
     if (ok) setRecord({ ...record, permanentTime: hour });
+    setSaving(false);
+  }
+
+  async function toggleDeepClean(enabled: boolean) {
+    if (!record || record === 'loading') return;
+    setSaving(true);
+    const ok = await postUnavailability({ action: 'deepClean', enabled });
+    if (ok) setRecord({ ...record, deepCleanEnabled: enabled });
     setSaving(false);
   }
 
@@ -445,6 +462,29 @@ export default function CleaningScheduleScreen() {
                 </>
               )}
             </View>
+
+            {record.deepCleanAvailable && <View style={s.infoCard}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing[3] }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.metaLabel}>{record.deepCleanFrequency === 'weekly' ? 'WEEKLY DEEP CLEANING' : 'DEEP CLEANING ADD-ON'}</Text>
+                  <Text style={[s.body, { marginTop: 5 }]}>
+                    {record.deepCleanFrequency === 'weekly' ? 'Add one deeper clean each week to your society schedule.' : record.deepCleanFrequency === 'daily' ? 'Add a deeper clean on each scheduled cleaning day.' : 'Add a one-time deep clean to your society schedule.'}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  accessibilityRole="switch"
+                  accessibilityState={{ checked: record.deepCleanEnabled, disabled: saving }}
+                  onPress={() => toggleDeepClean(!record.deepCleanEnabled)}
+                  disabled={saving}
+                  activeOpacity={0.7}
+                  style={{ minWidth: 64, minHeight: 44, borderRadius: 999, paddingHorizontal: 10, alignItems: record.deepCleanEnabled ? 'flex-end' : 'flex-start', justifyContent: 'center', backgroundColor: record.deepCleanEnabled ? c.sage : c.inkRaised, borderWidth: 1, borderColor: record.deepCleanEnabled ? c.sage : c.line }}
+                >
+                  <Text style={{ fontFamily: typography.monoMedium, fontSize: 10, color: record.deepCleanEnabled ? c.fg : c.fg3 }}>
+                    {record.deepCleanEnabled ? 'ON' : 'OFF'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>}
 
             {/* Upcoming dates with skip/reschedule */}
             {upcomingDates.length > 0 && (

@@ -56,6 +56,20 @@ export async function POST(req: NextRequest) {
       if (typeof hour !== 'number') return NextResponse.json({ error: 'hour is required.' }, { status: 400 });
       update.permanentTime = hour;
 
+    } else if (action === 'deepClean') {
+      if (typeof body.enabled !== 'boolean') {
+        return NextResponse.json({ error: 'enabled must be a boolean.' }, { status: 400 });
+      }
+      const configSnap = await db.collection('societyBillingConfig')
+        .where('societyId', '==', record.societyId)
+        .where('tower', '==', record.tower)
+        .limit(1)
+        .get();
+      if (!configSnap.docs[0]?.data().deepClean) {
+        return NextResponse.json({ error: 'Deep cleaning is not available for this tower.' }, { status: 400 });
+      }
+      update.deepCleanEnabled = body.enabled;
+
     } else if (action === 'reschedule') {
       const dateRaw = body.date as string | undefined;
       const toTime  = body.toTime as number | undefined;

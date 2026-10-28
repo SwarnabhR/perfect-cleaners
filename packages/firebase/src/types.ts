@@ -347,6 +347,8 @@ export interface CustomerSocietyRecord {
   tier?: 'normal' | 'premium' | 'ultra';
   billingFrequency?: 'monthly' | 'one-time' | 'per-day';
   deepCleanEnabled?: boolean;
+  deepCleanAvailable?: boolean; // tower has enabled the add-on; resident choice is stored separately above
+  deepCleanFrequency?: 'weekly' | 'daily' | 'one-time';
   oneTimeBilled?: boolean;      // set once the billing cron has charged a 'one-time' customer
   pendingAmount?: number;       // current cycle's actual amount owed, written by the billing cron
 

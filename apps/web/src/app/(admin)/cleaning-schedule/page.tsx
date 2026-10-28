@@ -26,6 +26,7 @@ interface CreateSessionForm {
   tower: string;
   scheduledDate: string;
   workerIds: string[];
+  sessionType: 'wash' | 'deep-clean';
 }
 
 const BLANK_FORM: CreateSessionForm = {
@@ -34,6 +35,7 @@ const BLANK_FORM: CreateSessionForm = {
   tower: '',
   scheduledDate: new Date().toISOString().split('T')[0],
   workerIds: [],
+  sessionType: 'wash',
 };
 
 const monoLabel: React.CSSProperties = {
@@ -331,7 +333,7 @@ export default function CleaningSchedulePage() {
   // session created by hand from this page carries the same real cars[] /
   // totalCars the Live Cleaning board and worker dashboard depend on —
   // previously this always wrote an empty array, so neither ever showed anything.
-  async function buildCarsForSession(societyId: string, tower: string, scheduledDate: Date) {
+  async function buildCarsForSession(societyId: string, tower: string, scheduledDate: Date, sessionType: 'wash' | 'deep-clean') {
     const customersSnap = await getDocs(query(
       collection(db, 'customerSocietyRecords'),
       where('societyId', '==', societyId),
@@ -339,7 +341,7 @@ export default function CleaningSchedulePage() {
       where('status', '==', 'active'),
     ));
 
-    return buildSessionCars(customersSnap.docs.map(d => d.data() as SocietyCarSourceCustomer), scheduledDate);
+    return buildSessionCars(customersSnap.docs.map(d => d.data() as SocietyCarSourceCustomer), scheduledDate, sessionType);
   }
 
   async function handleCreateSession() {
@@ -353,7 +355,7 @@ export default function CleaningSchedulePage() {
       // scheme the generate-sessions cron uses, so a raw space in the tower
       // name is slugged to keep the ID URL-safe.
       const towerSlug = form.tower.trim().replace(/\s+/g, '-');
-      const sessionId = `${form.societyId}_${towerSlug}_${form.scheduledDate}`;
+      const sessionId = `${form.societyId}_${towerSlug}_${form.scheduledDate}${form.sessionType === 'deep-clean' ? '_deep' : ''}`;
 
       // A session for this tower+date may already exist — either pre-staged
       // by the cron, or from an earlier click of this same button. Without
@@ -370,7 +372,7 @@ export default function CleaningSchedulePage() {
 
       const selectedWorkers = workers.filter(w => form.workerIds.includes(w.id));
       const workerNames = selectedWorkers.map(w => w.name);
-      const cars = await buildCarsForSession(form.societyId.trim(), form.tower.trim(), scheduledDate);
+      const cars = await buildCarsForSession(form.societyId.trim(), form.tower.trim(), scheduledDate, form.sessionType);
       const skippedCars = cars.filter(c => c.status === 'skipped').length;
 
       await setDoc(doc(db, 'cleaningSessions', sessionId), {
@@ -378,6 +380,7 @@ export default function CleaningSchedulePage() {
         societyName: form.societyName.trim(),
         tower: form.tower.trim(),
         scheduledDate,
+        sessionType: form.sessionType,
         status: 'scheduled',
         cars,
         // Denominator for the "done/total" progress ring is the actual work —
@@ -931,6 +934,18 @@ export default function CleaningSchedulePage() {
                   onChange={e => setForm({ ...form, scheduledDate: e.target.value })}
                   style={inputStyle}
                 />
+              </div>
+
+              <div>
+                <p style={monoLabel}>Session Type</p>
+                <select
+                  value={form.sessionType}
+                  onChange={e => setForm(f => ({ ...f, sessionType: e.target.value as CreateSessionForm['sessionType'] }))}
+                  style={inputStyle}
+                >
+                  <option value="wash">Regular wash</option>
+                  <option value="deep-clean">Weekly deep cleaning</option>
+                </select>
               </div>
 
               <div>

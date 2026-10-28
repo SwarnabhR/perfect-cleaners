@@ -36,6 +36,7 @@ export interface SocietyCarSourceCustomer {
   skipDates?: unknown[];
   rescheduledSlots?: Array<{ date: unknown; toTime: number }>;
   permanentTime?: number;
+  deepCleanEnabled?: boolean;
 }
 
 export interface SessionCarDraft {
@@ -94,8 +95,11 @@ export function buildSessionCarsForCustomer(
 export function buildSessionCars(
   customers: SocietyCarSourceCustomer[],
   scheduledDate: Date,
+  sessionType: 'wash' | 'deep-clean' = 'wash',
 ): SessionCarDraft[] {
-  return customers.flatMap(c => buildSessionCarsForCustomer(c, scheduledDate));
+  return customers
+    .filter(c => sessionType !== 'deep-clean' || c.deepCleanEnabled === true)
+    .flatMap(c => buildSessionCarsForCustomer(c, scheduledDate));
 }
 
 /**
