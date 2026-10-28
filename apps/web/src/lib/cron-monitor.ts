@@ -3,19 +3,7 @@ import 'server-only';
 import { FieldValue } from 'firebase-admin/firestore';
 import { NextRequest, NextResponse } from 'next/server';
 import { adminFirestore } from './firebase/admin';
-
-export const CRON_TASKS = {
-  'generate-sessions':    { maxAgeMinutes: 8 * 24 * 60 },
-  'weekly-reminders':     { maxAgeMinutes: 8 * 24 * 60 },
-  'payment-reminders':    { maxAgeMinutes: 38 * 24 * 60 },
-  'monthly-billing':      { maxAgeMinutes: 35 * 24 * 60 },
-  'process-cleaning-logs': { maxAgeMinutes: 15 },
-  'cleanup-sessions':     { maxAgeMinutes: 26 * 60 },
-  'reset-earnings':       { maxAgeMinutes: 26 * 60 },
-  'start-sessions':       { maxAgeMinutes: 15 },
-} as const;
-
-export type CronTaskName = keyof typeof CRON_TASKS;
+import { CRON_TASKS, CRON_TASK_MAX_AGE_MINUTES, type CronTaskName } from './cron-tasks';
 
 export function isAuthorizedCron(req: NextRequest): boolean {
   return req.headers.get('authorization') === `Bearer ${process.env.CRON_SECRET}`;
@@ -84,14 +72,15 @@ export async function checkCronHealth(): Promise<{ task: CronTaskName; healthy: 
   const now = Date.now();
   const results: { task: CronTaskName; healthy: boolean; reason?: string }[] = [];
 
-  for (const [task, config] of Object.entries(CRON_TASKS) as [CronTaskName, typeof CRON_TASKS[CronTaskName]][]) {
+  for (const task of CRON_TASKS) {
+    const maxAgeMinutes = CRON_TASK_MAX_AGE_MINUTES[task];
     const ref = db.collection('cronHealth').doc(task);
     const snap = await ref.get();
     const data = snap.data();
     const lastSuccess = data?.lastSuccessAt?.toDate?.() as Date | undefined;
     const age = lastSuccess ? now - lastSuccess.getTime() : Number.POSITIVE_INFINITY;
-    const healthy = age <= config.maxAgeMinutes * 60_000;
-    const reason = healthy ? undefined : lastSuccess ? `has not succeeded for over ${config.maxAgeMinutes} minutes` : 'has never reported a successful run';
+    const healthy = age <= maxAgeMinutes * 60_000;
+    const reason = healthy ? undefined : lastSuccess ? `has not succeeded for over ${maxAgeMinutes} minutes` : 'has never reported a successful run';
     results.push({ task, healthy, reason });
 
     if (!healthy) {

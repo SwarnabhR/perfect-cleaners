@@ -370,6 +370,11 @@ export interface PendingApproval {
   societyName: string;
   tower: string;
 
+  // Where the car actually lives, captured at signup so the worker can find it
+  // on the ground. Required going forward — older pending requests predate it.
+  unitNumber?: string;         // e.g. "B-1204"
+  parkingNumber?: string;      // e.g. "P-42"
+
   // Customer info
   customerId?: string;         // null for completely new signup
   customerName: string;

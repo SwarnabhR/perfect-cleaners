@@ -4,7 +4,13 @@ import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
-import { CRON_TASKS as TASKS } from '@/lib/cron-tasks';
+import {
+  CRON_TASKS as TASKS,
+  CRON_TASK_MAX_AGE_MINUTES,
+  cronHealthState,
+  formatCronInterval,
+  type CronHealthState,
+} from '@/lib/cron-tasks';
 
 type Stamp = { toDate(): Date };
 type Health = {
@@ -21,15 +27,17 @@ function time(v?: Stamp) {
     : 'Never';
 }
 
-// Three distinct states with three distinct fixes: healthy, ran-and-failed
-// (debug the endpoint), and never-ran (the job isn't registered with the
-// external scheduler at all). Collapsing the last two sends the owner
-// looking for a bug that isn't there.
-function classify(h: Health | undefined): { label: string; color: string; ok: boolean } {
-  if (h?.lastRunStatus === 'success') return { label: 'Healthy', color: 'var(--pc-success)', ok: true };
-  if (!h?.lastRunAt) return { label: 'Never run', color: 'var(--pc-warning)', ok: false };
-  return { label: 'Last run failed', color: 'var(--pc-danger)', ok: false };
-}
+// Four distinct states with four distinct fixes: healthy; ran-and-failed (debug
+// the endpoint); stale (it used to succeed but the scheduler stopped calling
+// it); never-ran (not registered at all). The previous version collapsed
+// "stale" into "healthy" — a task that last succeeded two months ago showed
+// green — which is exactly how silently-401ing cron jobs stayed unnoticed.
+const STATE_UI: Record<CronHealthState, { label: string; color: string; ok: boolean }> = {
+  healthy: { label: 'Healthy',           color: 'var(--pc-success)', ok: true  },
+  failed:  { label: 'Last run failed',   color: 'var(--pc-danger)',  ok: false },
+  stale:   { label: 'Stale',             color: 'var(--pc-warning)', ok: false },
+  never:   { label: 'Never run',         color: 'var(--pc-warning)', ok: false },
+};
 
 export default function SystemHealthPage() {
   const [health, setHealth] = useState<Record<string, Health>>({});
@@ -53,27 +61,37 @@ export default function SystemHealthPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 12 }}>
         {TASKS.map(task => {
           const h = health[task];
-          const state = classify(h);
+          const state = cronHealthState(task, h);
+          const ui = STATE_UI[state];
+          const expected = formatCronInterval(CRON_TASK_MAX_AGE_MINUTES[task]);
           return (
             <Card key={task} style={{
               padding: 18,
-              borderColor: state.ok ? 'var(--pc-line)' : `color-mix(in srgb, ${state.color} 45%, transparent)`,
+              borderColor: ui.ok ? 'var(--pc-line)' : `color-mix(in srgb, ${ui.color} 45%, transparent)`,
             }}>
               <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 10, color: 'var(--pc-fg-3)', margin: 0, letterSpacing: '0.06em' }}>
                 {task.toUpperCase()}
               </p>
-              <p style={{ fontFamily: 'var(--pc-sans)', color: state.color, fontWeight: 600, margin: '10px 0 4px' }}>
-                {state.label}
+              <p style={{ fontFamily: 'var(--pc-sans)', color: ui.color, fontWeight: 600, margin: '10px 0 4px' }}>
+                {ui.label}
               </p>
               <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)', margin: 0 }}>
                 Last success: {time(h?.lastSuccessAt)}
               </p>
-              {!h?.lastRunAt && (
+              <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-4)', margin: '2px 0 0' }}>
+                Expected every {expected}
+              </p>
+              {state === 'never' && (
                 <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-fg-3)', margin: '8px 0 0' }}>
                   Not registered with the scheduler yet — see CRON_SETUP.md.
                 </p>
               )}
-              {h?.lastRunDetail && h.lastRunStatus !== 'success' && (
+              {state === 'stale' && (
+                <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 12, color: 'var(--pc-warning)', margin: '8px 0 0' }}>
+                  No successful run in over {expected}. Check the job is enabled on the scheduler and not pointed at the www. host.
+                </p>
+              )}
+              {state === 'failed' && h?.lastRunDetail && (
                 <p style={{ fontFamily: 'var(--pc-mono)', fontSize: 11, color: 'var(--pc-danger)', margin: '8px 0 0' }}>
                   {h.lastRunDetail}
                 </p>

@@ -8,7 +8,7 @@ import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
 import StatusPill from '@/components/ui/StatusPill';
-import { CRON_TASKS } from '@/lib/cron-tasks';
+import { CRON_TASKS, cronHealthState, type CronHealthLike } from '@/lib/cron-tasks';
 
 type LiveBooking = Booking & { id: string };
 type LiveWorker  = Worker  & { id: string };
@@ -81,8 +81,8 @@ export default function DashboardPage() {
 
   useEffect(() => onSnapshot(collection(db, 'cronHealth'),
     snap => {
-      const byId = new Map(snap.docs.map(d => [d.id, d.data() as { lastRunStatus?: string }]));
-      setCronIssues(CRON_TASKS.filter(t => byId.get(t)?.lastRunStatus !== 'success').length);
+      const byId = new Map(snap.docs.map(d => [d.id, d.data() as CronHealthLike]));
+      setCronIssues(CRON_TASKS.filter(t => cronHealthState(t, byId.get(t)) !== 'healthy').length);
     },
     err => console.warn('[Dashboard] cronHealth:', err.message),
   ), []);

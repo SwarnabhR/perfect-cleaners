@@ -6,7 +6,7 @@ import { db } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
-import { CRON_TASKS } from '@/lib/cron-tasks';
+import { CRON_TASKS, CRON_TASK_MAX_AGE_MINUTES, cronHealthState, formatCronInterval, type CronHealthLike } from '@/lib/cron-tasks';
 
 // One queue for everything an owner must actually act on. Each source below
 // answers "what is broken or waiting", never "what happened" — routine
@@ -122,19 +122,24 @@ export default function OperationsPage() {
   // ── Automation health ─────────────────────────────────────────────────────
   useEffect(() => onSnapshot(collection(db, 'cronHealth'),
     snap => {
-      const byId = new Map(snap.docs.map(d => [d.id, d.data() as { lastRunStatus?: string; lastRunDetail?: string; lastRunAt?: unknown }]));
-      setCronItems(CRON_TASKS.filter(t => byId.get(t)?.lastRunStatus !== 'success').map(t => {
+      const byId = new Map(snap.docs.map(d => [d.id, d.data() as CronHealthLike & { lastRunDetail?: string }]));
+      setCronItems(CRON_TASKS.filter(t => cronHealthState(t, byId.get(t)) !== 'healthy').map(t => {
         const h = byId.get(t);
-        // "Never ran" and "ran and failed" need different fixes — the first
-        // means the job isn't registered with the external scheduler, the
-        // second means the endpoint itself is erroring. Don't conflate them.
-        const neverRan = !h?.lastRunAt;
+        const state = cronHealthState(t, byId.get(t));
+        const expected = formatCronInterval(CRON_TASK_MAX_AGE_MINUTES[t]);
         return {
-          id: t, kind: neverRan ? 'Never run' : 'Automation failing', severity: 'critical' as Severity,
+          id: t,
+          kind: state === 'never' ? 'Never run' : state === 'stale' ? 'Automation stale' : 'Automation failing',
+          severity: 'critical' as Severity,
           title: t.replace(/-/g, ' '),
-          detail: neverRan
+          // "Never ran", "went stale" and "ran and failed" need different fixes
+          // — not registered, stopped being called, or the endpoint is
+          // erroring. Don't conflate them.
+          detail: state === 'never'
             ? 'No run ever recorded — check this job is registered with the external scheduler.'
-            : (h?.lastRunDetail ?? 'Last run did not succeed'),
+            : state === 'stale'
+              ? `No successful run in over ${expected} — check the job is enabled on the scheduler and not pointed at the www. host.`
+              : (h?.lastRunDetail ?? 'Last run did not succeed'),
           href: '/system-health',
         };
       }));

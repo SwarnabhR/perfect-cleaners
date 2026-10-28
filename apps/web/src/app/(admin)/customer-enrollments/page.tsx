@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { collection, query, where, getDocs, getDoc, onSnapshot, doc, setDoc, updateDoc, deleteDoc, serverTimestamp, Timestamp, increment } from 'firebase/firestore';
 import { db, auth } from '@pc/firebase';
-import type { CustomerSocietyRecord, Society, DayOfWeek, VehicleCategory } from '@pc/firebase';
+import type { CustomerSocietyRecord, Society, DayOfWeek, VehicleCategory, SocietyBillingConfig } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
@@ -243,6 +243,15 @@ function CustomerFormModal({
     ? tierPricing[form.tier]
     : Math.max(0, (initial?.monthlyFee ?? configMonthlyFee ?? 500) - (hadTwoWheeler ? twoWheelerFee : 0));
   const monthlyFee = baseFee + (hasTwoWheeler ? twoWheelerFee : 0);
+
+  // Admin add/edit is data entry for a resident who may never open the app, so
+  // a name, a full address (society + tower + flat) and at least one plate are
+  // all mandatory — a record without them is unusable on the ground.
+  const requirementsMet =
+    Boolean(form.name.trim() && form.societyId && form.tower && form.unitNumber.trim())
+    && cleanedCars.length > 0
+    && cleanedCars.every(c => c.plate.trim())
+    && (!hasPhone || digits.length === 10);
 
   function updateCar(i: number, patch: Partial<CarRow>) {
     setForm(f => ({ ...f, cars: f.cars.map((c, idx) => (idx === i ? { ...c, ...patch } : c)) }));
@@ -702,12 +711,18 @@ function CustomerFormModal({
             <span style={{ fontFamily: 'var(--pc-serif)', fontSize: 20, color: 'var(--pc-fg)' }}>₹{monthlyFee.toLocaleString('en-IN')}</span>
           </div>
 
+          {!requirementsMet && (
+            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 11.5, color: 'var(--pc-fg-4)', margin: 0 }}>
+              Name, society, tower, flat / unit number, and at least one vehicle plate are required.
+            </p>
+          )}
+
           {error && <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-danger)', margin: 0 }}>{error}</p>}
 
           <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
             <button
-              type="button" onClick={handleSubmit} disabled={saving}
-              style={{ flex: 1, padding: '11px 0', borderRadius: 999, background: 'var(--pc-warm)', border: 'none', fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600, color: 'var(--pc-ink)', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1 }}
+              type="button" onClick={handleSubmit} disabled={saving || !requirementsMet}
+              style={{ flex: 1, padding: '11px 0', borderRadius: 999, background: 'var(--pc-warm)', border: 'none', fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600, color: 'var(--pc-ink)', cursor: (saving || !requirementsMet) ? 'not-allowed' : 'pointer', opacity: (saving || !requirementsMet) ? 0.6 : 1 }}
             >
               {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Add & Activate'}
             </button>
@@ -1136,6 +1151,7 @@ export default function CustomerEnrollmentsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
   const [cleanedThisMonth, setCleanedThisMonth] = useState<Record<string, number>>({});
+  const [billingConfigs, setBillingConfigs] = useState<Record<string, SocietyBillingConfig>>({});
   const [addOpen, setAddOpen] = useState(false);
   const [editRecord, setEditRecord] = useState<LiveRecord | null>(null);
   const [scheduleRecord, setScheduleRecord] = useState<LiveRecord | null>(null);
@@ -1175,6 +1191,22 @@ export default function CustomerEnrollmentsPage() {
       },
       err => console.warn('[CustomerEnrollments] cleaningLogs listener:', err.message),
     );
+  }, []);
+
+  // Tower pricing keyed by society+tower — lets each row show the tier and the
+  // two-wheeler fee that make up the resident's monthly fee, without a
+  // per-row query.
+  useEffect(() => {
+    getDocs(collection(db, 'societyBillingConfig'))
+      .then(snap => {
+        const map: Record<string, SocietyBillingConfig> = {};
+        snap.docs.forEach(d => {
+          const cfg = d.data() as SocietyBillingConfig;
+          map[`${cfg.societyId}__${cfg.tower}`] = cfg;
+        });
+        setBillingConfigs(map);
+      })
+      .catch(() => {});
   }, []);
 
   async function handleMarkAsPaid(id: string) {
@@ -1559,7 +1591,7 @@ export default function CustomerEnrollmentsPage() {
                       />
                     </th>
                   )}
-                  {['Customer', 'Society', 'Tower', 'Car', 'Cleaned (mo.)', 'Status', 'Payment', 'Next Billing', 'Action'].map(h => (
+                  {['Customer', 'Society', 'Tower', 'Car', 'Plan', 'Cleaned (mo.)', 'Status', 'Payment', 'Next Billing', 'Action'].map(h => (
                     <th
                       key={h}
                       style={{
@@ -1614,13 +1646,44 @@ export default function CustomerEnrollmentsPage() {
                         </p>
                       )}
                     </td>
-                    <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-mono)', fontSize: 12, color: 'var(--pc-fg-2)' }}>
-                      {(record.cars.find(c => (c.category ?? 'car') === 'car') ?? record.cars[0])?.plate || '—'}
-                      {record.cars.some(c => c.category === 'two-wheeler') && (
-                        <span title="Also has a two-wheeler registered" style={{ display: 'inline-flex', marginLeft: 6, verticalAlign: 'middle' }}>
-                          <Icon name="bike" size={12} color="var(--pc-fg-3)" />
-                        </span>
-                      )}
+                    <td style={{ padding: '13px 18px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                        {record.cars?.length ? record.cars.map((c, ci) => (
+                          <span key={ci} style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'var(--pc-mono)', fontSize: 12, color: 'var(--pc-fg-2)' }}>
+                            <Icon name={c.category === 'two-wheeler' ? 'bike' : 'car'} size={11} color="var(--pc-fg-3)" />
+                            {c.plate || '—'}
+                          </span>
+                        )) : (
+                          <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 12, color: 'var(--pc-fg-4)' }}>—</span>
+                        )}
+                      </div>
+                    </td>
+                    <td style={{ padding: '13px 18px' }}>
+                      {(() => {
+                        const twoWheelers = (record.cars ?? []).filter(c => c.category === 'two-wheeler').length;
+                        const cfg = billingConfigs[`${record.societyId}__${record.tower}`];
+                        const twoWheelerFee = cfg?.twoWheelerFee ?? 0;
+                        const per = record.billingFrequency === 'per-day' ? '/clean' : record.billingFrequency === 'one-time' ? 'one-time' : '/mo';
+                        return (
+                          <div>
+                            {record.tier && (
+                              <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 999, background: 'color-mix(in srgb, var(--pc-sage) 14%, transparent)', border: '1px solid var(--pc-line)', fontFamily: 'var(--pc-mono)', fontSize: 9, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--pc-sage-hi)' }}>
+                                {record.tier}
+                              </span>
+                            )}
+                            <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600, color: 'var(--pc-fg)', margin: record.tier ? '4px 0 0' : 0 }}>
+                              ₹{(record.monthlyFee ?? 0).toLocaleString('en-IN')}
+                              <span style={{ fontFamily: 'var(--pc-mono)', fontSize: 9.5, fontWeight: 400, color: 'var(--pc-fg-4)' }}> {per}</span>
+                            </p>
+                            {twoWheelers > 0 && (
+                              <p style={{ display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'var(--pc-mono)', fontSize: 9.5, color: 'var(--pc-fg-3)', margin: '3px 0 0', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                                <Icon name="bike" size={10} color="var(--pc-fg-3)" />
+                                {twoWheelers}× 2-wheeler{twoWheelerFee > 0 ? ` ₹${twoWheelerFee}` : ''}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td style={{ padding: '13px 18px', fontFamily: 'var(--pc-sans)', fontSize: 13, fontWeight: 600, color: cleanedThisMonth[record.customerId] ? 'var(--pc-sage-hi)' : 'var(--pc-fg-4)' }}>
                       {cleanedThisMonth[record.customerId] ?? 0}

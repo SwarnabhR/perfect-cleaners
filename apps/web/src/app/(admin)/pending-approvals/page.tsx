@@ -1,8 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { collection, query, where, getDocs, onSnapshot, doc, setDoc, updateDoc, deleteDoc, serverTimestamp, increment } from 'firebase/firestore';
+import { collection, query, where, getDocs, onSnapshot, doc, setDoc, updateDoc, serverTimestamp, increment } from 'firebase/firestore';
 import { db, auth } from '@pc/firebase';
-import type { PendingApproval, CustomerSocietyRecord, DayOfWeek, SocietyBillingConfig } from '@pc/firebase';
+import type { PendingApproval, DayOfWeek, SocietyBillingConfig } from '@pc/firebase';
 import Card from '@/components/ui/Card';
 import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
@@ -150,6 +150,8 @@ export default function PendingApprovalsPage() {
         societyId:             approval.societyId,
         societyName:           approval.societyName,
         tower:                 approval.tower,
+        ...(approval.unitNumber ? { unitNumber: approval.unitNumber } : {}),
+        ...(approval.parkingNumber ? { parkingNumber: approval.parkingNumber } : {}),
         cars,
         preferredCleaningTime: approval.preferredCleaningTime,
         preferredCleaningDays: approval.preferredCleaningDays ?? [],
@@ -377,6 +379,13 @@ export default function PendingApprovalsPage() {
                     <p style={monoLabel}>Tower</p>
                     <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)', margin: 0 }}>
                       {approval.tower}
+                    </p>
+                  </div>
+                  <div>
+                    <p style={monoLabel}>Flat / Unit</p>
+                    <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)', margin: 0 }}>
+                      {approval.unitNumber || '—'}
+                      {approval.parkingNumber ? ` · Parking ${approval.parkingNumber}` : ''}
                     </p>
                   </div>
                   <div>

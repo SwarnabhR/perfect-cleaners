@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import {
   collection, query, orderBy, limit, onSnapshot,
-  doc, serverTimestamp,
+  doc,
   Timestamp, where,
 } from 'firebase/firestore';
 import { auth, db } from '@pc/firebase';
@@ -39,6 +39,7 @@ interface SocietyDueRow {
   societyName:      string;
   tower:            string;
   unitNumber?:      string;
+  cars?:            Array<{ category?: string }>;
   amountDue:        number; // pendingAmount when the billing cron has computed one (per-day varies cycle to cycle), else the flat monthlyFee
   billingFrequency: string;
   paymentStatus:    string;
@@ -157,6 +158,7 @@ export default function BillingPage() {
                 societyName:      data.societyName,
                 tower:            data.tower,
                 unitNumber:       data.unitNumber,
+                cars:             (data.cars ?? []) as Array<{ category?: string }>,
                 amountDue:        data.pendingAmount ?? data.monthlyFee ?? 0,
                 billingFrequency: data.billingFrequency ?? 'monthly',
                 paymentStatus:    data.paymentStatus ?? 'not_verified',
@@ -344,7 +346,7 @@ export default function BillingPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--pc-line)' }}>
-                  {['Customer', 'Society / Unit', 'Amount Due', 'Status', 'Action'].map(h => (
+                  {['Customer', 'Society / Unit', 'Vehicle', 'Amount Due', 'Status', 'Action'].map(h => (
                     <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontFamily: 'var(--pc-sans)', fontSize: 11, color: 'var(--pc-fg-3)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -352,7 +354,7 @@ export default function BillingPage() {
               <tbody>
                 {societyDues.length === 0 ? (
                   <tr>
-                    <td colSpan={5} style={{ padding: '48px 16px', textAlign: 'center', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)' }}>
+                    <td colSpan={6} style={{ padding: '48px 16px', textAlign: 'center', fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-3)' }}>
                       No outstanding society dues.
                     </td>
                   </tr>
@@ -366,6 +368,22 @@ export default function BillingPage() {
                       <td style={{ padding: '12px 16px' }}>
                         <p style={{ fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg-2)', margin: 0 }}>{due.societyName} · {due.tower}</p>
                         {due.unitNumber && <p style={{ ...monoLabel }}>{due.unitNumber}</p>}
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        {(() => {
+                          const carCount     = (due.cars ?? []).filter(c => (c.category ?? 'car') === 'car').length;
+                          const twoWheelers  = (due.cars ?? []).filter(c => c.category === 'two-wheeler').length;
+                          return (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'var(--pc-mono)', fontSize: 12, color: carCount ? 'var(--pc-fg-2)' : 'var(--pc-fg-4)' }}>
+                                <Icon name="car" size={12} color="var(--pc-fg-3)" /> {carCount}
+                              </span>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'var(--pc-mono)', fontSize: 12, color: twoWheelers ? 'var(--pc-info)' : 'var(--pc-fg-4)' }}>
+                                <Icon name="bike" size={12} color="var(--pc-fg-3)" /> {twoWheelers}
+                              </span>
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td style={{ padding: '12px 16px' }}>
                         <span style={{ fontFamily: 'var(--pc-sans)', fontSize: 14, fontWeight: 600, color: 'var(--pc-warning)' }}>

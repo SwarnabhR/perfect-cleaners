@@ -123,6 +123,8 @@ function SelfSignupForm({
   const [name, setName] = useState(userName ?? '');
   const [societyId, setSocietyId] = useState('');
   const [tower, setTower] = useState('');
+  const [unitNumber, setUnitNumber] = useState('');
+  const [parkingNumber, setParkingNumber] = useState('');
   const [plate, setPlate] = useState('');
   const [make, setMake] = useState('');
   const [model, setModel] = useState('');
@@ -170,7 +172,7 @@ function SelfSignupForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim() || !societyId || !tower || !plate.trim() || (hasTwoWheeler && !twPlate.trim())) {
+    if (!name.trim() || !societyId || !tower || !unitNumber.trim() || !plate.trim() || (hasTwoWheeler && !twPlate.trim())) {
       setError('Please fill in all required fields.');
       return;
     }
@@ -189,6 +191,8 @@ function SelfSignupForm({
 
       await addDoc(collection(db, 'pendingApprovals'), {
         societyId, societyName, tower,
+        unitNumber:            unitNumber.trim(),
+        ...(parkingNumber.trim() ? { parkingNumber: parkingNumber.trim() } : {}),
         customerId:            userId,
         customerName:          name.trim(),
         customerPhone:         userPhone ?? '',
@@ -205,6 +209,8 @@ function SelfSignupForm({
         customerId:            userId,
         customerPhone:         userPhone ?? '',
         societyId, societyName, tower,
+        unitNumber:            unitNumber.trim(),
+        ...(parkingNumber.trim() ? { parkingNumber: parkingNumber.trim() } : {}),
         cars: [
           { plate: carPlate, make: make.trim(), model: model.trim(), category: 'car' as const },
           ...(twoWheelerVehicle ? [twoWheelerVehicle] : []),
@@ -272,6 +278,24 @@ function SelfSignupForm({
               <option value="">Select tower…</option>
               {(selectedSociety?.towers ?? []).map(t => <option key={t} value={t}>{t}</option>)}
             </select>
+          </div>
+        </div>
+
+        {/* Flat / unit — the address the worker actually needs to find the car */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div>
+            <label style={fieldLabel}>Flat / unit number *</label>
+            <input
+              type="text" required value={unitNumber} onChange={e => setUnitNumber(e.target.value)}
+              placeholder="e.g. B-1204" style={inputStyle}
+            />
+          </div>
+          <div>
+            <label style={fieldLabel}>Parking / spot no.</label>
+            <input
+              type="text" value={parkingNumber} onChange={e => setParkingNumber(e.target.value)}
+              placeholder="e.g. P-42 (optional)" style={inputStyle}
+            />
           </div>
         </div>
 
