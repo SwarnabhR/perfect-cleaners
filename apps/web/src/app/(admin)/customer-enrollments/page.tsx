@@ -139,6 +139,9 @@ interface CustomerForm {
   cars: CarRow[];
   preferredTime: number; preferredDays: DayOfWeek[];
   tier: 'normal' | 'premium' | 'ultra';
+  deepCleanAvailable: boolean; deepCleanEnabled: boolean; deepCleanFee: number; deepCleanDay: DayOfWeek;
+  deepCleanFrequency: 'weekly' | 'daily' | 'one-time';
+  deepCleanOneTimeScheduledDate: string;
   paymentMethod: string; paymentNotes: string;
 }
 
@@ -148,6 +151,7 @@ const BLANK_FORM: CustomerForm = {
   cars: [{ plate: '', make: '', model: '', category: 'car' }],
   preferredTime: 9, preferredDays: [],
   tier: 'normal',
+  deepCleanAvailable: false, deepCleanEnabled: false, deepCleanFee: 0, deepCleanDay: 1, deepCleanFrequency: 'weekly', deepCleanOneTimeScheduledDate: '',
   paymentMethod: '', paymentNotes: '',
 };
 
@@ -167,6 +171,12 @@ function formFromRecord(record: LiveRecord): CustomerForm {
     preferredTime:  record.permanentTime ?? record.preferredCleaningTime ?? 9,
     preferredDays:  record.preferredCleaningDays ?? [],
     tier:           record.tier ?? 'normal',
+    deepCleanAvailable: record.deepCleanAvailable ?? !!record.deepCleanEnabled,
+    deepCleanEnabled: record.deepCleanEnabled ?? false,
+    deepCleanFee: record.deepCleanFee ?? 0,
+    deepCleanDay: record.deepCleanDay ?? 1,
+    deepCleanFrequency: record.deepCleanFrequency ?? 'weekly',
+    deepCleanOneTimeScheduledDate: record.deepCleanOneTimeScheduledDate ? new Date(record.deepCleanOneTimeScheduledDate).toISOString().slice(0, 10) : '',
     paymentMethod:  record.paymentMethod ?? '',
     paymentNotes:   record.paymentNotes ?? '',
   };
@@ -226,6 +236,8 @@ function CustomerFormModal({
         ...f,
         preferredDays: f.preferredDays.length ? f.preferredDays.filter(d => days.includes(d)) : days,
         parkingLevel:  levels.includes(f.parkingLevel) ? f.parkingLevel : '',
+          deepCleanAvailable: f.deepCleanAvailable || !!config?.deepClean,
+          deepCleanFee: f.deepCleanFee || (config?.deepClean?.fee as number | undefined) || 0,
       }));
     }).catch(() => { setTowerDays([]); setTowerParkingLevels([]); setTierPricing(null); setTwoWheelerFee(0); setConfigMonthlyFee(null); });
   }, [form.societyId, form.tower]);
@@ -324,6 +336,12 @@ function CustomerFormModal({
         monthlyFee:            fee,
         paymentMethod:         form.paymentMethod,
         paymentNotes:          form.paymentNotes.trim(),
+        deepCleanAvailable: form.deepCleanAvailable,
+        deepCleanEnabled: form.deepCleanEnabled && form.deepCleanAvailable,
+        deepCleanFee: form.deepCleanFee,
+        deepCleanFrequency: form.deepCleanFrequency,
+        ...(form.deepCleanFrequency === 'one-time' && form.deepCleanOneTimeScheduledDate ? { deepCleanOneTimeScheduledDate: new Date(form.deepCleanOneTimeScheduledDate) } : {}),
+        deepCleanDay: form.deepCleanDay,
         updatedAt:             serverTimestamp(),
       };
 
@@ -412,9 +430,12 @@ function CustomerFormModal({
           signupSource:     'bulk_import',
           status:           'active',
           billingFrequency: (billingConfig?.billingFrequency as CustomerSocietyRecord['billingFrequency']) ?? 'monthly',
-          deepCleanEnabled: false,
-          deepCleanAvailable: !!billingConfig?.deepClean,
-          deepCleanFrequency: billingConfig?.deepClean?.frequency ?? 'weekly',
+          deepCleanAvailable: form.deepCleanAvailable || !!billingConfig?.deepClean,
+          deepCleanEnabled: form.deepCleanEnabled || !!billingConfig?.deepClean,
+          deepCleanFee: form.deepCleanFee || (billingConfig?.deepClean?.fee as number | undefined) || 0,
+          deepCleanFrequency: form.deepCleanFrequency,
+          ...(form.deepCleanFrequency === 'one-time' && form.deepCleanOneTimeScheduledDate ? { deepCleanOneTimeScheduledDate: new Date(form.deepCleanOneTimeScheduledDate) } : {}),
+          deepCleanDay: form.deepCleanDay,
           nextBillingDate:  Timestamp.fromDate(firstOfNextMonth()),
           paymentStatus:    form.paymentMethod ? 'verified' : 'not_verified',
           skipDates:        [],
@@ -670,6 +691,39 @@ function CustomerFormModal({
               </div>
             </div>
           )}
+
+          <div style={{ padding: 14, border: '1px solid var(--pc-line)', borderRadius: 10, background: 'var(--pc-card-hi)' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)' }}>
+              <input type="checkbox" checked={form.deepCleanAvailable} onChange={e => setForm(f => ({ ...f, deepCleanAvailable: e.target.checked, deepCleanEnabled: e.target.checked ? f.deepCleanEnabled : false }))} />
+              Offer deep cleaning to this customer
+            </label>
+            {form.deepCleanAvailable && <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
+              <div>
+                <p style={monoLabel}>Monthly add-on fee (₹)</p>
+                <input type="number" min="0" value={form.deepCleanFee} onChange={e => setForm(f => ({ ...f, deepCleanFee: Math.max(0, Number(e.target.value) || 0) }))} style={inputStyle} />
+              </div>
+              <div>
+                <p style={monoLabel}>Deep-clean frequency</p>
+                <select value={form.deepCleanFrequency} onChange={e => setForm(f => ({ ...f, deepCleanFrequency: e.target.value as CustomerForm['deepCleanFrequency'] }))} style={inputStyle}>
+                  <option value="weekly">Weekly</option><option value="daily">Daily</option><option value="one-time">One-time</option>
+                </select>
+              </div>
+              {form.deepCleanFrequency === 'weekly' && <div>
+                <p style={monoLabel}>Weekly deep-clean day</p>
+                <select value={form.deepCleanDay} onChange={e => setForm(f => ({ ...f, deepCleanDay: Number(e.target.value) as DayOfWeek }))} style={inputStyle}>
+                  {DAY_ORDER.map(day => <option key={day} value={day}>{DAY_LABELS[day]}</option>)}
+                </select>
+              </div>}
+              {form.deepCleanFrequency === 'one-time' && <div>
+                <p style={monoLabel}>One-time service date</p>
+                <input type="date" value={form.deepCleanOneTimeScheduledDate} onChange={e => setForm(f => ({ ...f, deepCleanOneTimeScheduledDate: e.target.value }))} style={inputStyle} />
+              </div>}
+              <label style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)' }}>
+                <input type="checkbox" checked={form.deepCleanEnabled} onChange={e => setForm(f => ({ ...f, deepCleanEnabled: e.target.checked }))} />
+                Subscribe customer now
+              </label>
+            </div>}
+          </div>
 
           <div>
             <p style={monoLabel}>Preferred cleaning time</p>

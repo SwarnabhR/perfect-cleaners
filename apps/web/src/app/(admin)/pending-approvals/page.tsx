@@ -113,6 +113,7 @@ export default function PendingApprovalsPage() {
       const monthlyFee       = (approval.tier && tierPricing ? tierPricing[approval.tier] : undefined)
         ?? (billingConfig?.monthlyFee as number | undefined) ?? 500;
       const cleaningSchedule = (billingConfig?.cleaningSchedule as string | undefined) ?? 'Mon, Wed, Fri · 9:00 AM';
+      const deepCleanFee = (billingConfig?.deepClean?.fee as number | undefined) ?? 0;
 
       // 1. Activate the CustomerSocietyRecord — self-signup (account/cleaning's
       // SelfSignupForm) already created one in 'pending' status with an
@@ -159,9 +160,10 @@ export default function PendingApprovalsPage() {
         status:                'active',
         ...(approval.tier ? { tier: approval.tier } : {}),
         billingFrequency:      (billingConfig?.billingFrequency as SocietyBillingConfig['billingFrequency']) ?? 'monthly',
-        deepCleanEnabled:      false,
-        deepCleanAvailable:    !!billingConfig?.deepClean,
+        deepCleanEnabled:      !!billingConfig?.deepClean,
+        deepCleanAvailable:    !!billingConfig?.deepClean || deepCleanFee > 0,
         deepCleanFrequency:    billingConfig?.deepClean?.frequency ?? 'weekly',
+        deepCleanFee,
         monthlyFee:            monthlyFee + (approval.twoWheelerPlate ? twoWheelerFee : 0),
         nextBillingDate:       firstOfNextMonth(),
         paymentStatus:         'verified',

@@ -50,14 +50,20 @@ export async function GET(req: NextRequest) {
           continue;
         }
 
-        // Deep-clean is an optional flat add-on. Looked up live rather than
-        // denormalized onto the customer record, so an admin fee change takes
-        // effect next cycle without needing to touch every enrolled customer.
+        // Deep-clean fee belongs to the individual customer plan. Older tower
+        // subscriptions continue to fall back to their configured tower fee.
         let deepCleanFee = 0;
-        if (record.deepCleanEnabled) {
-          const towerSlug   = String(record.tower ?? '').trim().replace(/\s+/g, '-');
-          const configSnap  = await db.collection('societyBillingConfig').doc(`${record.societyId}_${towerSlug}`).get();
-          deepCleanFee = (configSnap.data()?.deepClean?.fee as number | undefined) ?? 0;
+        const oneTimeDeepCleanDue = record.deepCleanEnabled === true && record.deepCleanFrequency === 'one-time'
+          && record.deepCleanOneTimeBilled !== true
+          && record.deepCleanOneTimeScheduledDate;
+        if ((record.deepCleanEnabled && record.deepCleanFrequency !== 'one-time') || oneTimeDeepCleanDue) {
+          if (typeof record.deepCleanFee === 'number') {
+            deepCleanFee = record.deepCleanFee;
+          } else {
+            const towerSlug   = String(record.tower ?? '').trim().replace(/\s+/g, '-');
+            const configSnap  = await db.collection('societyBillingConfig').doc(`${record.societyId}_${towerSlug}`).get();
+            deepCleanFee = (configSnap.data()?.deepClean?.fee as number | undefined) ?? 0;
+          }
         }
 
         let amount: number;
@@ -76,9 +82,13 @@ export async function GET(req: NextRequest) {
           amount = (record.monthlyFee as number) + deepCleanFee;
         }
 
+        if (oneTimeDeepCleanDue) {
+          amount = deepCleanFee;
+        }
+
         // Metered customer with nothing to charge this cycle — advance the
         // metering window but don't create a ₹0 bill or nag them for payment.
-        if (frequency === 'per-day' && amount === 0) {
+        if ((frequency === 'per-day' && amount === 0) || (oneTimeDeepCleanDue && amount === 0)) {
           await db.collection('customerSocietyRecords').doc(docSnap.id).set(
             {
               lastBilledDate:  FieldValue.serverTimestamp(),
@@ -111,6 +121,7 @@ export async function GET(req: NextRequest) {
             lastBilledDate:  FieldValue.serverTimestamp(),
             nextBillingDate: firstOfNextMonth(),
             ...(frequency === 'one-time' ? { oneTimeBilled: true } : {}),
+            ...(oneTimeDeepCleanDue ? { deepCleanOneTimeBilled: true } : {}),
             updatedAt:       FieldValue.serverTimestamp(),
           },
           { merge: true },

@@ -41,6 +41,9 @@ interface SocietyRecord {
   deepCleanEnabled: boolean;
   deepCleanAvailable: boolean;
   deepCleanFrequency: 'weekly' | 'daily' | 'one-time';
+  deepCleanDay: number;
+  deepCleanOneTimeScheduledDate?: string;
+  deepCleanFee: number;
 }
 
 interface CleaningLog {
@@ -166,6 +169,9 @@ export default function CleaningScheduleScreen() {
               deepCleanEnabled: data.deepCleanEnabled === true,
               deepCleanAvailable: data.deepCleanAvailable === true || data.deepCleanAvailable === undefined && data.deepCleanEnabled === true,
               deepCleanFrequency: data.deepCleanFrequency ?? 'weekly',
+              deepCleanDay: data.deepCleanDay ?? 1,
+              deepCleanOneTimeScheduledDate: data.deepCleanOneTimeScheduledDate ? toDate(data.deepCleanOneTimeScheduledDate).toISOString().slice(0, 10) : undefined,
+              deepCleanFee: data.deepCleanFee ?? 0,
             });
           } else {
             setRecord(null);
@@ -199,6 +205,9 @@ export default function CleaningScheduleScreen() {
           deepCleanEnabled: data.deepCleanEnabled === true,
           deepCleanAvailable: data.deepCleanAvailable === true || data.deepCleanAvailable === undefined && data.deepCleanEnabled === true,
           deepCleanFrequency: data.deepCleanFrequency ?? 'weekly',
+          deepCleanDay: data.deepCleanDay ?? 1,
+          deepCleanOneTimeScheduledDate: data.deepCleanOneTimeScheduledDate ? toDate(data.deepCleanOneTimeScheduledDate).toISOString().slice(0, 10) : undefined,
+          deepCleanFee: data.deepCleanFee ?? 0,
         });
       }
 
@@ -286,11 +295,11 @@ export default function CleaningScheduleScreen() {
     setSaving(false);
   }
 
-  async function toggleDeepClean(enabled: boolean) {
+  async function saveDeepClean(patch: { enabled: boolean; frequency?: 'weekly' | 'daily' | 'one-time'; day?: number; date?: string }) {
     if (!record || record === 'loading') return;
     setSaving(true);
-    const ok = await postUnavailability({ action: 'deepClean', enabled });
-    if (ok) setRecord({ ...record, deepCleanEnabled: enabled });
+    const ok = await postUnavailability({ action: 'deepClean', ...patch });
+    if (ok) setRecord({ ...record, deepCleanEnabled: patch.enabled, deepCleanFrequency: patch.frequency ?? record.deepCleanFrequency, deepCleanDay: patch.day ?? record.deepCleanDay, deepCleanOneTimeScheduledDate: patch.date ?? record.deepCleanOneTimeScheduledDate });
     setSaving(false);
   }
 
@@ -464,26 +473,25 @@ export default function CleaningScheduleScreen() {
             </View>
 
             {record.deepCleanAvailable && <View style={s.infoCard}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing[3] }}>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.metaLabel}>{record.deepCleanFrequency === 'weekly' ? 'WEEKLY DEEP CLEANING' : 'DEEP CLEANING ADD-ON'}</Text>
-                  <Text style={[s.body, { marginTop: 5 }]}>
-                    {record.deepCleanFrequency === 'weekly' ? 'Add one deeper clean each week to your society schedule.' : record.deepCleanFrequency === 'daily' ? 'Add a deeper clean on each scheduled cleaning day.' : 'Add a one-time deep clean to your society schedule.'}
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  accessibilityRole="switch"
-                  accessibilityState={{ checked: record.deepCleanEnabled, disabled: saving }}
-                  onPress={() => toggleDeepClean(!record.deepCleanEnabled)}
-                  disabled={saving}
-                  activeOpacity={0.7}
-                  style={{ minWidth: 64, minHeight: 44, borderRadius: 999, paddingHorizontal: 10, alignItems: record.deepCleanEnabled ? 'flex-end' : 'flex-start', justifyContent: 'center', backgroundColor: record.deepCleanEnabled ? c.sage : c.inkRaised, borderWidth: 1, borderColor: record.deepCleanEnabled ? c.sage : c.line }}
-                >
-                  <Text style={{ fontFamily: typography.monoMedium, fontSize: 10, color: record.deepCleanEnabled ? c.fg : c.fg3 }}>
-                    {record.deepCleanEnabled ? 'ON' : 'OFF'}
-                  </Text>
-                </TouchableOpacity>
+                  <Text style={s.metaLabel}>DEEP CLEANING ADD-ON{record.deepCleanFee > 0 ? ` · ₹${record.deepCleanFee}` : ''}</Text>
+              <Text style={[s.body, { marginTop: 5 }]}>Choose how often you’d like a deeper clean.</Text>
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+                {(['weekly', 'daily', 'one-time'] as const).map(frequency => {
+                  const selected = record.deepCleanFrequency === frequency;
+                  return <TouchableOpacity key={frequency} onPress={() => setRecord({ ...record, deepCleanFrequency: frequency })} activeOpacity={0.7} style={{ flex: 1, minHeight: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: selected ? c.sage : c.line, backgroundColor: selected ? c.sage : c.inkRaised }}>
+                    <Text style={{ fontFamily: typography.monoMedium, fontSize: 9, color: selected ? c.fg : c.fg3 }}>{frequency.toUpperCase()}</Text>
+                  </TouchableOpacity>;
+                })}
               </View>
+              {record.deepCleanFrequency === 'weekly' && <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((label, day) => <TouchableOpacity key={day} onPress={() => setRecord({ ...record, deepCleanDay: day })} style={[s.smallBtn, { borderColor: record.deepCleanDay === day ? c.sage : c.line }]}><Text style={[s.smallBtnText, { color: record.deepCleanDay === day ? c.sageHi : c.fg3 }]}>{label}</Text></TouchableOpacity>)}
+              </View>}
+              {record.deepCleanFrequency === 'one-time' && <TextInput value={record.deepCleanOneTimeScheduledDate ?? ''} onChangeText={date => setRecord({ ...record, deepCleanOneTimeScheduledDate: date })} placeholder="YYYY-MM-DD" placeholderTextColor={c.fg4} style={[s.timeOptionText, { marginTop: 10, padding: 10, color: c.fg, backgroundColor: c.inkRaised, borderRadius: 8 }]} />}
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+                <TouchableOpacity disabled={saving} onPress={() => saveDeepClean({ enabled: false })} style={[s.smallBtn, { borderColor: c.line }]}><Text style={[s.smallBtnText, { color: c.fg3 }]}>TURN OFF</Text></TouchableOpacity>
+                <TouchableOpacity disabled={saving || record.deepCleanFrequency === 'one-time' && !record.deepCleanOneTimeScheduledDate} onPress={() => saveDeepClean({ enabled: true, frequency: record.deepCleanFrequency, day: record.deepCleanDay, date: record.deepCleanOneTimeScheduledDate })} style={[s.smallBtn, { borderColor: record.deepCleanEnabled ? c.sage : c.info }]}><Text style={[s.smallBtnText, { color: record.deepCleanEnabled ? c.sageHi : c.info }]}>{saving ? 'SAVING' : record.deepCleanEnabled ? 'UPDATE PLAN' : 'OPT IN'}</Text></TouchableOpacity>
+              </View>
+              <Text style={[s.body, { marginTop: 8 }]}>{record.deepCleanEnabled ? `Active · ${record.deepCleanFrequency}${record.deepCleanFrequency === 'weekly' ? ` · ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][record.deepCleanDay]}` : ''}` : 'Not subscribed'}</Text>
             </View>}
 
             {/* Upcoming dates with skip/reschedule */}

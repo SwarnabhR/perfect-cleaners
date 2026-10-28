@@ -355,7 +355,12 @@ export default function CleaningSchedulePage() {
       // scheme the generate-sessions cron uses, so a raw space in the tower
       // name is slugged to keep the ID URL-safe.
       const towerSlug = form.tower.trim().replace(/\s+/g, '-');
-      const sessionId = `${form.societyId}_${towerSlug}_${form.scheduledDate}${form.sessionType === 'deep-clean' ? '_deep' : ''}`;
+      const sessionId = form.sessionType === 'deep-clean'
+        ? `${form.societyId}_${towerSlug}_${form.scheduledDate}_deep`
+        : `${form.societyId}_${towerSlug}_${form.scheduledDate}`;
+      const altId = form.sessionType === 'deep-clean'
+        ? `${form.societyId}_${towerSlug}_${form.scheduledDate}`
+        : `${form.societyId}_${towerSlug}_${form.scheduledDate}_deep`;
 
       // A session for this tower+date may already exist — either pre-staged
       // by the cron, or from an earlier click of this same button. Without
@@ -363,8 +368,11 @@ export default function CleaningSchedulePage() {
       // cars, completedCars, and worker assignments all reset, wiping out
       // any progress already recorded. The cron's own creation path guards
       // against exactly this with an equivalent existence check.
-      const existing = await getDoc(doc(db, 'cleaningSessions', sessionId));
-      if (existing.exists()) {
+      const [existing, altExisting] = await Promise.all([
+        getDoc(doc(db, 'cleaningSessions', sessionId)),
+        getDoc(doc(db, 'cleaningSessions', altId)),
+      ]);
+      if (existing.exists() || altExisting.exists()) {
         setCreateError('A session for this tower and date already exists. Edit or reassign it instead of creating a new one.');
         setSaving(false);
         return;
@@ -373,6 +381,11 @@ export default function CleaningSchedulePage() {
       const selectedWorkers = workers.filter(w => form.workerIds.includes(w.id));
       const workerNames = selectedWorkers.map(w => w.name);
       const cars = await buildCarsForSession(form.societyId.trim(), form.tower.trim(), scheduledDate, form.sessionType);
+      if (form.sessionType === 'deep-clean' && cars.length === 0) {
+        setCreateError('No customers opted in for deep cleaning on this date.');
+        setSaving(false);
+        return;
+      }
       const skippedCars = cars.filter(c => c.status === 'skipped').length;
 
       await setDoc(doc(db, 'cleaningSessions', sessionId), {

@@ -349,6 +349,10 @@ export interface CustomerSocietyRecord {
   deepCleanEnabled?: boolean;
   deepCleanAvailable?: boolean; // tower has enabled the add-on; resident choice is stored separately above
   deepCleanFrequency?: 'weekly' | 'daily' | 'one-time';
+  deepCleanFee?: number; // customer-specific monthly add-on price, independent of tower configuration
+  deepCleanDay?: DayOfWeek; // selected day for customer-specific weekly deep cleaning
+  deepCleanOneTimeScheduledDate?: Date; // selected date for one-time deep cleaning
+  deepCleanOneTimeBilled?: boolean;
   oneTimeBilled?: boolean;      // set once the billing cron has charged a 'one-time' customer
   pendingAmount?: number;       // current cycle's actual amount owed, written by the billing cron
 

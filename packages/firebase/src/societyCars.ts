@@ -37,6 +37,8 @@ export interface SocietyCarSourceCustomer {
   rescheduledSlots?: Array<{ date: unknown; toTime: number }>;
   permanentTime?: number;
   deepCleanEnabled?: boolean;
+  deepCleanDay?: number;
+  deepCleanFrequency?: 'weekly' | 'daily' | 'one-time';
 }
 
 export interface SessionCarDraft {
@@ -64,9 +66,12 @@ export interface SessionCarDraft {
 export function buildSessionCarsForCustomer(
   customer: SocietyCarSourceCustomer,
   scheduledDate: Date,
+  sessionType: 'wash' | 'deep-clean' = 'wash',
 ): SessionCarDraft[] {
+  if (sessionType === 'deep-clean' && customer.deepCleanDay !== undefined && scheduledDate.getDay() !== customer.deepCleanDay) return [];
+  if (sessionType === 'deep-clean' && customer.deepCleanFrequency === 'daily' && !customer.preferredCleaningDays?.includes(scheduledDate.getDay())) return [];
   const preferredDays = customer.preferredCleaningDays;
-  if (preferredDays?.length && !preferredDays.includes(scheduledDate.getDay())) return [];
+  if (sessionType !== 'deep-clean' && preferredDays?.length && !preferredDays.includes(scheduledDate.getDay())) return [];
   const vehicles = customer.cars?.length ? customer.cars : [{}];
 
   const isSkipped = (customer.skipDates ?? []).some(d => isSameCalendarDay(toDateSafe(d), scheduledDate));
@@ -99,7 +104,7 @@ export function buildSessionCars(
 ): SessionCarDraft[] {
   return customers
     .filter(c => sessionType !== 'deep-clean' || c.deepCleanEnabled === true)
-    .flatMap(c => buildSessionCarsForCustomer(c, scheduledDate));
+    .flatMap(c => buildSessionCarsForCustomer(c, scheduledDate, sessionType));
 }
 
 /**

@@ -87,23 +87,7 @@ export async function GET(req: NextRequest) {
         // dynamic route params instead of being decoded back, which 404s. Slug it.
         const towerSlug = String(tower).trim().replace(/\s+/g, '-');
 
-        // Deep-clean add-on — an extra, separately-scheduled session type layered
-        // on top of the regular wash below. The tower config only stores a
-        // frequency label, not a specific weekday, so:
-        //   'daily'    -> every day the crew is already there (same as wash days)
-        //   'weekly'   -> the earliest wash weekday (e.g. Mon/Wed/Fri tower -> Monday)
-        //   'one-time' -> the next wash-day occurrence, generated exactly once ever
-        const deepClean = config.deepClean as { frequency?: 'weekly' | 'daily' | 'one-time'; fee?: number; oneTimeGeneratedAt?: unknown } | undefined;
-        let deepCleaningDates: Date[] = [];
-        if (deepClean?.frequency === 'daily') {
-          deepCleaningDates = cleaningDates;
-        } else if (deepClean?.frequency === 'weekly') {
-          const earliestWeekday = [...weekdays].sort((a, b) => a - b)[0];
-          deepCleaningDates = cleaningDates.filter(d => d.getDay() === earliestWeekday);
-        } else if (deepClean?.frequency === 'one-time' && !deepClean.oneTimeGeneratedAt && cleaningDates.length > 0) {
-          deepCleaningDates = [cleaningDates[0]];
-        }
-
+        // Every deep-clean session is generated from each customer's selected plan below.
         // Every candidate for this tower, wash and deep-clean together, so the
         // existence check and the writes each cost ONE round trip instead of
         // one per date. Previously this was a sequential get()+set() per date
@@ -115,20 +99,16 @@ export async function GET(req: NextRequest) {
             cleaningDate,
             sessionType: 'wash' as const,
           })),
-          ...deepCleaningDates.map(cleaningDate => ({
-            sessionId: `${societyId}_${towerSlug}_${cleaningDate.toISOString().split('T')[0]}_deep`,
-            cleaningDate,
-            sessionType: 'deep-clean' as const,
-          })),
         ];
+        const sourceCustomers = customersSnap.docs.map(d => d.data() as SocietyCarSourceCustomer);
+        const activeCandidates = candidates;
 
-        if (candidates.length > 0) {
-          const refs = candidates.map(c => db.collection('cleaningSessions').doc(c.sessionId));
+        if (activeCandidates.length > 0) {
+          const refs = activeCandidates.map(c => db.collection('cleaningSessions').doc(c.sessionId));
           // select() with no fields fetches document *existence* without any
           // field data — the cars array on an existing session can be large
           // and is never looked at here.
           const existingSnaps = await db.getAll(...refs, { fieldMask: [] });
-          const sourceCustomers = customersSnap.docs.map(d => d.data() as SocietyCarSourceCustomer);
 
           // Resolved once per tower from the config already in hand. start-sessions
           // reads the stored startAt instead of re-deriving this on every run.
@@ -136,9 +116,8 @@ export async function GET(req: NextRequest) {
 
           const batch = db.batch();
           let queued = 0;
-          let createdDeepClean = false;
 
-          candidates.forEach((candidate, i) => {
+          activeCandidates.forEach((candidate, i) => {
             if (existingSnaps[i].exists) return;
 
             const cars = buildSessionCars(sourceCustomers, candidate.cleaningDate, candidate.sessionType);
@@ -168,16 +147,11 @@ export async function GET(req: NextRequest) {
               updatedAt:     FieldValue.serverTimestamp(),
             });
             queued++;
-            if (candidate.sessionType === 'deep-clean') createdDeepClean = true;
           });
 
           // Stamped in the same batch as the session it refers to, so the
           // "generated exactly once ever" guarantee can't be broken by the
           // write landing while a later failure leaves the flag unset.
-          if (createdDeepClean && deepClean?.frequency === 'one-time') {
-            batch.update(societyDoc.ref, { 'deepClean.oneTimeGeneratedAt': FieldValue.serverTimestamp() });
-          }
-
           if (queued > 0) {
             await batch.commit();
             sessionsCreated += queued;
@@ -186,6 +160,85 @@ export async function GET(req: NextRequest) {
       } catch (err: unknown) {
         console.error('[CRON] Society processing error:', err instanceof Error ? err.message : String(err));
         errors++;
+      }
+    }
+
+    // Customer subscriptions can request a weekly deep clean even when their
+    // tower has no society-wide deep-clean configuration. Schedule each opted-in
+    // record on its chosen weekday, using the normal society crew and slot.
+    const optedInSnap = await db.collection('customerSocietyRecords')
+      .where('status', '==', 'active')
+      .get();
+    for (const customerDoc of optedInSnap.docs) {
+      const customer = customerDoc.data();
+      if (customer.deepCleanEnabled !== true) continue;
+      if (!customer.societyId || !customer.tower) continue;
+      const key = `${customer.societyId}__${customer.tower}`;
+      const towerConfigDoc = societiesSnap.docs.find(d => `${d.data().societyId}__${d.data().tower}` === key);
+      const towerConfig = towerConfigDoc?.data();
+      const frequency = customer.deepCleanFrequency ?? 'weekly';
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const windowStart = new Date(today); windowStart.setDate(windowStart.getDate() + 1);
+      const defaultDay = Array.isArray(towerConfig?.cleaningDays) && towerConfig.cleaningDays.length
+        ? [...towerConfig.cleaningDays].sort((a: number, b: number) => a - b)[0] : 1;
+      const deepDay = typeof customer.deepCleanDay === 'number' ? customer.deepCleanDay : defaultDay;
+      let dates = frequency === 'daily'
+        ? Array.from({ length: 14 }, (_, i) => { const d = new Date(windowStart); d.setDate(d.getDate() + i); return d; })
+        : getCleaningDatesInWindow(windowStart, 14, [deepDay]);
+      if (frequency === 'daily' && Array.isArray(customer.preferredCleaningDays) && customer.preferredCleaningDays.length) {
+        dates = dates.filter(d => customer.preferredCleaningDays.includes(d.getDay()));
+      }
+      if (frequency === 'one-time' && customer.deepCleanOneTimeScheduledDate) {
+        const scheduled = customer.deepCleanOneTimeScheduledDate.toDate?.() ?? new Date(customer.deepCleanOneTimeScheduledDate);
+        dates = scheduled >= windowStart ? [scheduled] : [];
+      } else if (frequency === 'one-time') {
+        dates = dates.slice(0, 1);
+      }
+      const societySnap = await getSociety(customer.societyId);
+      const workerIds = (societySnap.data()?.towerWorkerAssignments as Record<string, string[]> | undefined)?.[customer.tower] ?? [];
+      const workerNames = workerIds.map(id => workerNamesById.get(id) ?? 'Worker');
+      const source = customer as SocietyCarSourceCustomer;
+      const towerSlug = String(customer.tower).trim().replace(/\s+/g, '-');
+      for (const date of dates) {
+        const dateKey = date.toISOString().split('T')[0];
+        const sessionId = `${customer.societyId}_${towerSlug}_${dateKey}_deep`;
+        const ref = db.collection('cleaningSessions').doc(sessionId);
+        const startMinutes = towerConfig
+          ? resolveTowerStartMinutes(towerConfig as { cleaningTimeMinutes?: number | null; cleaningSchedule?: string })
+          : 540;
+        const cars = buildSessionCars([source], date, 'deep-clean');
+        if (cars.length === 0) continue;
+        try {
+          let created = false;
+          await db.runTransaction(async tx => {
+            const existing = await tx.get(ref);
+            if (existing.exists) {
+              const data = existing.data()!;
+              if (data.status !== 'scheduled') return;
+              const current = (data.cars as Record<string, unknown>[] | undefined) ?? [];
+              const filtered = current.filter(car => car.customerId !== customer.customerId || car.status === 'done' || car.status === 'in_progress');
+              const keepDone = current.filter(car => car.customerId === customer.customerId && (car.status === 'done' || car.status === 'in_progress'));
+              const merged = [...filtered, ...cars.filter(car => !keepDone.some(done => done.carPlate === car.carPlate)), ...keepDone];
+              const skippedCars = merged.filter(car => car.status === 'skipped').length;
+              tx.update(ref, { cars: merged, totalCars: merged.length - skippedCars, skippedCars, updatedAt: FieldValue.serverTimestamp() });
+              return;
+            }
+            const skippedCars = cars.filter(car => car.status === 'skipped').length;
+            tx.set(ref, {
+              societyId: customer.societyId, societyName: customer.societyName ?? '', tower: customer.tower,
+              sessionType: 'deep-clean', scheduledDate: date, startAt: computeSessionStartAt(date, startMinutes),
+              status: 'scheduled', cars, totalCars: cars.length - skippedCars, completedCars: 0, skippedCars,
+              workerIds, workerNames, createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
+            });
+            created = true;
+          });
+          if (created) {
+            sessionsCreated++;
+          }
+        } catch (err) {
+          console.error('[CRON] Customer deep-clean session error:', customerDoc.id, err instanceof Error ? err.message : String(err));
+          errors++;
+        }
       }
     }
 

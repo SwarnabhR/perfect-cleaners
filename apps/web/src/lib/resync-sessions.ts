@@ -54,13 +54,13 @@ export async function resyncUpcomingSessions(
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
 
-  const sessionsSnap = await db.collection('cleaningSessions')
+  const allSessionsSnap = await db.collection('cleaningSessions')
     .where('societyId', '==', societyId)
-    .where('tower', '==', tower)
     .where('status', '==', 'scheduled')
     .get();
+  const sessions = allSessionsSnap.docs.filter(d => d.data().tower === tower);
 
-  for (const sessionDoc of sessionsSnap.docs) {
+  for (const sessionDoc of sessions) {
     const scheduledDate = tsToDate(sessionDoc.data().scheduledDate);
     if (scheduledDate < startOfToday) continue;
 
@@ -79,9 +79,31 @@ export async function resyncUpcomingSessions(
         // A customer can have more than one vehicle (car + two-wheeler) —
         // each gets its own session entry, matched by plate since customerId
         // alone no longer uniquely identifies a row.
-        const freshCars = data.sessionType === 'deep-clean' && record.deepCleanEnabled !== true
-          ? []
-          : buildSessionCarsForCustomer(record, scheduledDate);
+        if (data.sessionType === 'deep-clean' && record.deepCleanEnabled !== true) {
+          const stale = cars.filter(c => c.customerId === record.customerId && (c.status === 'pending' || c.status === 'skipped'));
+          if (stale.length) {
+            const kept = cars.filter(c => c.customerId !== record.customerId || (c.status !== 'pending' && c.status !== 'skipped'));
+            t.update(sessionDoc.ref, { cars: kept, ...countCars(kept), updatedAt: FieldValue.serverTimestamp() });
+          }
+          return;
+        }
+        if (data.sessionType === 'deep-clean' && record.deepCleanFrequency === 'weekly'
+            && typeof record.deepCleanDay === 'number' && record.deepCleanDay !== scheduledDate.getDay()) {
+          const kept = cars.filter(c => c.customerId !== record.customerId || (c.status !== 'pending' && c.status !== 'skipped'));
+          if (kept.length !== cars.length) t.update(sessionDoc.ref, { cars: kept, ...countCars(kept), updatedAt: FieldValue.serverTimestamp() });
+          return;
+        }
+        if (data.sessionType === 'deep-clean' && record.deepCleanFrequency === 'daily'
+            && record.preferredCleaningDays?.length && !record.preferredCleaningDays.includes(scheduledDate.getDay())) {
+          const kept = cars.filter(c => c.customerId !== record.customerId || (c.status !== 'pending' && c.status !== 'skipped'));
+          if (kept.length !== cars.length) t.update(sessionDoc.ref, { cars: kept, ...countCars(kept), updatedAt: FieldValue.serverTimestamp() });
+          return;
+        }
+        const freshCars = buildSessionCarsForCustomer(
+          data.sessionType === 'deep-clean' ? { ...record, deepCleanEnabled: true } : record,
+          scheduledDate,
+          data.sessionType === 'deep-clean' ? 'deep-clean' : 'wash',
+        );
         const freshPlates = new Set(freshCars.map(f => f.carPlate));
 
         let updatedCars = cars;
