@@ -20,8 +20,8 @@ export const colors = {
   // Foreground
   fg:  '#FFFFFF',
   fg2: '#AAAAAA',
-  fg3: '#666660',
-  fg4: '#3A3A36',
+  fg3: '#A3A29A',
+  fg4: '#8A8982',
 
   // Brand accents
   sage:    '#4A5E44',
@@ -70,8 +70,8 @@ export const colorsLight = {
   // Foreground
   fg:  '#0E0D0B',
   fg2: '#55524B',
-  fg3: '#8A8780',
-  fg4: '#B8B5AE',
+  fg3: '#5A564F',
+  fg4: '#625E57',
 
   // Brand accents — sage/gold unchanged; primary CTA inverts to dark pill
   sage:    '#4A5E44',

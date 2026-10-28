@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Instrument_Serif, Inter_Tight } from 'next/font/google';
+import { Instrument_Serif, Inter_Tight, JetBrains_Mono } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { I18nProvider } from '@/i18n';
@@ -19,6 +19,13 @@ const sans = Inter_Tight({
   weight:   ['400', '500', '600', '700'],
   variable: '--font-sans',
   display:  'swap',
+});
+
+const mono = JetBrains_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500'],
+  variable: '--font-mono',
+  display: 'swap',
 });
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://perfectcleaners.co.in';
@@ -94,7 +101,7 @@ export const viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="light" className={`${serif.variable} ${sans.variable}`}>
+    <html lang="en" data-theme="light" className={`${serif.variable} ${sans.variable} ${mono.variable}`}>
       <body>
         <ThemeProvider>
           <I18nProvider>

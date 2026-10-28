@@ -18,6 +18,7 @@ export function GhostButton({ children, style, textStyle, ...rest }: GhostButton
 
 const s = StyleSheet.create({
   btn: {
+    minHeight: 44,
     backgroundColor: 'transparent',
     borderRadius: radii.pill,
     paddingVertical: 12,
@@ -28,10 +29,9 @@ const s = StyleSheet.create({
     borderColor: colors.lineStrong,
   },
   text: {
-    fontFamily: typography.sans,
+    fontFamily: typography.sansMedium,
     fontSize: 13,
     color: colors.fg,
-    fontWeight: '500',
     letterSpacing: 0.6,
     textTransform: 'uppercase',
   },

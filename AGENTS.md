@@ -61,7 +61,7 @@ apps/
 packages/
   tokens/          ← @pc/tokens  — color, spacing, type, motion, layout constants
   firebase/        ← @pc/firebase — Firebase init, Firestore types (Booking, Worker, etc.)
-  ui/              ← @pc/ui      — 11 RN primitives: Eyebrow, PrimaryButton, GhostButton, SageButton,
+  ui/              ← @pc/ui      — shared RN primitives: Eyebrow, PrimaryButton, GhostButton,
                                    Card, Pill, StatusBadge, Stepper, Avatar, AvatarStack, CarImage
 design-system/     ← read-only reference: static HTML previews and JSX ui_kits
 ```
@@ -202,8 +202,8 @@ Firebase credentials go in `.env.local` (Next.js) and `.env` (Expo — uses `EXP
 
 These come from `design-system/README.md` and apply to every UI surface.
 
-**Colors — dark mode (default) and light mode (web only):**
-- Surfaces: `colors.ink → inkRaised → card → cardHi` (whispered steps, dark to lighter in dark mode)
+**Colors — mobile is dark-only; web supports light mode by default and optional dark mode:**
+- Surfaces: `colors.ink → inkRaised → card → cardHi` (whispered steps, dark to lighter in dark mode; `colorsLight` provides the web light palette)
 - Only chromatic surface: `colors.sage` (`#4A5E44`) — fills, pills, active stepper step; never used as a button
 - Primary CTA: `colors.warm` — dark mode: off-white `#F0EDE8` pill; light mode: inverts to near-black `#0E0D0B` pill. Always pair with `var(--pc-ink)` as text so both themes read correctly.
 - `colors.gold` (`#C9A961`) — hairline under wordmark only; do not use as a CTA or status colour

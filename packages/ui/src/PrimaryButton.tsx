@@ -18,6 +18,7 @@ export function PrimaryButton({ children, style, textStyle, ...rest }: PrimaryBu
 
 const s = StyleSheet.create({
   btn: {
+    minHeight: 44,
     backgroundColor: colors.warm,
     borderRadius: radii.pill,
     paddingVertical: 14,
@@ -26,10 +27,9 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   text: {
-    fontFamily: typography.sans,
+    fontFamily: typography.sansSemiBold,
     fontSize: 13,
     color: colors.ink,
-    fontWeight: '600',
     letterSpacing: 0.6,
     textTransform: 'uppercase',
   },

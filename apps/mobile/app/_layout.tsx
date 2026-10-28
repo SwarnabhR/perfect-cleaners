@@ -53,7 +53,7 @@ function AppShell() {
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: c.ink }}>
       <SafeAreaProvider>
         <ConnectivityProvider>
-          <StatusBar style="dark" />
+          <StatusBar style="light" />
           <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.ink } }} />
         </ConnectivityProvider>
       </SafeAreaProvider>

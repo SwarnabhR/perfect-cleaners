@@ -22,8 +22,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   text: {
-    fontFamily: typography.sans,
-    fontWeight: '600',
+    fontFamily: typography.sansSemiBold,
     color: '#fff',
   },
 });

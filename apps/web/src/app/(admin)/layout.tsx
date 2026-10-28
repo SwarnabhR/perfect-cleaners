@@ -60,6 +60,7 @@ function Sidebar({ onClose }: { onClose?: () => void }) {
                     <div style={{
                       display: 'flex', alignItems: 'center', gap: 'var(--pc-space-3)',
                       padding: 'var(--pc-space-2) var(--pc-space-3)',
+                      minHeight: 44, boxSizing: 'border-box',
                       borderRadius: 'var(--pc-radius-sm)', marginBottom: 'var(--pc-space-1)',
                       background: active ? 'color-mix(in srgb, var(--pc-sage) 12%, transparent)' : 'transparent',
                       color: active ? 'var(--pc-sage)' : 'var(--pc-fg-2)',
@@ -98,7 +99,7 @@ function SidebarFooter() {
           {user?.email ?? 'ops@perfectcleaners.in'}
         </p>
       </div>
-      <button type="button" aria-label="Sign out" onClick={signOut} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, background: 'transparent', border: 'none', borderRadius: 'var(--pc-radius-xs)', cursor: 'pointer', color: 'var(--pc-fg-4)', transition: 'color var(--pc-dur-fast) var(--pc-ease)' }}>
+      <button type="button" aria-label="Sign out" onClick={signOut} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, flexShrink: 0, background: 'transparent', border: 'none', borderRadius: 'var(--pc-radius-xs)', cursor: 'pointer', color: 'var(--pc-fg-3)', transition: 'color var(--pc-dur-fast) var(--pc-ease)' }}>
         <Icon name="log-out" size={14} color="currentColor" />
       </button>
     </div>

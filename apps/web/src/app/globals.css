@@ -13,8 +13,8 @@
 
   --pc-fg:   #FFFFFF;
   --pc-fg-2: #AAAAAA;
-  --pc-fg-3: #666660;
-  --pc-fg-4: #3A3A36;
+  --pc-fg-3: #A3A29A;
+  --pc-fg-4: #8A8982;
   --pc-fg-dim: rgba(255,255,255,0.45);
 
   --pc-line-warm: rgba(240,237,232,0.45);
@@ -43,8 +43,8 @@
 
   --pc-serif: var(--font-serif), "PP Editorial New", Georgia, serif;
   --pc-sans:  var(--font-sans),  "Satoshi", -apple-system, sans-serif;
-  /* No separate mono typeface — use sans with wider tracking for label/code contexts */
-  --pc-mono:  var(--font-sans),  "Satoshi", -apple-system, sans-serif;
+  /* Distinct metadata face, matching the mobile typography token. */
+  --pc-mono:  var(--font-mono), "JetBrains Mono", monospace;
 
   --pc-text-xs:   12px;
   --pc-text-sm:   13px;
@@ -130,8 +130,8 @@
   /* Foreground */
   --pc-fg:     #0E0D0B;
   --pc-fg-2:   #55524B;
-  --pc-fg-3:   #8A8780;
-  --pc-fg-4:   #B8B5AE;
+  --pc-fg-3:   #5A564F;
+  --pc-fg-4:   #625E57;
   --pc-fg-dim: rgba(14,13,11,0.45);
 
   /* Contextual */
@@ -180,8 +180,8 @@
 
   --pc-fg:     #FFFFFF;
   --pc-fg-2:   #AAAAAA;
-  --pc-fg-3:   #666660;
-  --pc-fg-4:   #3A3A36;
+  --pc-fg-3:   #A3A29A;
+  --pc-fg-4:   #8A8982;
   --pc-fg-dim: rgba(255,255,255,0.45);
 
   --pc-line-warm:       rgba(240,237,232,0.45);

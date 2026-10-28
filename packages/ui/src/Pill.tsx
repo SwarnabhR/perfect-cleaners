@@ -34,9 +34,8 @@ const s = StyleSheet.create({
     backgroundColor: colors.card,
   },
   text: {
-    fontFamily: typography.sans,
+    fontFamily: typography.sansMedium,
     fontSize: 12,
-    fontWeight: '500',
     color: colors.fg,
   },
   sageText: { color: '#fff' },
