@@ -20,6 +20,7 @@
     "@pc/tokens": "*",
     "@pc/ui": "*",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-community/netinfo": "^11.4.1",
     "@react-native-firebase/app": "^24.0.0",
     "@react-native-firebase/auth": "^24.0.0",
     "@react-native-firebase/firestore": "^24.0.0",

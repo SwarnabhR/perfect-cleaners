@@ -13,6 +13,17 @@ const KEY_ONBOARDING = '@pc/onboarding';
 const KEY_ROLE       = '@pc/role';
 const DEMO_UID = 'demo-user';
 
+// Firestore reads reject when offline with no cache, but a slow/flaky link could
+// otherwise leave the splash spinning — bound each network-dependent step so the
+// router always reaches a decision (the cached-role fast path above needs no
+// network at all).
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Routing timed out.')), ms)),
+  ]);
+}
+
 export default function Index() {
   const router   = useRouter();
   const c        = useThemeColors();
@@ -39,14 +50,14 @@ export default function Index() {
         }
 
         // Fresh install or cleared storage: staff are identified by admins/{uid} or workers/{uid}.
-        const staffRole = await resolveRole(user.uid);
+        const staffRole = await withTimeout(resolveRole(user.uid), 6000);
         if (staffRole !== 'customer') {
           await cacheRole(staffRole);
           routeByRole(staffRole);
           return;
         }
 
-        const snap = await firestore().collection('customers').doc(user.uid).get();
+        const snap = await withTimeout(firestore().collection('customers').doc(user.uid).get(), 6000);
         if (Boolean(snap.exists)) {
           const data = snap.data()!;
           if (data.onboardingComplete === true) {

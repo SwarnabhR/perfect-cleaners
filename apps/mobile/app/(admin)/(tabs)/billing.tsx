@@ -7,7 +7,8 @@ import { Phone } from 'lucide-react-native';
 import { typography, spacing, radii } from '@pc/tokens';
 import AdminScreen from '../../../components/AdminScreen';
 import { useThemeColors } from '../../../theme';
-import { adminPost } from '../../../lib/webApi';
+import { postOrQueue } from '../../../lib/outbox';
+import { useConnectivity } from '../../../lib/connectivity';
 import { toDate } from '../../../lib/sessions';
 
 type Segment = 'society' | 'balances' | 'history';
@@ -15,6 +16,7 @@ type Segment = 'society' | 'balances' | 'history';
 interface SocietyDue {
   id: string; customerId: string; customerName: string; customerPhone?: string;
   societyName?: string; tower?: string; unitNumber?: string; amountDue: number; paymentStatus: string;
+  cars?: { category?: string }[];
 }
 interface BalanceDue { id: string; name: string; phone?: string; amount: number; societyName?: string; unitNumber?: string }
 interface PaymentRow { id: string; customerName: string; amount: number; type?: string; paidAt?: unknown }
@@ -23,6 +25,7 @@ const inr = (n: number) => `₹${n.toLocaleString('en-IN')}`;
 
 export default function BillingScreen() {
   const c = useThemeColors();
+  const { refreshPending } = useConnectivity();
   const [segment, setSegment] = useState<Segment>('society');
   const [societyDues, setSocietyDues] = useState<SocietyDue[]>([]);
   const [balances, setBalances] = useState<BalanceDue[]>([]);
@@ -44,6 +47,7 @@ export default function BillingScreen() {
             return {
               id: d.id, customerId: x.customerId ?? '', customerName: x.customerName ?? '—', customerPhone: x.customerPhone,
               societyName: x.societyName, tower: x.tower, unitNumber: x.unitNumber,
+              cars: (x.cars ?? []) as { category?: string }[],
               amountDue: x.pendingAmount ?? x.monthlyFee ?? 0, paymentStatus: x.paymentStatus ?? 'not_verified',
             } as SocietyDue;
           })
@@ -86,7 +90,12 @@ export default function BillingScreen() {
         onPress: async () => {
           setMarking(key);
           try {
-            await adminPost('/api/admin/record-payment', { ...body, customerName: name, amount });
+            const res = await postOrQueue('/api/admin/record-payment', { ...body, customerName: name, amount });
+            if (res.queued) refreshPending();
+            // Optimistic — the due is settled (or queued) either way.
+            setSocietyDues(prev => prev.filter(d => d.id !== key));
+            setBalances(prev => prev.filter(b => b.id !== key));
+            if (res.queued) Alert.alert('Saved offline', 'This payment will sync when you are back online.');
           } catch (err) {
             Alert.alert('Could not record payment', err instanceof Error ? err.message : 'Please try again.');
           } finally {
@@ -178,6 +187,9 @@ export default function BillingScreen() {
               </View>
               <Text style={[s.meta, { color: c.fg2 }]}>
                 {[d.societyName, d.tower, d.unitNumber && `Flat ${d.unitNumber}`].filter(Boolean).join(' · ')}
+              </Text>
+              <Text style={[s.mono, { color: c.fg3 }]}>
+                {(d.cars ?? []).filter(x => (x.category ?? 'car') === 'car').length} CAR · {(d.cars ?? []).filter(x => x.category === 'two-wheeler').length} 2W
               </Text>
               <View style={s.rowBetween}>
                 <Text style={[s.mono, { color: c.warning }]}>{d.paymentStatus.replace(/_/g, ' ').toUpperCase()}</Text>

@@ -7,6 +7,7 @@ import { LogOut } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { typography, spacing } from '@pc/tokens';
 import { useThemeColors } from '../theme';
+import OfflineStrip from './OfflineStrip';
 
 interface Props { eyebrow: string; title: string; children?: ReactNode }
 
@@ -33,6 +34,7 @@ export default function AdminScreen({ eyebrow, title, children }: Props) {
           <LogOut size={20} color={c.fg3} strokeWidth={1.5} />
         </TouchableOpacity>
       </View>
+      <OfflineStrip />
       {children}
     </View>
   );

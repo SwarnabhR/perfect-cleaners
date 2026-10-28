@@ -1,3 +1,4 @@
+import '../lib/firebase-boot';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -7,6 +8,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ThemeProvider, useTheme } from '../theme';
 import { I18nProvider } from '../i18n';
+import { ConnectivityProvider } from '../lib/connectivity';
 import { InterTight_300Light } from '@expo-google-fonts/inter-tight/300Light';
 import { InterTight_400Regular } from '@expo-google-fonts/inter-tight/400Regular';
 import { InterTight_500Medium } from '@expo-google-fonts/inter-tight/500Medium';
@@ -50,8 +52,10 @@ function AppShell() {
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: c.ink }}>
       <SafeAreaProvider>
-        <StatusBar style="dark" />
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.ink } }} />
+        <ConnectivityProvider>
+          <StatusBar style="dark" />
+          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.ink } }} />
+        </ConnectivityProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

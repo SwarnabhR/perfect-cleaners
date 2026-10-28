@@ -15,6 +15,7 @@ import { typography, spacing, radii } from '@pc/tokens';
 import { useThemeColors } from '../../../theme';
 import { useSharedStyles } from '../../../theme/sharedStyles';
 import { Group, Row } from '../../../components/RowGroup';
+import OfflineStrip from '../../../components/OfflineStrip';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -156,6 +157,8 @@ export default function WorkerHome() {
           </Text>
         </TouchableOpacity>
       </View>
+
+      <OfflineStrip />
 
       {/* Society assignment card */}
       {assignedSocieties.length > 0 ? (

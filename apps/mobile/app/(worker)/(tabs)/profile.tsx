@@ -100,9 +100,9 @@ export default function WorkerProfileTab() {
           </View>
 
           <Group header="Account">
-            <Row icon={<Bell     size={14} color={c.fg2} strokeWidth={1.5} />} title="Notifications" value="On" onPress={() => Linking.openSettings()} />
+            <Row icon={<Bell     size={14} color={c.fg2} strokeWidth={1.5} />} title="Notifications" onPress={() => router.push('/(worker)/notifications')} />
             <Row icon={<Shield   size={14} color={c.fg2} strokeWidth={1.5} />} title="Privacy" onPress={() => Linking.openURL('https://perfectcleaners.in/privacy')} />
-            <Row icon={<HelpCircle size={14} color={c.fg2} strokeWidth={1.5} />} title="Help & Support" isLast onPress={() => router.push('/(worker)/settings')} />
+            <Row icon={<HelpCircle size={14} color={c.fg2} strokeWidth={1.5} />} title="Help & Support" isLast onPress={() => Linking.openURL('https://perfectcleaners.in/contact')} />
           </Group>
 
           <View style={s.signOutWrap}>

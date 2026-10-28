@@ -8,7 +8,8 @@ import { typography, spacing, radii } from '@pc/tokens';
 import type { PendingApproval } from '@pc/firebase';
 import AdminScreen from '../../../components/AdminScreen';
 import { useThemeColors } from '../../../theme';
-import { adminPost } from '../../../lib/webApi';
+import { postOrQueue } from '../../../lib/outbox';
+import { useConnectivity } from '../../../lib/connectivity';
 
 type LiveApproval = PendingApproval & { id: string };
 
@@ -34,6 +35,7 @@ function submittedLabel(ts: unknown): string {
 
 export default function ApprovalsScreen() {
   const c = useThemeColors();
+  const { refreshPending } = useConnectivity();
   const [approvals, setApprovals] = useState<LiveApproval[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -69,11 +71,15 @@ export default function ApprovalsScreen() {
     if (saving) return;
     setSaving(true);
     try {
-      const res = await adminPost<{ warnings?: string[] }>('/api/admin/approve-signup', {
+      const res = await postOrQueue<{ warnings?: string[] }>('/api/admin/approve-signup', {
         approvalId: a.id, paymentMethod: method, paymentNotes: notes,
       });
+      if (res.queued) refreshPending();
       setApprovingId(null);
-      if (res.warnings?.length) Alert.alert('Approved with warnings', res.warnings.join('\n'));
+      // Optimistic — the pending signup is approved (or queued) either way.
+      setApprovals(prev => prev.filter(x => x.id !== a.id));
+      if (res.data?.warnings?.length) Alert.alert('Approved with warnings', res.data.warnings.join('\n'));
+      else if (res.queued) Alert.alert('Saved offline', 'This approval will sync when you are back online.');
     } catch (err) {
       Alert.alert('Could not approve', err instanceof Error ? err.message : 'Please try again.');
     } finally {

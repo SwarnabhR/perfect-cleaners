@@ -23,8 +23,8 @@ export default function WorkerStackLayout() {
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.ink } }}>
       <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="job-detail" options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="tower-detail" options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="notifications" options={{ animation: 'slide_from_right' }} />
     </Stack>
   );
 }

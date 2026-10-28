@@ -13,6 +13,7 @@ import type { CarUrgency } from '@pc/firebase';
 import { typography, spacing, radii } from '@pc/tokens';
 import { useThemeColors } from '../../theme';
 import { ScreenHeader } from '../../components/RowGroup';
+import { useConnectivity } from '../../lib/connectivity';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -154,15 +155,59 @@ export default function TowerDetail() {
       });
   }, [uid, societyId, tower]);
 
-  // cars is an ARRAY field — Firestore's dot-path update ('cars.0.status')
-  // does NOT address array elements the way it addresses nested map fields.
-  // It silently replaces the entire `cars` field with a map keyed by that
-  // path segment (e.g. {"0": {"status": "done"}}), destroying every other
-  // car and every other field on the touched car. The only safe way to
-  // change one array element is a transactional read-modify-write of the
-  // whole array, same pattern as the admin Live Cleaning board's markDone
-  // (apps/web/.../live-cleaning/page.tsx) and the customer-unavailability
-  // resync route.
+  // A session's cars[] is an ARRAY field — Firestore's dot-path update
+  // ('cars.0.status') does NOT address array elements the way it addresses
+  // nested map fields. It silently replaces the entire `cars` field with a map
+  // keyed by that path segment, destroying every other car. The only safe way to
+  // change one element is to rewrite the whole array.
+  //
+  // Online: transactional read-modify-write, so a concurrent worker editing the
+  // same session can't be clobbered. Offline: Firestore can't run a transaction
+  // without a server round-trip, so we read the *cached* session and issue a
+  // plain (queueable) update instead — simultaneous offline edits are
+  // last-write-wins, reconciled when the write replays on reconnect.
+  const { isOnline } = useConnectivity();
+
+  const writeSessionCar = useCallback(async (
+    sessionId: string,
+    carIndex: number,
+    patch: Partial<CleaningSessionCar>,
+    logFields?: Record<string, unknown>,
+  ) => {
+    const sessionRef = firestore().collection('cleaningSessions').doc(sessionId);
+    const countedDone = patch.status === 'done';
+    const logRef = logFields ? firestore().collection('cleaningLogs').doc() : null;
+
+    if (isOnline) {
+      await firestore().runTransaction(async transaction => {
+        const snap = await transaction.get(sessionRef);
+        const cars = (snap.data()?.cars ?? []) as CleaningSessionCar[];
+        if (!cars[carIndex]) throw new Error('This car is no longer on the session.');
+        const updatedCars = cars.slice();
+        updatedCars[carIndex] = { ...updatedCars[carIndex], ...patch };
+        transaction.update(sessionRef, {
+          cars: updatedCars,
+          ...(countedDone ? { completedCars: firestore.FieldValue.increment(1) } : {}),
+          updatedAt: firestore.FieldValue.serverTimestamp(),
+        });
+        if (logRef && logFields) transaction.set(logRef, { id: logRef.id, ...logFields });
+      });
+      return;
+    }
+
+    const snap = await sessionRef.get({ source: 'cache' }).catch(() => null);
+    const cars = (snap?.data()?.cars ?? []) as CleaningSessionCar[];
+    if (!cars[carIndex]) return;
+    const updatedCars = cars.slice();
+    updatedCars[carIndex] = { ...updatedCars[carIndex], ...patch };
+    await sessionRef.update({
+      cars: updatedCars,
+      ...(countedDone ? { completedCars: firestore.FieldValue.increment(1) } : {}),
+      updatedAt: firestore.FieldValue.serverTimestamp(),
+    });
+    if (logRef && logFields) await logRef.set({ id: logRef.id, ...logFields }).catch(() => {});
+  }, [isOnline]);
+
   const markCleaning = useCallback(async (sessionId: string, carIndex: number) => {
     setCars(prev => prev.map(cr =>
       cr.sessionId === sessionId && cr.carIndex === carIndex
@@ -170,20 +215,9 @@ export default function TowerDetail() {
         : cr,
     ));
     try {
-      const sessionRef = firestore().collection('cleaningSessions').doc(sessionId);
-      await firestore().runTransaction(async transaction => {
-        const snap = await transaction.get(sessionRef);
-        const cars = (snap.data()?.cars ?? []) as CleaningSessionCar[];
-        if (!cars[carIndex]) return;
-        const updatedCars = cars.slice();
-        updatedCars[carIndex] = { ...updatedCars[carIndex], status: 'in_progress' };
-        transaction.update(sessionRef, {
-          cars: updatedCars,
-          updatedAt: firestore.FieldValue.serverTimestamp(),
-        });
-      });
+      await writeSessionCar(sessionId, carIndex, { status: 'in_progress' });
     } catch {} // optimistic update already applied
-  }, []);
+  }, [writeSessionCar]);
 
   const markDone = useCallback(async (car: SessionCar) => {
     if (marking || !uid || !worker) return;
@@ -191,27 +225,11 @@ export default function TowerDetail() {
     setMarking(key);
 
     try {
-      const sessionRef = firestore().collection('cleaningSessions').doc(car.sessionId);
-      const logRef = firestore().collection('cleaningLogs').doc();
-
-      await firestore().runTransaction(async transaction => {
-        const snap = await transaction.get(sessionRef);
-        const cars = (snap.data()?.cars ?? []) as CleaningSessionCar[];
-        if (!cars[car.carIndex]) throw new Error('This car is no longer on the session.');
-        const updatedCars = cars.slice();
-        updatedCars[car.carIndex] = {
-          ...updatedCars[car.carIndex],
-          status:    'done',
-          cleanedBy: uid,
-          cleanedAt: new Date(),
-        };
-        transaction.update(sessionRef, {
-          cars:          updatedCars,
-          completedCars: firestore.FieldValue.increment(1),
-          updatedAt:     firestore.FieldValue.serverTimestamp(),
-        });
-        transaction.set(logRef, {
-          id:                  logRef.id,
+      await writeSessionCar(
+        car.sessionId,
+        car.carIndex,
+        { status: 'done', cleanedBy: uid, cleanedAt: new Date() },
+        {
           sessionId:           car.sessionId,
           societyId,
           societyName:         '',
@@ -230,14 +248,14 @@ export default function TowerDetail() {
           photoUrls:           [],
           notificationSent:    false,
           billed:              false,
-        });
-      });
+        },
+      );
     } catch (err: any) {
       Alert.alert('Error', err?.message ?? 'Failed to mark car as done.');
     } finally {
       setMarking(null);
     }
-  }, [marking, uid, worker, societyId, tower]);
+  }, [marking, uid, worker, societyId, tower, writeSessionCar]);
 
   const done  = cars.filter(cr => cr.status === 'done').length;
   const total = cars.length;
