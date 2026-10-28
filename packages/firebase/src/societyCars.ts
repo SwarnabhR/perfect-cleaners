@@ -39,6 +39,7 @@ export interface SocietyCarSourceCustomer {
   deepCleanEnabled?: boolean;
   deepCleanDay?: number;
   deepCleanFrequency?: 'weekly' | 'daily' | 'one-time';
+  deepCleanOneTimeScheduledDate?: unknown;
 }
 
 export interface SessionCarDraft {
@@ -68,10 +69,8 @@ export function buildSessionCarsForCustomer(
   scheduledDate: Date,
   sessionType: 'wash' | 'deep-clean' = 'wash',
 ): SessionCarDraft[] {
-  if (sessionType === 'deep-clean' && customer.deepCleanDay !== undefined && scheduledDate.getDay() !== customer.deepCleanDay) return [];
-  if (sessionType === 'deep-clean' && customer.deepCleanFrequency === 'daily' && !customer.preferredCleaningDays?.includes(scheduledDate.getDay())) return [];
   const preferredDays = customer.preferredCleaningDays;
-  if (sessionType !== 'deep-clean' && preferredDays?.length && !preferredDays.includes(scheduledDate.getDay())) return [];
+  if (preferredDays?.length && !preferredDays.includes(scheduledDate.getDay())) return [];
   const vehicles = customer.cars?.length ? customer.cars : [{}];
 
   const isSkipped = (customer.skipDates ?? []).some(d => isSameCalendarDay(toDateSafe(d), scheduledDate));

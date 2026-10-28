@@ -474,7 +474,7 @@ export default function CleaningScheduleScreen() {
 
             {record.deepCleanAvailable && <View style={s.infoCard}>
                   <Text style={s.metaLabel}>DEEP CLEANING ADD-ON{record.deepCleanFee > 0 ? ` · ₹${record.deepCleanFee}` : ''}</Text>
-              <Text style={[s.body, { marginTop: 5 }]}>Choose how often you’d like a deeper clean.</Text>
+                <Text style={[s.body, { marginTop: 5 }]}>Choose how often you’d like a deeper clean. Daily follows your selected society cleaning days.</Text>
               <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
                 {(['weekly', 'daily', 'one-time'] as const).map(frequency => {
                   const selected = record.deepCleanFrequency === frequency;
@@ -486,7 +486,7 @@ export default function CleaningScheduleScreen() {
               {record.deepCleanFrequency === 'weekly' && <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((label, day) => <TouchableOpacity key={day} onPress={() => setRecord({ ...record, deepCleanDay: day })} style={[s.smallBtn, { borderColor: record.deepCleanDay === day ? c.sage : c.line }]}><Text style={[s.smallBtnText, { color: record.deepCleanDay === day ? c.sageHi : c.fg3 }]}>{label}</Text></TouchableOpacity>)}
               </View>}
-              {record.deepCleanFrequency === 'one-time' && <TextInput value={record.deepCleanOneTimeScheduledDate ?? ''} onChangeText={date => setRecord({ ...record, deepCleanOneTimeScheduledDate: date })} placeholder="YYYY-MM-DD" placeholderTextColor={c.fg4} style={[s.timeOptionText, { marginTop: 10, padding: 10, color: c.fg, backgroundColor: c.inkRaised, borderRadius: 8 }]} />}
+              {record.deepCleanFrequency === 'one-time' && <TextInput value={record.deepCleanOneTimeScheduledDate ?? ''} onChangeText={date => setRecord({ ...record, deepCleanOneTimeScheduledDate: date })} placeholder="YYYY-MM-DD" placeholderTextColor={c.fg4} keyboardType="numbers-and-punctuation" style={[s.timeOptionText, { marginTop: 10, padding: 10, color: c.fg, backgroundColor: c.inkRaised, borderRadius: 8 }]} />}
               <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
                 <TouchableOpacity disabled={saving} onPress={() => saveDeepClean({ enabled: false })} style={[s.smallBtn, { borderColor: c.line }]}><Text style={[s.smallBtnText, { color: c.fg3 }]}>TURN OFF</Text></TouchableOpacity>
                 <TouchableOpacity disabled={saving || record.deepCleanFrequency === 'one-time' && !record.deepCleanOneTimeScheduledDate} onPress={() => saveDeepClean({ enabled: true, frequency: record.deepCleanFrequency, day: record.deepCleanDay, date: record.deepCleanOneTimeScheduledDate })} style={[s.smallBtn, { borderColor: record.deepCleanEnabled ? c.sage : c.info }]}><Text style={[s.smallBtnText, { color: record.deepCleanEnabled ? c.sageHi : c.info }]}>{saving ? 'SAVING' : record.deepCleanEnabled ? 'UPDATE PLAN' : 'OPT IN'}</Text></TouchableOpacity>

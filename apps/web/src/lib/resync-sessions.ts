@@ -10,6 +10,10 @@ function tsToDate(v: unknown): Date {
     : new Date(val as string | number | Date);
 }
 
+function isSameCalendarDay(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
 function countCars(cars: Record<string, unknown>[]) {
   const skippedCars = cars.filter(c => c.status === 'skipped').length;
   return { totalCars: cars.length - skippedCars, skippedCars };
@@ -79,31 +83,23 @@ export async function resyncUpcomingSessions(
         // A customer can have more than one vehicle (car + two-wheeler) —
         // each gets its own session entry, matched by plate since customerId
         // alone no longer uniquely identifies a row.
-        if (data.sessionType === 'deep-clean' && record.deepCleanEnabled !== true) {
-          const stale = cars.filter(c => c.customerId === record.customerId && (c.status === 'pending' || c.status === 'skipped'));
-          if (stale.length) {
-            const kept = cars.filter(c => c.customerId !== record.customerId || (c.status !== 'pending' && c.status !== 'skipped'));
-            t.update(sessionDoc.ref, { cars: kept, ...countCars(kept), updatedAt: FieldValue.serverTimestamp() });
-          }
-          return;
-        }
-        if (data.sessionType === 'deep-clean' && record.deepCleanFrequency === 'weekly'
-            && typeof record.deepCleanDay === 'number' && record.deepCleanDay !== scheduledDate.getDay()) {
-          const kept = cars.filter(c => c.customerId !== record.customerId || (c.status !== 'pending' && c.status !== 'skipped'));
-          if (kept.length !== cars.length) t.update(sessionDoc.ref, { cars: kept, ...countCars(kept), updatedAt: FieldValue.serverTimestamp() });
-          return;
-        }
-        if (data.sessionType === 'deep-clean' && record.deepCleanFrequency === 'daily'
-            && record.preferredCleaningDays?.length && !record.preferredCleaningDays.includes(scheduledDate.getDay())) {
-          const kept = cars.filter(c => c.customerId !== record.customerId || (c.status !== 'pending' && c.status !== 'skipped'));
-          if (kept.length !== cars.length) t.update(sessionDoc.ref, { cars: kept, ...countCars(kept), updatedAt: FieldValue.serverTimestamp() });
-          return;
-        }
-        const freshCars = buildSessionCarsForCustomer(
-          data.sessionType === 'deep-clean' ? { ...record, deepCleanEnabled: true } : record,
-          scheduledDate,
-          data.sessionType === 'deep-clean' ? 'deep-clean' : 'wash',
-        );
+        const frequency = (record as SocietyCarSourceCustomer & { deepCleanFrequency?: string }).deepCleanFrequency ?? 'weekly';
+        const oneTimeDate = (record as SocietyCarSourceCustomer & { deepCleanOneTimeScheduledDate?: unknown }).deepCleanOneTimeScheduledDate;
+        const oneTimeMatches = oneTimeDate ? isSameCalendarDay(tsToDate(oneTimeDate), scheduledDate) : false;
+        const dateMatchesDeepPlan = frequency === 'one-time'
+          ? oneTimeMatches
+          : frequency === 'daily'
+            ? !record.preferredCleaningDays?.length || record.preferredCleaningDays.includes(scheduledDate.getDay())
+            : typeof record.deepCleanDay !== 'number' || record.deepCleanDay === scheduledDate.getDay();
+        const freshWashCars = buildSessionCarsForCustomer(record, scheduledDate);
+        const deepPlanActive = record.deepCleanEnabled === true && dateMatchesDeepPlan;
+        const freshDeepCars = deepPlanActive
+          ? buildSessionCarsForCustomer({ ...record, deepCleanEnabled: true }, scheduledDate, 'deep-clean')
+          : [];
+        const freshCars = data.sessionType === 'deep-clean' ? freshDeepCars : [
+          ...freshWashCars,
+          ...freshDeepCars.filter(deep => !freshWashCars.some(wash => wash.carPlate === deep.carPlate)),
+        ];
         const freshPlates = new Set(freshCars.map(f => f.carPlate));
 
         let updatedCars = cars;

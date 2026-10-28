@@ -87,19 +87,12 @@ export async function GET(req: NextRequest) {
         // dynamic route params instead of being decoded back, which 404s. Slug it.
         const towerSlug = String(tower).trim().replace(/\s+/g, '-');
 
-        // Every deep-clean session is generated from each customer's selected plan below.
-        // Every candidate for this tower, wash and deep-clean together, so the
-        // existence check and the writes each cost ONE round trip instead of
-        // one per date. Previously this was a sequential get()+set() per date
-        // per tower — roughly 270 serial round trips across all towers, which
-        // is what pushed the job past cron-jobs.org's 30s limit.
-        const candidates: { sessionId: string; cleaningDate: Date; sessionType: 'wash' | 'deep-clean' }[] = [
-          ...cleaningDates.map(cleaningDate => ({
-            sessionId: `${societyId}_${towerSlug}_${cleaningDate.toISOString().split('T')[0]}`,
-            cleaningDate,
-            sessionType: 'wash' as const,
-          })),
-        ];
+        // One session per tower/date can contain both regular and deep-clean
+        // checklist rows; this avoids ID collisions when a customer selects daily.
+        const candidates = cleaningDates.map(cleaningDate => ({
+          sessionId: `${societyId}_${towerSlug}_${cleaningDate.toISOString().split('T')[0]}`,
+          cleaningDate,
+        }));
         const sourceCustomers = customersSnap.docs.map(d => d.data() as SocietyCarSourceCustomer);
         const activeCandidates = candidates;
 
@@ -120,14 +113,20 @@ export async function GET(req: NextRequest) {
           activeCandidates.forEach((candidate, i) => {
             if (existingSnaps[i].exists) return;
 
-            const cars = buildSessionCars(sourceCustomers, candidate.cleaningDate, candidate.sessionType);
+            const washCars = buildSessionCars(sourceCustomers, candidate.cleaningDate, 'wash');
+            const deepCarsForDate = sourceCustomers
+              .filter(owner => owner.deepCleanEnabled === true && (owner.deepCleanFrequency === 'daily'
+                || owner.deepCleanFrequency === 'one-time' && owner.deepCleanOneTimeScheduledDate && sameDate(owner.deepCleanOneTimeScheduledDate, candidate.cleaningDate)
+                || (owner.deepCleanFrequency ?? 'weekly') === 'weekly' && (owner.deepCleanDay ?? weekdays.slice().sort((a, b) => a - b)[0]) === candidate.cleaningDate.getDay()))
+              .flatMap(owner => buildSessionCars([owner], candidate.cleaningDate, 'deep-clean'));
+            const cars = [...washCars, ...deepCarsForDate.filter(deep => !washCars.some(wash => wash.customerId === deep.customerId && wash.carPlate === deep.carPlate))];
             const skippedCars = cars.filter(c => c.status === 'skipped').length;
 
             batch.set(refs[i], {
               societyId,
               societyName:   config.societyName,
               tower,
-              sessionType:   candidate.sessionType,
+              sessionType:   deepCarsForDate.length ? 'deep-clean' : 'wash',
               scheduledDate: candidate.cleaningDate,
               // The instant this session becomes due. start-sessions queries on
               // this directly — a session written without it would never be
@@ -201,13 +200,24 @@ export async function GET(req: NextRequest) {
       const towerSlug = String(customer.tower).trim().replace(/\s+/g, '-');
       for (const date of dates) {
         const dateKey = date.toISOString().split('T')[0];
-        const sessionId = `${customer.societyId}_${towerSlug}_${dateKey}_deep`;
+        const sessionId = `${customer.societyId}_${towerSlug}_${dateKey}`;
         const ref = db.collection('cleaningSessions').doc(sessionId);
         const startMinutes = towerConfig
           ? resolveTowerStartMinutes(towerConfig as { cleaningTimeMinutes?: number | null; cleaningSchedule?: string })
           : 540;
         const cars = buildSessionCars([source], date, 'deep-clean');
         if (cars.length === 0) continue;
+        const dailyWashDate = frequency === 'daily' && Array.isArray(customer.preferredCleaningDays)
+          && customer.preferredCleaningDays.includes(date.getDay());
+        const towerWashDate = Array.isArray(towerConfig?.cleaningDays)
+          ? towerConfig.cleaningDays.includes(date.getDay())
+          : parseWeekdaysFromSchedule((towerConfig?.cleaningSchedule as string | undefined) ?? '').includes(date.getDay());
+        if (dailyWashDate || towerWashDate) {
+          const regularCars = buildSessionCars([source], date, 'wash');
+          for (const regular of regularCars) {
+            if (!cars.some(car => car.carPlate === regular.carPlate && car.customerId === regular.customerId)) cars.push(regular);
+          }
+        }
         try {
           let created = false;
           await db.runTransaction(async tx => {
@@ -216,9 +226,9 @@ export async function GET(req: NextRequest) {
               const data = existing.data()!;
               if (data.status !== 'scheduled') return;
               const current = (data.cars as Record<string, unknown>[] | undefined) ?? [];
-              const filtered = current.filter(car => car.customerId !== customer.customerId || car.status === 'done' || car.status === 'in_progress');
+              const otherCustomers = current.filter(car => car.customerId !== customer.customerId);
               const keepDone = current.filter(car => car.customerId === customer.customerId && (car.status === 'done' || car.status === 'in_progress'));
-              const merged = [...filtered, ...cars.filter(car => !keepDone.some(done => done.carPlate === car.carPlate)), ...keepDone];
+              const merged = [...otherCustomers, ...cars.filter(car => !keepDone.some(done => done.carPlate === car.carPlate)), ...keepDone];
               const skippedCars = merged.filter(car => car.status === 'skipped').length;
               tx.update(ref, { cars: merged, totalCars: merged.length - skippedCars, skippedCars, updatedAt: FieldValue.serverTimestamp() });
               return;
@@ -226,7 +236,7 @@ export async function GET(req: NextRequest) {
             const skippedCars = cars.filter(car => car.status === 'skipped').length;
             tx.set(ref, {
               societyId: customer.societyId, societyName: customer.societyName ?? '', tower: customer.tower,
-              sessionType: 'deep-clean', scheduledDate: date, startAt: computeSessionStartAt(date, startMinutes),
+              sessionType: dailyWashDate || towerWashDate ? 'wash' : 'deep-clean', scheduledDate: date, startAt: computeSessionStartAt(date, startMinutes),
               status: 'scheduled', cars, totalCars: cars.length - skippedCars, completedCars: 0, skippedCars,
               workerIds, workerNames, createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
             });
@@ -275,4 +285,14 @@ function getCleaningDatesInWindow(startDate: Date, days: number, weekdays: numbe
     if (weekdays.includes(date.getDay())) dates.push(new Date(date));
   }
   return dates;
+}
+
+function sameDate(value: unknown, date: Date): boolean {
+  const raw = value as { toDate?: () => Date } | Date | string | number;
+  const candidate = raw && typeof (raw as { toDate?: () => Date }).toDate === 'function'
+    ? (raw as { toDate: () => Date }).toDate()
+    : new Date(raw as Date | string | number);
+  return candidate.getFullYear() === date.getFullYear()
+    && candidate.getMonth() === date.getMonth()
+    && candidate.getDate() === date.getDate();
 }

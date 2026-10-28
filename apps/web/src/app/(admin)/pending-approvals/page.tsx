@@ -8,7 +8,7 @@ import Eyebrow from '@/components/ui/Eyebrow';
 import Icon from '@/components/ui/Icon';
 import { notifyApproval } from '@/lib/notification';
 
-type LiveApproval = PendingApproval & { id: string };
+type LiveApproval = PendingApproval & { id: string; deepCleanAvailable?: boolean; deepCleanFee?: number };
 
 const DAY_ORDER: DayOfWeek[] = [0, 1, 2, 3, 4, 5, 6];
 const DAY_LABELS: Record<DayOfWeek, string> = { 0: 'Sun', 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat' };
@@ -31,11 +31,23 @@ function firstOfNextMonth(): Date {
 interface ApprovalForm {
   paymentMethod: string;
   paymentNotes: string;
+  deepCleanAvailable: boolean;
+  deepCleanEnabled: boolean;
+  deepCleanFee: number;
+  deepCleanFrequency: 'weekly' | 'daily' | 'one-time';
+  deepCleanDay: number;
+  deepCleanDate: string;
 }
 
 const BLANK_FORM: ApprovalForm = {
   paymentMethod: 'phone',
   paymentNotes: '',
+  deepCleanAvailable: false,
+  deepCleanEnabled: false,
+  deepCleanFee: 0,
+  deepCleanFrequency: 'weekly',
+  deepCleanDay: 1,
+  deepCleanDate: '',
 };
 
 const monoLabel: React.CSSProperties = {
@@ -85,7 +97,11 @@ export default function PendingApprovalsPage() {
 
   function openApprovalForm(approval: LiveApproval) {
     setApprovingId(approval.id);
-    setForm(BLANK_FORM);
+    setForm({
+      ...BLANK_FORM,
+      deepCleanAvailable: !!approval.deepCleanAvailable,
+      deepCleanFee: approval.deepCleanFee ?? 0,
+    });
   }
 
   function closeApprovalForm() {
@@ -109,11 +125,13 @@ export default function PendingApprovalsPage() {
         )
       );
       const billingConfig    = configSnap.docs[0]?.data();
+      const configuredDeepCleanFee = (billingConfig?.deepClean?.fee as number | undefined) ?? 0;
       const tierPricing      = billingConfig?.tierPricing as { normal: number; premium: number; ultra: number } | undefined;
       const monthlyFee       = (approval.tier && tierPricing ? tierPricing[approval.tier] : undefined)
         ?? (billingConfig?.monthlyFee as number | undefined) ?? 500;
       const cleaningSchedule = (billingConfig?.cleaningSchedule as string | undefined) ?? 'Mon, Wed, Fri · 9:00 AM';
-      const deepCleanFee = (billingConfig?.deepClean?.fee as number | undefined) ?? 0;
+      const defaultDeepCleanFee = (billingConfig?.deepClean?.fee as number | undefined) ?? 0;
+      const deepCleanFee = form.deepCleanFee > 0 ? form.deepCleanFee : defaultDeepCleanFee;
 
       // 1. Activate the CustomerSocietyRecord — self-signup (account/cleaning's
       // SelfSignupForm) already created one in 'pending' status with an
@@ -160,9 +178,11 @@ export default function PendingApprovalsPage() {
         status:                'active',
         ...(approval.tier ? { tier: approval.tier } : {}),
         billingFrequency:      (billingConfig?.billingFrequency as SocietyBillingConfig['billingFrequency']) ?? 'monthly',
-        deepCleanEnabled:      !!billingConfig?.deepClean,
-        deepCleanAvailable:    !!billingConfig?.deepClean || deepCleanFee > 0,
-        deepCleanFrequency:    billingConfig?.deepClean?.frequency ?? 'weekly',
+        deepCleanEnabled:      form.deepCleanEnabled || !!billingConfig?.deepClean,
+        deepCleanAvailable:    form.deepCleanAvailable || !!billingConfig?.deepClean || deepCleanFee > 0,
+        deepCleanFrequency:    form.deepCleanFrequency,
+        ...(form.deepCleanFrequency === 'weekly' ? { deepCleanDay: form.deepCleanDay } : {}),
+        ...(form.deepCleanFrequency === 'one-time' && form.deepCleanDate ? { deepCleanOneTimeScheduledDate: new Date(form.deepCleanDate) } : {}),
         deepCleanFee,
         monthlyFee:            monthlyFee + (approval.twoWheelerPlate ? twoWheelerFee : 0),
         nextBillingDate:       firstOfNextMonth(),
@@ -566,6 +586,20 @@ export default function PendingApprovalsPage() {
                     resize: 'vertical',
                   } as React.CSSProperties}
                 />
+              </div>
+
+              <div style={{ borderTop: '1px solid var(--pc-line)', paddingTop: 14 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)' }}>
+                  <input type="checkbox" checked={form.deepCleanAvailable} onChange={e => setForm(f => ({ ...f, deepCleanAvailable: e.target.checked, deepCleanEnabled: e.target.checked ? f.deepCleanEnabled : false }))} />
+                  Offer deep cleaning to this customer
+                </label>
+                {form.deepCleanAvailable && <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
+                  <div><p style={monoLabel}>Fee (₹)</p><input type="number" min="0" value={form.deepCleanFee} onChange={e => setForm(f => ({ ...f, deepCleanFee: Math.max(0, Number(e.target.value) || 0) }))} style={inputStyle} /></div>
+                  <div><p style={monoLabel}>Frequency</p><select value={form.deepCleanFrequency} onChange={e => setForm(f => ({ ...f, deepCleanFrequency: e.target.value as ApprovalForm['deepCleanFrequency'] }))} style={inputStyle}><option value="weekly">Weekly</option><option value="daily">Daily</option><option value="one-time">One-time</option></select></div>
+                  {form.deepCleanFrequency === 'weekly' && <div><p style={monoLabel}>Weekday (0=Sun)</p><select value={form.deepCleanDay} onChange={e => setForm(f => ({ ...f, deepCleanDay: Number(e.target.value) }))} style={inputStyle}>{['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day, index) => <option key={day} value={index}>{day}</option>)}</select></div>}
+                  {form.deepCleanFrequency === 'one-time' && <div><p style={monoLabel}>Service date</p><input type="date" value={form.deepCleanDate} onChange={e => setForm(f => ({ ...f, deepCleanDate: e.target.value }))} style={inputStyle} /></div>}
+                  <label style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'var(--pc-sans)', fontSize: 13, color: 'var(--pc-fg)' }}><input type="checkbox" checked={form.deepCleanEnabled} onChange={e => setForm(f => ({ ...f, deepCleanEnabled: e.target.checked }))} /> Subscribe customer on approval</label>
+                </div>}
               </div>
 
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
