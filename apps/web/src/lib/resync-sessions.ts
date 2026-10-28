@@ -2,6 +2,7 @@ import 'server-only';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminFirestore } from './firebase/admin';
 import { buildSessionCarsForCustomer, type SocietyCarSourceCustomer } from '@pc/firebase';
+import { startOfIstDay } from '@pc/firebase';
 
 function tsToDate(v: unknown): Date {
   const val = v as { toDate?: () => Date } | Date | string | number | undefined;
@@ -72,8 +73,10 @@ export async function resyncUpcomingSessions(
   tower: string,
 ) {
   const db = adminFirestore();
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
+  const startOfToday = startOfIstDay(new Date());
+  const configSnap = await db.collection('societyBillingConfig')
+    .where('societyId', '==', societyId).where('tower', '==', tower).limit(1).get();
+  const configuredDays = configSnap.docs[0]?.data().cleaningDays as number[] | undefined;
 
   const allSessionsSnap = await db.collection('cleaningSessions')
     .where('societyId', '==', societyId)
@@ -83,7 +86,7 @@ export async function resyncUpcomingSessions(
 
   for (const sessionDoc of sessions) {
     const scheduledDate = tsToDate(sessionDoc.data().scheduledDate);
-    if (scheduledDate < startOfToday) continue;
+    if (startOfIstDay(scheduledDate) < startOfToday) continue;
 
     try {
       await db.runTransaction(async (t) => {
@@ -97,6 +100,10 @@ export async function resyncUpcomingSessions(
 
         const cars = (data.cars as Record<string, unknown>[] | undefined) ?? [];
         const record = recordSnap.data() as SocietyCarSourceCustomer;
+        const towerDays = configuredDays?.length ? configuredDays
+          : record.preferredCleaningDays?.length ? record.preferredCleaningDays : [1, 3, 5];
+        const isTowerWashDay = towerDays.includes(scheduledDate.getDay());
+        const customerAllowsWashDay = !record.preferredCleaningDays?.length || record.preferredCleaningDays.includes(scheduledDate.getDay());
         // A customer can have more than one vehicle (car + two-wheeler) —
         // each gets its own session entry, matched by plate since customerId
         // alone no longer uniquely identifies a row.
@@ -106,10 +113,10 @@ export async function resyncUpcomingSessions(
         const dateMatchesDeepPlan = record.deepCleanEnabled === true && (frequency === 'one-time'
           ? oneTimeMatches
           : frequency === 'daily'
-            ? !record.preferredCleaningDays?.length || record.preferredCleaningDays.includes(scheduledDate.getDay())
+            ? towerDays.includes(scheduledDate.getDay())
             : typeof record.deepCleanDay !== 'number' || record.deepCleanDay === scheduledDate.getDay());
         const legacyDeepOnly = data.sessionType === 'deep-clean' && !cars.some(car => car.services);
-        const freshWashCars: Array<Record<string, unknown> & { customerId: string; carPlate: string; services?: Record<string, { status: string }> }> = legacyDeepOnly ? [] : buildSessionCarsForCustomer(record, scheduledDate)
+        const freshWashCars: Array<Record<string, unknown> & { customerId: string; carPlate: string; services?: Record<string, { status: string }> }> = legacyDeepOnly || !isTowerWashDay || !customerAllowsWashDay ? [] : buildSessionCarsForCustomer(record, scheduledDate)
           .map(car => ({ ...car, services: { wash: { status: car.status === 'skipped' ? 'skipped' as const : 'pending' as const } } }));
         const deepPlanActive = record.deepCleanEnabled === true && dateMatchesDeepPlan;
         const freshDeepCars: Array<Record<string, unknown> & { customerId: string; carPlate: string; services?: Record<string, { status: string }> }> = deepPlanActive
@@ -214,8 +221,7 @@ export async function removeCustomerFromScheduledSessions(
 ): Promise<void> {
   if (!customerId) return;
   const db = adminFirestore();
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
+  const startOfToday = startOfIstDay(new Date());
 
   const sessionsSnap = await db.collection('cleaningSessions')
     .where('societyId', '==', societyId)
@@ -225,7 +231,7 @@ export async function removeCustomerFromScheduledSessions(
 
   for (const sessionDoc of sessionsSnap.docs) {
     const scheduledDate = tsToDate(sessionDoc.data().scheduledDate);
-    if (scheduledDate < startOfToday) continue;
+    if (startOfIstDay(scheduledDate) < startOfToday) continue;
 
     try {
       await db.runTransaction(async (t) => {

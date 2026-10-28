@@ -133,7 +133,7 @@ export async function GET(req: NextRequest) {
         const towerSlug = String(tower).trim().replace(/\s+/g, '-');
 
         const sourceCustomers = customersSnap.docs.map(d => ({ ...d.data(), id: d.id }) as SocietyCarSourceCustomer & { id: string });
-        const deepDates = sourceCustomers.flatMap(customer => deepCleanDatesForCustomer(customer, windowStart, 14, customer.preferredCleaningDays?.length ? customer.preferredCleaningDays : weekdays));
+        const deepDates = sourceCustomers.flatMap(customer => deepCleanDatesForCustomer(customer, windowStart, 14, weekdays));
         const allDatesByKey = new Map<string, Date>();
         [...cleaningDates, ...deepDates].forEach(date => allDatesByKey.set(date.toISOString().slice(0, 10), date));
         const candidates = [...allDatesByKey.values()].map(cleaningDate => ({
@@ -143,6 +143,7 @@ export async function GET(req: NextRequest) {
         const activeCandidates = candidates;
 
         if (activeCandidates.length > 0) {
+          const recordsByCustomerId = new Map(sourceCustomers.map(customer => [(customer as SocietyCarSourceCustomer & { id?: string }).customerId, (customer as SocietyCarSourceCustomer & { id?: string }).id]));
           const refs = activeCandidates.map(c => db.collection('cleaningSessions').doc(c.sessionId));
           // select() with no fields fetches document *existence* without any
           // field data — the cars array on an existing session can be large
@@ -159,14 +160,14 @@ export async function GET(req: NextRequest) {
           activeCandidates.forEach((candidate, i) => {
             if (existingSnaps[i].exists) return;
 
-            const washCars = cleaningDates.some(date => sameDate(date, candidate.cleaningDate))
-              ? buildSessionCars(sourceCustomers, candidate.cleaningDate, 'wash') : [];
+            const washOwners = sourceCustomers.filter(owner => cleaningDates.some(date => sameDate(date, candidate.cleaningDate))
+              && (!owner.preferredCleaningDays?.length || owner.preferredCleaningDays.includes(candidate.cleaningDate.getDay())));
+            const washCars = buildSessionCars(washOwners, candidate.cleaningDate, 'wash');
             const deepCarsForDate = sourceCustomers
-              .filter(owner => deepCleanDatesForCustomer(owner, candidate.cleaningDate, 1, owner.preferredCleaningDays?.length ? owner.preferredCleaningDays : weekdays).length > 0)
+              .filter(owner => deepCleanDatesForCustomer(owner, candidate.cleaningDate, 1, weekdays).length > 0)
               .flatMap(owner => buildSessionCars([owner], candidate.cleaningDate, 'deep-clean'));
             const cars = [...washCars];
             for (const deepCar of deepCarsForDate) {
-              const owner = sourceCustomers.find(customer => customer.customerId === deepCar.customerId);
               const existing = cars.findIndex(wash => wash.customerId === deepCar.customerId && wash.carPlate === deepCar.carPlate);
               if (existing >= 0) {
                 cars[existing] = {
@@ -175,14 +176,6 @@ export async function GET(req: NextRequest) {
                 };
               } else {
                 cars.push({ ...deepCar, services: { deepClean: { status: deepCar.status === 'skipped' ? 'skipped' : 'pending' } } });
-              }
-              if (owner?.id) {
-                const skipped = deepCar.status === 'skipped';
-                batch.set(db.collection('customerSocietyRecords').doc(owner.id), {
-                  deepCleanDates: FieldValue.arrayUnion(candidate.cleaningDate),
-                  ...(skipped ? {} : { deepCleanGeneratedDates: FieldValue.arrayUnion(candidate.cleaningDate) }),
-                  updatedAt: FieldValue.serverTimestamp(),
-                }, { merge: true });
               }
             }
             const skippedCars = cars.reduce((total, car) => total + Object.values(car.services ?? {}).filter(task => task.status === 'skipped').length, 0);
@@ -287,8 +280,7 @@ function deepCleanDatesForCustomer(
   }
   if (frequency === 'daily') {
     const everyDay = Array.from({ length: days }, (_, i) => { const d = new Date(startDate); d.setDate(d.getDate() + i); return new Date(d.getFullYear(), d.getMonth(), d.getDate()); });
-    const allowed = customer.preferredCleaningDays?.length ? customer.preferredCleaningDays : towerDays;
-    return everyDay.filter(d => allowed.includes(d.getDay()));
+    return everyDay.filter(d => towerDays.includes(d.getDay()));
   }
   const defaultDay = towerDays.slice().sort((a, b) => a - b)[0] ?? 1;
   return getCleaningDatesInWindow(startDate, days, [customer.deepCleanDay ?? defaultDay]);

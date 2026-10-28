@@ -84,7 +84,8 @@ export async function GET(req: NextRequest) {
             .where('societyId',  '==', record.societyId)
             .where('cleanedAt',  '>=', periodStart)
             .get();
-          baseAmount = (record.monthlyFee as number) * logsSnap.size;
+          const washCount = logsSnap.docs.filter(log => log.data().serviceType !== 'deep-clean' && log.data().deepClean !== true).length;
+          baseAmount = (record.monthlyFee as number) * washCount;
         } else if (baseDue && !baseCycleAlreadyBilled) {
           baseAmount = (record.monthlyFee as number) || 0;
         }

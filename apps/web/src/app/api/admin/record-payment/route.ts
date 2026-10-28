@@ -19,7 +19,11 @@ export async function POST(req: NextRequest) {
         const dueRef = db.collection('customerSocietyRecords').doc(recordId!);
         const due = await tx.get(dueRef);
         if (!due.exists || due.data()?.paymentStatus === 'paid') throw new Error('ALREADY_SETTLED');
+        const pendingBillsQuery = db.collection('billingRecords')
+          .where('customerRecordId', '==', recordId).where('status', '==', 'pending');
+        const pendingBills = await tx.get(pendingBillsQuery);
         tx.update(dueRef, { paymentStatus: 'paid', pendingAmount: 0, updatedAt: FieldValue.serverTimestamp() });
+        pendingBills.docs.forEach(bill => tx.update(bill.ref, { status: 'paid', paidAt: FieldValue.serverTimestamp(), recordedBy: admin.uid }));
       } else {
         const customerRef = db.collection('customers').doc(customerId);
         const customer = await tx.get(customerRef);

@@ -946,12 +946,7 @@ export default function CleaningPage() {
 
   async function savePreferredDays(days: DayOfWeek[]) {
     if (!record || record === 'loading' || days.length === 0) return;
-    setSaving(true);
-    await updateDoc(doc(db, 'customerSocietyRecords', record.id), {
-      preferredCleaningDays: days,
-      updatedAt:             serverTimestamp(),
-    });
-    setSaving(false);
+    await postUnavailability({ action: 'preferredDays', days });
   }
 
   function getRescheduledForDate(date: Date) {

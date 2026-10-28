@@ -17,35 +17,43 @@ export async function GET(req: NextRequest) {
     const db = adminFirestore();
     const recordSnap = await db.collection('customerSocietyRecords')
       .where('customerId', '==', customerId)
-      .limit(1)
       .get();
 
     if (recordSnap.empty) {
       return NextResponse.json({ status: null });
     }
-    const record = recordSnap.docs[0].data();
-
-    // Same deterministic id the schedule builder and generate-sessions cron use.
-    const towerSlug   = String(record.tower ?? '').trim().replace(/\s+/g, '-');
-    const todayIso    = new Date().toISOString().split('T')[0];
-    const sessionId   = `${record.societyId}_${towerSlug}_${todayIso}`;
-    const sessionSnap = await db.collection('cleaningSessions').doc(sessionId).get();
-
-    if (!sessionSnap.exists) {
-      return NextResponse.json({ status: null });
-    }
-
-    const cars = (sessionSnap.data()!.cars as Record<string, unknown>[] | undefined) ?? [];
-    const car  = cars.find(c => c.customerId === customerId);
+    // Session IDs use the scheduled calendar date as YYYY-MM-DD at midnight;
+    // calculate the key in IST so this works during 00:00–05:29 India time on
+    // UTC-hosted deployments too.
+    const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
+    const part = (type: string) => parts.find(value => value.type === type)?.value ?? '';
+    const todayIso = `${part('year')}-${part('month')}-${part('day')}`;
+    const sessionSnaps = await Promise.all(recordSnap.docs.map(recordDoc => {
+      const record = recordDoc.data();
+      const towerSlug = String(record.tower ?? '').trim().replace(/\s+/g, '-');
+      return db.collection('cleaningSessions').doc(`${record.societyId}_${towerSlug}_${todayIso}`).get();
+    }));
+    const cars = sessionSnaps.filter(snap => snap.exists).flatMap(snap => (snap.data()?.cars as Record<string, unknown>[] | undefined) ?? []);
+    const car = cars.find(c => c.customerId === customerId);
 
     if (!car) {
       return NextResponse.json({ status: null });
     }
 
+    const services = (car.services as Record<string, { status?: string; cleanedAt?: { toDate?: () => Date } }> | undefined) ?? {};
+    const wash = services.wash;
+    const deepClean = services.deepClean;
+    const status = car.unavailable ? 'skipped'
+      : wash?.status === 'done' && deepClean?.status === 'done' ? 'done'
+        : wash?.status === 'done' || deepClean?.status === 'done' ? 'partially_done'
+          : wash?.status ?? deepClean?.status ?? car.status ?? 'pending';
+    const cleanedAt = wash?.status === 'done' ? wash.cleanedAt : deepClean?.cleanedAt ?? car.cleanedAt;
+
     return NextResponse.json({
-      status:        car.status ?? 'pending',
+      status,
       preferredTime: car.preferredTime ?? null,
-      cleanedAt:     (car.cleanedAt as { toDate?: () => Date } | undefined)?.toDate?.()?.toISOString() ?? null,
+      services: { wash: wash?.status ?? null, deepClean: deepClean?.status ?? null },
+      cleanedAt:     (cleanedAt as { toDate?: () => Date } | undefined)?.toDate?.()?.toISOString() ?? null,
     });
   } catch (err: unknown) {
     console.error('[session/today/GET]', err);

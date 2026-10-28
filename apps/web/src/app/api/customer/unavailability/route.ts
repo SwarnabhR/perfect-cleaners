@@ -41,7 +41,13 @@ export async function POST(req: NextRequest) {
 
     const update: Record<string, unknown> = { updatedAt: FieldValue.serverTimestamp() };
 
-    if (action === 'toggleSkip') {
+    if (action === 'preferredDays') {
+      const days = body.days as unknown;
+      if (!Array.isArray(days) || days.length === 0 || days.some(day => !Number.isInteger(day) || day < 0 || day > 6)) {
+        return NextResponse.json({ error: 'Choose at least one valid cleaning day.' }, { status: 400 });
+      }
+      update.preferredCleaningDays = [...new Set(days as number[])];
+    } else if (action === 'toggleSkip') {
       const dateRaw = body.date as string | undefined;
       if (!dateRaw) return NextResponse.json({ error: 'date is required.' }, { status: 400 });
       const date = new Date(dateRaw);

@@ -474,7 +474,7 @@ export default function CleaningScheduleScreen() {
 
             {record.deepCleanAvailable && <View style={s.infoCard}>
                   <Text style={s.metaLabel}>DEEP CLEANING ADD-ON{record.deepCleanFee > 0 ? ` · ₹${record.deepCleanFee}` : ''}</Text>
-                <Text style={[s.body, { marginTop: 5 }]}>Choose how often you’d like a deeper clean. Daily follows your selected society cleaning days.</Text>
+                <Text style={[s.body, { marginTop: 5 }]}>Choose how often you’d like a deeper clean. Daily follows the tower cleaning schedule.</Text>
               <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
                 {(['weekly', 'daily', 'one-time'] as const).map(frequency => {
                   const selected = record.deepCleanFrequency === frequency;

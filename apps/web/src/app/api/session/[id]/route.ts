@@ -95,7 +95,7 @@ export async function POST(
   try {
     const { id } = await params;
 
-    // Only authenticated workers may mutate session state
+    // Workers assigned to the session and authenticated admins may mutate it.
     const bearer = (req.headers.get('authorization') ?? '').replace(/^Bearer\s+/, '');
     if (!bearer) return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     const decoded  = await adminAuth().verifyIdToken(bearer);
@@ -103,10 +103,12 @@ export async function POST(
 
     const db = adminFirestore();
     const workerSnap = await db.collection('workers').doc(workerId).get();
-    if (!workerSnap.exists) {
+    const adminSnap = workerSnap.exists ? null : await db.collection('admins').doc(workerId).get();
+    const isAdmin = !!adminSnap?.exists;
+    if (!workerSnap.exists && !isAdmin) {
       return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
     }
-    const workerName = (workerSnap.data()?.name as string | undefined) ?? 'Worker';
+    const workerName = (workerSnap.data()?.name as string | undefined) ?? (isAdmin ? 'Admin' : 'Worker');
 
     const ref = db.collection('cleaningSessions').doc(id);
 
@@ -119,7 +121,7 @@ export async function POST(
     const sessionData      = sessionSnap.data();
     const sessionWorkerIds = (sessionData?.workerIds as string[] | undefined) ?? [];
     const isAssignedWorker = sessionWorkerIds.includes(workerId);
-    if (!isAssignedWorker) {
+    if (!isAssignedWorker && !isAdmin) {
       return NextResponse.json({ error: 'Forbidden.' }, { status: 403 });
     }
 
@@ -198,6 +200,28 @@ export async function POST(
         });
         const wasScheduled    = data.status === 'scheduled';
 
+        // A one-time deep clean is billed when completed, so a mid-month
+        // appointment does not wait for the next monthly billing run. The
+        // record flag and deterministic invoice ID make this idempotent with
+        // the scheduled-billing fallback.
+        let oneTimeDeepBill: { recordRef: FirebaseFirestore.DocumentReference; billRef: FirebaseFirestore.DocumentReference; record: FirebaseFirestore.DocumentData; amount: number } | null = null;
+        if (service === 'deepClean') {
+          const customerRecords = await t.get(db.collection('customerSocietyRecords').where('customerId', '==', customerId).where('societyId', '==', data.societyId));
+          const customerRecord = customerRecords.docs.find(doc => doc.data().deepCleanEnabled === true && doc.data().deepCleanFrequency === 'one-time' && doc.data().deepCleanOneTimeBilled !== true);
+          if (customerRecord) {
+            const scheduled = (data.scheduledDate as { toDate?: () => Date } | undefined)?.toDate?.() ?? new Date();
+            const billingId = `${customerRecord.id}_${scheduled.toISOString().slice(0, 10)}_deep`;
+            const billRef = db.collection('billingRecords').doc(billingId);
+            const billSnap = await t.get(billRef);
+            if (!billSnap.exists) oneTimeDeepBill = {
+              recordRef: customerRecord.ref,
+              billRef,
+              record: customerRecord.data(),
+              amount: Number(customerRecord.data().deepCleanFee ?? 0),
+            };
+          }
+        }
+
         const sessionUpdate: Record<string, unknown> = {
           cars:          updatedCars,
           ...(addedDone ? { completedCars: FieldValue.increment(addedDone) } : {}),
@@ -212,6 +236,29 @@ export async function POST(
           sessionUpdate.completedAt = FieldValue.serverTimestamp();
         }
         t.update(ref, sessionUpdate);
+
+        if (oneTimeDeepBill && oneTimeDeepBill.amount > 0) {
+          const bill = oneTimeDeepBill;
+          t.set(bill.billRef, {
+            customerRecordId: bill.recordRef.id,
+            customerId,
+            societyId: data.societyId,
+            societyName: data.societyName,
+            tower: data.tower,
+            amount: bill.amount,
+            serviceType: 'deep-clean',
+            description: 'One-time deep cleaning',
+            status: 'pending',
+            billedAt: FieldValue.serverTimestamp(),
+            dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+          });
+          t.update(bill.recordRef, {
+            deepCleanOneTimeBilled: true,
+            paymentStatus: 'pending_payment',
+            pendingAmount: FieldValue.increment(bill.amount),
+            updatedAt: FieldValue.serverTimestamp(),
+          });
+        }
 
         // The cleaningLog is what feeds the billing cron, the "car cleaned"
         // notification, the customer's cleaning history, and star ratings —
@@ -245,12 +292,14 @@ export async function POST(
           billed:               false,
         });
 
-        t.update(db.collection('workers').doc(workerId), {
-          totalJobs:          FieldValue.increment(1),
+        if (workerSnap.exists) t.update(db.collection('workers').doc(workerId), {
+          // Job totals are car-level, matching carsCompletedToday even when a
+          // car has both wash and deep-clean tasks.
+          totalJobs:          FieldValue.increment(rowDone && cars[idx].status !== 'done' ? 1 : 0),
           carsCompletedToday: FieldValue.increment(rowDone && cars[idx].status !== 'done' ? 1 : 0),
         });
 
-        if (car.customerPhone) {
+        if (rowDone && car.customerPhone) {
           notifyCar = {
             phone:       car.customerPhone as string,
             name:        (car.customerName as string | undefined) || 'there',
@@ -345,6 +394,8 @@ export async function POST(
         delete task.cleanedAt;
         task.status = 'pending';
         services[loggedService] = task;
+        const priorRequiredTasks = Object.values(services).filter(item => item.status !== 'skipped');
+        const wasRowDone = priorRequiredTasks.length > 0 && priorRequiredTasks.every(item => item.status === 'done');
         const requiredTasks = Object.values(services).filter(item => item.status !== 'skipped');
         const rowDone = requiredTasks.length > 0 && requiredTasks.every(item => item.status === 'done');
         restoredCar.services = services;
@@ -369,9 +420,9 @@ export async function POST(
         }
         t.update(ref, sessionUpdate);
         t.delete(logRef);
-        t.update(db.collection('workers').doc(workerId), {
-          totalJobs:          FieldValue.increment(-1),
-          carsCompletedToday: FieldValue.increment(rowDone ? -1 : 0),
+        if (workerSnap.exists) t.update(db.collection('workers').doc(workerId), {
+          totalJobs:          FieldValue.increment(wasRowDone ? -1 : 0),
+          carsCompletedToday: FieldValue.increment(wasRowDone ? -1 : 0),
         });
 
         response = {
@@ -430,8 +481,9 @@ export async function POST(
 
         const targetTasks = target.services as Record<string, { status?: string }> | undefined;
         const unavailableCount = targetTasks
-          ? Object.values(targetTasks).filter(task => task.status !== 'skipped').length
+          ? Object.values(targetTasks).filter(task => task.status !== 'skipped' && task.status !== 'done').length
           : 1;
+        if (targetTasks && Object.values(targetTasks).some(task => task.status === 'done')) throw new Error('CAR_ALREADY_DONE');
         const totalCars     = (data.totalCars as number | undefined) ?? cars.length;
         const completedCars = (data.completedCars as number | undefined) ?? 0;
 

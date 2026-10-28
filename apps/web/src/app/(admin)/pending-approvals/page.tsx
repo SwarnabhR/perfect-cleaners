@@ -178,7 +178,7 @@ export default function PendingApprovalsPage() {
         status:                'active',
         ...(approval.tier ? { tier: approval.tier } : {}),
         billingFrequency:      (billingConfig?.billingFrequency as SocietyBillingConfig['billingFrequency']) ?? 'monthly',
-        deepCleanEnabled:      form.deepCleanEnabled || !!billingConfig?.deepClean,
+        deepCleanEnabled:      form.deepCleanEnabled && (form.deepCleanAvailable || !!billingConfig?.deepClean),
         deepCleanAvailable:    form.deepCleanAvailable || !!billingConfig?.deepClean || deepCleanFee > 0,
         deepCleanFrequency:    form.deepCleanFrequency,
         ...(form.deepCleanFrequency === 'weekly' ? { deepCleanDay: form.deepCleanDay } : {}),

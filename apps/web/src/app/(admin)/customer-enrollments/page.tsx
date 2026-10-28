@@ -431,7 +431,7 @@ function CustomerFormModal({
           status:           'active',
           billingFrequency: (billingConfig?.billingFrequency as CustomerSocietyRecord['billingFrequency']) ?? 'monthly',
           deepCleanAvailable: form.deepCleanAvailable || !!billingConfig?.deepClean,
-          deepCleanEnabled: form.deepCleanEnabled || !!billingConfig?.deepClean,
+          deepCleanEnabled: form.deepCleanEnabled && (form.deepCleanAvailable || !!billingConfig?.deepClean),
           deepCleanFee: form.deepCleanFee || (billingConfig?.deepClean?.fee as number | undefined) || 0,
           deepCleanFrequency: form.deepCleanFrequency,
           ...(form.deepCleanFrequency === 'one-time' && form.deepCleanOneTimeScheduledDate ? { deepCleanOneTimeScheduledDate: new Date(form.deepCleanOneTimeScheduledDate) } : {}),

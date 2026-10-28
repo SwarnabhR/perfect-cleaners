@@ -82,7 +82,9 @@ export async function POST(req: NextRequest) {
       status: 'active',
       ...(approval.tier ? { tier: approval.tier } : {}),
       billingFrequency: (billingConfig?.billingFrequency as string | undefined) ?? 'monthly',
-      deepCleanEnabled: !!billingConfig?.deepClean,
+      // Availability is inherited from the tower; subscription remains an
+      // explicit customer/admin choice and is never enabled by approval.
+      deepCleanEnabled: approval.deepCleanEnabled === true,
       deepCleanAvailable: !!billingConfig?.deepClean || (billingConfig?.deepClean?.fee ?? 0) > 0,
       deepCleanFrequency: billingConfig?.deepClean?.frequency ?? 'weekly',
       deepCleanFee: billingConfig?.deepClean?.fee ?? 0,
