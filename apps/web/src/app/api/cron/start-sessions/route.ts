@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminFirestore } from '@/lib/firebase/admin';
 import { runMonitoredCron } from '@/lib/cron-monitor';
-import { startOfIstDay } from '@pc/firebase';
+import { startOfIstDay } from '@pc/firebase/src/sessionTime';
 
 // Runs every 5 minutes but almost always matches nothing, so it finishes in
 // well under a second. The limit is stated rather than inherited.

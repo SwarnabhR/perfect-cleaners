@@ -8,7 +8,7 @@ import { CheckCircle2, Circle, Loader } from 'lucide-react-native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import type { Worker, CleaningSessionCar } from '@pc/firebase';
-import { getCarUrgency } from '@pc/firebase';
+import { getCarUrgency } from '@pc/firebase/src/worker';
 import type { CarUrgency } from '@pc/firebase';
 import { typography, spacing, radii } from '@pc/tokens';
 import { useThemeColors } from '../../theme';

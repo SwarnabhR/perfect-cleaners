@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminFirestore, adminAuth } from '@/lib/firebase/admin';
 import { sendAndStoreSMS } from '@/lib/notify-sms';
-import { startOfIstDay } from '@pc/firebase';
+import { startOfIstDay } from '@pc/firebase/src/sessionTime';
 import { requireAdmin } from '@/lib/admin-server-auth';
 
 /**

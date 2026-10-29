@@ -1,29 +1,33 @@
 import type { Metadata } from 'next';
-import { Instrument_Serif, Inter_Tight, JetBrains_Mono } from 'next/font/google';
+import localFont from 'next/font/local';
 import { Analytics } from '@vercel/analytics/next';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { I18nProvider } from '@/i18n';
 import { CustomerAuthProvider } from '@/lib/auth/CustomerAuthContext';
 import './globals.css';
 
-const serif = Instrument_Serif({
-  subsets:  ['latin'],
-  weight:   '400',
+const serif = localFont({
+  src:      './fonts/InstrumentSerif-Regular.ttf',
   variable: '--font-serif',
   display:  'swap',
 });
 
-// Load one extra weight (700) now that sans covers all label/mono contexts too
-const sans = Inter_Tight({
-  subsets:  ['latin'],
-  weight:   ['400', '500', '600', '700'],
+const sans = localFont({
+  src: [
+    { path: './fonts/InterTight-Regular.ttf', weight: '400' },
+    { path: './fonts/InterTight-Medium.ttf', weight: '500' },
+    { path: './fonts/InterTight-SemiBold.ttf', weight: '600' },
+    { path: './fonts/InterTight-Bold.ttf', weight: '700' },
+  ],
   variable: '--font-sans',
   display:  'swap',
 });
 
-const mono = JetBrains_Mono({
-  subsets: ['latin'],
-  weight: ['400', '500'],
+const mono = localFont({
+  src: [
+    { path: './fonts/JetBrainsMono-Regular.ttf', weight: '400' },
+    { path: './fonts/JetBrainsMono-Medium.ttf', weight: '500' },
+  ],
   variable: '--font-mono',
   display: 'swap',
 });

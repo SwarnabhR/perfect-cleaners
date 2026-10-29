@@ -1,8 +1,8 @@
 import 'server-only';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminFirestore } from './firebase/admin';
-import { buildSessionCarsForCustomer, type SocietyCarSourceCustomer } from '@pc/firebase';
-import { startOfIstDay } from '@pc/firebase';
+import { buildSessionCarsForCustomer, type SocietyCarSourceCustomer } from '@pc/firebase/src/societyCars';
+import { startOfIstDay } from '@pc/firebase/src/sessionTime';
 
 function tsToDate(v: unknown): Date {
   const val = v as { toDate?: () => Date } | Date | string | number | undefined;

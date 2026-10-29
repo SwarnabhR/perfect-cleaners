@@ -9,7 +9,7 @@ import { Building2 } from 'lucide-react-native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import type { Worker } from '@pc/firebase';
-import { getAssignedSocieties, resolveTowerGroups } from '@pc/firebase';
+import { getAssignedSocieties, resolveTowerGroups } from '@pc/firebase/src/worker';
 import type { TowerGroupSummary } from '@pc/firebase';
 import { typography, spacing, radii } from '@pc/tokens';
 import { useThemeColors } from '../../../theme';

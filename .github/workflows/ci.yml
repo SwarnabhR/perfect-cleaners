@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_BASE_URL: https://ci.perfectcleaners.invalid
+      NEXT_PUBLIC_FIREBASE_API_KEY: ci-build-only
+      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ci.perfectcleaners.invalid
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: ci-build-only
+      NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ci-build-only.invalid
+      NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '000000000000'
+      NEXT_PUBLIC_FIREBASE_APP_ID: '1:000000000000:web:ci-build-only'
+      NEXT_PUBLIC_MSG91_WIDGET_ID: ci-build-only
+      NEXT_PUBLIC_MSG91_WIDGET_TOKEN: ci-build-only
+      EXPO_PUBLIC_FIREBASE_API_KEY: ci-build-only
+      EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: ci.perfectcleaners.invalid
+      EXPO_PUBLIC_FIREBASE_PROJECT_ID: ci-build-only
+      EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET: ci-build-only.invalid
+      EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '000000000000'
+      EXPO_PUBLIC_FIREBASE_APP_ID: '1:000000000000:android:ci-build-only'
+      EXPO_PUBLIC_RAZORPAY_KEY_ID: rzp_test_ci
+      EXPO_PUBLIC_WEB_API_URL: https://ci.perfectcleaners.invalid
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Use the locked npm version
+        run: npm install --global npm@11.12.1
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - name: Bundle Android app
+        run: npx expo export --platform android --output-dir dist
+        working-directory: apps/mobile
+      - name: Build web app
+        run: npm run build --workspace web -- --webpack

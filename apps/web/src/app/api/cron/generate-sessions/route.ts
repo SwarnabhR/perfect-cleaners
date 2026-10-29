@@ -2,7 +2,8 @@ import { toErrMsg } from '@/lib/api-error';
 import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminFirestore } from '@/lib/firebase/admin';
-import { buildSessionCars, computeSessionStartAt, resolveTowerStartMinutes, type SocietyCarSourceCustomer } from '@pc/firebase';
+import { buildSessionCars, type SocietyCarSourceCustomer } from '@pc/firebase/src/societyCars';
+import { computeSessionStartAt, resolveTowerStartMinutes } from '@pc/firebase/src/sessionTime';
 import { runMonitoredCron } from '@/lib/cron-monitor';
 
 // This job fans out over every tower and two weeks of dates. It now issues a
