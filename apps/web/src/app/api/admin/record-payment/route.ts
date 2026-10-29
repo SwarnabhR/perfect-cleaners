@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     const payment = db.collection('paymentLogs').doc();
     await db.runTransaction(async tx => {
       const stats = db.doc('stats/income');
-      const statsSnap = await tx.get(stats);
+      await tx.get(stats); // read first so the transaction locks the stats doc
       if (kind === 'society') {
         const dueRef = db.collection('customerSocietyRecords').doc(recordId!);
         const due = await tx.get(dueRef);

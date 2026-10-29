@@ -1,22 +1,13 @@
 'use client';
 import Link from 'next/link';
-import Image from 'next/image';
 import LogoMark from '@/components/ui/LogoMark';
 import Eyebrow from '@/components/ui/Eyebrow';
-import Icon from '@/components/ui/Icon';
 import { useI18n } from '@/i18n';
 import styles from './Footer.module.css';
 
 const QUICK_LINKS_HREFS  = ['/services', '/services/exterior', '/services/interior', '/services/coating', '/terms', '/privacy'];
 const OFFICIAL_HREFS     = [undefined, 'tel:+9197711241629', undefined] as (string | undefined)[];
 const BOOKING_HREFS      = ['/for-societies', '/for-societies'];
-
-const SOCIAL_LINKS = [
-  { icon: 'camera',  href: 'https://instagram.com', ariaLabel: 'Instagram' },
-  { icon: 'phone',   href: 'tel:+9197711241629',     ariaLabel: 'Call us'   },
-  { icon: 'shield',  href: '/about',                ariaLabel: 'About'     },
-  { icon: 'star',    href: '/about',                ariaLabel: 'About us'  },
-] as const;
 
 export default function Footer() {
   const { lang, setLang, t } = useI18n();

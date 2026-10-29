@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
 // Razorpay is disabled for now — no live account/keys, and payment collection
 // currently happens by phone (admin calls the customer), not online
 // self-checkout. Route kept in place, real logic commented out, so it's a
 // straightforward flip back on once real keys exist.
-export async function POST(_req: NextRequest) {
+export async function POST() {
   return NextResponse.json(
     { error: 'Online payment is temporarily unavailable. Our team will contact you to collect payment.' },
     { status: 503 },

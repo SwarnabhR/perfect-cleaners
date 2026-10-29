@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { collection, query, where, getDocs, onSnapshot, doc, runTransaction, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, runTransaction } from 'firebase/firestore';
 import { db, auth, resolveTowerGroups, getCarUrgency, getSessionDayBucket, buildCarSearchMatcher } from '@pc/firebase';
 import type { CleaningSession, CleaningSessionCar, TowerGroupSummary, CarUrgency, CarDueBucket, VehicleCategory } from '@pc/firebase';
 import Card from '@/components/ui/Card';

@@ -15,7 +15,7 @@ const NAV = [
 ] as const;
 
 function WorkerShell({ children }: { children: React.ReactNode }) {
-  const { worker, loading, signOut } = useWorkerAuth();
+  const { worker, loading } = useWorkerAuth();
   const pathname = usePathname();
 
   if (pathname === '/worker/login') return <>{children}</>;

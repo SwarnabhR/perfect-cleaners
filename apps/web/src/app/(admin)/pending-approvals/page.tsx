@@ -125,7 +125,6 @@ export default function PendingApprovalsPage() {
         )
       );
       const billingConfig    = configSnap.docs[0]?.data();
-      const configuredDeepCleanFee = (billingConfig?.deepClean?.fee as number | undefined) ?? 0;
       const tierPricing      = billingConfig?.tierPricing as { normal: number; premium: number; ultra: number } | undefined;
       const monthlyFee       = (approval.tier && tierPricing ? tierPricing[approval.tier] : undefined)
         ?? (billingConfig?.monthlyFee as number | undefined) ?? 500;

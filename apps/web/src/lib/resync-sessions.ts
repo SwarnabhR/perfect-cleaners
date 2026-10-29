@@ -129,7 +129,6 @@ export async function resyncUpcomingSessions(
           if (existing < 0) freshCars.push(deep);
           else freshCars[existing] = { ...freshCars[existing], services: { ...freshCars[existing].services, ...(deep.services?.deepClean ? { deepClean: deep.services.deepClean } : {}) } };
         }
-        const freshPlates = new Set(freshCars.map(f => f.carPlate));
 
         let updatedCars = cars;
         let changed = false;

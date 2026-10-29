@@ -7,7 +7,7 @@ import { adminFirestore, adminMessaging, adminAuth } from '@/lib/firebase/admin'
 // Sends an FCM push + writes an in-app notification on the worker doc.
 export async function POST(req: NextRequest) {
   try {
-    const { bookingId, workerId, workerName, serviceIds, customerName, address, scheduledAt } =
+    const { bookingId, workerId, serviceIds, customerName, address, scheduledAt } =
       await req.json();
 
     if (!bookingId || !workerId) {

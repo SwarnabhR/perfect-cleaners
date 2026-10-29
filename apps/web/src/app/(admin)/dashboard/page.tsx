@@ -31,11 +31,6 @@ function formatTime(ts: MaybeTimestamp): string {
   return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 }
 
-function todayString(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
 // Build a 14-day sparkline from booking createdAt timestamps.
 function buildSparkline(bookings: LiveBooking[], W = 800, H = 200): { line: string; fill: string; labels: string[] } {
   const DAYS = 14;

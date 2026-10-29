@@ -144,7 +144,6 @@ export async function GET(req: NextRequest) {
         const activeCandidates = candidates;
 
         if (activeCandidates.length > 0) {
-          const recordsByCustomerId = new Map(sourceCustomers.map(customer => [(customer as SocietyCarSourceCustomer & { id?: string }).customerId, (customer as SocietyCarSourceCustomer & { id?: string }).id]));
           const refs = activeCandidates.map(c => db.collection('cleaningSessions').doc(c.sessionId));
           // select() with no fields fetches document *existence* without any
           // field data — the cars array on an existing session can be large

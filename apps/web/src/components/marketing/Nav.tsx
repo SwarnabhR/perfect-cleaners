@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Icon from '@/components/ui/Icon';
-import Image from 'next/image';
 import LogoMark from '@/components/ui/LogoMark';
 import { useTheme } from '@/components/ThemeProvider';
 import { useI18n } from '@/i18n';

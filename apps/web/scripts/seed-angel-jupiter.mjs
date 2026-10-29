@@ -49,15 +49,9 @@ const db = getFirestore();
 const SOCIETY_NAME = 'Angel Jupiter';
 const TOWERS = ['Tower C', 'Tower D'];
 const WORKER_ID = 'FV09wMOZytZKtA2sLhRC1ZI8a212';
-const WORKER_NAME = 'Anil';
 const MONTHLY_FEE = 500;
 const CLEANING_DAYS = [1, 2, 3, 4, 5]; // Mon-Fri
 const PARKING_LEVELS = ['Ground', 'Basement 1', 'Basement 2'];
-// One of these per resident — "random on different days" per the source list;
-// picked by hand here (not Math.random()) so the seeded schedule is stable
-// and reviewable rather than different every time this script is re-run.
-const TIME_SLOTS = [8, 8.5, 9, 9.5, 10];
-
 const RESIDENTS = [
   // Basement 2
   { tower: 'Tower D', unit: 'D-1403', parkingNumber: 'P231', parkingLevel: 'Basement 2', time: 8,
