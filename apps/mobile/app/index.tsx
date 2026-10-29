@@ -11,7 +11,6 @@ import { cacheRole, resolveRole } from '../lib/role';
 
 const KEY_ONBOARDING = '@pc/onboarding';
 const KEY_ROLE       = '@pc/role';
-const DEMO_UID = 'demo-user';
 
 // Firestore reads reject when offline with no cache, but a slow/flaky link could
 // otherwise leave the splash spinning — bound each network-dependent step so the
@@ -36,8 +35,6 @@ export default function Index() {
 
     const unsubscribe = auth().onAuthStateChanged(async user => {
       if (!user) { router.replace('/(auth)/login'); return; }
-      if (user.uid === DEMO_UID) { router.replace('/(customer)/(tabs)'); return; }
-
       try {
         const [cachedOnboarding, cachedRole] = await Promise.all([
           AsyncStorage.getItem(KEY_ONBOARDING),

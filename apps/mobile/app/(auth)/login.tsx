@@ -31,11 +31,6 @@ export default function LoginScreen() {
     if (!ready || loading) return;
     setLoading(true);
     try {
-      if (phone === '0000000000') {
-        setPendingConfirmation(null);
-        router.push({ pathname: '/(auth)/otp', params: { phone, verificationId: 'demo' } });
-        return;
-      }
       const confirmation = await auth().signInWithPhoneNumber(`+91${phone}`);
       setPendingConfirmation(confirmation);
       router.push({ pathname: '/(auth)/otp', params: { phone, verificationId: confirmation.verificationId } });

@@ -6,7 +6,8 @@ import { adminFirestore } from './firebase/admin';
 import { CRON_TASKS, CRON_TASK_MAX_AGE_MINUTES, type CronTaskName } from './cron-tasks';
 
 export function isAuthorizedCron(req: NextRequest): boolean {
-  return req.headers.get('authorization') === `Bearer ${process.env.CRON_SECRET}`;
+  const secret = process.env.CRON_SECRET;
+  return Boolean(secret) && req.headers.get('authorization') === `Bearer ${secret}`;
 }
 
 // SMS alerting is disabled for now (OPERATIONS_ALERT_PHONE isn't in use) —

@@ -57,23 +57,20 @@ export default function OTPScreen() {
     setLoading(true);
     try {
       const code = digits.join('');
-      if (verificationId === 'demo') {
-        if (code !== '000000') throw new Error('Invalid demo code. Use 000000.');
-      } else {
-        const conf = getPendingConfirmation();
-        if (!conf) throw new Error('Session expired. Please go back and try again.');
-        await conf.confirm(code);
+      const conf = getPendingConfirmation();
+      if (!conf || conf.verificationId !== verificationId) {
+        throw new Error('Session expired. Please go back and request a new code.');
       }
+      await conf.confirm(code);
 
       // Use uid from the now-confirmed auth session
       const uid = auth().currentUser?.uid;
-      if (uid) {
-        const staffRole = await resolveRole(uid);
-        if (staffRole !== 'customer') {
-          await cacheRole(staffRole);
-          router.replace(staffRole === 'admin' ? '/(admin)/(tabs)' : '/(worker)/(tabs)');
-          return;
-        }
+      if (!uid) throw new Error('Phone verification did not create a signed-in session. Please try again.');
+      const staffRole = await resolveRole(uid);
+      if (staffRole !== 'customer') {
+        await cacheRole(staffRole);
+        router.replace(staffRole === 'admin' ? '/(admin)/(tabs)' : '/(worker)/(tabs)');
+        return;
       }
 
       const existing = await AsyncStorage.getItem('@pc/onboarding');

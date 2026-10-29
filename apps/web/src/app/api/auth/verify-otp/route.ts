@@ -10,6 +10,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid request.' }, { status: 400 });
     }
 
+    const msg91AuthKey = process.env.MSG91_AUTH_KEY;
+    if (!msg91AuthKey) {
+      console.error('[verify-otp] MSG91_AUTH_KEY is not configured');
+      return NextResponse.json({ error: 'Phone verification is temporarily unavailable.' }, { status: 503 });
+    }
+
     // Verify the MSG91 access token server-side
     let verifyData: { type?: string; mobile?: unknown } & Record<string, unknown>;
     try {
@@ -19,7 +25,7 @@ export async function POST(req: NextRequest) {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            authkey:        process.env.MSG91_AUTH_KEY,
+            authkey:        msg91AuthKey,
             'access-token': msg91Token,
           }),
         },
