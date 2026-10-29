@@ -10,7 +10,7 @@ import { X, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { colors, typography, spacing, radii } from '@pc/tokens';
 
 const COMPARATOR_H_MARGIN = spacing[5] * 2;
-const BRAND_HERO = require('../../../../design-system/assets/brand-hero.png');
+const BRAND_HERO = require('../../assets/brand-hero.png');
 
 export default function BeforeAfterViewer() {
   const [pos, setPos] = useState(56);

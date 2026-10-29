@@ -11,7 +11,7 @@ import { useThemeColors } from '../../../theme';
 import { useSharedStyles } from '../../../theme/sharedStyles';
 import TabTopBar from '../../../components/TabTopBar';
 
-const BRAND_HERO = require('../../../../../design-system/assets/brand-hero.png');
+const BRAND_HERO = require('../../../assets/brand-hero.png');
 
 const SERVICES = [
   {
